@@ -1,0 +1,20 @@
+language: julia
+os:
+  - linux
+julia:
+  - 0.6
+  - 0.7
+  - 1.0
+  - nightly
+notifications:
+  email: false
+matrix:
+  allow_failures:
+    - julia: 0.7
+    - julia: 1.0
+    - julia: nightly
+script:
+  - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
+  - julia --check-bounds=yes -e 'Pkg.clone(pwd()); Pkg.test("ApproxManifoldProducts"; coverage=true)'
+after_success:
+  - julia -e 'cd(Pkg.dir("ApproxManifoldProducts")); Pkg.add("Coverage"); using Coverage; Codecov.submit(process_folder())'
