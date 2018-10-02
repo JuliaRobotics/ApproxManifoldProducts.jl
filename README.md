@@ -14,5 +14,11 @@ Approximate the product between infinite functional objects on a manifold -- i.e
 **Note** this package is still under development.  For Julia 0.6, please run:
 
 ```julia
-Pkg.add("ApproxManifoldProducts")
+Pkg.clone("https://github.com/JuliaRobotics/ApproxManifoldProducts.jl.git")
+```
+
+For Julia 0.7 and 1.0 please run (press ']' in Julia REPL):
+
+```julia
+pkg> clone https://github.com/JuliaRobotics/ApproxManifoldProducts.jl.git
 ```
