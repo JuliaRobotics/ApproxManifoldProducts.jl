@@ -45,7 +45,7 @@ end
 #
 # s[1,1]*u[:,2]
 
-@testset "test with 3 components on basic Euclidean line..."
+@testset "test with 3 components on basic Euclidean line..." begin
 
 Lambdas = [Λ1; Λ2; Λ3]
 mus = [μ1; μ2; μ3]
@@ -56,8 +56,6 @@ mus = [μ1; μ2; μ3]
 @test abs(μ[1] - 2.0) < 1e-10
 
 @test abs(Λ - 10/4) < 1e-10
-
-
 
 
 end
