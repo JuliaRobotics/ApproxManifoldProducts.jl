@@ -22,6 +22,7 @@ res[1] = resid2DLinear(x, mus, Lambdas)
 end
 
 function get2DMu(mus, Lambdas)
+  # TODO: can be solved as the null space basis, but requires proper scaling
   gg = (res, x) -> solveresid2DLinear(res, x, mus, Lambdas)
   r = NLsolve.nlsolve(gg, [0.0])
   return r.zero
