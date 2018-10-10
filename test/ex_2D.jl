@@ -1,7 +1,7 @@
 # first example 2D
 
 using ApproxManifoldProducts
-using Base: Test
+using Test
 
 
 Λ1 = 1.0

@@ -1,7 +1,7 @@
 # tests for ApproxManifoldProducts.jl
 
 using ApproxManifoldProducts
-using Base: Test
+using Test
 
 include("ex_2D.jl")
 
