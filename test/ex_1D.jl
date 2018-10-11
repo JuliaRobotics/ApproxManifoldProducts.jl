@@ -3,6 +3,7 @@
 using ApproxManifoldProducts
 using Test
 
+const AMP = ApproxManifoldProducts
 
 Λ1 = 1.0
 Λ2 = 0.25
