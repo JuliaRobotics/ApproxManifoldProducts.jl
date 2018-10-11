@@ -13,7 +13,7 @@ using Test
 μ3 = 2.4
 
 
-@testset "basic linear 2D find mu and Lambdas Gaussian product test..." begin
+@testset "basic linear 1D find mu and Lambdas Gaussian product test..." begin
 
 Lambdas = [Λ1; Λ2]
 mus = [μ1; μ2]
@@ -45,7 +45,7 @@ end
 #
 # s[1,1]*u[:,2]
 
-@testset "test with 3 components on basic Euclidean line..." begin
+@testset "test 1D with 3 components on basic Euclidean line..." begin
 
 Lambdas = [Λ1; Λ2; Λ3]
 mus = [μ1; μ2; μ3]
