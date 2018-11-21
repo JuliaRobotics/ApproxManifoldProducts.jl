@@ -161,6 +161,39 @@ end
 
 
 
+# draw resdidual objective for delta angles
+using Gadfly
+
+# Two means 0 and -pi, should have two minima at +- pi/2
+# Three means at 0, +-2pi/3, should have three minima at +-pi/3 and -pi
+
+
+th = range(-pi, stop=pi, length=100)
+
+μ1 = 0.0
+μ2 = -pi+0.0
+mus = [μ1; μ2; μ3]
+
+Λ1 = 1.0
+Λ2 = 1.0
+Lambdas = [Λ1; Λ2; Λ3]
+
+
+obj = map((x) -> resid2DLinear(x, mus, Lambdas, diffop=difftheta), th)
+
+X = zeros(length(obj))
+Y = zeros(length(obj))
+i = 0
+for t in th
+  i += 1
+  X[i] = cos(t)*obj[i]
+  Y[i] = sin(t)*obj[i]
+end
+
+plot(x=X, y=Y, Geom.path)
+
+
+
 
 # resid2DLinear(-1.05, mus, Lambdas, diffop=difftheta)
 
