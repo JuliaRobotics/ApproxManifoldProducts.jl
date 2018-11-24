@@ -13,6 +13,7 @@ export
   get2DMu,
   get2DMuMin,
   resid2DLinear,
+  solveresid2DLinear!,
   solveresid2DLinear,
   ManifoldBelief,
   MB,
@@ -59,27 +60,38 @@ function resid2DLinear(μ, mus, Lambdas; diffop::Function=-)  # '-' exploits Euc
   return ret
 end
 
-# import ApproxManifoldProducts: resid2DLinear, solveresid2DLinear
-function solveresid2DLinear(res, x, mus, Lambdas; diffop::Function=-)
+function solveresid2DLinear!(res, x, mus, Lambdas; diffop::Function=-)::Nothing
   res[1] = resid2DLinear(x, mus, Lambdas, diffop=diffop)
+  nothing
 end
 
-function get2DMu(mus, Lambdas; diffop::Function=-, initrange::Tuple{Float64, Float64}=(-1e-5,1e-5) )
+# import ApproxManifoldProducts: resid2DLinear, solveresid2DLinear
+function solveresid2DLinear(res, x, mus, Lambdas; diffop::Function=-)::Float64
+  solveresid2DLinear!(res, x, mus, Lambdas, diffop=diffop)
+  return res[1]
+end
+
+
+function get2DMu(mus, Lambdas; diffop::Function=-, periodicmanifold::Function=(x)->x, initrange::Tuple{Float64, Float64}=(-1e-5,1e-5) )::Float64
   # TODO: can be solved as the null space basis, but requires proper scaling
-  gg = (res, x) -> solveresid2DLinear(res, x, mus, Lambdas, diffop=diffop)
-  r = NLsolve.nlsolve(gg, [initr*rand()+initrange[1]])
-  return r.zero
+  gg = (res, x) -> solveresid2DLinear!(res, x, mus, Lambdas, diffop=diffop)
+  initr = initrange[2]-initrange[1]
+  x0 = [initr*rand()+initrange[1]]
+  r = NLsolve.nlsolve(gg, x0)
+  xs = sign(r.zero[1] - x0[1])*1e-3 .+ r.zero
+  r = NLsolve.nlsolve(gg, xs)
+  return periodicmanifold(r.zero[1])
 end
 
 
-function get2DMuMin(mus, Lambdas; diffop::Function=-, initrange::Tuple{Float64, Float64}=(-1e-5,1e-5), method=Optim.Newton() )
+function get2DMuMin(mus, Lambdas; diffop::Function=-, periodicmanifold::Function=(x)->x, initrange::Tuple{Float64, Float64}=(-1e-5,1e-5), method=Optim.Newton() )::Float64
   # TODO: can be solved as the null space basis, but requires proper scaling
   res = zeros(1)
   gg = (x) -> (solveresid2DLinear(res, x, mus, Lambdas, diffop=diffop))^2
   initr = initrange[2]-initrange[1]
   x0 = [initr*rand()+initrange[1]]
   r = Optim.optimize(gg, x0, method)
-  return r.minimizer
+  return periodicmanifold(r.minimizer[1])
 end
 
 end
