@@ -169,8 +169,8 @@ end
 
 
 
-#
-# ## plot residual and solution for validation
+
+## plot residual and solution for validation
 # using Colors
 # using Gadfly
 #
@@ -181,13 +181,19 @@ end
 # Λ1 = 1.0
 # Λ2 = 1.0
 # Λ3 = 1.0
-#
-# # Λ1 = 1.0
-# # Λ2 = 2.0
-# # Λ3 = 0.25
-#
+
+# Λ1 = 1.0
+# Λ2 = 2.0
+# Λ3 = 0.25
+
 # mus = [μ1; μ2; μ3]
 # Lambdas = [Λ1; Λ2; Λ3]
+#
+# μ1 = 0.0
+# μ2 = -pi+0.0
+#
+# mus = [μ1; μ2]
+# Lambdas = [Λ1; Λ2]
 #
 # th = range(-pi, stop=pi-1e-5, length=1000)
 # obj = map((x) -> resid2DLinear(x, mus, Lambdas, diffop=difftheta), th)

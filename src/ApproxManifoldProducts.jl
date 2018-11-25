@@ -94,4 +94,8 @@ function get2DMuMin(mus, Lambdas; diffop::Function=-, periodicmanifold::Function
   return periodicmanifold(r.minimizer[1])
 end
 
+
+
+
+
 end
