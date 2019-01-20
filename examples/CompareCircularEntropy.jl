@@ -19,7 +19,7 @@ pts = randn(100)
 # N = length(pts)
 CV  = zeros(100)
 global i_global = 0
-BW= range(0.1, 1.0, length=100)
+BW= range(0.05, 1.0, length=100)
 for bw in BW
     global i_global
     i_global += 1
@@ -61,12 +61,13 @@ end
 
 plot(
     layer(x=BW, y=CV, Geom.line, Theme(default_color=colorant"red")),
-    layer(x=BW, y=-PD.+0.1, Geom.line, Theme(default_color=colorant"blue"))
+    layer(x=BW, y=-PD.+0.1, Geom.line, Theme(default_color=colorant"blue")),
+    # layer(x=BW, y=CV+PD, Geom.line, Theme(default_color=colorant"magenta"))
 )
 
 
 plot(
-    layer(x=BW, y=CV+PD, Geom.line, Theme(default_color=colorant"red")),
+    layer(x=BW, y=CV+PD, Geom.line, Theme(default_color=colorant"magenta"))
 )
 
 

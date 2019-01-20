@@ -27,10 +27,11 @@ end
 function rbf!(ret::AV,
               x::Float64,
               μ::Float64=0.0,
-              σ::Float64=1.0   )::Nothing  where {AV <: AbstractVector}
+              σ::Float64=1.0,
+              diffop::Function=-)::Nothing  where {AV <: AbstractVector}
     #
     ret[1] = 0.0
-    normDistAccAt!(ret, 1, x-μ, σ)
+    normDistAccAt!(ret, 1, diffop(x,μ), σ)
     nothing
 end
 
@@ -44,14 +45,18 @@ end
 
 
 
-function looCrossValidation(pts::Array, bw::Float64; own=true)
+function looCrossValidation(pts::Array,
+                            bw::Float64;
+                            own::Bool=true,
+                            diffop::Function=-  )
+    #
     N = maximum(size(pts))
     reci_N = 1.0/(N-1)
     h = [bw;]
     loo = zeros(N)
     @inbounds for i in 1:N
         if !own
-            # validation testing
+            # validation version
             pts99 = pts[[1:(i-1);(i+1):end]]
             p99 = kde!(pts99, h)
             loo[i] = log(p99([pts[i];])[1])
@@ -60,7 +65,8 @@ function looCrossValidation(pts::Array, bw::Float64; own=true)
             loo[i] = 0.0
             for j in 1:N
                 if i != j
-                    normDistAccAt!(loo, i, pts[i]-pts[j], bw, reci_N)
+                    basisdist = diffop(pts[i], pts[j])
+                    normDistAccAt!(loo, i, basisdist, bw, reci_N)
                 end
             end
             loo[i] = log(loo[i])
