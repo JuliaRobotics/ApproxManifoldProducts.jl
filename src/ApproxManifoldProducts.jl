@@ -51,7 +51,7 @@ function *(PP::Vector{MB{EuclideanManifold,BallTreeDensity}})
 end
 
 
-get2DLambda(Lambdas) = sum(Lambdas)
+get2DLambda(Lambdas::Vector{Float64})::Float64 = sum(Lambdas)
 
 function resid2DLinear(μ, mus, Lambdas; diffop::Function=-)  # '-' exploits EuclideanManifold commutativity a-b = b-a
   dμ = broadcast(diffop, μ, mus)  # mus .- μ  ## μ .\ mus
