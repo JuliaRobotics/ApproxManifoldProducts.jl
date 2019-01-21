@@ -8,10 +8,20 @@ using KernelDensityEstimate
 using Gadfly, Colors
 using Distributions
 
+using TransformUtils
+
+const TU = TransformUtils
+
+
+logmap_SO2(Rl::Matrix{Float64}) = sign(Rl[2,1])*acos(Rl[1,1])
+difftheta(wth1::Float64, wth2::Float64)::Float64 = logmap_SO2(TU.R(wth1)'*TU.R(wth2))
+
 
 
 # some test points to work with
 pts = randn(100)
+pts = TU.wrapRad.(randn(100) .- pi)
+
 
 
 # p = kde!(pts)
@@ -23,14 +33,14 @@ BW= range(0.05, 1.0, length=100)
 for bw in BW
     global i_global
     i_global += 1
-    CV[i_global] = looCrossValidation(pts, bw, own=true)
+    CV[i_global] = looCrossValidation(pts, bw, own=true, diffop=difftheta)
 end
 
 
 
 BW[findfirst(CV .== maximum(CV))]
 
-getBW(kde!(pts))[1,1]
+# getBW(kde!(pts))[1,1]
 
 
 
@@ -50,75 +60,6 @@ end
 
 
 
-
-
-##
-
-
-# plot(y=loo, Geom.point)
-
-
-
-plot(
-    layer(x=BW, y=CV, Geom.line, Theme(default_color=colorant"red")),
-    layer(x=BW, y=-PD.+0.1, Geom.line, Theme(default_color=colorant"blue")),
-    # layer(x=BW, y=CV+PD, Geom.line, Theme(default_color=colorant"magenta"))
-)
-
-
-plot(
-    layer(x=BW, y=CV+PD, Geom.line, Theme(default_color=colorant"magenta"))
-)
-
-
-
-
-plot(rbf, -5.0, 5.0)
-
-
-PP = kde!([0.0;], [1.0])
-
-PP = kde!(pts, [1.0])
-
-
-gg = (x)->PP([x;])[1]
-
-plot(gg, -5.0, 5.0)
-
-
-
-
-0
-
-## characterize computation times
-
-using BenchmarkTools
-
-# function rbftimetest()
-
-val1 = [0.0;]
-val2 = [0.0;]
-
-@btime rbf!(val1, 0.9, 0.0, 1.0);
-
-nn = Normal()
-
-# gg = (x::Float64) -> pdf(nn, x)  # even slower with additional allocation
-
-@btime val2[1] = pdf(nn, 0.9);
-
-    # return val1[1], val2[1]
-# end
-# rbftimetest()
-
-
-
-
-
-
-
-
-
 ## optimize the KDE bandwidth
 
 using Optim
@@ -128,22 +69,25 @@ using Optim
 lower = 0.001
 upper = 10.0
 
-pts = 10.0.+randn(100)
+# pts = 10.0.+randn(100)
 
-minEntropyLOOCV = (bw) -> -looCrossValidation(pts, bw)
+minEntropyLOOCV = (bw) -> -looCrossValidation(pts, bw, own=true, diffop=difftheta)
 
 # TODO Compare Optim.GoldenSection vs KDE.golden
 @time res = optimize(minEntropyLOOCV, lower, upper, GoldenSection(), x_tol=0.001)
 
-@time kde!(pts)
+bw = res.minimizer
 
 
-res.minimizer
+pc = kde!(pts, [bw])
 
 
-getBW(kde!(pts))[1,1]
+gg = (x)->pc([x;])[1]
+
+arr = [gg;]
 
 
+pl = plotCircBeliefs(arr)
 
 
 
