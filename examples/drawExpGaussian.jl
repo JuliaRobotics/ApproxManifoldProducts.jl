@@ -46,7 +46,6 @@ gg = (x)->pc([x;])[1]
 
 arr = [gg;]
 
-
 pl = plotCircBeliefs(arr)
 
 #

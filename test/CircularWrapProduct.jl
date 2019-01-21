@@ -1,5 +1,4 @@
-# Test naive implementation of entropy calculations towards efficient calculation of entropy on a manifold
-
+## Test first circular product computations
 
 include(joinpath(dirname(@__FILE__), "circularEntropyUtils.jl"))
 
@@ -13,15 +12,41 @@ using TransformUtils
 using Optim
 
 const TU = TransformUtils
+const KDE = KernelDensityEstimate
 
+# Define circular manifold
 
 logmap_SO2(Rl::Matrix{Float64}) = sign(Rl[2,1])*acos(Rl[1,1])
 difftheta(wth1::Float64, wth2::Float64)::Float64 = logmap_SO2(TU.R(wth1)'*TU.R(wth2))
 
 
+## test product of just two Gaussian products
+
+mus = [-0.1;0.1]
+lams = [100.0; 100.0]
+
+la = KDE.getEuclidLambda(lams)
+mu = KDE.getEuclidMu(mus, lams)
+
+
+mus = [-pi+0.1;pi-0.1]
+lams = [100.0; 100.0]
+
+la = KDE.getEuclidLambda(lams)
+mu = KDE.getEuclidMu(mus, lams)
+
+
+
+
+
+
+
+
+
+## Include entropy calculations for bandwidth determination
 
 # some test points to work with
-pts = 0.3*randn(30)
+pts = 0.1*randn(100)
 pts = [pts; TU.wrapRad.(0.6*randn(70) .- pi)]
 shuffle!(pts)
 
