@@ -1,10 +1,12 @@
 ## Test first circular product computations
 
-include(joinpath(dirname(@__FILE__), "circularEntropyUtils.jl"))
+using DocStringExtensions
 
+include(joinpath(dirname(@__FILE__), "..", "examples", "circularEntropyUtils.jl"))
 
 using KernelDensityEstimate
 using Gadfly, Colors
+using ApproxManifoldProducts
 using Distributions
 using Random
 
@@ -22,13 +24,14 @@ difftheta(wth1::Float64, wth2::Float64)::Float64 = logmap_SO2(TU.R(wth1)'*TU.R(w
 
 ## test product of just two Gaussian products
 
+# example with correct linear product
 mus = [-0.1;0.1]
 lams = [100.0; 100.0]
 
 la = KDE.getEuclidLambda(lams)
 mu = KDE.getEuclidMu(mus, lams)
 
-
+# example with incorrect linear product
 mus = [-pi+0.1;pi-0.1]
 lams = [100.0; 100.0]
 
@@ -46,7 +49,7 @@ mu = KDE.getEuclidMu(mus, lams)
 ## Include entropy calculations for bandwidth determination
 
 # some test points to work with
-pts = 0.1*randn(100)
+pts = 0.1*randn(30)
 pts = [pts; TU.wrapRad.(0.6*randn(70) .- pi)]
 shuffle!(pts)
 

@@ -1,10 +1,11 @@
 # Test naive implementation of entropy calculations towards efficient calculation of entropy on a manifold
 
+using DocStringExtensions
+using KernelDensityEstimate
 
 include(joinpath(dirname(@__FILE__), "circularEntropyUtils.jl"))
 
 
-using KernelDensityEstimate
 using Gadfly, Colors
 using Distributions
 
@@ -112,8 +113,12 @@ nn = Normal()
 
 
 
-
-
+# nn = Normal()
+#
+# plot(
+# layer((x)->kde!(pts)([x;])[1], -5,5),
+# layer((x)->pdf(nn,x), -5,5)
+# )
 
 
 

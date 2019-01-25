@@ -67,6 +67,40 @@ BUPS = Float64[get2DMuMin(mus, Lambdas, diffop=difftheta, periodicmanifold=wrapR
 end
 
 
+
+@testset "binary near wrap..." begin
+
+# expect \mu = 5pi/6
+μ1 = -2.6
+μ2 = 2.6
+
+Λ1 = 10.0
+Λ2 = 10.0
+
+Lambdas = [Λ1; Λ2]
+mus = [μ1; μ2]
+
+
+μ = get2DMuMin(mus, Lambdas, diffop=difftheta, initrange=(-pi+0.0,pi+0.0), periodicmanifold=wrapRad)[1]
+TU.wrapRad(μ)
+
+# doesn't seem to work
+# μ = get2DMu(mus, Lambdas, diffop=difftheta, periodicmanifold=wrapRad)
+
+N = 1000
+
+BUPS = Float64[get2DMuMin(mus, Lambdas, diffop=difftheta, periodicmanifold=wrapRad)[1] for i in 1:N]
+# BUPS[:] .= TU.wrapRad.(BUPS)
+
+
+@test 0.3*N < sum( 0 .< BUPS .< 3pi/2.0)
+@test 0.3*N < sum( -3pi/2 .< BUPS .< 0.0)
+@test sum( -0.1 .< BUPS .< 0.1) < 0.01*N
+
+# plot(x=BUPS, Geom.histogram)
+
+end
+
 @testset "fanning ternary means..." begin
 
 μ1 = 0.0

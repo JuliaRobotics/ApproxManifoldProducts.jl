@@ -1,10 +1,10 @@
 # Test naive implementation of entropy calculations towards efficient calculation of entropy on a manifold
 
+using DocStringExtensions
+using KernelDensityEstimate
 
 include(joinpath(dirname(@__FILE__), "circularEntropyUtils.jl"))
 
-
-using KernelDensityEstimate
 using Gadfly, Colors
 using Distributions
 using Random
@@ -14,10 +14,12 @@ using Optim
 
 const TU = TransformUtils
 
+using ApproxManifoldProducts
 
 logmap_SO2(Rl::Matrix{Float64}) = sign(Rl[2,1])*acos(Rl[1,1])
 difftheta(wth1::Float64, wth2::Float64)::Float64 = logmap_SO2(TU.R(wth1)'*TU.R(wth2))
 
+addtheta(wth1::Float64, wth2::Float64) = TU.wrapRad( wth1+wth2 )
 
 
 # some test points to work with
@@ -38,13 +40,18 @@ for bw in BW
     CV[i_global] = looCrossValidation(pts, bw, own=true, diffop=difftheta)
 end
 
+plot(x=BW, y=CV, Geom.line)
+
 
 
 BW[findfirst(CV .== maximum(CV))]
 
 # getBW(kde!(pts))[1,1]
 
+# what we want
+# pc = kde!(pts, bw, mani=S1)
 
+# evaluate(pc)
 
 ## do the same with
 
@@ -82,13 +89,24 @@ bw = res.minimizer
 
 pc = kde!(pts, [bw])
 
+plotKDECircular(pc)
 
-gg = (x)->pc([x;])[1]
+# gg = (x)->pc([x;])[1]
+# arr = [gg;]
+# pl = plotCircBeliefs(arr)
 
-arr = [gg;]
 
 
-pl = plotCircBeliefs(arr)
+## Construct circular KDE
+
+pc2 = kde!_CircularNaiveCV(pts)
+
+
+getBW(pc2)[:,1]
+
+
+plotKDECircular(pc2)
+
 
 
 

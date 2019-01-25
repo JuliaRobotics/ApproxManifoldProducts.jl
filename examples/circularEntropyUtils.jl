@@ -3,6 +3,14 @@
 
 global const reci_s2pi=1.0/sqrt(2.0*pi) # 1.0/2.5066282746310002
 
+"""
+    $SIGNATURES
+
+Probability density function `p(x)`, as estimated by kernels
+```math
+hatp_{-j}(x) = 1/(N-1) Σ_{i != j}^N frac{1}{sqrt{2pi}σ } exp{ -frac{(x-μ)^2}{2 σ^2} }
+```
+"""
 function normDistAccAt!(ret::AV,
                         idx::Int,
                         x::Float64,
@@ -43,15 +51,72 @@ function rbf(x::Float64, μ::Float64=0.0, σ::Float64=1.0)
 end
 
 
+"""
+    $SIGNATURES
 
+Evalute the KDE naively as equally weighted Gaussian kernels with common bandwidth.
+This function does, however, allow on-manifold evaluations.
+"""
+function evaluateManifoldNaive1D!(ret::Vector{Float64},
+                                  idx::Int,
+                                  pts::Array{Float64,1},
+                                  bw::Float64,
+                                  x::Array{Float64,1},
+                                  loo::Int=-1,
+                                  diffop=-  )::Nothing
+    #
+    dontskip = loo == -1
+    N = length(pts)
+    reci_N = dontskip ? 1.0/N : 1.0/(N-1)
+    for j in 1:N
+        if dontskip || loo != j
+            manifolddist = diffop(pts[loo], pts[j])
+            normDistAccAt!(ret, idx, manifolddist, bw, reci_N)
+        end
+    end
 
+    return nothing
+end
+function evaluateManifoldNaive1D!(ret::Vector{Float64},
+                                  idx::Int,
+                                  bd::BallTreeDensity,
+                                  x::Array{Float64,1},
+                                  loo::Int=-1,
+                                  diffop=-  )::Nothing
+    #
+    evaluateManifoldNaive1D!(ret, idx, getPoints(bd)[:], getBW(bd)[1,1], x, loo, diffop )
+end
+
+"""
+    $SIGNATURES
+
+Calculate negative entropy with leave one out (j'th element) cross validation.
+
+Background
+==========
+
+From: Silverman, B.: Density Estimation for Statistics and Data Analysis, 1986, p.52
+
+Probability density function `p(x)`, as estimated by kernels
+```math
+hatp_{-j}(x) = 1/(N-1) Σ_{i != j}^N frac{1}{sqrt{2pi}σ } exp{ -frac{(x-μ)^2}{2 σ^2} }
+```
+and has Cross Validation number as the average log evaluations of leave one out `hatp_{-j}(x)`:
+```math
+CV(p) = 1/N Σ_i^N log hat{p}_{-j}(x_i)
+```
+
+This quantity `CV` is related to an entropy `H(p)` estimate via:
+```math
+H(p) = -CV(p)
+```
+"""
 function looCrossValidation(pts::Array,
                             bw::Float64;
                             own::Bool=true,
                             diffop::Function=-  )
     #
     N = maximum(size(pts))
-    reci_N = 1.0/(N-1)
     h = [bw;]
     loo = zeros(N)
     @inbounds for i in 1:N
@@ -63,12 +128,7 @@ function looCrossValidation(pts::Array,
         else
             # own naive entropy calculation
             loo[i] = 0.0
-            for j in 1:N
-                if i != j
-                    basisdist = diffop(pts[i], pts[j])
-                    normDistAccAt!(loo, i, basisdist, bw, reci_N)
-                end
-            end
+            evaluateManifoldNaive1D!(loo, i, pts, bw, pts, i, diffop)
             loo[i] = log(loo[i])
         end
     end
@@ -76,7 +136,27 @@ function looCrossValidation(pts::Array,
 end
 
 
+function kde!_CircularNaiveCV(points::A) where {A <: AbstractArray{Float64,1}}
 
+  # initial setup parameters
+  dims = 1 # size(points,1)
+  bwds = zeros(dims)
+  # initial testing values
+  lower = 0.001
+  upper = 2pi
+
+  # excessive for loop for leave one out likelihiood cross validation (Silverman 1986, p.52)
+  for i in 1:dims
+    minEntropyLOOCV = (bw) -> -looCrossValidation(points, bw, own=true, diffop=difftheta)
+    res = optimize(minEntropyLOOCV, lower, upper, GoldenSection(), x_tol=0.001)
+    bwds[i] = res.minimizer
+  end
+
+  # cosntruct the kde with CV optimized bandwidth
+  p = kde!(points, bwds)
+
+  return p
+end
 
 
 #
