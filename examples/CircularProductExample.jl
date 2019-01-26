@@ -31,7 +31,7 @@ addtheta(wth1::Float64, wth2::Float64) = TU.wrapRad( wth1+wth2 )
 
 # manifold get Gaussian products mean
 
-getCircMu = (m::Vector{Float64}, s::Vector{Float64}) -> TU.wrapRad(get2DMuMin(m, s, diffop=difftheta, initrange=(-pi+0.0,pi+0.0)))
+getCircMu = (m::Vector{Float64}, s::Vector{Float64}, dummy::Float64) -> TU.wrapRad(get2DMuMin(m, s, diffop=difftheta, initrange=(-pi+0.0,pi+0.0)))
 
 
 

@@ -86,15 +86,16 @@ function get2DMu(mus, Lambdas; diffop::Function=-, periodicmanifold::Function=(x
 end
 
 
-function get2DMuMin(mus, Lambdas; diffop::Function=-, periodicmanifold::Function=(x)->x, initrange::Tuple{Float64, Float64}=(-1e-5,1e-5), method=Optim.Newton() )::Float64
+function get2DMuMin(mus, Lambdas; diffop::Function=-, periodicmanifold::Function=(x)->x, initrange::Tuple{Float64, Float64}=(-1e-5,1e-5), method=Optim.Newton(), Λμ::Bool=false )::Float64
   # TODO: can be solved as the null space basis, but requires proper scaling
   res = zeros(1)
-  @show round.(mus, digits=3)
+  # @show round.(mus, digits=3)
   gg = (x) -> (solveresid2DLinear(res, x, mus, Lambdas, diffop=diffop))^2
   initr = initrange[2]-initrange[1]
+  # TODO -- do we need periodicmanifold here?
   x0 = [initr*rand()+initrange[1]]
   r = Optim.optimize(gg, x0, method)
-  @show r.minimizer[1]
+  # @show r.minimizer[1]
   return periodicmanifold(r.minimizer[1])
 end
 
