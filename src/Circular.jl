@@ -1,6 +1,9 @@
 # Circular Manifold definition and associated arithmetic
 
 
+
+
+
 struct Circular <: Manifold
   dof::Int
   addop::Function
@@ -43,6 +46,25 @@ function get2DMuMin(mus, Lambdas; diffop::Function=-, periodicmanifold::Function
   # @show r.minimizer[1]
   return periodicmanifold(r.minimizer[1])
 end
+
+
+
+
+
+# struct SO2Manifold <: Manifold
+# end
+#
+#
+# # should not be defined in AMP, since we want IIF indepent of manifolds
+# function *(PP::Vector{MB{SO2Manifold,B}}) where B
+#   @info "taking manifold product of $(length(PP)) terms"
+#   @warn "SO2Manifold: work in progress"
+# end
+#
+# mbr1 = ManifoldBelief(SO2Manifold, 0.0)
+# mbr2 = ManifoldBelief(SO2Manifold, 0.0)
+#
+# *([mbr1;mbr2])
 
 
 

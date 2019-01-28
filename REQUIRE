@@ -1,6 +1,9 @@
 julia 0.7
 NLsolve 0.14.1
 Optim
-KernelDensityEstimate 0.4.0
+KernelDensityEstimate 0.4.2
+CoordinateTransformations
+TransformUtils
 Reexport
 Requires
+DocStringExtensions

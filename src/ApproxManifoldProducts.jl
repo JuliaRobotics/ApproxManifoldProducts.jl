@@ -3,13 +3,14 @@ module ApproxManifoldProducts
 using Reexport
 @reexport using KernelDensityEstimate
 
-using CoordinateTransformations
-using TransformUtils
-
 using Requires
+using DocStringExtensions
 
 using NLsolve
 using Optim
+using CoordinateTransformations
+using TransformUtils
+
 
 import Base: *
 
@@ -38,6 +39,7 @@ export
 include("Interface.jl")
 include("CommonUtils.jl")
 include("Euclidean.jl")
+include("CircularUtils.jl")
 include("Circular.jl")
 
 

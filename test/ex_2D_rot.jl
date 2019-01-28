@@ -5,31 +5,16 @@ using LinearAlgebra
 using ApproxManifoldProducts
 
 using TransformUtils
-
 const TU = TransformUtils
 
 # using Gadfly
 
-import ApproxManifoldProducts: *
-
-struct SO2Manifold <: Manifolds
-end
 
 
-# should not be defined in AMP, since we want IIF indepent of manifolds
-function *(PP::Vector{MB{SO2Manifold,B}}) where B
-  @info "taking manifold product of $(length(PP)) terms"
-  @warn "SO2Manifold: work in progress"
-end
 
-mbr1 = ManifoldBelief(SO2Manifold, 0.0)
-mbr2 = ManifoldBelief(SO2Manifold, 0.0)
-
-*([mbr1;mbr2])
-
-
-logmap_SO2(Rl::Matrix{Float64}) = sign(Rl[2,1])*acos(Rl[1,1])
-difftheta(wth1::Float64, wth2::Float64)::Float64 = logmap_SO2(TU.R(wth1)'*TU.R(wth2))
+#
+# logmap_SO2(Rl::Matrix{Float64}) = sign(Rl[2,1])*acos(Rl[1,1])
+# difftheta(wth1::Float64, wth2::Float64)::Float64 = logmap_SO2(TU.R(wth1)'*TU.R(wth2))
 
 
 #assume an unwrapped circle
