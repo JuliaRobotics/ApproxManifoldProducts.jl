@@ -3,12 +3,19 @@ module ApproxManifoldProducts
 using Reexport
 @reexport using KernelDensityEstimate
 
+using CoordinateTransformations
+using TransformUtils
+
 using Requires
 
 using NLsolve
 using Optim
 
 import Base: *
+
+const KDE = KernelDensityEstimate
+const TUs = TransformUtils
+const CTs = CoordinateTransformations
 
 export
   get2DLambda,
@@ -31,7 +38,7 @@ export
 include("Interface.jl")
 include("CommonUtils.jl")
 include("Euclidean.jl")
-include("Circular")
+include("Circular.jl")
 
 
 function __init__()

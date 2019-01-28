@@ -1,6 +1,17 @@
 # Test naive implementation of entropy calculations towards efficient calculation of entropy on a manifold
 
 
+export
+  logmap_SO2,
+  difftheta,
+  addtheta,
+  rbfAccAt!,
+  rbf!,
+  rbf,
+  evaluateManifoldNaive1D!,
+  manifoldLooCrossValidation,
+  kde!_CircularNaiveCV
+
 global const reci_s2pi=1.0/sqrt(2.0*pi) # 1.0/2.5066282746310002
 
 
@@ -127,7 +138,7 @@ This quantity `CV` is related to an entropy `H(p)` estimate via:
 H(p) = -CV(p)
 ```
 """
-function looCrossValidation(pts::Array,
+function manifoldLooCrossValidation(pts::Array,
                             bw::Float64;
                             own::Bool=true,
                             diffop::Function=-  )
@@ -163,7 +174,7 @@ function kde!_CircularNaiveCV(points::A) where {A <: AbstractArray{Float64,1}}
 
   # excessive for loop for leave one out likelihiood cross validation (Silverman 1986, p.52)
   for i in 1:dims
-    minEntropyLOOCV = (bw) -> -looCrossValidation(points, bw, own=true, diffop=difftheta)
+    minEntropyLOOCV = (bw) -> -manifoldLooCrossValidation(points, bw, own=true, diffop=difftheta)
     res = optimize(minEntropyLOOCV, lower, upper, GoldenSection(), x_tol=0.001)
     bwds[i] = res.minimizer
   end

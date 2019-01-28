@@ -37,7 +37,7 @@ BW= range(0.05, 1.0, length=100)
 for bw in BW
     global i_global
     i_global += 1
-    CV[i_global] = looCrossValidation(pts, bw, own=true, diffop=difftheta)
+    CV[i_global] = manifoldLooCrossValidation(pts, bw, own=true, diffop=difftheta)
 end
 
 plot(x=BW, y=CV, Geom.line)
@@ -79,7 +79,7 @@ upper = 10.0
 
 # pts = 10.0.+randn(100)
 
-minEntropyLOOCV = (bw) -> -looCrossValidation(pts, bw, own=true, diffop=difftheta)
+minEntropyLOOCV = (bw) -> -manifoldLooCrossValidation(pts, bw, own=true, diffop=difftheta)
 
 # TODO Compare Optim.GoldenSection vs KDE.golden
 @time res = optimize(minEntropyLOOCV, lower, upper, GoldenSection(), x_tol=0.001)
