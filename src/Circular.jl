@@ -12,10 +12,10 @@ struct Circular <: Manifold
   getLambda
   domain::Tuple{Float64, Float64}
   Circular() = new(1,
-                   AMP.addtheta,
-                   AMP.difftheta,
-                   AMP.getCircMu,
-                   AMP.getCircLambda,
+                   addtheta,
+                   difftheta,
+                   getCircMu,
+                   getCircLambda,
                    (-pi+0.0,pi-1e-15))
 end
 
