@@ -9,7 +9,7 @@
 
 # Introduction
 
-Approximate the product between infinite functional objects on a manifold -- i.e. belief products.  ApproxManifoldProducts (AMP) is intended for use with the (Caesar.jl)[http://www.github.com/JuliaRobotics/Caesar.jl] framework.  AMP is intended for development and testing of various kernel embedding methods for approximating functional products.
+Approximate the product between infinite functional objects on a manifold -- i.e. belief products.  ApproxManifoldProducts (AMP) is intended for use with the [Caesar.jl](http://www.github.com/JuliaRobotics/Caesar.jl) framework.  AMP is intended for development and testing of various kernel embedding methods for approximating functional products.
 
 See [Caesar documentation](http://www.juliarobotics.org/Caesar.jl/latest/) for more details.
 
