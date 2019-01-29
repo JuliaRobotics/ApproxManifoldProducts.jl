@@ -35,7 +35,7 @@ mus = [μ1; μ2]
 
 
 μ = get2DMuMin(mus, Lambdas, diffop=difftheta, initrange=(-pi+0.0,pi+0.0), periodicmanifold=wrapRad)[1]
-TU.wrapRad(μ)
+# TU.wrapRad(μ)
 
 N = 1000
 
@@ -74,13 +74,13 @@ TU.wrapRad(μ)
 
 N = 1000
 
-BUPS = Float64[get2DMuMin(mus, Lambdas, diffop=difftheta, periodicmanifold=wrapRad)[1] for i in 1:N]
+BUPS = Float64[get2DMuMin(mus, Lambdas, diffop=difftheta, periodicmanifold=wrapRad, initrange=(-pi+0.0,pi+0.0))[1] for i in 1:N]
 # BUPS[:] .= TU.wrapRad.(BUPS)
 
 
 @test 0.3*N < sum( 0 .< BUPS .< 3pi/2.0)
 @test 0.3*N < sum( -3pi/2 .< BUPS .< 0.0)
-@test sum( -0.1 .< BUPS .< 0.1) < 0.01*N
+@test 0.01*N < sum( -0.1 .< BUPS .< 0.1) < 0.3*N
 
 # plot(x=BUPS, Geom.histogram)
 
