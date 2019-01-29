@@ -31,6 +31,8 @@ addtheta(wth1::Float64, wth2::Float64) = TUs.wrapRad( wth1+wth2 )
 getCircMu = (m::Vector{Float64}, s::Vector{Float64}, dummy::Float64) -> TUs.wrapRad(get2DMu(m, s, diffop=difftheta, initrange=(-pi+0.0,pi+0.0)))
 # getCircMu = (m::Vector{Float64}, s::Vector{Float64}, dummy::Float64) -> TUs.wrapRad(get2DMuMin(m, s, diffop=difftheta, initrange=(-pi+0.0,pi+0.0)))
 
+getCircLambda(x) = getEuclidLambda(x)
+
 
 """
     $SIGNATURES
