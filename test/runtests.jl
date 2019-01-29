@@ -1,9 +1,13 @@
 # tests for ApproxManifoldProducts.jl
 
 using ApproxManifoldProducts
-using Base: Test
+using Test
 
-include("ex_2D.jl")
+include("basics.jl")
+
+include("ex_1D.jl")
+
+include("ex_2D_rot.jl")
 
 
 

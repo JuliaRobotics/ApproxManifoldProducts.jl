@@ -1,30 +1,52 @@
 module ApproxManifoldProducts
 
+using Reexport
+@reexport using KernelDensityEstimate
+
+using Requires
+using DocStringExtensions
+
 using NLsolve
+using Optim
+using CoordinateTransformations
+using TransformUtils
+
+
+import Base: *
+
+const KDE = KernelDensityEstimate
+const TUs = TransformUtils
+const CTs = CoordinateTransformations
 
 export
   get2DLambda,
   get2DMu,
+  get2DMuMin,
   resid2DLinear,
-  solveresid2DLinear
+  solveresid2DLinear!,
+  solveresid2DLinear,
+  ManifoldBelief,
+  MB,
+  *,
+
+  # Supported manifolds
+  Manifold,
+  EuclideanManifold,
+  Euclid2,
+  Circular
 
 
-get2DLambda(Lambdas) = sum(Lambdas)
+include("Interface.jl")
+include("CommonUtils.jl")
+include("Euclidean.jl")
+include("CircularUtils.jl")
+include("Circular.jl")
 
-function resid2DLinear(μ, mus, Lambdas)
-dμ = mus .- μ
-ret = sum( Lambdas.*dμ )
-return ret
-end
 
-function solveresid2DLinear(res, x, mus, Lambdas)
-res[1] = resid2DLinear(x, mus, Lambdas)
-end
-
-function get2DMu(mus, Lambdas)
-  gg = (res, x) -> solveresid2DLinear(res, x, mus, Lambdas)
-  r = NLsolve.nlsolve(gg, [0.0])
-  return r.zero
+function __init__()
+  @require Gadfly="c91e804a-d5a3-530f-b6f0-dfbca275c004" begin
+    @require Colors="5ae59095-9a9b-59fe-a467-6f913c188581" include("plotting/CircularPlotting.jl")
+  end
 end
 
 

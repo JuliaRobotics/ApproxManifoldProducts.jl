@@ -1,0 +1,5 @@
+julia 0.7
+NLsolve 0.14.1
+KernelDensityEstimate 0.4.0
+Reexport
+TransformUtils 0.2.0
