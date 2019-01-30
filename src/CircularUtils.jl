@@ -10,7 +10,9 @@ export
   rbf,
   evaluateManifoldNaive1D!,
   manifoldLooCrossValidation,
-  kde!_CircularNaiveCV
+  kde!_CircularNaiveCV,
+  getCircMu,
+  getCircLambda
 
 
 
