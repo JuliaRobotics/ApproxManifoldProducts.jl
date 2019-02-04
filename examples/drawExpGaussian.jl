@@ -10,8 +10,8 @@ using ApproxManifoldProducts
 
 
 
-pd = Normal(-pi, 0.5)
-pd2 = Normal(0.6*pi, 0.75)
+pd = Normal(-pi, 0.25)
+pd2 = Normal(0.0, 0.75)
 pd3 = MixtureModel([Normal(1.0, 0.3);Normal(-1.0, 0.2)], [0.6;0.4])
 
 arr = Function[

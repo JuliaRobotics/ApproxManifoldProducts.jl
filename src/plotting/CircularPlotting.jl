@@ -8,7 +8,7 @@ export plotCircBeliefs, plotKDECircular
 
 function plotCircBeliefs(arr::V;
                          N::Int=1000,
-                         th = range(-pi, stop=pi-1e-5, length=N),
+                         th = range(-pi, stop=pi-1e-15, length=N),
                          c=["green"; "blue"; "deepskyblue"; "magenta"; "cyan"],
                          logpdf::Bool=true  ) where {V <: Vector}
   #

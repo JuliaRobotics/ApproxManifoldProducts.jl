@@ -16,10 +16,9 @@ const TU = TransformUtils
 
 using ApproxManifoldProducts
 
-logmap_SO2(Rl::Matrix{Float64}) = sign(Rl[2,1])*acos(Rl[1,1])
-difftheta(wth1::Float64, wth2::Float64)::Float64 = logmap_SO2(TU.R(wth1)'*TU.R(wth2))
-
-addtheta(wth1::Float64, wth2::Float64) = TU.wrapRad( wth1+wth2 )
+# logmap_SO2(Rl::Matrix{Float64}) = sign(Rl[2,1])*acos(Rl[1,1])
+# difftheta(wth1::Float64, wth2::Float64)::Float64 = logmap_SO2(TU.R(wth1)'*TU.R(wth2)) 
+# addtheta(wth1::Float64, wth2::Float64) = TU.wrapRad( wth1+wth2 )
 
 
 # some test points to work with

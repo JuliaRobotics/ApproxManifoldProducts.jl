@@ -1,24 +1,21 @@
-# Test naive implementation of entropy calculations towards efficient calculation of entropy on a manifold
 
+## Test naive implementation of entropy calculations towards efficient calculation of entropy on a manifold
 
-using DocStringExtensions
+using LinearAlgebra
+# using DocStringExtensions
 using KernelDensityEstimate
-
-include(joinpath(dirname(@__FILE__), "circularEntropyUtils.jl"))
 
 using Cairo
 using Gadfly, Colors
-using Distributions
-using Random
+# using Distributions
+# using Random
 
-using TransformUtils
-using Optim
+# using Optim
 
 using ApproxManifoldProducts
 
-
+using TransformUtils
 const TU = TransformUtils
-
 
 
 
@@ -29,28 +26,59 @@ pts2 = TU.wrapRad.(0.1*randn(100).+pi.-0.5)
 
 # pc1 = kde!_CircularNaiveCV(pts1)
 # pc2 = kde!_CircularNaiveCV(pts2)
-pc1 = kde!(pts1, [0.1;], addtheta, difftheta)
-pc2 = kde!(pts2, [0.1;], addtheta, difftheta)
+pc1 = kde!(pts1, [0.1;], (addtheta,) )# , (difftheta,))
+pc2 = kde!(pts2, [0.1;], (addtheta,) , (difftheta,))
+
+
+pl = plotKDECircular([pc1;pc2])
+# pl = plotKDECircular(pc2)
 
 
 
-# Calculate the approximate product between the densities
+## Quick 1D debug
+
+# pc2 = kde!(pts2, [0.1;], (addtheta,), (difftheta,))
+#
+# x = 2pi*rand(1,1000).-pi
+# y = pc2(x, false, 1e-3, (addtheta,), (difftheta,))
+# Gadfly.plot(x=x, y=y, Geom.line)
+
+
+## Incremental BT construction test
+
+
+pts = [0.15; 0.2; 0.35; 0.4]
+
+p = kde!(pts, [0.05])
+
+pcp = kde!(pts, [0.05], (addtheta,) )
+
+pcm = kde!(pts, [0.05], (addtheta,), (difftheta,) )
+
+@assert norm(p.bt.centers - pcp.bt.centers) < 1e-10
+@assert norm(p.bt.centers - pcm.bt.centers) < 1e-10
+
+# p.bt.centers
+# pcm.bt.centers
+
+
+
+
+## Calculate the approximate product between the densities
 
 
 # TODO: make circular KDE
 dummy = kde!(rand(100),[1.0;]);
 
-pGM, = prodAppxMSGibbsS(dummy, [pc1; pc2], nothing, nothing, Niter=1, addop=addtheta, diffop=difftheta, getMu=getCircMu);
+pGM, = prodAppxMSGibbsS(dummy, [pc1; pc2], nothing, nothing, Niter=1,
+                          addop=(addtheta,), diffop=(-,), getMu=(getCircMu,));
 
 
 pc12 = kde!_CircularNaiveCV(pGM[:])
 # getBW(pc12)[1,1]
-# pc12 = kde!(pGM, [0.1;], addtheta, difftheta)
+# pc12 = kde!(pGM, [0.1;], (addtheta,), (difftheta,))
 
 pl = plotKDECircular([pc1;pc2; pc12])
-
-
-
 
 
 ## create two densities at +Y
@@ -62,14 +90,14 @@ pts2 = TU.wrapRad.(0.1*randn(100).+pi/2.0.-0.5)
 
 # pc1 = kde!_CircularNaiveCV(pts1)
 # pc2 = kde!_CircularNaiveCV(pts2)
-pc1 = kde!(pts1, [0.1;], addtheta, difftheta)
-pc2 = kde!(pts2, [0.1;], addtheta, difftheta)
+pc1 = kde!(pts1, [0.1;], (addtheta,), (difftheta,))
+pc2 = kde!(pts2, [0.1;], (addtheta,), (difftheta,))
 
 
 # TODO: make circular KDE
 dummy = kde!(rand(100),[1.0;]);
 
-pGM, = prodAppxMSGibbsS(dummy, [pc1; pc2], nothing, nothing, Niter=1, addop=addtheta, diffop=difftheta, getMu=getCircMu);
+pGM, = prodAppxMSGibbsS(dummy, [pc1; pc2], nothing, nothing, Niter=1, addop=(addtheta,), diffop=(difftheta,), getMu=(getCircMu,));
 
 
 pc12 = kde!_CircularNaiveCV(pGM[:])
@@ -90,14 +118,14 @@ pts2 = TU.wrapRad.(0.1*randn(100).+0.5)
 
 # pc1 = kde!_CircularNaiveCV(pts1)
 # pc2 = kde!_CircularNaiveCV(pts2)
-pc1 = kde!(pts1, [0.1;], addtheta, difftheta)
-pc2 = kde!(pts2, [0.1;], addtheta, difftheta)
+pc1 = kde!(pts1, [0.1;], (addtheta,), (difftheta,))
+pc2 = kde!(pts2, [0.1;], (addtheta,), (difftheta,))
 
 
 # TODO: make circular KDE
 dummy = kde!(rand(100),[1.0;]);
 
-pGM, = prodAppxMSGibbsS(dummy, [pc1; pc2], nothing, nothing, Niter=1, addop=addtheta, diffop=difftheta, getMu=getCircMu);
+pGM, = prodAppxMSGibbsS(dummy, [pc1; pc2], nothing, nothing, Niter=1, addop=(addtheta,), diffop=(difftheta,), getMu=(getCircMu,));
 
 
 pc12 = kde!_CircularNaiveCV(pGM[:])
@@ -118,14 +146,14 @@ pts2 = TU.wrapRad.(0.1*randn(100).+pi/2.0)
 
 # pc1 = kde!_CircularNaiveCV(pts1)
 # pc2 = kde!_CircularNaiveCV(pts2)
-pc1 = kde!(pts1, [0.1;], addtheta, difftheta)
-pc2 = kde!(pts2, [0.1;], addtheta, difftheta)
+pc1 = kde!(pts1, [0.1;], (addtheta,), (difftheta,))
+pc2 = kde!(pts2, [0.1;], (addtheta,), (difftheta,))
 
 
 # TODO: make circular KDE
 dummy = kde!(rand(100),[1.0;]);
 
-pGM, = prodAppxMSGibbsS(dummy, [pc1; pc2], nothing, nothing, Niter=2, addop=addtheta, diffop=difftheta, getMu=getCircMu);
+pGM, = prodAppxMSGibbsS(dummy, [pc1; pc2], nothing, nothing, Niter=2, addop=(addtheta,), diffop=(difftheta,), getMu=(getCircMu,));
 
 
 pc12 = kde!_CircularNaiveCV(pGM[:])
@@ -148,9 +176,9 @@ pts3 = TU.wrapRad.(0.1*randn(100).+2pi/3.0)
 
 # pc1 = kde!_CircularNaiveCV(pts1)
 # pc2 = kde!_CircularNaiveCV(pts2)
-pc1 = kde!(pts1, [0.1;], addtheta, difftheta)
-pc2 = kde!(pts2, [0.1;], addtheta, difftheta)
-pc3 = kde!(pts3, [0.1;], addtheta, difftheta)
+pc1 = kde!(pts1, [0.1;], (addtheta,), (difftheta,))
+pc2 = kde!(pts2, [0.1;], (addtheta,), (difftheta,))
+pc3 = kde!(pts3, [0.1;], (addtheta,), (difftheta,))
 
 
 pl = plotKDECircular([pc1;pc2;pc3])
@@ -158,7 +186,7 @@ pl = plotKDECircular([pc1;pc2;pc3])
 
 dummy = kde!(rand(100),[1.0;]);
 
-pGM, = prodAppxMSGibbsS(dummy, [pc1; pc2; pc3], nothing, nothing, Niter=1, addop=addtheta, diffop=difftheta, getMu=getCircMu);
+pGM, = prodAppxMSGibbsS(dummy, [pc1; pc2; pc3], nothing, nothing, Niter=1, addop=(addtheta,), diffop=(difftheta,), getMu=(getCircMu,));
 
 
 pc123 = kde!_CircularNaiveCV(pGM[:])
@@ -181,9 +209,9 @@ pts3 = TU.wrapRad.(0.1*randn(100).+2pi/3.0.-1.0)
 
 # pc1 = kde!_CircularNaiveCV(pts1)
 # pc2 = kde!_CircularNaiveCV(pts2)
-pc1 = kde!(pts1, [0.1;], addtheta, difftheta)
-pc2 = kde!(pts2, [0.1;], addtheta, difftheta)
-pc3 = kde!(pts3, [0.1;], addtheta, difftheta)
+pc1 = kde!(pts1, [0.1;], (addtheta,), (difftheta,))
+pc2 = kde!(pts2, [0.1;], (addtheta,), (difftheta,))
+pc3 = kde!(pts3, [0.1;], (addtheta,), (difftheta,))
 
 
 pl = plotKDECircular([pc1;pc2;pc3])
@@ -191,7 +219,7 @@ pl = plotKDECircular([pc1;pc2;pc3])
 
 dummy = kde!(rand(100),[1.0;]);
 
-pGM, = prodAppxMSGibbsS(dummy, [pc1; pc2; pc3], nothing, nothing, Niter=1, addop=addtheta, diffop=difftheta, getMu=getCircMu);
+pGM, = prodAppxMSGibbsS(dummy, [pc1; pc2; pc3], nothing, nothing, Niter=1, addop=(addtheta,), diffop=(difftheta,), getMu=(getCircMu,));
 
 
 pc123 = kde!_CircularNaiveCV(pGM[:])
@@ -216,9 +244,9 @@ pts3 = TU.wrapRad.(0.1*randn(100).+2pi/3.0)
 
 # pc1 = kde!_CircularNaiveCV(pts1)
 # pc2 = kde!_CircularNaiveCV(pts2)
-pc1 = kde!(pts1, [0.1;], addtheta, difftheta)
-pc2 = kde!(pts2, [0.1;], addtheta, difftheta)
-pc3 = kde!(pts3, [0.1;], addtheta, difftheta)
+pc1 = kde!(pts1, [0.1;], (addtheta,), (difftheta,))
+pc2 = kde!(pts2, [0.1;], (addtheta,), (difftheta,))
+pc3 = kde!(pts3, [0.1;], (addtheta,), (difftheta,))
 
 
 pl = plotKDECircular([pc1;pc2;pc3])
@@ -226,7 +254,7 @@ pl = plotKDECircular([pc1;pc2;pc3])
 
 dummy = kde!(rand(100),[1.0;]);
 
-pGM, = prodAppxMSGibbsS(dummy, [pc1; pc2; pc3], nothing, nothing, Niter=1, addop=addtheta, diffop=difftheta, getMu=getCircMu);
+pGM, = prodAppxMSGibbsS(dummy, [pc1; pc2; pc3], nothing, nothing, Niter=1, addop=(addtheta,), diffop=(difftheta,), getMu=(getCircMu,));
 
 
 pc123 = kde!_CircularNaiveCV(pGM[:])
