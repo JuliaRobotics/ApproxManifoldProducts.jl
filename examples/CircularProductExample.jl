@@ -26,7 +26,7 @@ pts2 = TU.wrapRad.(0.1*randn(100).+pi.-0.5)
 
 # pc1 = kde!_CircularNaiveCV(pts1)
 # pc2 = kde!_CircularNaiveCV(pts2)
-pc1 = kde!(pts1, [0.1;], (addtheta,) )# , (difftheta,))
+pc1 = kde!(pts1, [0.1;], (addtheta,) , (difftheta,))
 pc2 = kde!(pts2, [0.1;], (addtheta,) , (difftheta,))
 
 
@@ -37,30 +37,17 @@ pl = plotKDECircular([pc1;pc2])
 
 ## Quick 1D debug
 
-# pc2 = kde!(pts2, [0.1;], (addtheta,), (difftheta,))
-#
-# x = 2pi*rand(1,1000).-pi
-# y = pc2(x, false, 1e-3, (addtheta,), (difftheta,))
-# Gadfly.plot(x=x, y=y, Geom.line)
+pc2 = kde!(pts2, [0.1;], (addtheta,), (difftheta,))
+
+x = 2pi*rand(1,1000).-pi
+y = pc2(x, false, 1e-3, (addtheta,), (difftheta,))
+Gadfly.plot(x=x, y=y, Geom.line)
 
 
-## Incremental BT construction test
 
 
-pts = [0.15; 0.2; 0.35; 0.4]
 
-p = kde!(pts, [0.05])
-
-pcp = kde!(pts, [0.05], (addtheta,) )
-
-pcm = kde!(pts, [0.05], (addtheta,), (difftheta,) )
-
-@assert norm(p.bt.centers - pcp.bt.centers) < 1e-10
-@assert norm(p.bt.centers - pcm.bt.centers) < 1e-10
-
-# p.bt.centers
-# pcm.bt.centers
-
+# pcm.bt
 
 
 
@@ -70,8 +57,8 @@ pcm = kde!(pts, [0.05], (addtheta,), (difftheta,) )
 # TODO: make circular KDE
 dummy = kde!(rand(100),[1.0;]);
 
-pGM, = prodAppxMSGibbsS(dummy, [pc1; pc2], nothing, nothing, Niter=1,
-                          addop=(addtheta,), diffop=(-,), getMu=(getCircMu,));
+pGM, = prodAppxMSGibbsS(dummy, [pc1; pc2], nothing, nothing, Niter=2,
+                          addop=(addtheta,), diffop=(difftheta,), getMu=(getCircMu,));
 
 
 pc12 = kde!_CircularNaiveCV(pGM[:])
@@ -97,7 +84,8 @@ pc2 = kde!(pts2, [0.1;], (addtheta,), (difftheta,))
 # TODO: make circular KDE
 dummy = kde!(rand(100),[1.0;]);
 
-pGM, = prodAppxMSGibbsS(dummy, [pc1; pc2], nothing, nothing, Niter=1, addop=(addtheta,), diffop=(difftheta,), getMu=(getCircMu,));
+pGM, = prodAppxMSGibbsS(dummy, [pc1; pc2], nothing, nothing, Niter=2,
+                          addop=(addtheta,), diffop=(difftheta,), getMu=(getCircMu,));
 
 
 pc12 = kde!_CircularNaiveCV(pGM[:])

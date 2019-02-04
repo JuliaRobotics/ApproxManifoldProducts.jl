@@ -26,9 +26,9 @@ global const reci_s2pi=1.0/sqrt(2.0*pi) # 1.0/2.5066282746310002
 # manifold distance, add, and subtract
 function logmap_SO2(Rl::Matrix{Float64})
   ct = abs(Rl[1,1]) > 1.0 ? 1.0 : Rl[1,1]  # reinserting the sign below
-  sign(Rl[2,1])*acos(ct)
+  -sign(Rl[2,1])*acos(ct)
 end
-difftheta(wth1, wth2)::Float64 = logmap_SO2(TUs.R(wth2)'*TUs.R(wth1))
+difftheta(wth1, wth2)::Float64 = logmap_SO2(TUs.R(wth1)'*TUs.R(wth2))
 addtheta(wth1, wth2)::Float64 = TUs.wrapRad( wth1+wth2 )
 
 # manifold get Gaussian products mean
