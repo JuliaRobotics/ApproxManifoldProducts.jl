@@ -20,7 +20,6 @@ using KernelDensityEstimate
 
 ## but wait
 
-
 # TODO ensure this manifold product is still valid
 # @testset "basic tests..." begin
 #

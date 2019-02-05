@@ -59,8 +59,8 @@ plotKDE([pc1a;pc2a; pc12a])
 
 # Calculate the approximate product between the hybrid densities
 
-pc1 = kde!(pts1)
-pc2 = kde!(pts2)
+pc1 = kde!(pts1, (+, addtheta), (-,difftheta))
+pc2 = kde!(pts2, (+, addtheta), (-,difftheta))
 
 # TODO: make circular KDE
 dummy = kde!(rand(2,100),[1.0;]);
@@ -73,12 +73,16 @@ pc12b = kde!_CircularNaiveCV(pGM[2,:])
 getBW(pc12b)[:,1][1]
 
 
-pc12 = kde!(pGM, [1.53;0.011])
+pc12 = kde!(pGM, [1.4;0.01], (+,addtheta), (-,difftheta))
 
 plotKDE([marginal(pc1,[1;]);marginal(pc2,[1;]); marginal(pc12,[1])])
+
 pl = plotKDECircular([marginal(pc1,[2;]);marginal(pc2,[2;]); marginal(pc12,[2])])
 
 
+
+
+Gadfly.plot((x)->marginal(pc12,[2])([x;])[1], -pi, pi)
 
 
 
