@@ -2,17 +2,18 @@ module ApproxManifoldProducts
 
 using Reexport
 @reexport using KernelDensityEstimate
+@reexport using TransformUtils
 
-using Requires
 using DocStringExtensions
 
 using NLsolve
 using Optim
 using CoordinateTransformations
-using TransformUtils
-
+using Requires
 
 import Base: *
+import KernelDensityEstimate: kde!
+
 
 const KDE = KernelDensityEstimate
 const TUs = TransformUtils
@@ -29,11 +30,18 @@ export
   MB,
   *,
 
+  # APi and util functions
+  buildHybridManifoldCallbacks,
+  getKDEManifoldBandwidths,
+  manifoldProduct,
+  kde!,
+
   # Supported manifolds
   Manifold,
   EuclideanManifold,
   Euclid2,
   Circular
+
 
 
 include("Interface.jl")
@@ -42,6 +50,8 @@ include("Euclidean.jl")
 include("CircularUtils.jl")
 include("Circular.jl")
 
+include("Legacy.jl")
+include("API.jl")
 
 function __init__()
   @require Gadfly="c91e804a-d5a3-530f-b6f0-dfbca275c004" begin
