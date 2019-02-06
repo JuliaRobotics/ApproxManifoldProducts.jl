@@ -5,10 +5,11 @@ using .Colors
 
 export plotCircBeliefs, plotKDECircular
 
+# import ApproxManifoldProducts: plotCircBeliefs, plotKDECircular
 
 function plotCircBeliefs(arr::V;
                          N::Int=1000,
-                         th = range(-pi, stop=pi-1e-5, length=N),
+                         th = range(-pi, stop=pi-1e-15, length=N),
                          c=["green"; "blue"; "deepskyblue"; "magenta"; "cyan"],
                          logpdf::Bool=true  ) where {V <: Vector}
   #
@@ -16,20 +17,23 @@ function plotCircBeliefs(arr::V;
   beliefs = Dict{Int, Function}()
   beliefs[1] = (x)->1.0
   j = 1
+  # TODO should be passing in addop, and diffop
   for ar in arr
     j += 1
     beliefs[j] = logpdf ? (x)->log(ar(x)+1.0) : (x)->ar(x) #
   end
 
   PL = []
+  # TODO loosing some modes in plotting???
   for j in 1:length(beliefs)
     obj = zeros(N)
     X = zeros(N)
     Y = zeros(N)
     for i in 1:N
       t = th[i]
-      obj[i] = beliefs[1](t)
+      obj[i] = beliefs[1](t) # = 1.0
       obj[i] += (j != 1 ? beliefs[j](t) : 0.0)
+      # second term directional statistics for plotting (not evaluation)
       obj[i] += (j != 1 ? beliefs[j](t-2pi) : 0.0 )
       obj[i] += (j != 1 ? beliefs[j](t+2pi) : 0.0 )
       X[i] = cos(t)*obj[i]
@@ -43,18 +47,19 @@ end
 
 function plotKDECircular(bds::Vector{BallTreeDensity};
                          c=["green"; "blue"; "deepskyblue"; "magenta"; "cyan"],
-                         logpdf::Bool=true  )
+                         logpdf::Bool=true,
+                         scale::Float64=0.2  )
 
   arr = []
 
   for bd in bds
-    gg = (x::Float64)->bd([x;])[1]
+    gg = (x::Float64)->scale*bd([x;], false, 1e-3, (addtheta,), (difftheta,))[1]
     push!(arr, gg)
   end
 
   return plotCircBeliefs(arr, c=c, logpdf=logpdf)
 end
 
-function plotKDECircular(bd::BallTreeDensity; c=["green";], logpdf::Bool=true)
-  return plotKDECircular([bd;], c=c, logpdf=logpdf)
+function plotKDECircular(bd::BallTreeDensity; c=["green";], logpdf::Bool=true, scale::Float64=0.2)
+  return plotKDECircular([bd;], c=c, logpdf=logpdf, scale=scale)
 end
