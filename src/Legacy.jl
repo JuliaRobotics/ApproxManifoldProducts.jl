@@ -59,10 +59,15 @@ end
 Legacy extension of KDE.kde! function to approximate smooth functions based on samples, using likelihood cross validation for bandwidth selection.  This method allows approximation over hybrid manifolds.
 """
 function kde!(pts::AA2,
+              bws::Vector{Float64},
               manifolds::T  )::BallTreeDensity where {AA2 <: AbstractArray{Float64,2}, T <: Tuple}
   #
-  ndims, N = size(pts)
   addopT, diffopT, getManiMu, getManiLam = buildHybridManifoldCallbacks(manifolds)
-  bws = getKDEManifoldBandwidths(pts, manifolds)
   kde!(pts, bws, addopT, diffopT)
+end
+function kde!(pts::AA2,
+              manifolds::T  )::BallTreeDensity where {AA2 <: AbstractArray{Float64,2}, T <: Tuple}
+  #
+  bws = getKDEManifoldBandwidths(pts, manifolds)
+  kde!(pts, bws, manifolds)
 end
