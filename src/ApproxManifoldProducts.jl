@@ -14,10 +14,12 @@ using Requires
 import Base: *
 import KernelDensityEstimate: kde!
 
-
 const KDE = KernelDensityEstimate
 const TUs = TransformUtils
 const CTs = CoordinateTransformations
+
+# TODO temporary for initial version of on-manifold products
+KDE.setForceEvalDirect!(true)
 
 export
   get2DLambda,
