@@ -1,4 +1,4 @@
-julia 0.7
+julia 0.7 1.2
 NLsolve 3.0.0
 Optim
 KernelDensityEstimate 0.4.3
