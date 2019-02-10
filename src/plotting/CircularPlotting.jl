@@ -5,6 +5,7 @@ using .Colors
 
 export plotCircBeliefs, plotKDECircular
 
+
 # import ApproxManifoldProducts: plotCircBeliefs, plotKDECircular
 
 function plotCircBeliefs(arr::V;
@@ -63,3 +64,9 @@ end
 function plotKDECircular(bd::BallTreeDensity; c=["green";], logpdf::Bool=true, scale::Float64=0.2)
   return plotKDECircular([bd;], c=c, logpdf=logpdf, scale=scale)
 end
+
+
+# function plotKDE(pp::BallTreeDensity, )
+#
+#
+# end
