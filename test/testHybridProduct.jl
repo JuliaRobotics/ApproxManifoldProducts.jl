@@ -25,14 +25,14 @@ KDE.setForceEvalDirect!(true)
 
 ## more standard interface
 
-@testset "test standard API for AMP.kde!" begin
+@testset "test standard API for AMP.manikde!" begin
 
 # two densities on a cylinder
-p = kde!(randn(2,100), (:Euclid, :Circular) )
+p = manikde!(randn(2,100), (:Euclid, :Circular) )
 
 pts2a = 3.0*randn(1,100).+5.0
 pts2b = TransformUtils.wrapRad.(0.5*randn(1,100).+pi)
-q = kde!([pts2a;pts2b], (:Euclid, :Circular) )
+q = manikde!([pts2a;pts2b], (:Euclid, :Circular) )
 
 # approximate the product between hybrid manifold densities
 pq = manifoldProduct([p;q], (:Euclid, :Circular), Niter=2)

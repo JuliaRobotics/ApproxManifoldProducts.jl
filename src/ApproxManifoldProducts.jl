@@ -12,7 +12,7 @@ using CoordinateTransformations
 using Requires
 
 import Base: *
-import KernelDensityEstimate: kde!
+# import KernelDensityEstimate: kde!
 
 const KDE = KernelDensityEstimate
 const TUs = TransformUtils
@@ -36,7 +36,7 @@ export
   buildHybridManifoldCallbacks,
   getKDEManifoldBandwidths,
   manifoldProduct,
-  kde!,
+  manikde!,
 
   # Supported manifolds
   Manifold,

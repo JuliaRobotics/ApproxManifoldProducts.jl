@@ -26,11 +26,11 @@ KDE.setForceEvalDirect!(true)
 
 
 # two densities on a cylinder
-p = kde!(randn(2,100), (:Euclid, :Circular) )
+p = manikde!(randn(2,100), (:Euclid, :Circular) )
 
 pts2a = 3.0*randn(1,100).+5.0
 pts2b = TransformUtils.wrapRad.(0.5*randn(1,100).+pi)
-q = kde!([pts2a;pts2b], (:Euclid, :Circular) )
+q = manikde!([pts2a;pts2b], (:Euclid, :Circular) )
 
 # approximate the product between hybrid manifold densities
 pq = manifoldProduct([p;q], (:Euclid, :Circular), Niter=2)
@@ -46,12 +46,12 @@ pq = manifoldProduct([p;q], (:Euclid, :Circular), Niter=2)
 
 pts1a = 6.0*rand(1,100).-3.0
 pts1b = TransformUtils.wrapRad.(0.3*randn(1,100).-0.6*pi)
-p = kde!([pts1a;pts1b], (:Euclid, :Circular) )
+p = manikde!([pts1a;pts1b], (:Euclid, :Circular) )
 
 
 pts2a = 6.0*rand(1,100).-3.0
 pts2b = TransformUtils.wrapRad.(0.3*randn(1,100).+0.6*pi)
-q = kde!([pts2a;pts2b], (:Euclid, :Circular) )
+q = manikde!([pts2a;pts2b], (:Euclid, :Circular) )
 
 
 # approximate the product between hybrid manifold densities
