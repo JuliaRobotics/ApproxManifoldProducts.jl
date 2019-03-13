@@ -3,6 +3,7 @@
 
 
 function buildHybridManifoldCallbacks(manif::T) where {T <: Tuple}
+  # TODO use multiple dispatch instead -- will be done for second version of system
   addopT = []
   diffopT = []
   getManiMu = []
@@ -52,6 +53,19 @@ function getKDEManifoldBandwidths(pts::AA,
   return bws
 end
 
+function ensurePeriodicDomains!( pts::AA, manif::T1 )::Nothing where {AA <: AbstractArray{Float64,2}, T1 <: Tuple}
+
+  i = 0
+  for mn in manif
+    i += 1
+    if manif[i] == :Circular
+      pts[i,:] = TUs.wrapRad.(pts[i,:])
+    end
+  end
+
+  nothing
+end
+
 
 """
     $(SIGNATURES)
@@ -69,5 +83,6 @@ function manikde!(pts::AA2,
                   manifolds::T  )::BallTreeDensity where {AA2 <: AbstractArray{Float64,2}, T <: Tuple}
   #
   bws = getKDEManifoldBandwidths(pts, manifolds)
+  ensurePeriodicDomains!(pts, manifolds)
   ApproxManifoldProducts.manikde!(pts, bws, manifolds)
 end

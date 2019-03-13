@@ -14,7 +14,7 @@ function plotCircBeliefs(arr::V;
                          c=["green"; "blue"; "deepskyblue"; "magenta"; "cyan"],
                          logpdf::Bool=true  ) where {V <: Vector}
   #
-  c = ["red";c]
+  c = ["black";c]
   beliefs = Dict{Int, Function}()
   beliefs[1] = (x)->1.0
   j = 1
@@ -43,13 +43,16 @@ function plotCircBeliefs(arr::V;
     push!(PL, Gadfly.layer(x=deepcopy(X), y=deepcopy(Y), Gadfly.Geom.path, Gadfly.Theme(default_color=parse(Colorant,c[j])))[1] )
   end
 
+  push!(PL, Coord.cartesian(aspect_ratio=1.0))
+
   Gadfly.plot(PL...)
 end
 
 function plotKDECircular(bds::Vector{BallTreeDensity};
                          c=["green"; "blue"; "deepskyblue"; "magenta"; "cyan"],
                          logpdf::Bool=true,
-                         scale::Float64=0.2  )
+                         scale::Float64=0.2,
+                         offset::Float64=0.0  )
 
   arr = []
 
@@ -61,7 +64,11 @@ function plotKDECircular(bds::Vector{BallTreeDensity};
   return plotCircBeliefs(arr, c=c, logpdf=logpdf)
 end
 
-function plotKDECircular(bd::BallTreeDensity; c=["green";], logpdf::Bool=true, scale::Float64=0.2)
+function plotKDECircular(bd::BallTreeDensity;
+                         c=["green";],
+                         logpdf::Bool=true,
+                         scale::Float64=0.2  )
+  #
   return plotKDECircular([bd;], c=c, logpdf=logpdf, scale=scale)
 end
 
