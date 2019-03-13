@@ -68,15 +68,27 @@ pc12 = kde!_CircularNaiveCV(pGM[:])
 getBW(pc12)[1,1]
 # pc12 = kde!(pGM, [0.05;], (addtheta,), (difftheta,))
 
-pl = plotKDECircular([pc1;pc2; pc12])
+pl = plotKDECircular([pc1;pc2; pc12], scale=0.07, c=["cyan";"blue";"red"])
 
 
 # x = reshape(collect(range(-pi, stop=pi, length=1000)),1,:)
 # y = pc12(x, false, 1e-3, (addtheta,), (difftheta,))
 # Gadfly.plot(x=x, y=y, Geom.line)
 
+# Gadfly.push_theme(:default)
+pl |> PDF("/tmp/test.pdf",10cm,10cm)
+@async run(`evince /tmp/test.pdf`)
 
+pl.coord = Coord.Cartesian(xmin = -1.8,
+xmax = 1.8,
+ymin = -1.8,
+ymax = 1.8,
+aspect_ratio=1.0)
 
+pl.theme
+pl.theme.line_width = 2.0mm
+
+pl
 ## create two densities at +Y
 
 N = 100
