@@ -20,15 +20,19 @@ For Julia 0.7 and above press ']' in the Julia REPL:
 pkg> add ApproxManifoldProducts
 ```
 
-# Current Supported Manifolds
+# Current Supported (Mixed) Manifolds
 
 The following on-manifold function approximations:
 - Euclidean (2DOF),
 - S1/Circular (1DOF), or SO(2) equivalent.
+- SE(2)
+- S2 (not implemented yet)
 
-Work in progress manifolds are:
+Work in progress on so-called 'subgroup' mixed-manifolds, where DOFs are bunched together for particular manifolds:
 - SO(3) / Quaternion,
-- Plucker coordinates for rigid transforms,
+- Plucker coordinates (SP(3)) for rigid transforms,
 - SE(3) for rigid transforms.
+
+> Implementation of multivariate methodology requires code to consider "double loops" that iterate over sub-groups, and then within each sub-group as required.  The supported list above can be implemented with "single loop" over all DOFs.
 
 Any suggestions or issues welcome.
