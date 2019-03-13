@@ -20,15 +20,16 @@ For Julia 0.7 and above press ']' in the Julia REPL:
 pkg> add ApproxManifoldProducts
 ```
 
-# Current Supported Manifolds
+# Current Supported (Mixed) Manifolds
 
 The following on-manifold function approximations:
 - Euclidean (2DOF),
 - S1/Circular (1DOF), or SO(2) equivalent.
+- SE(2)
 
 Work in progress manifolds are:
 - SO(3) / Quaternion,
-- Plucker coordinates for rigid transforms,
+- Plucker coordinates (SP(3)) for rigid transforms,
 - SE(3) for rigid transforms.
 
 Any suggestions or issues welcome.
