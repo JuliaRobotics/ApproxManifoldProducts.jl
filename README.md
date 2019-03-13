@@ -33,6 +33,6 @@ Work in progress on so-called 'subgroup' mixed-manifolds, where DOFs are bunched
 - Plucker coordinates (SP(3)) for rigid transforms,
 - SE(3) for rigid transforms.
 
-> Original multivariate Euclidean methodology require code to consider "double loops" that iterate over sub-groups, and then within each sub-group as required.
+> Implementation of multivariate methodology requires code to consider "double loops" that iterate over sub-groups, and then within each sub-group as required.  The supported list above can be implemented with "single loop" over all DOFs.
 
 Any suggestions or issues welcome.
