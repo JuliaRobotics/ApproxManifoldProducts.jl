@@ -9,6 +9,7 @@ include("ex_1D.jl")
 
 include("ex_2D_rot.jl")
 
+include("testManiProductBigSmall.jl")
 
 
 
