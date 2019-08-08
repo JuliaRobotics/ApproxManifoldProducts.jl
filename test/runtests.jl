@@ -11,6 +11,6 @@ include("ex_2D_rot.jl")
 
 include("testManiProductBigSmall.jl")
 
-
+include("testBasicManiProduct.jl")
 
 #
