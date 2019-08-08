@@ -83,7 +83,7 @@ pts = getPoints(P12)
 # Gadfly.set_default_plot_size(35cm,25cm)
 #
 # plotKDE([P1;P2;P12], c=["red";"blue";"magenta"],levels=1) |> PDF("/tmp/test.pdf")
-run(`evince /tmp/test.pdf`)
+# run(`evince /tmp/test.pdf`)
 
 end
 
