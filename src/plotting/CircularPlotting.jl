@@ -15,7 +15,9 @@ function plotCircBeliefs(arr::V;
                          logpdf::Bool=true,
                          rVo::Vector{Float64}=[0.0;0.0;0.0],
                          radix::Float64=1.0,
-                         text::String=""  ) where {V <: Vector}
+                         text::String="",
+                         title::String="",
+                         legend=nothing  ) where {V <: Vector}
   #
   c = ["black";c]
   beliefs = Dict{Int, Function}()
@@ -48,6 +50,10 @@ function plotCircBeliefs(arr::V;
   end
 
   push!(PL, Coord.cartesian(aspect_ratio=1.0))
+  push!(PL, Guide.title(title))
+  if legend != nothing
+    push!(PL, Guide.manual_color_key("Legend", legend, c))
+  end
 
   Gadfly.plot(PL...)
 end
@@ -61,7 +67,9 @@ function plotKDECircular(bds::Vector{BallTreeDensity};
                          offset::Float64=0.0,
                          rVo::Vector{Float64}=[0.0;0.0;0.0],
                          radix::Float64=1.0,
-                         text::String=""   )
+                         text::String="",
+                         title::String="",
+                         legend=nothing   )
 
   arr = []
 
@@ -70,7 +78,7 @@ function plotKDECircular(bds::Vector{BallTreeDensity};
     push!(arr, gg)
   end
 
-  return plotCircBeliefs(arr, c=c, logpdf=logpdf, rVo=rVo, radix=radix, text=text)
+  return plotCircBeliefs(arr, c=c, logpdf=logpdf, rVo=rVo, radix=radix, text=text, title=title, legend=legend )
 end
 
 function plotKDECircular(bd::BallTreeDensity;
@@ -79,9 +87,11 @@ function plotKDECircular(bd::BallTreeDensity;
                          scale::Float64=0.2,
                          rVo::Vector{Float64}=[0.0;0.0;0.0],
                          radix::Float64=1.0,
-                         text::String=""   )
+                         text::String="",
+                         title::String="",
+                         legend=nothing   )
   #
-  return plotKDECircular([bd;], c=c, logpdf=logpdf, scale=scale, rVo=rVo, radix=radix, text=text)
+  return plotKDECircular([bd;], c=c, logpdf=logpdf, scale=scale, rVo=rVo, radix=radix, text=text, title=title, legend=legend )
 end
 
 
