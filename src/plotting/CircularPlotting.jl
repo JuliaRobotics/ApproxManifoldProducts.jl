@@ -12,7 +12,12 @@ function plotCircBeliefs(arr::V;
                          N::Int=1000,
                          th = range(-pi, stop=pi-1e-15, length=N),
                          c=["green"; "blue"; "deepskyblue"; "magenta"; "cyan"],
-                         logpdf::Bool=true  ) where {V <: Vector}
+                         logpdf::Bool=true,
+                         rVo::Vector{Float64}=[0.0;0.0;0.0],
+                         radix::Float64=1.0,
+                         text::String="",
+                         title::String="",
+                         legend=nothing  ) where {V <: Vector}
   #
   c = ["black";c]
   beliefs = Dict{Int, Function}()
@@ -32,27 +37,39 @@ function plotCircBeliefs(arr::V;
     Y = zeros(N)
     for i in 1:N
       t = th[i]
-      obj[i] = beliefs[1](t) # = 1.0
+      obj[i] = radix*beliefs[1](t) # = 1.0
       obj[i] += (j != 1 ? beliefs[j](t) : 0.0)
       # second term directional statistics for plotting (not evaluation)
       obj[i] += (j != 1 ? beliefs[j](t-2pi) : 0.0 )
       obj[i] += (j != 1 ? beliefs[j](t+2pi) : 0.0 )
-      X[i] = cos(t)*obj[i]
-      Y[i] = sin(t)*obj[i]
+      xy = TransformUtils.R(rVo[3])*[cos(t)*obj[i]; sin(t)*obj[i]]
+      X[i] = xy[1] + rVo[1]
+      Y[i] = xy[2] + rVo[2]
     end
-    push!(PL, Gadfly.layer(x=deepcopy(X), y=deepcopy(Y), Gadfly.Geom.path, Gadfly.Theme(default_color=parse(Colorant,c[j])))[1] )
+    push!(PL, Gadfly.layer(x=deepcopy(X), y=deepcopy(Y), label=[text;], Gadfly.Geom.path, Gadfly.Theme(default_color=parse(Colorant,c[j])), Geom.label )[1] )
   end
 
   push!(PL, Coord.cartesian(aspect_ratio=1.0))
+  push!(PL, Guide.title(title))
+  if legend != nothing
+    push!(PL, Guide.manual_color_key("Legend", legend, c))
+  end
 
   Gadfly.plot(PL...)
 end
+
+
 
 function plotKDECircular(bds::Vector{BallTreeDensity};
                          c=["green"; "blue"; "deepskyblue"; "magenta"; "cyan"],
                          logpdf::Bool=true,
                          scale::Float64=0.2,
-                         offset::Float64=0.0  )
+                         offset::Float64=0.0,
+                         rVo::Vector{Float64}=[0.0;0.0;0.0],
+                         radix::Float64=1.0,
+                         text::String="",
+                         title::String="",
+                         legend=nothing   )
 
   arr = []
 
@@ -61,16 +78,22 @@ function plotKDECircular(bds::Vector{BallTreeDensity};
     push!(arr, gg)
   end
 
-  return plotCircBeliefs(arr, c=c, logpdf=logpdf)
+  return plotCircBeliefs(arr, c=c, logpdf=logpdf, rVo=rVo, radix=radix, text=text, title=title, legend=legend )
 end
 
 function plotKDECircular(bd::BallTreeDensity;
                          c=["green";],
                          logpdf::Bool=true,
-                         scale::Float64=0.2  )
+                         scale::Float64=0.2,
+                         rVo::Vector{Float64}=[0.0;0.0;0.0],
+                         radix::Float64=1.0,
+                         text::String="",
+                         title::String="",
+                         legend=nothing   )
   #
-  return plotKDECircular([bd;], c=c, logpdf=logpdf, scale=scale)
+  return plotKDECircular([bd;], c=c, logpdf=logpdf, scale=scale, rVo=rVo, radix=radix, text=text, title=title, legend=legend )
 end
+
 
 
 # function plotKDE(pp::BallTreeDensity, )

@@ -12,10 +12,7 @@ export
   manifoldLooCrossValidation,
   kde!_CircularNaiveCV,
   getCircMu,
-  getCircLambda,
-  logmap_SO2,
-  difftheta,
-  addtheta
+  getCircLambda
 
 
 global const reci_s2pi=1.0/sqrt(2.0*pi) # 1.0/2.5066282746310002
