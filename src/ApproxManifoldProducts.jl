@@ -51,6 +51,7 @@ include("CommonUtils.jl")
 include("Euclidean.jl")
 include("CircularUtils.jl")
 include("Circular.jl")
+include("KernelHilbertEmbeddings.jl")
 
 include("Legacy.jl")
 include("API.jl")
