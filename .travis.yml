@@ -24,5 +24,8 @@ matrix:
 #   - julia --color=yes -e 'using Pkg; Pkg.build()'
 #   - julia --check-bounds=yes --color=yes -e 'using Pkg; Pkg.test(coverage=true)'
 
+jobs:
+  fast_finish: true
+
 after_success:
   - julia -e 'using Pkg; cd(Pkg.dir("ApproxManifoldProducts")); Pkg.add("Coverage"); using Coverage; Codecov.submit(process_folder())'
