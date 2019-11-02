@@ -52,7 +52,7 @@ function plotCircBeliefs(arr::V;
   push!(PL, Coord.cartesian(aspect_ratio=1.0))
   push!(PL, Guide.title(title))
   if legend != nothing
-    push!(PL, Guide.manual_color_key("Legend", legend, c))
+    push!(PL, Guide.manual_color_key("Legend", legend, c[2:end]))
   end
 
   Gadfly.plot(PL...)
