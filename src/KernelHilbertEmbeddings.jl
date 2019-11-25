@@ -1,9 +1,9 @@
 
-abstract type ManifoldDefs end
-
-struct Euclid <: ManifoldDefs end
-struct Euclid2 <: ManifoldDefs end
-struct SE2_Manifold <: ManifoldDefs end
+# abstract type ManifoldDefs end
+#
+struct Euclid <: Manifold end
+# struct Euclid2 <: Manifold end
+# struct SE2_Manifold <: Manifold end
 
 function ker(::Type{Euclid},
              x::Array{<:Real,2},
@@ -45,7 +45,7 @@ end
 
 
 # Assuming equally weighted particles
-function mmd!(val::Vector{Float64}, a::Array{Float64,2}, b::Array{Float64,2}, mani::Type{<:ManifoldDefs}=Euclid, N::Int=size(a,2), M::Int=size(b,2) )
+function mmd!(val::Vector{Float64}, a::Array{Float64,2}, b::Array{Float64,2}, mani::Type{<:Manifold}=Euclid, N::Int=size(a,2), M::Int=size(b,2) )
   # TODO allow unequal data too
   @assert N == M
   # reci_len = 1.0/N
@@ -68,7 +68,7 @@ function mmd!(val::Vector{Float64}, a::Array{Float64,2}, b::Array{Float64,2}, ma
   return val
 end
 
-# mmd!(val::Vector{Float64}, a::Array{Float64,1}, b::Array{Float64,1}, mani::Type{<:ManifoldDefs}=Euclid) = mmd!( val, reshape(a,1,:), reshape(b,1,:), mani )
+# mmd!(val::Vector{Float64}, a::Array{Float64,1}, b::Array{Float64,1}, mani::Type{<:Manifold}=Euclid) = mmd!( val, reshape(a,1,:), reshape(b,1,:), mani )
 
 
 
