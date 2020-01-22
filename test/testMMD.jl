@@ -1,6 +1,9 @@
 # test MMD distance
 
-using Revise
+# testing only
+# using Revise
+# using Gadfly
+# Gadfly.set_default_plot_size(35cm,25cm)
 
 using Test
 using ApproxManifoldProducts
@@ -8,10 +11,6 @@ using DataFrames
 
 const AMP = ApproxManifoldProducts
 
-
-
-using Gadfly
-Gadfly.set_default_plot_size(35cm,25cm)
 
 
 @testset "Test mmd distance between Euclidean beliefs" begin
