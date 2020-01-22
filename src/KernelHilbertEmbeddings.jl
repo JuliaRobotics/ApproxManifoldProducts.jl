@@ -45,7 +45,7 @@ end
 
 
 # Assuming equally weighted particles
-function mmd!(val::Vector{Float64}, a::Array{Float64,2}, b::Array{Float64,2}, mani::Type{<:Manifold}=Euclid, N::Int=size(a,2), M::Int=size(b,2) )
+function mmd!(val::Vector{Float64}, a::Array{Float64,2}, b::Array{Float64,2}, mani::Type{<:Manifold}=Euclid, N::Int=size(a,2), M::Int=size(b,2); bw::Vector{Float64}=[2.0;] )
   # TODO allow unequal data too
   @assert N == M
   # reci_len = 1.0/N
@@ -53,14 +53,14 @@ function mmd!(val::Vector{Float64}, a::Array{Float64,2}, b::Array{Float64,2}, ma
   dx = zeros(2)
   @inbounds @fastmath for i in 1:N
      @simd for j in 1:M
-       val[1] -= ker(mani, a, b, dx, i, j)
+       val[1] -= ker(mani, a, b, dx, i, j, sigma=bw[1])
      end
   end
   val .*= 2.0
   @inbounds @fastmath for i in 1:N
     @simd for j in 1:M
-      val[1] += ker(mani, a, a, dx, i, j)
-      val[1] += ker(mani, b, b, dx, i, j)
+      val[1] += ker(mani, a, a, dx, i, j, sigma=bw[1])
+      val[1] += ker(mani, b, b, dx, i, j, sigma=bw[1])
     end
   end
   val ./= N
