@@ -1,4 +1,6 @@
 
+# see: A Gretton, e.g. http://www.gatsby.ucl.ac.uk/~gretton/coursefiles/lecture4_introToRKHS.pdf
+
 # abstract type ManifoldDefs end
 #
 struct Euclid <: Manifold end
