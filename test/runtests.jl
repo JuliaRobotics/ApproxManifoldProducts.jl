@@ -13,4 +13,6 @@ include("testManiProductBigSmall.jl")
 
 include("testBasicManiProduct.jl")
 
+include("testMMD.jl")
+
 #
