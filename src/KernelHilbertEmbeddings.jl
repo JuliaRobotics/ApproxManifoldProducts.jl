@@ -8,8 +8,8 @@ struct Euclid <: Manifold end
 # struct SE2_Manifold <: Manifold end
 
 function ker(::Type{Euclid},
-             x::Array{<:Real,2},
-             y::Array{<:Real,2},
+             x::AbstractArray{<:Real,2},
+             y::AbstractArray{<:Real,2},
              dx::Vector{<:Real},
              i::Int,
              j::Int;
@@ -23,8 +23,8 @@ function ker(::Type{Euclid},
 end
 
 function ker(::Type{Euclid2},
-             x::Array{<:Real,2},
-             y::Array{<:Real,2},
+             x::AbstractArray{<:Real,2},
+             y::AbstractArray{<:Real,2},
              dx::Vector{<:Real},
              i::Int,
              j::Int;
@@ -47,7 +47,12 @@ end
 
 
 # Assuming equally weighted particles
-function mmd!(val::Vector{Float64}, a::Array{Float64,2}, b::Array{Float64,2}, mani::Type{<:Manifold}=Euclid, N::Int=size(a,2), M::Int=size(b,2); bw::Vector{Float64}=[2.0;] )
+function mmd!(val::AbstractVector{<:Real},
+              a::AbstractArray{<:Real,2},
+              b::AbstractArray{<:Real,2},
+              mani::Type{<:Manifold}=Euclid,
+              N::Int=size(a,2), M::Int=size(b,2); bw::Vector{Float64}=[2.0;]  )
+  #
   # TODO allow unequal data too
   @assert N == M
   # reci_len = 1.0/N
