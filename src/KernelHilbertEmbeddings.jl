@@ -4,8 +4,7 @@
 # abstract type ManifoldDefs end
 #
 struct Euclid <: Manifold end
-# struct Euclid2 <: Manifold end
-# struct SE2_Manifold <: Manifold end
+struct SE2_Manifold <: Manifold end
 
 function ker(::Type{Euclid},
              x::AbstractArray{<:Real,2},
@@ -13,7 +12,7 @@ function ker(::Type{Euclid},
              dx::Vector{<:Real},
              i::Int,
              j::Int;
-             sigma::Float64=2.0)::Float64
+             sigma::Float64=2.0 )
   #
   dx[1] = x[1,i]
   dx[1] -= y[1,j]
@@ -28,7 +27,7 @@ function ker(::Type{Euclid2},
              dx::Vector{<:Real},
              i::Int,
              j::Int;
-             sigma::Float64=2.0  )::Float64
+             sigma::Float64=2.0 )
   #
   dx[1] = x[1,i]
   dx[2] = x[2,i]
@@ -40,18 +39,26 @@ function ker(::Type{Euclid2},
   exp( dx[1] )
 end
 
-# function ker(::Type{SE2_Manifold}, x::Vector{<:Real},y::Vector{<:Real}; sigma::Float64=2.0)::Float64
-#   innov = se2vee(SE2(y)\SE2(x))
-#   exp( -sigma*(  innov'*innov  ) )
-# end
+function ker(::Type{SE2_Manifold},
+             x::AbstractMatrix{<:Real},
+             y::AbstractMatrix{<:Real},
+             dx::Vector{<:Real},
+             i::Int,
+             j::Int;
+             sigma::Float64=0.001  )
+  #
+  innov = se2vee(SE2(x[:,i])\SE2(y[:,j]))
+  exp( -sigma*(  innov'*innov  ) )
+end
 
 
 # Assuming equally weighted particles
+# TODO make work for different sizes
 function mmd!(val::AbstractVector{<:Real},
               a::AbstractArray{<:Real,2},
               b::AbstractArray{<:Real,2},
               mani::Type{<:Manifold}=Euclid,
-              N::Int=size(a,2), M::Int=size(b,2); bw::Vector{Float64}=[2.0;]  )
+              N::Int=size(a,2), M::Int=size(b,2); bw::Vector{Float64}=[2.0;] )
   #
   # TODO allow unequal data too
   @assert N == M
@@ -76,6 +83,8 @@ function mmd!(val::AbstractVector{<:Real},
 end
 
 # mmd!(val::Vector{Float64}, a::Array{Float64,1}, b::Array{Float64,1}, mani::Type{<:Manifold}=Euclid) = mmd!( val, reshape(a,1,:), reshape(b,1,:), mani )
+
+
 
 
 
