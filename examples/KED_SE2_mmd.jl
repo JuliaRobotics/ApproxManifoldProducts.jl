@@ -9,3 +9,11 @@ meas = randn(3,100)
 
 val = [0.0]
 mmd!(val, pred, meas, SE2_Manifold)
+
+
+
+## Can visualize two poses with
+
+using RoMEPlotting
+
+plotFactorValues(Pose2Pose2, meas, pred)
