@@ -1,9 +1,6 @@
 
 using ApproxManifoldProducts
 
-# still need to export
-import ApproxManifoldProducts: mmd!, SE2_Manifold
-
 # using JLD2
 # @load "mmdse2.jld2" pred meas
 

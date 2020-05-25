@@ -14,6 +14,7 @@ using Requires
 import Base: *
 # import KernelDensityEstimate: kde!
 
+const AMP = ApproxManifoldProducts
 const KDE = KernelDensityEstimate
 const TUs = TransformUtils
 const CTs = CoordinateTransformations
@@ -22,6 +23,7 @@ const CTs = CoordinateTransformations
 KDE.setForceEvalDirect!(true)
 
 export
+  AMP,
   get2DLambda,
   get2DMu,
   get2DMuMin,
@@ -39,11 +41,15 @@ export
   manifoldProduct,
   manikde!,
 
+  # KED
+  mmd!,
+
   # Supported manifolds
   Manifold,
+  Circular,
   EuclideanManifold,
   Euclid2,
-  Circular
+  SE2_Manifold
 
 
 include("Interface.jl")
