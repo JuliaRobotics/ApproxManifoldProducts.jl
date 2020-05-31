@@ -10,6 +10,7 @@ using NLsolve
 using Optim
 using CoordinateTransformations
 using Requires
+using SLEEFPirates
 
 import Base: *
 # import KernelDensityEstimate: kde!
