@@ -18,7 +18,7 @@ function ker(::Type{Euclid},
   dx[1] -= y[1,j]
   dx[1] *= dx[1]
   dx[1] *= -sigma
-  exp( dx[1] )
+  SLEEFPirates.exp( dx[1] )
 end
 
 function ker(::Type{Euclid2},
@@ -36,7 +36,7 @@ function ker(::Type{Euclid2},
   dx .^= 2
   dx[1] += dx[2]
   dx[1] *= -sigma
-  exp( dx[1] )
+  SLEEFPirates.exp( dx[1] )
 end
 
 function ker(::Type{SE2_Manifold},
@@ -48,7 +48,7 @@ function ker(::Type{SE2_Manifold},
              sigma::Float64=0.001  )
   #
   innov = se2vee(SE2(x[:,i])\SE2(y[:,j]))
-  exp( -sigma*(  innov'*innov  ) )
+  SLEEFPirates.exp( -sigma*(  innov'*innov  ) )
 end
 
 
