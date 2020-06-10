@@ -25,8 +25,8 @@ function logmap_SO2(Rl::Matrix{Float64})
   ct = abs(Rl[1,1]) > 1.0 ? 1.0 : Rl[1,1]  # reinserting the sign below
   -sign(Rl[2,1])*acos(ct)
 end
-difftheta(wth1, wth2)::Float64 = logmap_SO2(TUs.R(wth1)'*TUs.R(wth2))
-addtheta(wth1, wth2)::Float64 = TUs.wrapRad( wth1+wth2 )
+difftheta(wth1, wth2) = logmap_SO2(TUs.R(wth1)'*TUs.R(wth2))
+addtheta(wth1, wth2) = TUs.wrapRad( wth1+wth2 )
 
 # manifold get Gaussian products mean
 getCircMu = (m::Vector{Float64}, s::Vector{Float64}, dummy::Float64) -> TUs.wrapRad(get2DMu(m, s, diffop=difftheta, initrange=(-pi+0.0,pi+0.0)))

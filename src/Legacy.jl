@@ -2,7 +2,7 @@
 
 
 
-function buildHybridManifoldCallbacks(manif::T) where {T <: Tuple}
+function buildHybridManifoldCallbacks(manif::Tuple)
   # TODO use multiple dispatch instead -- will be done for second version of system
   addopT = []
   diffopT = []
