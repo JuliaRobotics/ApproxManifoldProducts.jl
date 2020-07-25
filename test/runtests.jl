@@ -15,4 +15,6 @@ include("testBasicManiProduct.jl")
 
 include("testMMD.jl")
 
+include("basic_se3.jl")
+
 #
