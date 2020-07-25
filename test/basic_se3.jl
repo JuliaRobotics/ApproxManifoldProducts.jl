@@ -9,10 +9,9 @@ using Test
 a = randn(6,50)
 b = randn(6,50)
 
-ret = mmd(SE3_Manifold, a, b)
+ret = mmd(a, b, SE3_Manifold)
 
 @test ret < 50
-
 
 end
 

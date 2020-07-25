@@ -66,7 +66,7 @@ function ker(::Type{SE2_Manifold},
 end
 
 # This functin is still very slow, needs speedup
-# Obviously want to get away from the Euler angles throughout 
+# Obviously want to get away from the Euler angles throughout
 function ker(::Type{SE3_Manifold},
              x::AbstractMatrix{<:Real},
              y::AbstractMatrix{<:Real},
@@ -75,7 +75,7 @@ function ker(::Type{SE3_Manifold},
              j::Int;
              sigma::Float64=0.001  )
   #
-  innov = veeEuler(SE3(x[1:3,i],Euler((x[4:6,i])...))\SE3(y[1:3,j],Euler((y[4:6,j])...))
+  innov = veeEuler(SE3(x[1:3,i],Euler((x[4:6,i])...))\SE3(y[1:3,j],Euler((y[4:6,j])...)))
   SLEEFPirates.exp( -sigma*(  innov'*innov  ) )
 end
 
@@ -143,8 +143,8 @@ function mmd(a::AbstractArray{<:Real,2},
   #
   val = [0.0;]
   mmd!(val, a,b,
-       mani=mani,
-       N=N, M=M; bw=bw )
+       mani,
+       N, M; bw=bw )
   #
   return val[1]
 end
