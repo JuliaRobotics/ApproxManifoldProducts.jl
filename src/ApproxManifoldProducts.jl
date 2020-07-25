@@ -42,15 +42,10 @@ export
   manifoldProduct,
   manikde!,
 
-  # KED
-  mmd!,
-
-  # Supported manifolds
+  # general manifolds
   Manifold,
-  Circular,
-  EuclideanManifold,
-  Euclid2,
-  SE2_Manifold
+  Circular
+
 
 
 include("Interface.jl")

@@ -1,10 +1,24 @@
 
 # see: A Gretton, e.g. http://www.gatsby.ucl.ac.uk/~gretton/coursefiles/lecture4_introToRKHS.pdf
 
+export
+  mmd!,  # KED
+  mmd,
+
+  # More supported manifolds
+  Euclid,
+  EuclideanManifold,
+  Euclid2,
+  SE2_Manifold,
+  SE3_Manifold
+
+
 # abstract type ManifoldDefs end
 #
+# FIXME standardize with Manifolds.jl
 struct Euclid <: Manifold end
 struct SE2_Manifold <: Manifold end
+struct SE3_Manifold <: Manifold end
 
 function ker(::Type{Euclid},
              x::AbstractArray{<:Real,2},
@@ -51,9 +65,35 @@ function ker(::Type{SE2_Manifold},
   SLEEFPirates.exp( -sigma*(  innov'*innov  ) )
 end
 
+function ker(::Type{SE3_Manifold},
+             x::AbstractMatrix{<:Real},
+             y::AbstractMatrix{<:Real},
+             dx::Vector{<:Real},
+             i::Int,
+             j::Int;
+             sigma::Float64=0.001  )
+  #
+  innov = se3vee(SE3(x[:,i])\SE3(y[:,j]))
+  SLEEFPirates.exp( -sigma*(  innov'*innov  ) )
+end
 
-# Assuming equally weighted particles
-# TODO make work for different sizes
+
+"""
+    $SIGNATURES
+
+MMD disparity (i.e. 'distance') measure based on Kernel Hilbert Embeddings between two beliefs.
+
+Notes:
+- This is the in-place version (well more in-place than mmd)
+
+DevNotes:
+- TODO make work for different sizes
+- TODO dont assume equally weighted particles
+
+Related
+
+mmd, ker
+"""
 function mmd!(val::AbstractVector{<:Real},
               a::AbstractArray{<:Real,2},
               b::AbstractArray{<:Real,2},
@@ -82,7 +122,30 @@ function mmd!(val::AbstractVector{<:Real},
   return val
 end
 
-# mmd!(val::Vector{Float64}, a::Array{Float64,1}, b::Array{Float64,1}, mani::Type{<:Manifold}=Euclid) = mmd!( val, reshape(a,1,:), reshape(b,1,:), mani )
+"""
+    $SIGNATURES
+
+MMD disparity (i.e. 'distance') measure based on Kernel Hilbert Embeddings between two beliefs.
+
+Notes:
+- This is a wrapper to the in-place `mmd!` function.
+
+Related
+
+mmd!, ker
+"""
+function mmd(a::AbstractArray{<:Real,2},
+             b::AbstractArray{<:Real,2},
+             mani::Type{<:Manifold}=Euclid,
+             N::Int=size(a,2), M::Int=size(b,2); bw::Vector{Float64}=[2.0;])
+  #
+  val = [0.0;]
+  mmd!(val, a,b,
+       mani=mani,
+       N=N, M=M; bw=bw )
+  #
+  return val[1]
+end
 
 
 
