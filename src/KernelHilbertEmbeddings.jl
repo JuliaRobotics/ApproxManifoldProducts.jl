@@ -26,7 +26,7 @@ function ker(::Type{Euclid},
              dx::Vector{<:Real},
              i::Int,
              j::Int;
-             sigma::Float64=2.0 )
+             sigma::Real=0.001 )
   #
   dx[1] = x[1,i]
   dx[1] -= y[1,j]
@@ -41,7 +41,7 @@ function ker(::Type{Euclid2},
              dx::Vector{<:Real},
              i::Int,
              j::Int;
-             sigma::Float64=2.0 )
+             sigma::Real=0.001 )
   #
   dx[1] = x[1,i]
   dx[2] = x[2,i]
@@ -59,7 +59,7 @@ function ker(::Type{SE2_Manifold},
              dx::Vector{<:Real},
              i::Int,
              j::Int;
-             sigma::Float64=0.001  )
+             sigma::Real=0.001  )
   #
   innov = se2vee(SE2(x[:,i])\SE2(y[:,j]))
   SLEEFPirates.exp( -sigma*(  innov'*innov  ) )
@@ -73,7 +73,7 @@ function ker(::Type{SE3_Manifold},
              dx::Vector{<:Real},
              i::Int,
              j::Int;
-             sigma::Float64=0.001  )
+             sigma::Real=0.001  )
   #
   innov = veeEuler(SE3(x[1:3,i],Euler((x[4:6,i])...))\SE3(y[1:3,j],Euler((y[4:6,j])...)))
   SLEEFPirates.exp( -sigma*(  innov'*innov  ) )
@@ -100,7 +100,7 @@ function mmd!(val::AbstractVector{<:Real},
               a::AbstractArray{<:Real,2},
               b::AbstractArray{<:Real,2},
               mani::Type{<:Manifold}=Euclid,
-              N::Int=size(a,2), M::Int=size(b,2); bw::Vector{Float64}=[2.0;] )
+              N::Int=size(a,2), M::Int=size(b,2); bw::Vector{<:Real}=[0.001;] )
   #
   # TODO allow unequal data too
   @assert N == M
@@ -139,7 +139,7 @@ mmd!, ker
 function mmd(a::AbstractArray{<:Real,2},
              b::AbstractArray{<:Real,2},
              mani::Type{<:Manifold}=Euclid,
-             N::Int=size(a,2), M::Int=size(b,2); bw::Vector{Float64}=[2.0;])
+             N::Int=size(a,2), M::Int=size(b,2); bw::Vector{<:Real}=[0.001;])
   #
   val = [0.0;]
   mmd!(val, a,b,
@@ -150,17 +150,14 @@ function mmd(a::AbstractArray{<:Real,2},
 end
 
 
+function mmd(a::ManifoldBelief, b::ManifoldBelief; bw::Vector{<:Real}=[0.001;])
+  @assert a.manifold == b.manifold "Manifolds not the same $(a.manifold), $(b.manifold)"
+  aPts = getPoints(a.belief)
+  bPts = getPoints(b.belief)
+  mmd(aPts, bPts, a.manifold, size(aPts,2), size(bPts,2), bw=bw)
+end
 
 
-
-##
-#
-# N = 10000
-# a = randn(2,N)
-# b = randn(2,N)
-# c = randn(2,N)
-# c[1,:] .+= 10
-#
-# res = zeros(1)
-#
-# @time mmd!(res, a,b, Euclid2)
+function isapprox(a::ManifoldBelief, b::ManifoldBelief; atol::Real=0.1)
+  mmd(a,b) < atol
+end
