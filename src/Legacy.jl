@@ -74,13 +74,13 @@ Legacy extension of KDE.kde! function to approximate smooth functions based on s
 """
 function manikde!(pts::AA2,
                   bws::Vector{Float64},
-                  manifolds::T  )::BallTreeDensity where {AA2 <: AbstractArray{Float64,2}, T <: Tuple}
+                  manifolds::T  ) where {AA2 <: AbstractArray{Float64,2}, T <: Tuple}
   #
   addopT, diffopT, getManiMu, getManiLam = buildHybridManifoldCallbacks(manifolds)
   KernelDensityEstimate.kde!(pts, bws, addopT, diffopT)
 end
 function manikde!(pts::AA2,
-                  manifolds::T  )::BallTreeDensity where {AA2 <: AbstractArray{Float64,2}, T <: Tuple}
+                  manifolds::T  ) where {AA2 <: AbstractArray{Float64,2}, T <: Tuple}
   #
   bws = getKDEManifoldBandwidths(pts, manifolds)
   ensurePeriodicDomains!(pts, manifolds)

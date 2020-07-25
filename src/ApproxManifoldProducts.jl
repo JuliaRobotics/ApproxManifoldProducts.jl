@@ -12,7 +12,7 @@ using CoordinateTransformations
 using Requires
 using SLEEFPirates
 
-import Base: *
+import Base: *, isapprox
 # import KernelDensityEstimate: kde!
 
 const AMP = ApproxManifoldProducts
@@ -35,6 +35,7 @@ export
   ManifoldBelief,
   MB,
   *,
+  isapprox,
 
   # APi and util functions
   buildHybridManifoldCallbacks,
@@ -42,15 +43,10 @@ export
   manifoldProduct,
   manikde!,
 
-  # KED
-  mmd!,
-
-  # Supported manifolds
+  # general manifolds
   Manifold,
-  Circular,
-  EuclideanManifold,
-  Euclid2,
-  SE2_Manifold
+  Circular
+
 
 
 include("Interface.jl")
