@@ -32,7 +32,7 @@ function ker(::Type{Euclid},
   dx[1] -= y[1,j]
   dx[1] *= dx[1]
   dx[1] *= -sigma
-  SLEEFPirates.exp( dx[1] )
+  exp( dx[1] )
 end
 
 function ker(::Type{Euclid2},
@@ -50,7 +50,7 @@ function ker(::Type{Euclid2},
   dx .^= 2
   dx[1] += dx[2]
   dx[1] *= -sigma
-  SLEEFPirates.exp( dx[1] )
+  exp( dx[1] )
 end
 
 function ker(::Type{SE2_Manifold},
@@ -62,7 +62,7 @@ function ker(::Type{SE2_Manifold},
              sigma::Real=0.001  )
   #
   innov = se2vee(SE2(x[:,i])\SE2(y[:,j]))
-  SLEEFPirates.exp( -sigma*(  innov'*innov  ) )
+  exp( -sigma*(  innov'*innov  ) )
 end
 
 # This functin is still very slow, needs speedup
@@ -76,7 +76,7 @@ function ker(::Type{SE3_Manifold},
              sigma::Real=0.001  )
   #
   innov = veeEuler(SE3(x[1:3,i],Euler((x[4:6,i])...))\SE3(y[1:3,j],Euler((y[4:6,j])...)))
-  SLEEFPirates.exp( -sigma*(  innov'*innov  ) )
+  exp( -sigma*(  innov'*innov  ) )
 end
 
 
