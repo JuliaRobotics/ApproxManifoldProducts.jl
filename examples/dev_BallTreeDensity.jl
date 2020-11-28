@@ -1,4 +1,54 @@
-# build BallTree for KDE density estimation
+## mateusz recommendation Manifolds.jl ProductRepr, see AMP.jl#41
+
+
+using StaticArrays, Manifolds, NearestNeighbors, Distances
+
+M = SpecialEuclidean(2)
+N = 100
+# convert point to coordinates
+function coords(p)
+    return SA[p.parts[1][1], p.parts[1][2], acos(p.parts[2][1,1])]
+end
+# reverse of `coords`
+function uncoords(p)
+    α = p[3]
+    return ProductRepr((SA[p[1], p[2]]), SA[cos(α) -sin(α); sin(α) cos(α)])
+end
+# some random points to make a tree from
+pts = [uncoords(@SVector randn(3)) for _ in 1:N]
+
+# The variant in ManifoldML doesn't support `ProductRepr` currently.
+struct SE2Distance{TM<:Manifold} <: Distances.Metric
+    manifold::TM
+end
+function (dist::SE2Distance)(a, b)
+    return distance(dist.manifold, uncoords(a), uncoords(b))
+end
+
+dist = SE2Distance(M)
+# making a tree
+vector_elem = coords.(pts)
+balltree = BallTree(vector_elem, dist)
+
+# point_matrix = reduce(hcat, map(a -> coords(a), pts))
+# balltree = BallTree(point_matrix, dist)
+# finding nearest neighbors
+k = 3
+idxs, dists = knn(balltree, coords(pts[2]), k)
+
+
+
+
+
+
+
+
+
+
+
+
+
+## build BallTree for KDE density estimation
 
 
 using NearestNeighbors: BallTree, RMSDeviation
