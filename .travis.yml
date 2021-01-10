@@ -12,19 +12,16 @@ julia:
 
 jobs:
   include:
-    - julia: 1.4
+    - julia: 1.5
       arch: amd64
       os: linux
     - julia: nightly
       arch: amd64
       os: linux
-    - julia: 1.0
+    - julia: 1.5
       arch: amd64
-      os: linux
-    - julia: 1.4
-      arch: amd64
-      os: osx
-    - julia: 1.4
+      os: os x
+    - julia: 1.5
       arch: arm64
       os: linux
   fast_finish: true
