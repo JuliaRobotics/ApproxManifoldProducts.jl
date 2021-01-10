@@ -11,9 +11,11 @@ using Optim
 using CoordinateTransformations
 using Requires
 using SLEEFPirates
+using LinearAlgebra
 
 import Base: *, isapprox
 # import KernelDensityEstimate: kde!
+import LinearAlgebra: rotate!
 
 const AMP = ApproxManifoldProducts
 const KDE = KernelDensityEstimate
