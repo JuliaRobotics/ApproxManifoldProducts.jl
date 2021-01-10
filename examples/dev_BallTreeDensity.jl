@@ -1,4 +1,102 @@
-# build BallTree for KDE density estimation
+## mateusz recommendation Manifolds.jl ProductRepr, see AMP.jl#41
+
+
+using StaticArrays, Manifolds, NearestNeighbors, Distances
+
+M = SpecialEuclidean(2)
+N = 100
+# convert point to coordinates
+function coords(p)
+    return SA[p.parts[1][1], p.parts[1][2], acos(p.parts[2][1,1])]
+end
+# reverse of `coords`
+function uncoords(p)
+    α = p[3]
+    return ProductRepr((SA[p[1], p[2]]), SA[cos(α) -sin(α); sin(α) cos(α)])
+end
+# some random points to make a tree from
+pts = [uncoords(@SVector randn(3)) for _ in 1:N]
+
+# The variant in ManifoldML doesn't support `ProductRepr` currently.
+struct SE2Distance{TM<:Manifold} <: Distances.Metric
+    manifold::TM
+end
+function (dist::SE2Distance)(a, b)
+    return distance(dist.manifold, uncoords(a), uncoords(b))
+end
+
+dist = SE2Distance(M)
+# making a tree
+vector_elem = coords.(pts)
+balltree = BallTree(vector_elem, dist)
+
+# point_matrix = reduce(hcat, map(a -> coords(a), pts))
+# balltree = BallTree(point_matrix, dist)
+# finding nearest neighbors
+k = 3
+idxs, dists = knn(balltree, coords(pts[2]), k)
+
+
+
+## try make ManifoldFakeArray
+
+mutable struct ManifoldFakeArray{T,N} <: Base.AbstractArray{T,N}
+    element::T
+end
+
+ManifoldFakeArray{N}(el::T) where {T,N} = ManifoldFakeArray{T,N}(el)
+
+
+struct ManifoldFakeArrayDistance{TM<:Manifold} <: Distances.Metric
+    manifold::TM
+end
+
+function (dist::ManifoldFakeArrayDistance{TM})(a, b) where TM
+    return distance(dist.manifold, a.element, b.element)
+end
+
+
+
+import Base: size
+Base.size(el::Union{<:ManifoldFakeArray{T,N},Type{<:ManifoldFakeArray{T,N}}}) where {T,N} = N
+Base.length(el::Union{<:ManifoldFakeArray{T,N},Type{<:ManifoldFakeArray{T,N}}}) where {T,N} = N
+
+# Base.tail(el::ManifoldFakeArray{T,N}) where {T,N} = T[]
+
+function Base.show(io, mime, mdfa::ManifoldFakeArray{T,N}) where {T,N}
+    println(io, "ManifoldFakeArray{T,N}")
+    println(io, "  N: $N")
+    # println(io, "  T: $T")
+    # println(io, "    .element::T: $(mdfa.element)")
+end
+
+function Base.show(io, mime, mdfa::AbstractArray{ <: ManifoldFakeArray{T,N}}) where {T,N}
+    for i in 1:length(mdfa)
+        show(io,mime, mdfa[i])
+    end
+end
+
+Base.Multimedia.display(mdfa::ManifoldFakeArray{T,N}) where {T,N} = display(T)
+Base.Multimedia.display(mdfa::AbstractArray{<:ManifoldFakeArray{T,N}}) where {T,N} = display.(mdfa)
+
+
+
+faPts = map(x->ManifoldFakeArray{3}(x), pts)
+
+
+distFA = ManifoldFakeArrayDistance(M)
+
+
+distFA(faPts[1], faPts[2])
+
+
+
+## real test
+
+balltree = BallTree(faPts, distFA)
+
+
+## build BallTree for KDE density estimation
 
 
 using NearestNeighbors: BallTree, RMSDeviation

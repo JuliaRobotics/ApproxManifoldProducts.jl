@@ -2,17 +2,17 @@
 
 
 export
-  logmap_SO2,
-  difftheta,
-  addtheta,
-  rbfAccAt!,
-  rbf!,
-  rbf,
-  evaluateManifoldNaive1D!,
-  manifoldLooCrossValidation,
-  kde!_CircularNaiveCV,
-  getCircMu,
-  getCircLambda
+    logmap_SO2,
+    difftheta,
+    addtheta,
+    rbfAccAt!,
+    rbf!,
+    rbf,
+    evaluateManifoldNaive1D!,
+    manifoldLooCrossValidation,
+    kde!_CircularNaiveCV,
+    getCircMu,
+    getCircLambda
 
 
 global const reci_s2pi=1.0/sqrt(2.0*pi) # 1.0/2.5066282746310002
@@ -22,8 +22,8 @@ global const reci_s2pi=1.0/sqrt(2.0*pi) # 1.0/2.5066282746310002
 
 # manifold distance, add, and subtract
 function logmap_SO2(Rl::Matrix{Float64})
-  ct = abs(Rl[1,1]) > 1.0 ? 1.0 : Rl[1,1]  # reinserting the sign below
-  -sign(Rl[2,1])*acos(ct)
+    ct = abs(Rl[1,1]) > 1.0 ? 1.0 : Rl[1,1]  # reinserting the sign below
+    -sign(Rl[2,1])*acos(ct)
 end
 difftheta(wth1, wth2) = logmap_SO2(TUs.R(wth1)'*TUs.R(wth2))
 addtheta(wth1, wth2) = TUs.wrapRad( wth1+wth2 )
@@ -53,22 +53,22 @@ function normDistAccAt!(ret::AV,
     return nothing
 end
 
-function rbfAccAt!(ret::AV,
-                   idx::Int,
-                   x::Float64,
-                   μ::Float64=0.0,
-                   σ::Float64=1.0,
-                   w::Float64=1.0,
-                   diffop::Function=-)::Nothing  where {AV <: AbstractVector}
+function rbfAccAt!( ret::AV,
+                    idx::Int,
+                    x::Float64,
+                    μ::Float64=0.0,
+                    σ::Float64=1.0,
+                    w::Float64=1.0,
+                    diffop::Function=-)::Nothing  where {AV <: AbstractVector}
     #
     normDistAccAt!(ret, idx, diffop(x, μ), σ, w)
     nothing
 end
-function rbf!(ret::AV,
-              x::Float64,
-              μ::Float64=0.0,
-              σ::Float64=1.0,
-              diffop::Function=-)::Nothing  where {AV <: AbstractVector}
+function rbf!(  ret::AV,
+                x::Float64,
+                μ::Float64=0.0,
+                σ::Float64=1.0,
+                diffop::Function=-)::Nothing  where {AV <: AbstractVector}
     #
     ret[1] = 0.0
     normDistAccAt!(ret, 1, diffop(x,μ), σ)
@@ -89,13 +89,13 @@ end
 Evalute the KDE naively as equally weighted Gaussian kernels with common bandwidth.
 This function does, however, allow on-manifold evaluations.
 """
-function evaluateManifoldNaive1D!(ret::Vector{Float64},
-                                  idx::Int,
-                                  pts::Array{Float64,1},
-                                  bw::Float64,
-                                  x::Array{Float64,1},
-                                  loo::Int=-1,
-                                  diffop=-  )::Nothing
+function evaluateManifoldNaive1D!(  ret::Vector{Float64},
+                                    idx::Int,
+                                    pts::Array{Float64,1},
+                                    bw::Float64,
+                                    x::Array{Float64,1},
+                                    loo::Int=-1,
+                                    diffop=-  )::Nothing
     #
     dontskip = loo == -1
     N = length(pts)
@@ -109,12 +109,12 @@ function evaluateManifoldNaive1D!(ret::Vector{Float64},
 
     return nothing
 end
-function evaluateManifoldNaive1D!(ret::Vector{Float64},
-                                  idx::Int,
-                                  bd::BallTreeDensity,
-                                  x::Array{Float64,1},
-                                  loo::Int=-1,
-                                  diffop=-  )::Nothing
+function evaluateManifoldNaive1D!(  ret::Vector{Float64},
+                                    idx::Int,
+                                    bd::BallTreeDensity,
+                                    x::Array{Float64,1},
+                                    loo::Int=-1,
+                                    diffop=-  )::Nothing
     #
     evaluateManifoldNaive1D!(ret, idx, getPoints(bd)[:], getBW(bd)[1,1], x, loo, diffop )
 end

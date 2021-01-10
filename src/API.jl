@@ -29,9 +29,12 @@ plot( x=getPoints(pq)[1,:], y=getPoints(pq)[2,:], Geom.histogram2d )
 ```
 
 """
-function manifoldProduct(ff::Vector{BallTreeDensity},
-                         manif::T;
-                         Niter=1  )::BallTreeDensity where {T <: Tuple}
+function manifoldProduct( ff::Vector{BallTreeDensity},
+                          manif::T;
+                          Niter=1,
+                          addEntropy::Bool=true,
+                          recordLabels::Bool=false,
+                          selectedLabels::Vector{Vector{Int}}=Vector{Vector{Int}}()) where {T <: Tuple}
   #
 
   ndims = Ndim(ff[1])
@@ -43,16 +46,37 @@ function manifoldProduct(ff::Vector{BallTreeDensity},
 
   dummy = kde!(rand(ndims,N), bws, addopT, diffopT );
 
+  glbs = KDE.makeEmptyGbGlb();
+  glbs.recordChoosen = recordLabels
+
   pGM, = prodAppxMSGibbsS(dummy, ff,
                           nothing, nothing, Niter=1,
                           addop=addopT,
                           diffop=diffopT,
-                          getMu=getManiMu  );
+                          getMu=getManiMu,
+                          glbs=glbs,
+                          addEntropy=addEntropy  );
   #
+
+  if recordLabels
+    # how many levels in ball tree
+    lc = glbs.labelsChoosen
+    nLevels = maximum(keys(lc[1][1]) |> collect)
+
+    # push final label selections onto selectedLabels
+    resize!(selectedLabels, N)
+    for i in 1:N
+      selectedLabels[i] = Int[]
+      for j in 1:length(ff)
+        push!(selectedLabels[i], lc[i][j][nLevels] - Npts(ff[j]))
+      end
+    end
+  end
 
   bws[:] = getKDEManifoldBandwidths(pGM, manif)
   kde!(pGM, bws, addopT, diffopT)
 end
+
 
 
 

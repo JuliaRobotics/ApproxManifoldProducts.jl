@@ -1,7 +1,14 @@
 # legacy content to facilitate transition to AMP
 
 
+"""
+    $SIGNATURES
 
+Lots to do here, see RoME.jl #244 and standardized usage with Manifolds.jl.
+
+Notes
+- diffop( test, reference )   <===>   ΔX = inverse(test) * reference
+"""
 function buildHybridManifoldCallbacks(manif::Tuple)
   # TODO use multiple dispatch instead -- will be done for second version of system
   addopT = []
@@ -29,11 +36,11 @@ function buildHybridManifoldCallbacks(manif::Tuple)
 end
 
 
-# """
-#     $(SIGNATURES)
-#
-# Calculate the KDE bandwidths for each dimension independly, as per manifold of each.  Return vector of all dimension bandwidths.
-# """
+"""
+    $(SIGNATURES)
+
+Calculate the KDE bandwidths for each dimension independly, as per manifold of each.  Return vector of all dimension bandwidths.
+"""
 function getKDEManifoldBandwidths(pts::AA,
                                   manif::T1 ) where {AA <: AbstractArray{Float64,2}, T1 <: Tuple}
   #
