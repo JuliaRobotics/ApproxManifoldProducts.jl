@@ -6,10 +6,6 @@ os:
 arch:
     - amd64
 
-julia:
-    - 1.4
-    - nightly
-
 jobs:
   include:
     - julia: 1.5
@@ -20,7 +16,7 @@ jobs:
       os: linux
     - julia: 1.5
       arch: amd64
-      os: os x
+      os: osx
     - julia: 1.5
       arch: arm64
       os: linux
