@@ -49,8 +49,10 @@ export
   Manifold,
   Circular
 
+# internal features not exported
+include("_BiMaps.jl")
 
-
+# regular features
 include("Interface.jl")
 include("CommonUtils.jl")
 include("Euclidean.jl")
