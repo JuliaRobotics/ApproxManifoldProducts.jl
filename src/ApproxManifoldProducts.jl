@@ -60,6 +60,8 @@ include("CircularUtils.jl")
 include("Circular.jl")
 include("KernelHilbertEmbeddings.jl")
 
+include("TrackingLabels.jl")
+
 include("Legacy.jl")
 include("API.jl")
 
