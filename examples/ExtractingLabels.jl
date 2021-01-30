@@ -24,27 +24,27 @@ X3 = kde!([4;5;6.0],[1.0;]);
 ##
 
 
-dpe = _buildDensityProductElements([X1;X2;X3], inNames=[:X1, :X2, :X3], outName = :Y)
+dpe = AMP._buildDensityProductElements([X1;X2;X3], inNames=[:X1, :X2, :X3], outName = :Y)
 
 
 
 
 ##
 
-_recalcProductKernel(dpe, 1)
+AMP._recalcProductKernel(dpe, 1)
 
 ##
 
-_recalcProductKernel(dpe, 2)
+AMP._recalcProductKernel(dpe, 2)
 
-_recalcProductKernel(dpe, 3)
+AMP._recalcProductKernel(dpe, 3)
 
 
 ##
 
-_listOutElementLabelSelections(dpe, 1)
-_listOutElementLabelSelections(dpe, 2)
-_listOutElementLabelSelections(dpe, 3)
+AMP._listOutElementLabelSelections(dpe, 1)
+AMP._listOutElementLabelSelections(dpe, 2)
+AMP._listOutElementLabelSelections(dpe, 3)
 
 
 ##
@@ -64,7 +64,7 @@ Z_ = kde!(5 .+ randn(5), [1.0;]);
 
 # Y_ = X_*Z_
 
-dpeY = _buildDensityProductElements([X_; Z_], outName = :Y, inNames=[:X, :Z], inFctNames=[:XYf1; :YZf1])
+dpeY = AMP._buildDensityProductElements([X_; Z_], outName = :Y, inNames=[:X, :Z], inFctNames=[:XYf1; :YZf1])
 
 
 @cast pts[i,j] := dpeY.outElements[j][i]
@@ -74,12 +74,12 @@ Y_ = kde!(pts, dpeY.outBW[1])
 ##
 
 X = kde!(pts .- 5)
-dpeX = _buildDensityProductElements([X;], outName = :X, inNames=[:Y;], inFctNames=[:XYf1;])
+dpeX = AMP._buildDensityProductElements([X;], outName = :X, inNames=[:Y;], inFctNames=[:XYf1;])
 
 ##
 
 Z = kde!(pts .+ 5)
-dpeZ = _buildDensityProductElements([Z;], outName = :Z, inNames=[:Y;], inFctNames=[:YZf1;])
+dpeZ = AMP._buildDensityProductElements([Z;], outName = :Z, inNames=[:Y;], inFctNames=[:YZf1;])
 
 
 
@@ -90,7 +90,7 @@ struct _AMPDiGraph{G,B}
   bd::B
 end
 
-function buildDiGraphKernelProduct!(dpel::DensityProductElements,
+function buildDiGraphKernelProduct!(dpel::AMP.DensityProductElements,
                                     abg::_AMPDiGraph = _AMPDiGraph(DiGraph(), AMP._BiDictMap(sizehint=100))  )
   #
 
@@ -156,6 +156,41 @@ end
 
 
 
+# from dependent to independent variable, `d/d ind  dep = dz/dx`
+# used for TAF gradient calculations
+function findPathsOfKernels(abg::_AMPDiGraph, dep::Symbol, ind::Symbol)
+  #
+  allpths = Vector{Vector{Symbol}}()
+
+  # get number of independent variables
+  allsyms = string.([abg.bd[n] for n in keys(abg.bd)])
+  @show Ni = sum(occursin.("$(ind)_", allsyms) )
+  @show Nj = sum(occursin.("$(dep)_", allsyms) )
+
+  for i in 1:Ni, j in 1:Nj
+    # get the path
+    spth = dijkstra_shortest_paths(abg.dg, abg.bd[Symbol(dep,"_$i")])
+    # trim to first hit on independent variable
+    pth1 = enumerate_paths(spth, abg.bd[Symbol(ind, "_$j")]) .|> x->getindex(abg.bd, x)
+    strp = string.(pth1)
+    len = occursin.("$ind", strp)
+    len_ = 0 < length(len) ? findfirst(len) : 0
+    # trim start for first hit on dependent variable
+    # pth1 = enumerate_paths(spth, abg.bd[Symbol(dep, "_$j")]) .|> x->getindex(abg.bd, x)
+    stt = occursin.("$dep", strp)
+    stt_ = 0 < length(stt) ? findlast(stt) : 0
+
+    # assemble all paths
+    stt_ < len_ ? push!(allpths, pth1[stt_:len_]) : nothing
+  end
+
+  # return all unique paths
+  unique(allpths)
+end
+
+
+
+
 ##
 
 
@@ -201,57 +236,61 @@ spy(adjacency_matrix(abg.dg))
 
 ## list all paths worth find gradients for
 
-
-# from dependent to independent variable, `d/d ind  dep = dz/dx`
-# used for TAF gradient calculations
-function findPathsOfKernels(abg::_AMPDiGraph, dep::Symbol, ind::Symbol)
-  #
-  allpths = Vector{Vector{Symbol}}()
-
-  # get number of independent variables
-  allsyms = string.([abg.bd[n] for n in keys(abg.bd)])
-  @show Ni = sum(occursin.("$(ind)_", allsyms) )
-  @show Nj = sum(occursin.("$(dep)_", allsyms) )
-
-  for i in 1:Ni, j in 1:Nj
-    # get the path
-    spth = dijkstra_shortest_paths(abg.dg, abg.bd[Symbol(dep,"_$i")])
-    # trim to first hit on independent variable
-    pth1 = enumerate_paths(spth, abg.bd[Symbol(ind, "_$j")]) .|> x->getindex(abg.bd, x)
-    strp = string.(pth1)
-    len = occursin.("$ind", strp)
-    len_ = 0 < length(len) ? findfirst(len) : 0
-    # trim start for first hit on dependent variable
-    # pth1 = enumerate_paths(spth, abg.bd[Symbol(dep, "_$j")]) .|> x->getindex(abg.bd, x)
-    stt = occursin.("$dep", strp)
-    stt_ = 0 < length(stt) ? findlast(stt) : 0
-
-    # assemble all paths
-    stt_ < len_ ? push!(allpths, pth1[stt_:len_]) : nothing
-  end
-
-  # return all unique paths
-  unique(allpths)
-end
-
-##
-
-
 unqpths = findPathsOfKernels(abg, :X, :Z)
 
 
 unqpths = findPathsOfKernels(abg, :Z, :X)
 
 
-## get values and measurements associated with each selection
+## Get value and factor pairings
 
-m = match(r"_[0-9]+", unqpths[1][1] |> string)
-sId = parse(Int, split(m.match, '_')[end])
+function _getKernelVariablesOnPath(unqpath::AbstractVector{Symbol})
+  varnames = Vector{Symbol}()
+  for ker in unqpath
+    chplen = length(split(string(ker), '_')[end]) + 1
+    nnm = Symbol(string(ker)[1:end-chplen])
+    push!(varnames, nnm)
+  end
+  varnames
+end
+
+
+function _getKernelIdInPath(unqpath::AbstractVector{Symbol}, idx::Int)
+  m = match(r"_[0-9]+", unqpath[idx] |> string)
+  parse(Int, split(m.match, '_')[end])
+end
+
+
+
+# get values and measurements associated with each selection
+
+
+function _rebuildVariableKernelPairs(uqph::AbstractVector{Symbol})
+  allpairs = Vector{Tuple{Symbol, Int}}()
+  pthvars = _getKernelVariablesOnPath(uqph)
+  for i in 1:length(pthvars)
+    sId = _getKernelIdInPath(uqph,i)
+    push!(allpairs, (pthvars[i], sId) )
+  end
+
+  return allpairs
+end
+
+
+##
+
+_rebuildVariableKernelPairs(unqpths[3])
+
+# when proposal is done in IIF, must also store the associated factor connected variables that were use for n-ary case
+
+
+
+##
+
 xval = dpeX.outElements[sId]
 
 
-m = match(r"_[0-9]+", unqpths[1][end] |> string)
-sId = parse(Int, split(m.match, '_')[end])
+sId = _getKernelIdInPath(uqph,3)
 zval = dpeZ.outElements[sId]
 
 
