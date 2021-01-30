@@ -36,9 +36,14 @@ function manifoldProduct( ff::Vector{BallTreeDensity},
                           recordLabels::Bool=false,
                           selectedLabels::Vector{Vector{Int}}=Vector{Vector{Int}}()) where {T <: Tuple}
   #
+  # check quick exit
+  if 1 == length(ff)
+    return ff[1]
+  end
 
   ndims = Ndim(ff[1])
   N = Npts(ff[1])
+
 
   addopT, diffopT, getManiMu, getManiLam = buildHybridManifoldCallbacks(manif)
 
