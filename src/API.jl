@@ -31,14 +31,15 @@ plot( x=getPoints(pq)[1,:], y=getPoints(pq)[2,:], Geom.histogram2d )
 """
 function manifoldProduct( ff::Vector{BallTreeDensity},
                           manif::T;
-                          Niter=1,
+                          makeCopy::Bool=false,
+                          Niter::Int=1,
                           addEntropy::Bool=true,
                           recordLabels::Bool=false,
                           selectedLabels::Vector{Vector{Int}}=Vector{Vector{Int}}()) where {T <: Tuple}
   #
   # check quick exit
   if 1 == length(ff)
-    return ff[1]
+    return (makeCopy ? x->deepcopy(x) : x->x)(ff[1])
   end
 
   ndims = Ndim(ff[1])
@@ -55,7 +56,7 @@ function manifoldProduct( ff::Vector{BallTreeDensity},
   glbs.recordChoosen = recordLabels
 
   pGM, = prodAppxMSGibbsS(dummy, ff,
-                          nothing, nothing, Niter=1,
+                          nothing, nothing, Niter=Niter,
                           addop=addopT,
                           diffop=diffopT,
                           getMu=getManiMu,

@@ -3,6 +3,9 @@ module ApproxManifoldProducts
 using Reexport
 @reexport using KernelDensityEstimate
 @reexport using TransformUtils
+import ManifoldsBase
+
+const MB = ManifoldsBase
 
 using DocStringExtensions
 
@@ -17,6 +20,7 @@ import Base: *, isapprox
 # import KernelDensityEstimate: kde!
 import LinearAlgebra: rotate!
 
+
 const AMP = ApproxManifoldProducts
 const KDE = KernelDensityEstimate
 const TUs = TransformUtils
@@ -25,7 +29,8 @@ const CTs = CoordinateTransformations
 # TODO temporary for initial version of on-manifold products
 KDE.setForceEvalDirect!(true)
 
-export
+export  
+  # new local features
   AMP,
   get2DLambda,
   get2DMu,
@@ -46,7 +51,6 @@ export
   manikde!,
 
   # general manifolds
-  Manifold,
   Circular
 
 # internal features not exported
