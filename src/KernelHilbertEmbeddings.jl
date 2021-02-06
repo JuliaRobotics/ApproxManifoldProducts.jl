@@ -152,7 +152,7 @@ function mmd( a::AbstractArray{<:Real,2},
 end
 
 
-function mmd(a::ManifoldBelief, b::ManifoldBelief; bw::Vector{<:Real}=[0.001;])
+function mmd(a::ManifoldKernelDensity, b::ManifoldKernelDensity; bw::Vector{<:Real}=[0.001;])
   @assert a.manifold == b.manifold "Manifolds not the same $(a.manifold), $(b.manifold)"
   aPts = getPoints(a.belief)
   bPts = getPoints(b.belief)
@@ -160,6 +160,6 @@ function mmd(a::ManifoldBelief, b::ManifoldBelief; bw::Vector{<:Real}=[0.001;])
 end
 
 
-function isapprox(a::ManifoldBelief, b::ManifoldBelief; atol::Real=0.1)
+function isapprox(a::ManifoldKernelDensity, b::ManifoldKernelDensity; atol::Real=0.1)
   mmd(a,b) < atol
 end
