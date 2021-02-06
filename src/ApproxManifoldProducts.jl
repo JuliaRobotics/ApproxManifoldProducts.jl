@@ -32,7 +32,6 @@ KDE.setForceEvalDirect!(true)
 export  
   # new local features
   AMP,
-  MB,
   MKD,
   ManifoldKernelDensity,
   get2DLambda,
