@@ -32,6 +32,9 @@ KDE.setForceEvalDirect!(true)
 export  
   # new local features
   AMP,
+  MB,
+  MKD,
+  ManifoldKernelDensity,
   get2DLambda,
   get2DMu,
   get2DMuMin,
@@ -39,8 +42,6 @@ export
   ensurePeriodicDomains!,
   solveresid2DLinear!,
   solveresid2DLinear,
-  ManifoldBelief,
-  MB,
   *,
   isapprox,
 

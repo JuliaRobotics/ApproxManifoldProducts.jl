@@ -25,9 +25,9 @@ c_ = randn(6,50)
 c_[1,:] .+= 50
 c = kde!(c_)
 
-A = ManifoldBelief(SE3_Manifold, a)
-B = ManifoldBelief(SE3_Manifold, b)
-C = ManifoldBelief(SE3_Manifold, c)
+A = ManifoldKernelDensity(SE3_Manifold, a)
+B = ManifoldKernelDensity(SE3_Manifold, b)
+C = ManifoldKernelDensity(SE3_Manifold, c)
 
 @test isapprox(A, B)
 @test !isapprox(A, C)

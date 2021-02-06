@@ -56,13 +56,13 @@ end
 #
 #
 # # should not be defined in AMP, since we want IIF indepent of manifolds
-# function *(PP::Vector{MB{SO2Manifold,B}}) where B
+# function *(PP::Vector{MKD{SO2Manifold,B}}) where B
 #   @info "taking manifold product of $(length(PP)) terms"
 #   @warn "SO2Manifold: work in progress"
 # end
 #
-# mbr1 = ManifoldBelief(SO2Manifold, 0.0)
-# mbr2 = ManifoldBelief(SO2Manifold, 0.0)
+# mbr1 = ManifoldKernelDensity(SO2Manifold, 0.0)
+# mbr2 = ManifoldKernelDensity(SO2Manifold, 0.0)
 #
 # *([mbr1;mbr2])
 
