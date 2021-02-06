@@ -16,17 +16,17 @@ export
 # abstract type ManifoldDefs end
 #
 # FIXME standardize with Manifolds.jl
-struct Euclid <: Manifold end
-struct SE2_Manifold <: Manifold end
-struct SE3_Manifold <: Manifold end
+struct Euclid <: MB.Manifold{MB.ℝ} end
+struct SE2_Manifold <: MB.Manifold{MB.ℝ} end
+struct SE3_Manifold <: MB.Manifold{MB.ℝ} end
 
-function ker(::Type{Euclid},
-             x::AbstractArray{<:Real,2},
-             y::AbstractArray{<:Real,2},
-             dx::Vector{<:Real},
-             i::Int,
-             j::Int;
-             sigma::Real=0.001 )
+function ker( ::Type{Euclid},
+              x::AbstractArray{<:Real,2},
+              y::AbstractArray{<:Real,2},
+              dx::Vector{<:Real},
+              i::Int,
+              j::Int;
+              sigma::Real=0.001 )
   #
   dx[1] = x[1,i]
   dx[1] -= y[1,j]
@@ -35,13 +35,13 @@ function ker(::Type{Euclid},
   exp( dx[1] )
 end
 
-function ker(::Type{Euclid2},
-             x::AbstractArray{<:Real,2},
-             y::AbstractArray{<:Real,2},
-             dx::Vector{<:Real},
-             i::Int,
-             j::Int;
-             sigma::Real=0.001 )
+function ker( ::Type{Euclid2},
+              x::AbstractArray{<:Real,2},
+              y::AbstractArray{<:Real,2},
+              dx::Vector{<:Real},
+              i::Int,
+              j::Int;
+              sigma::Real=0.001 )
   #
   dx[1] = x[1,i]
   dx[2] = x[2,i]
@@ -53,13 +53,13 @@ function ker(::Type{Euclid2},
   exp( dx[1] )
 end
 
-function ker(::Type{SE2_Manifold},
-             x::AbstractMatrix{<:Real},
-             y::AbstractMatrix{<:Real},
-             dx::Vector{<:Real},
-             i::Int,
-             j::Int;
-             sigma::Real=0.001  )
+function ker( ::Type{SE2_Manifold},
+              x::AbstractMatrix{<:Real},
+              y::AbstractMatrix{<:Real},
+              dx::Vector{<:Real},
+              i::Int,
+              j::Int;
+              sigma::Real=0.001  )
   #
   innov = se2vee(SE2(x[:,i])\SE2(y[:,j]))
   exp( -sigma*(  innov'*innov  ) )
@@ -67,13 +67,13 @@ end
 
 # This functin is still very slow, needs speedup
 # Obviously want to get away from the Euler angles throughout
-function ker(::Type{SE3_Manifold},
-             x::AbstractMatrix{<:Real},
-             y::AbstractMatrix{<:Real},
-             dx::Vector{<:Real},
-             i::Int,
-             j::Int;
-             sigma::Real=0.001  )
+function ker( ::Type{SE3_Manifold},
+              x::AbstractMatrix{<:Real},
+              y::AbstractMatrix{<:Real},
+              dx::Vector{<:Real},
+              i::Int,
+              j::Int;
+              sigma::Real=0.001  )
   #
   innov = veeEuler(SE3(x[1:3,i],Euler((x[4:6,i])...))\SE3(y[1:3,j],Euler((y[4:6,j])...)))
   exp( -sigma*(  innov'*innov  ) )
@@ -89,7 +89,7 @@ Notes:
 - This is the in-place version (well more in-place than mmd)
 
 DevNotes:
-- TODO make work for different sizes
+- TODO make work for different sizes N,M
 - TODO dont assume equally weighted particles
 
 Related
@@ -99,8 +99,9 @@ mmd, ker
 function mmd!(val::AbstractVector{<:Real},
               a::AbstractArray{<:Real,2},
               b::AbstractArray{<:Real,2},
-              mani::Type{<:Manifold}=Euclid,
-              N::Int=size(a,2), M::Int=size(b,2); bw::Vector{<:Real}=[0.001;] )
+              mani::Type{<: MB.Manifold}=Euclid,
+              N::Int=size(a,2), M::Int=size(b,2); 
+              bw::AbstractVector{<:Real}=[0.001;] )
   #
   # TODO allow unequal data too
   @assert N == M
@@ -108,9 +109,9 @@ function mmd!(val::AbstractVector{<:Real},
   val[1] = 0.0
   dx = zeros(2)
   @inbounds @fastmath for i in 1:N
-     @simd for j in 1:M
-       val[1] -= ker(mani, a, b, dx, i, j, sigma=bw[1])
-     end
+    @simd for j in 1:M
+      val[1] -= ker(mani, a, b, dx, i, j, sigma=bw[1])
+    end
   end
   val .*= 2.0
   @inbounds @fastmath for i in 1:N
@@ -136,15 +137,16 @@ Related
 
 mmd!, ker
 """
-function mmd(a::AbstractArray{<:Real,2},
-             b::AbstractArray{<:Real,2},
-             mani::Type{<:Manifold}=Euclid,
-             N::Int=size(a,2), M::Int=size(b,2); bw::Vector{<:Real}=[0.001;])
+function mmd( a::AbstractArray{<:Real,2},
+              b::AbstractArray{<:Real,2},
+              mani::Type{<: MB.Manifold}=Euclid,
+              N::Int=size(a,2), M::Int=size(b,2); 
+              bw::AbstractVector{<:Real}=[0.001;])
   #
   val = [0.0;]
-  mmd!(val, a,b,
-       mani,
-       N, M; bw=bw )
+  mmd!( val, a,b,
+        mani,
+        N, M; bw=bw )
   #
   return val[1]
 end
