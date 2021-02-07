@@ -28,11 +28,11 @@ getManifold(x::ManifoldKernelDensity) = x.manifold
 
 import KernelDensityEstimate: getPoints, getBW, Ndim, Npts, getWeights, marginal 
 import KernelDensityEstimate: getKDERange, getKDEMax, getKDEMean, getKDEfit
-import KernelDensityEstimate: sample, rand, resample
+import KernelDensityEstimate: sample, rand, resample, kld, minkld
 
 export getPoints, getBW, Ndims, Npts
 export getKDERange, getKDEMax, getKDEMean, getKDEfit
-export sample, rand, resample
+export sample, rand, resample, kld, minkld
 
 
 getPoints(x::ManifoldKernelDensity, w...;kw...) = getPoints(x.belief,w...;kw...)
@@ -52,5 +52,7 @@ getKDEMax(x::ManifoldKernelDensity, w...;kw...) = getKDEMax(x.belief, w...;kw...
 getKDEMean(x::ManifoldKernelDensity, w...;kw...) = getKDEMean(x.belief, w...;kw...)
 getKDEfit(x::ManifoldKernelDensity, w...;kw...) = getKDEfit(x.belief, w...;kw...)
 
+kld(x::ManifoldKernelDensity, w...;kw...) = kld(x.belief, w...;kw...)
+minkld(x::ManifoldKernelDensity, w...;kw...) = minkld(x.belief, w...;kw...)
 
 (x::ManifoldKernelDensity)(w...;kw...) = x.belief(w...;kw...)
