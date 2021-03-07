@@ -12,9 +12,6 @@ end
 
 Euclid2() = Euclid2(2, +, -, KDE.getEuclidMu, KDE.getEuclidLambda, ((-Inf,Inf),(-Inf,Inf)))
 
-# ??
-struct EuclideanManifold <: MB.Manifold{MB.ℝ}
-end
 
 
 

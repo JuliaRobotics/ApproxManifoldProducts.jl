@@ -4,6 +4,7 @@ using Reexport
 @reexport using KernelDensityEstimate
 @reexport using TransformUtils
 import ManifoldsBase
+using Random
 
 const MB = ManifoldsBase
 
@@ -15,8 +16,9 @@ using CoordinateTransformations
 using Requires
 using SLEEFPirates
 using LinearAlgebra
+using JSON2
 
-import Base: *, isapprox
+import Base: *, isapprox, convert
 # import KernelDensityEstimate: kde!
 import LinearAlgebra: rotate!
 
@@ -59,6 +61,7 @@ include("_BiMaps.jl")
 # regular features
 include("Interface.jl")
 include("CommonUtils.jl")
+include("ManifoldDefinitions.jl")
 include("Euclidean.jl")
 include("CircularUtils.jl")
 include("Circular.jl")

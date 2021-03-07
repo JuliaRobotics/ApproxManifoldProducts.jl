@@ -38,6 +38,16 @@ function buildHybridManifoldCallbacks(manif::Tuple)
   return (addopT...,), (diffopT...,), (getManiMu...,), (getManiLam...,)
 end
 
+# FIXME temp conversion during consolidation
+Base.convert(::Type{<:Tuple}, mani::Type{<: Euclid}) = (:Euclid,)
+Base.convert(::Type{<:Tuple}, mani::Type{<: Euclid2}) = (:Euclid,:Euclid)
+Base.convert(::Type{<:Tuple}, mani::Type{<: Euclid3}) = (:Euclid,:Euclid,:Euclid)
+Base.convert(::Type{<:Tuple}, mani::Type{<: Euclid4}) = (:Euclid,:Euclid,:Euclid,:Euclid)
+Base.convert(::Type{<:Tuple}, mani::Type{<: SE2_Manifold}) = (:Euclid,:Euclid,:Circular)
+Base.convert(::Type{<:Tuple}, mani::Type{<: SE2E2_Manifold}) = (:Euclid,:Euclid,:Circular,:Euclid,:Euclid)
+Base.convert(::Type{<:Tuple}, mani::Type{<: SE3_Manifold}) = (:Euclid,:Euclid,:Euclid,:Circular,:Circular,:Circular)
+
+
 
 """
     $(SIGNATURES)
@@ -63,7 +73,7 @@ function getKDEManifoldBandwidths(pts::AA,
   return bws
 end
 
-function ensurePeriodicDomains!( pts::AA, manif::T1 )::Nothing where {AA <: AbstractArray{Float64,2}, T1 <: Tuple}
+function ensurePeriodicDomains!( pts::AA, manif::T1 ) where {AA <: AbstractArray{Float64,2}, T1 <: Tuple}
 
   i = 0
   for mn in manif
@@ -87,12 +97,20 @@ function manikde!(pts::AA2,
                   manifolds::T  ) where {AA2 <: AbstractArray{Float64,2}, T <: Tuple}
   #
   addopT, diffopT, getManiMu, getManiLam = buildHybridManifoldCallbacks(manifolds)
-  KernelDensityEstimate.kde!(pts, bws, addopT, diffopT)
+  bel = KernelDensityEstimate.kde!(pts, bws, addopT, diffopT)
 end
+
 function manikde!(pts::AA2,
                   manifolds::T  ) where {AA2 <: AbstractArray{Float64,2}, T <: Tuple}
   #
   bws = getKDEManifoldBandwidths(pts, manifolds)
   ensurePeriodicDomains!(pts, manifolds)
   ApproxManifoldProducts.manikde!(pts, bws, manifolds)
+end
+
+function manikde!(pts::AA2,
+                  manifold::Type{<:MB.Manifold{MB.ℝ}}  ) where {AA2 <: AbstractArray{Float64,2}}
+  #
+  maniT = convert(Tuple, manifold)
+  manikde!(pts, maniT)
 end
