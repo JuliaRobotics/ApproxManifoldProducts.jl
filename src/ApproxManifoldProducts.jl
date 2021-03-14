@@ -3,8 +3,10 @@ module ApproxManifoldProducts
 using Reexport
 @reexport using KernelDensityEstimate
 @reexport using TransformUtils
-import ManifoldsBase
 using Random
+import ManifoldsBase
+
+import ManifoldsBase: Manifold
 
 const MB = ManifoldsBase
 
@@ -35,6 +37,7 @@ export
   # new local features
   AMP,
   MKD,
+  Manifold,
   ManifoldKernelDensity,
   get2DLambda,
   get2DMu,

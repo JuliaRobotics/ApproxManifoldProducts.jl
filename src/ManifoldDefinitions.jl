@@ -30,5 +30,5 @@ struct SE2E2_Manifold <: MB.Manifold{MB.ℝ} end
 export EuclideanManifold
 
 const EuclideanManifold = Euclid
-@deprecate EuclideanManifold() Euclid() 
+# @deprecate EuclideanManifold() Euclid() 
 # struct EuclideanManifold <: MB.Manifold{MB.ℝ} end
