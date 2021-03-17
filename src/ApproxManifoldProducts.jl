@@ -4,11 +4,11 @@ using Reexport
 @reexport using KernelDensityEstimate
 @reexport using TransformUtils
 using Random
+
 import ManifoldsBase
-
 import ManifoldsBase: Manifold
-
 const MB = ManifoldsBase
+using Manifolds
 
 using DocStringExtensions
 
@@ -53,10 +53,8 @@ export
   buildHybridManifoldCallbacks,
   getKDEManifoldBandwidths,
   manifoldProduct,
-  manikde!,
+  manikde!
 
-  # general manifolds
-  Circular
 
 # internal features not exported
 include("_BiMaps.jl")
