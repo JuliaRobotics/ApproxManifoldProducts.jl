@@ -12,8 +12,8 @@ export
   SE3_Manifold,
   
   # special quirks that still need to be fixed
-  Sphere1,
-  Circular,
+  Circle1,
+  # Circular,
   SE2E2_Manifold
 
 #
@@ -24,7 +24,7 @@ struct SE2E2_Manifold <: MB.Manifold{MB.ℝ} end
 # const SE2E2_Manifold = 
 
 # this is just wrong and needs to be fixed
-const Sphere1 = Circle{ℝ}
+const Circle1 = Circle{ℝ}
 
 const Euclid =  Euclidean{Tuple{1}, ℝ} # Euclidean(1)
 const EuclideanManifold = Euclid

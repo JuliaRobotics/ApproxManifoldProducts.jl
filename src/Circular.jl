@@ -3,22 +3,22 @@
 
 
 
+# use Circle1 instead
+# struct Circular <: MB.Manifold{MB.ℝ}
+#   dof::Int
+#   addop::Function
+#   diffop::Function
+#   getMu
+#   getLambda
+#   domain::Tuple{Float64, Float64}
+# end
 
-struct Circular <: MB.Manifold{MB.ℝ}
-  dof::Int
-  addop::Function
-  diffop::Function
-  getMu
-  getLambda
-  domain::Tuple{Float64, Float64}
-end
-
-Circular() = Circular(1,
-                      addtheta,
-                      difftheta,
-                      getCircMu,
-                      getCircLambda,
-                      (-pi+0.0,pi-1e-15))
+# Circular() = Circular(1,
+#                       addtheta,
+#                       difftheta,
+#                       getCircMu,
+#                       getCircLambda,
+#                       (-pi+0.0,pi-1e-15))
 
 
 
