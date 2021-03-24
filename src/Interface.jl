@@ -23,7 +23,7 @@ function ManifoldBelief(::Type{<:M}, mkd::ManifoldKernelDensity{M,T}) where {M <
 end
 
 function Base.show(io::IO, mkd::ManifoldKernelDensity{M,B}) where {M, B}
-  printstyled(io, "ManifoldKernelDensity{$M,$B}(\n", bold=true)
+  printstyled(io, "ManifoldKernelDensity{$M,$B}(\n", bold=true )
   show(io, mkd.belief)
   println(io, ")")
 end
@@ -80,6 +80,7 @@ function Base.convert(::Type{<:ManifoldKernelDensity}, str::AbstractString)
   belief_ = convert(BallTreeDensity, dict[:belief])
   ManifoldKernelDensity(manis, belief_)
 end
+
 
 
 ## ================================================================================================================================
