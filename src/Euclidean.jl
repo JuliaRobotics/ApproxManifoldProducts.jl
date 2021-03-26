@@ -18,7 +18,7 @@
 get2DLambda(Lambdas::AbstractVector{<:Real}) = sum(Lambdas)
 
 
-function *(PP::AbstractVector{<:MKD{EuclideanManifold,BallTreeDensity}})
+function *(PP::AbstractVector{<:MKD{typeof(EuclideanManifold),BallTreeDensity}})
   bds = (p->p.belief).(PP)
   *(bds)
 end

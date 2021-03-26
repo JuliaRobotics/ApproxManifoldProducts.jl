@@ -19,6 +19,7 @@ using Requires
 using SLEEFPirates
 using LinearAlgebra
 using JSON2
+using TensorCast
 
 import Base: *, isapprox, convert
 # import KernelDensityEstimate: kde!

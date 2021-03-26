@@ -6,7 +6,7 @@ export
   mmd
 
 
-function ker( ::Type{Euclid},
+function ker( ::typeof(Euclidean(1)),
               x::AbstractArray{<:Real,2},
               y::AbstractArray{<:Real,2},
               dx::Vector{<:Real},
@@ -21,7 +21,7 @@ function ker( ::Type{Euclid},
   exp( dx[1] )
 end
 
-function ker( ::Type{Euclid2},
+function ker( ::typeof(Euclidean(2)),
               x::AbstractArray{<:Real,2},
               y::AbstractArray{<:Real,2},
               dx::Vector{<:Real},
@@ -39,7 +39,7 @@ function ker( ::Type{Euclid2},
   exp( dx[1] )
 end
 
-function ker( ::Type{SE2_Manifold},
+function ker( ::typeof(SE2_Manifold),
               x::AbstractMatrix{<:Real},
               y::AbstractMatrix{<:Real},
               dx::Vector{<:Real},
@@ -53,7 +53,7 @@ end
 
 # This functin is still very slow, needs speedup
 # Obviously want to get away from the Euler angles throughout
-function ker( ::Type{SE3_Manifold},
+function ker( ::typeof(SE3_Manifold),
               x::AbstractMatrix{<:Real},
               y::AbstractMatrix{<:Real},
               dx::Vector{<:Real},
@@ -85,7 +85,7 @@ mmd, ker
 function mmd!(val::AbstractVector{<:Real},
               a::AbstractArray{<:Real,2},
               b::AbstractArray{<:Real,2},
-              mani::Type{<: MB.Manifold}=Euclid,
+              mani::MB.Manifold=Euclid,
               N::Int=size(a,2), M::Int=size(b,2); 
               bw::AbstractVector{<:Real}=[0.001;] )
   #
@@ -125,7 +125,7 @@ mmd!, ker
 """
 function mmd( a::AbstractArray{<:Real,2},
               b::AbstractArray{<:Real,2},
-              mani::Type{<: MB.Manifold}=Euclid,
+              mani::MB.Manifold=Euclid,
               N::Int=size(a,2), M::Int=size(b,2); 
               bw::AbstractVector{<:Real}=[0.001;])
   #
