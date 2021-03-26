@@ -39,14 +39,19 @@ function buildHybridManifoldCallbacks(manif::Tuple)
 end
 
 # FIXME temp conversion during consolidation
-Base.convert(::Type{<:Tuple}, mani::Type{<: Euclid}) = (:Euclid,)
-Base.convert(::Type{<:Tuple}, mani::Type{<: Euclid2}) = (:Euclid,:Euclid)
-Base.convert(::Type{<:Tuple}, mani::Type{<: Euclid3}) = (:Euclid,:Euclid,:Euclid)
-Base.convert(::Type{<:Tuple}, mani::Type{<: Euclid4}) = (:Euclid,:Euclid,:Euclid,:Euclid)
-Base.convert(::Type{<:Tuple}, mani::Type{<: SE2_Manifold}) = (:Euclid,:Euclid,:Circular)
-Base.convert(::Type{<:Tuple}, mani::Type{<: SE2E2_Manifold}) = (:Euclid,:Euclid,:Circular,:Euclid,:Euclid)
-Base.convert(::Type{<:Tuple}, mani::Type{<: SE3_Manifold}) = (:Euclid,:Euclid,:Euclid,:Circular,:Circular,:Circular)
+Base.convert(::Type{<:Tuple}, ::Type{<: typeof(Euclid)}) = (:Euclid,)
+Base.convert(::Type{<:Tuple}, ::Type{<: typeof(Euclid2)}) = (:Euclid,:Euclid)
+Base.convert(::Type{<:Tuple}, ::Type{<: typeof(Euclid3)}) = (:Euclid,:Euclid,:Euclid)
+Base.convert(::Type{<:Tuple}, ::Type{<: typeof(Euclid4)}) = (:Euclid,:Euclid,:Euclid,:Euclid)
+Base.convert(::Type{<:Tuple}, ::Type{<: typeof(SE2_Manifold)}) = (:Euclid,:Euclid,:Circular)
+Base.convert(::Type{<:Tuple}, ::Type{<: typeof(SE3_Manifold)}) = (:Euclid,:Euclid,:Euclid,:Circular,:Circular,:Circular)
 
+Base.convert(::Type{<:Tuple}, ::typeof(Euclid)) = (:Euclid,)
+Base.convert(::Type{<:Tuple}, ::typeof(Euclid2)) = (:Euclid,:Euclid)
+Base.convert(::Type{<:Tuple}, ::typeof(Euclid3)) = (:Euclid,:Euclid,:Euclid)
+Base.convert(::Type{<:Tuple}, ::typeof(Euclid4)) = (:Euclid,:Euclid,:Euclid,:Euclid)
+Base.convert(::Type{<:Tuple}, ::typeof(SE2_Manifold)) = (:Euclid,:Euclid,:Circular)
+Base.convert(::Type{<:Tuple}, ::typeof(SE3_Manifold)) = (:Euclid,:Euclid,:Euclid,:Circular,:Circular,:Circular)
 
 
 """
