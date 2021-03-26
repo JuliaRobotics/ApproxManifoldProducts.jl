@@ -4,6 +4,9 @@
 
 export 
   # general manifolds
+  Euclidean,
+  Circle,
+  ℝ,
   Euclid,
   Euclid2,
   Euclid3,
