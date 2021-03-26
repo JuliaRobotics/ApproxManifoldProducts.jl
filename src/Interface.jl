@@ -1,7 +1,7 @@
 # Interface
 
 mutable struct ManifoldKernelDensity{M <: MB.Manifold{MB.ℝ}, B <: BallTreeDensity}
-  manifold::Type{M}
+  manifold::M
   belief::B
 end
 const MKD{M,B} = ManifoldKernelDensity{M, B}
@@ -9,7 +9,7 @@ const MKD{M,B} = ManifoldKernelDensity{M, B}
 # ManifoldKernelDensity(m::M,b::B) where {M <: MB.Manifold{MB.ℝ}, B} = ManifoldKernelDensity{M,B}(m,b)
 
 
-function ManifoldKernelDensity(m::Type{<:MB.Manifold}, pts::AbstractArray{<:Real})
+function ManifoldKernelDensity(m::MB.Manifold, pts::AbstractArray{<:Real})
   tup = convert(Tuple, m)
   bel = manikde!(pts, m)
   ManifoldKernelDensity(m, bel)
@@ -17,13 +17,13 @@ end
 
 
 @deprecate ManifoldBelief(w...;kw...) ManifoldKernelDensity(w...;kw...)
-function ManifoldBelief(::Type{<:M}, mkd::ManifoldKernelDensity{M,T}) where {M <: MB.Manifold{MB.ℝ}, T} 
+function ManifoldBelief(::M, mkd::ManifoldKernelDensity{M,T}) where {M <: MB.Manifold{MB.ℝ}, T} 
   @warn "ManifoldBelief is deprecated, use ManifoldKernelDensity instead"
   return mkd
 end
 
 function Base.show(io::IO, mkd::ManifoldKernelDensity{M,B}) where {M, B}
-  printstyled(io, "ManifoldKernelDensity{$M,$B}(\n", bold=true)
+  printstyled(io, "ManifoldKernelDensity{$M,$B}(\n", bold=true )
   show(io, mkd.belief)
   println(io, ")")
 end
@@ -80,6 +80,7 @@ function Base.convert(::Type{<:ManifoldKernelDensity}, str::AbstractString)
   belief_ = convert(BallTreeDensity, dict[:belief])
   ManifoldKernelDensity(manis, belief_)
 end
+
 
 
 ## ================================================================================================================================

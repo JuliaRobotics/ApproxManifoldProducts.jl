@@ -4,6 +4,9 @@
 
 export 
   # general manifolds
+  Euclidean,
+  Circle,
+  ℝ,
   Euclid,
   Euclid2,
   Euclid3,
@@ -12,30 +15,32 @@ export
   SE3_Manifold,
   
   # special quirks that still need to be fixed
-  Circle1,
+  Circle1
   # Circular,
-  SE2E2_Manifold
+
+export
+  coords,
+  uncoords,
+  getPointsManifold,
+  calcMean
 
 #
 
 
-# this is a hack
-struct SE2E2_Manifold <: MB.Manifold{MB.ℝ} end
-# const SE2E2_Manifold = 
-
 # this is just wrong and needs to be fixed
-const Circle1 = Circle{ℝ}
+const Circle1 = Circle()
 
-const Euclid =  Euclidean{Tuple{1}, ℝ} # Euclidean(1)
+const Euclid =  Euclidean(1) # Euclidean{Tuple{1}, ℝ} #
 const EuclideanManifold = Euclid
 
-const Euclid2 = Euclidean{Tuple{2}, ℝ} # Euclidean(2)
-const Euclid3 = Euclidean{Tuple{3}, ℝ} # Euclidean(3)
-const Euclid4 = Euclidean{Tuple{4}, ℝ} # Euclidean(4)
+const Euclid2 = Euclidean(2) # Euclidean{Tuple{2}, ℝ} #
+const Euclid3 = Euclidean(3) # Euclidean{Tuple{3}, ℝ} #
+const Euclid4 = Euclidean(4) # Euclidean{Tuple{4}, ℝ}
 
-const SE2_Manifold = typeof(SpecialEuclidean(2))
-const SE3_Manifold = typeof(SpecialEuclidean(3))
-  
+# TODO if not easy simplification exists, then just deprecate this
+const SE2_Manifold = SpecialEuclidean(2)
+const SE3_Manifold = SpecialEuclidean(3)
+
 
 Base.convert(::Type{B}, mkd::ManifoldKernelDensity{M,B}) where {M,B<:BallTreeDensity} = mkd.belief
 
@@ -58,3 +63,74 @@ Base.convert(::Type{B}, mkd::ManifoldKernelDensity{M,B}) where {M,B<:BallTreeDen
 # const EuclideanManifold = Euclid
 # # @deprecate EuclideanManifold() Euclid() 
 # # struct EuclideanManifold <: MB.Manifold{MB.ℝ} end
+
+
+
+##============================================================================================================
+## New Manifolds.jl aware API -- TODO find the right file placement
+##============================================================================================================
+
+
+function getPointsManifold(mkd::ManifoldKernelDensity{M}) where {M <: Euclidean}
+  data_ = getPoints(mkd.belief)
+  TensorCast.@cast data[i][j] := data_[j,i]
+  return data
+end
+
+function getPointsManifold(mkd::ManifoldKernelDensity{M}) where {M <: Circle}
+  data_ = getPoints(mkd.belief)
+  return data_[:]
+end
+
+coords(::Type{<:typeof(SpecialEuclidean(2))}, p::ProductRepr) = [p.parts[1][1], p.parts[1][2], atan(p.parts[2][2,1],p.parts[2][1,1])]
+
+function uncoords(::Type{<:typeof(SpecialEuclidean(2))}, p::AbstractVector{<:Real}, static::Bool=true)
+  α = p[3] 
+  ArrConst = static ? SA : eltype(α)
+  return ProductRepr((ArrConst[p[1], p[2]]), ArrConst[cos(α) -sin(α); sin(α) cos(α)])
+end
+# function uncoords(::Type{<:typeof(SpecialEuclidean(2))}, p::AbstractVector{<:Real})
+#   α = p[3]
+#   return ProductRepr(([p[1], p[2]]), [cos(α) -sin(α); sin(α) cos(α)])
+# end
+
+function coords(::Type{<:typeof(SpecialEuclidean(3))}, p::ProductRepr)
+  wELo = TU.convert(Euler, SO3(p.parts[2]))
+  [p.parts[1][1:3]; wELo.R; wELo.P; wELo.Y]
+end
+
+function uncoords(::Type{<:typeof(SpecialEuclidean(3))}, p::AbstractVector{<:Real})
+  # α = p[3]
+  wRo = TU.convert(SO3, Euler(p[4:6]...))
+  return ProductRepr(([p[1], p[2], p[3]]), wRo.R)
+end
+
+function getPointsManifold(mkd::ManifoldKernelDensity{M}) where {M <: SpecialEuclidean}
+  data_ = getPoints(mkd.belief)
+  [uncoords(M, view(data_, :, i)) for i in 1:size(data_,2)]
+end
+
+
+# TODO, hack, use the proper Manifolds.jl intended vectoration methods instead
+_makeVectorManifold(::Manifold, arr::AbstractArray{<:Real}) = arr
+_makeVectorManifold(::Manifold, val::Real) = [val;]
+_makeVectorManifold(::M, prr::ProductRepr) where {M <: typeof(SpecialEuclidean(2))} = coords(M, prr)
+_makeVectorManifold(::M, prr::ProductRepr) where {M <: typeof(SpecialEuclidean(3))} = coords(M, prr)
+
+
+function calcMean(mkd::ManifoldKernelDensity{M}) where {M <: ManifoldsBase.Manifold}
+  data = getPointsManifold(mkd)
+  mprepr = mean(mkd.manifold, data)
+  
+  #
+  _makeVectorManifold(mkd.manifold, mprepr)
+end
+
+
+
+
+
+
+
+
+#
