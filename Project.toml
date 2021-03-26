@@ -1,11 +1,10 @@
 name = "ApproxManifoldProducts"
 uuid = "9bbbb610-88a1-53cd-9763-118ce10c1f89"
 keywords = ["MM-iSAMv2", "SLAM", "inference", "sum-product", "belief-propagation", "nonparametric", "manifolds", "functional"]
-version = "0.3.0"
+version = "0.3.1"
 
 [deps]
 Base64 = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
-Compat = "34da2185-b29b-5c13-b0c7-acf172513d20"
 CoordinateTransformations = "150eb455-5306-5404-9cee-2592286d6298"
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
 DocStringExtensions = "ffbed154-4ef7-542d-bbb7-c09d3a79fcae"
@@ -35,7 +34,6 @@ UUIDs = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
 Unicode = "4ec0a83e-493e-50e2-b9ac-8f72acf5a8f5"
 
 [compat]
-Compat = "1.5.1, 2, 3.2"
 CoordinateTransformations = "0.5, 0.6, 0.8, 0.9"
 DocStringExtensions = "0.7, 0.8, 0.9"
 JSON2 = "0.3, 0.4, 0.5, 0.6, 0.7, 1"

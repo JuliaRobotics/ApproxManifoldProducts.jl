@@ -110,6 +110,7 @@ end
 
 # TODO, hack, use the proper Manifolds.jl intended vectoration methods instead
 _makeVectorManifold(::Manifold, arr::AbstractArray{<:Real}) = arr
+_makeVectorManifold(::Manifold, val::Real) = [val;]
 _makeVectorManifold(::M, prr::ProductRepr) where {M <: typeof(SpecialEuclidean(2))} = coords(M, prr)
 _makeVectorManifold(::M, prr::ProductRepr) where {M <: typeof(SpecialEuclidean(3))} = coords(M, prr)
 
