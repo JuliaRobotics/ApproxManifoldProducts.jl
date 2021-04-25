@@ -90,7 +90,7 @@ end
 ## ================================================================================================================================
 
 # not exported yet
-getManifold(x::ManifoldKernelDensity) = x.manifold
+# getManifold(x::ManifoldKernelDensity) = x.manifold
 
 
 import KernelDensityEstimate: getPoints, getBW, Ndim, Npts, getWeights, marginal 
@@ -131,7 +131,16 @@ minkld(x::ManifoldKernelDensity, w...;kw...) = minkld(x.belief, w...;kw...)
 # Legacy Interface for product of full and partial dimensions
 ## ================================================================================================================================
 
+# legacy
 
+"""
+    $SIGNATURES
+Interface function to return the `variableType` manifolds of an InferenceVariable, extend this function for all Types<:InferenceVariable.
+"""
+function getManifolds end
+
+getManifolds(::Type{<:T}) where {T <: ManifoldsBase.Manifold} = convert(Tuple, T)
+getManifolds(::T) where {T <: ManifoldsBase.Manifold} = getManifolds(T)
 
 
 function _partialProducts!(pGM, partials, manis; useExisting::Bool=false)

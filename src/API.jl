@@ -83,8 +83,14 @@ function manifoldProduct( ff::Vector{BallTreeDensity},
   kde!(pGM, bws, addopT, diffopT)
 end
 
-
-
+function manifoldProduct( ff::Vector{<:ManifoldKernelDensity},
+                          mani::ManifoldsBase.Manifold;
+                          kwargs... )
+  #
+  bels = (x->x.belief).(ff)
+  manif = getManifolds(mani)
+  manifoldProduct(bels, manif; kwargs...)
+end
 
 
 #

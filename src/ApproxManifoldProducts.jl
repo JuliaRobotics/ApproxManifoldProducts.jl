@@ -13,7 +13,7 @@ using Manifolds
 using DocStringExtensions
 
 using NLsolve
-using Optim
+import Optim
 using CoordinateTransformations
 using Requires
 using SLEEFPirates
