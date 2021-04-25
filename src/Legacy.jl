@@ -98,7 +98,7 @@ end
 Legacy extension of KDE.kde! function to approximate smooth functions based on samples, using likelihood cross validation for bandwidth selection.  This method allows approximation over hybrid manifolds.
 """
 function manikde!(pts::AA2,
-                  bws::Vector{Float64},
+                  bws::AbstractVector{<:Real},
                   manifolds::T  ) where {AA2 <: AbstractArray{Float64,2}, T <: Tuple}
   #
   addopT, diffopT, getManiMu, getManiLam = buildHybridManifoldCallbacks(manifolds)
@@ -118,4 +118,14 @@ function manikde!(pts::AA2,
   #
   maniT = convert(Tuple, manifold)
   manikde!(pts, maniT)
+end
+
+function manikde!(pts::AbstractArray, manifold::MB.Manifold)
+  maniT = convert(Tuple, manifold)
+  manikde!(pts, maniT)
+end
+
+function manikde!(pts::AbstractArray, bws::AbstractVector{<:Real}, manifold::MB.Manifold)
+  maniT = convert(Tuple, manifold)
+  manikde!(pts, bws, maniT)
 end

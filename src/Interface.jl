@@ -1,5 +1,7 @@
 # Interface
 
+export productbelief
+
 mutable struct ManifoldKernelDensity{M <: MB.Manifold{MB.ℝ}, B <: BallTreeDensity}
   manifold::M
   belief::B
@@ -88,7 +90,7 @@ end
 ## ================================================================================================================================
 
 # not exported yet
-getManifold(x::ManifoldKernelDensity) = x.manifold
+# getManifold(x::ManifoldKernelDensity) = x.manifold
 
 
 import KernelDensityEstimate: getPoints, getBW, Ndim, Npts, getWeights, marginal 
@@ -122,3 +124,87 @@ kld(x::ManifoldKernelDensity, w...;kw...) = kld(x.belief, w...;kw...)
 minkld(x::ManifoldKernelDensity, w...;kw...) = minkld(x.belief, w...;kw...)
 
 (x::ManifoldKernelDensity)(w...;kw...) = x.belief(w...;kw...)
+
+
+
+## ================================================================================================================================
+# Legacy Interface for product of full and partial dimensions
+## ================================================================================================================================
+
+# legacy
+
+"""
+    $SIGNATURES
+Interface function to return the `variableType` manifolds of an InferenceVariable, extend this function for all Types<:InferenceVariable.
+"""
+function getManifolds end
+
+getManifolds(::Type{<:T}) where {T <: ManifoldsBase.Manifold} = convert(Tuple, T)
+getManifolds(::T) where {T <: ManifoldsBase.Manifold} = getManifolds(T)
+
+
+function _partialProducts!(pGM, partials, manis; useExisting::Bool=false)
+  for (dimnum,pp) in partials
+    dimv = [dimnum...]
+    # include previous calcs (if full density products were done before partials)
+    !useExisting ? nothing : push!(pp, AMP.manikde!(pGM[dimv,:], (manis[dimv]...,) ))
+    # take product of this partial's subset of dimensions
+    pGM[dimv,:] = AMP.manifoldProduct(pp, (manis[dimv]...,), Niter=1) |> getPoints
+  end
+  nothing
+end
+
+
+"""
+    $SIGNATURES
+
+Take product of `dens` accompanied by optional `partials` proposal belief densities.
+
+Notes
+-----
+- `d` dimensional product approximation
+- `partials` are treated per each unique Tuple subgrouping, i.e. (1,2), (2,), ...
+- Incorporate ApproxManifoldProducts to process variables in individual batches.
+"""
+function productbelief( denspts::AbstractArray,
+                        manifold::ManifoldsBase.Manifold,
+                        dens::Vector{<:BallTreeDensity},
+                        partials::Dict{Any, <:AbstractVector{<:BallTreeDensity}},
+                        N::Int;
+                        dbg::Bool=false,
+                        logger=ConsoleLogger()  )
+  #
+  manis = manifold |> getManifolds
+  lennonp, lenpart = length(dens), length(partials)
+  Ndims = size(denspts,1)
+  with_logger(logger) do
+    @info "[$(lennonp)x$(lenpart)p,d$(Ndims),N$(N)],"
+  end
+  
+  # # resize for #1013
+  # if size(denspts,2) < N
+  #   pGM = zeros(size(denspts,1),N)
+  #   pGM[:,1:size(denspts,2)] .= denspts
+  # else
+  #   pGM = deepcopy(denspts)
+  # end
+  
+  # pGM = Array{Float64,2}(undef, 0,0)
+  # new, slightly condensed partialProduct operation
+  (pGM, uE) = if 0 < lennonp
+    getPoints(AMP.manifoldProduct(dens, manis, Niter=1)), true
+  elseif lennonp == 0 && 0 < lenpart
+    deepcopy(denspts), false
+  else
+    error("Unknown density product lennonp=$(lennonp), lenpart=$(lenpart)")
+  end
+  # take the product between partial dimensions
+  _partialProducts!(pGM, partials, manis, useExisting=uE)
+
+  return pGM
+end
+
+
+
+
+#
