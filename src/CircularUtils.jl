@@ -180,7 +180,7 @@ function kde!_CircularNaiveCV(points::A) where {A <: AbstractArray{Float64,1}}
   # excessive for loop for leave one out likelihiood cross validation (Silverman 1986, p.52)
   for i in 1:dims
     minEntropyLOOCV = (bw) -> -manifoldLooCrossValidation(points, bw, own=true, diffop=difftheta)
-    res = optimize(minEntropyLOOCV, lower, upper, GoldenSection(), x_tol=0.001)
+    res = Optim.optimize(minEntropyLOOCV, lower, upper, Optim.GoldenSection(), x_tol=0.001)
     bwds[i] = res.minimizer
   end
 

@@ -22,6 +22,8 @@ pkg> add ApproxManifoldProducts
 
 # Current Supported (Mixed) Manifolds
 
+**NOTE** Current work on v0.3.x is transitioning to JuliaManifolds for some of the Manifold abstractions.  This package AMP then adds non-parametric probabilistic computations on those and user manifolds.
+
 The following on-manifold function approximations:
 - Euclidean (2DOF),
 - S1/Circular (1DOF), or SO(2) equivalent.
