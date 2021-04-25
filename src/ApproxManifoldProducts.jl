@@ -21,6 +21,7 @@ using LinearAlgebra
 using JSON2
 using TensorCast
 using StaticArrays
+using Logging
 
 import Base: *, isapprox, convert
 # import KernelDensityEstimate: kde!
