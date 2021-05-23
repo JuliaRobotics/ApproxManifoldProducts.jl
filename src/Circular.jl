@@ -51,7 +51,7 @@ end
 
 
 
-# struct SO2Manifold <: Manifold
+# struct SO2Manifold <: MB.AbstractManifold
 # end
 #
 #
