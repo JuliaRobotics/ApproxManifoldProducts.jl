@@ -85,7 +85,7 @@ mmd, ker
 function mmd!(val::AbstractVector{<:Real},
               a::AbstractArray{<:Real,2},
               b::AbstractArray{<:Real,2},
-              mani::MB.Manifold=Euclid,
+              mani::MB.AbstractManifold=Euclid,
               N::Int=size(a,2), M::Int=size(b,2); 
               bw::AbstractVector{<:Real}=[0.001;] )
   #
@@ -125,7 +125,7 @@ mmd!, ker
 """
 function mmd( a::AbstractArray{<:Real,2},
               b::AbstractArray{<:Real,2},
-              mani::MB.Manifold=Euclid,
+              mani::MB.AbstractManifold=Euclid,
               N::Int=size(a,2), M::Int=size(b,2); 
               bw::AbstractVector{<:Real}=[0.001;])
   #
