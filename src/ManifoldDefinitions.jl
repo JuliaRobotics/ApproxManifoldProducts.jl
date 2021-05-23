@@ -92,13 +92,13 @@ end
 
 
 # TODO, hack, use the proper Manifolds.jl intended vectoration methods instead
-_makeVectorManifold(::Manifold, arr::AbstractArray{<:Real}) = arr
-_makeVectorManifold(::Manifold, val::Real) = [val;]
+_makeVectorManifold(::MB.AbstractManifold, arr::AbstractArray{<:Real}) = arr
+_makeVectorManifold(::MB.AbstractManifold, val::Real) = [val;]
 _makeVectorManifold(::M, prr::ProductRepr) where {M <: typeof(SpecialEuclidean(2))} = coords(M, prr)
 _makeVectorManifold(::M, prr::ProductRepr) where {M <: typeof(SpecialEuclidean(3))} = coords(M, prr)
 
 
-function calcMean(mkd::ManifoldKernelDensity{M}) where {M <: ManifoldsBase.Manifold}
+function calcMean(mkd::ManifoldKernelDensity{M}) where {M <: ManifoldsBase.AbstractManifold}
   data = getPointsManifold(mkd)
   mprepr = mean(mkd.manifold, data)
   

@@ -4,7 +4,7 @@
 
 
 # use Circle1 instead
-# struct Circular <: MB.Manifold{MB.ℝ}
+# struct Circular <: MB.AbstractManifold{MB.ℝ}
 #   dof::Int
 #   addop::Function
 #   diffop::Function

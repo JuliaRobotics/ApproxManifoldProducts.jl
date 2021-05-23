@@ -114,18 +114,18 @@ function manikde!(pts::AA2,
 end
 
 function manikde!(pts::AA2,
-                  manifold::Type{<:MB.Manifold{MB.ℝ}}  ) where {AA2 <: AbstractArray{Float64,2}}
+                  manifold::Type{<:MB.AbstractManifold{MB.ℝ}}  ) where {AA2 <: AbstractArray{Float64,2}}
   #
   maniT = convert(Tuple, manifold)
   manikde!(pts, maniT)
 end
 
-function manikde!(pts::AbstractArray, manifold::MB.Manifold)
+function manikde!(pts::AbstractArray, manifold::MB.AbstractManifold)
   maniT = convert(Tuple, manifold)
   manikde!(pts, maniT)
 end
 
-function manikde!(pts::AbstractArray, bws::AbstractVector{<:Real}, manifold::MB.Manifold)
+function manikde!(pts::AbstractArray, bws::AbstractVector{<:Real}, manifold::MB.AbstractManifold)
   maniT = convert(Tuple, manifold)
   manikde!(pts, bws, maniT)
 end

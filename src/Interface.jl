@@ -2,16 +2,16 @@
 
 export productbelief
 
-mutable struct ManifoldKernelDensity{M <: MB.Manifold{MB.ℝ}, B <: BallTreeDensity}
+mutable struct ManifoldKernelDensity{M <: MB.AbstractManifold{MB.ℝ}, B <: BallTreeDensity}
   manifold::M
   belief::B
 end
 const MKD{M,B} = ManifoldKernelDensity{M, B}
 
-# ManifoldKernelDensity(m::M,b::B) where {M <: MB.Manifold{MB.ℝ}, B} = ManifoldKernelDensity{M,B}(m,b)
+# ManifoldKernelDensity(m::M,b::B) where {M <: MB.AbstractManifold{MB.ℝ}, B} = ManifoldKernelDensity{M,B}(m,b)
 
 
-function ManifoldKernelDensity(m::MB.Manifold, pts::AbstractArray{<:Real})
+function ManifoldKernelDensity(m::MB.AbstractManifold, pts::AbstractArray{<:Real})
   tup = convert(Tuple, m)
   bel = manikde!(pts, m)
   ManifoldKernelDensity(m, bel)
@@ -19,7 +19,7 @@ end
 
 
 @deprecate ManifoldBelief(w...;kw...) ManifoldKernelDensity(w...;kw...)
-function ManifoldBelief(::M, mkd::ManifoldKernelDensity{M,T}) where {M <: MB.Manifold{MB.ℝ}, T} 
+function ManifoldBelief(::M, mkd::ManifoldKernelDensity{M,T}) where {M <: MB.AbstractManifold{MB.ℝ}, T} 
   @warn "ManifoldBelief is deprecated, use ManifoldKernelDensity instead"
   return mkd
 end
@@ -32,12 +32,12 @@ end
 
 Base.show(io::IO, ::MIME"text/plain", mkd::ManifoldKernelDensity) = show(io, mkd)
 
-function *(PP::AbstractVector{<:MKD{M,B}}) where {M<:MB.Manifold{MB.ℝ},B}
+function *(PP::AbstractVector{<:MKD{M,B}}) where {M<:MB.AbstractManifold{MB.ℝ},B}
   @info "taking manifold product of $(length(PP)) terms, $M, $B"
   @error "No known product definition"
 end
 
-function *(P1::MKD{M,B}, P2::MKD{M,B}) where {M<:MB.Manifold{MB.ℝ},B}
+function *(P1::MKD{M,B}, P2::MKD{M,B}) where {M<:MB.AbstractManifold{MB.ℝ},B}
   # @info "taking manifold product of $(length(PP)) terms, $M, $B"
   # @error "No known product definition"
   manis = convert(Tuple, M)
@@ -139,8 +139,8 @@ Interface function to return the `variableType` manifolds of an InferenceVariabl
 """
 function getManifolds end
 
-getManifolds(::Type{<:T}) where {T <: ManifoldsBase.Manifold} = convert(Tuple, T)
-getManifolds(::T) where {T <: ManifoldsBase.Manifold} = getManifolds(T)
+getManifolds(::Type{<:T}) where {T <: ManifoldsBase.AbstractManifold} = convert(Tuple, T)
+getManifolds(::T) where {T <: ManifoldsBase.AbstractManifold} = getManifolds(T)
 
 
 function _partialProducts!(pGM, partials, manis; useExisting::Bool=false)
@@ -167,7 +167,7 @@ Notes
 - Incorporate ApproxManifoldProducts to process variables in individual batches.
 """
 function productbelief( denspts::AbstractArray,
-                        manifold::ManifoldsBase.Manifold,
+                        manifold::ManifoldsBase.AbstractManifold,
                         dens::Vector{<:BallTreeDensity},
                         partials::Dict{Any, <:AbstractVector{<:BallTreeDensity}},
                         N::Int;
