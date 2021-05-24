@@ -1,7 +1,7 @@
 # Euclidean Manifold definitions and arithmetic
 
 
-# struct Euclid2 <: MB.Manifold{MB.ℝ}
+# struct Euclid2 <: MB.AbstractManifold{MB.ℝ}
 #   dof::Int
 #   addop::Function
 #   diffop::Function

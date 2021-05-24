@@ -136,7 +136,7 @@ using Manifolds
 using Distances: Metric
 
 
-struct ManiRMSDeviation{M <: Manifold} <: Metric where M
+struct ManiRMSDeviation{M <: ManifoldsBase.AbstractManifold} <: Metric where M
   manifold::M
 end
 

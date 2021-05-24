@@ -6,7 +6,7 @@ using Reexport
 using Random
 
 import ManifoldsBase
-import ManifoldsBase: Manifold
+import ManifoldsBase: AbstractManifold
 const MB = ManifoldsBase
 using Manifolds
 
@@ -40,7 +40,7 @@ export
   # new local features
   AMP,
   MKD,
-  Manifold,
+  AbstractManifold,
   ManifoldKernelDensity,
   get2DLambda,
   get2DMu,
