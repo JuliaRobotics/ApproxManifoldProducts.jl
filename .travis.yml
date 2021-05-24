@@ -11,6 +11,8 @@ jobs:
     - julia: 1.6
       arch: amd64
       os: linux
+      env:
+        - JULIA_PKG_SERVER=""
     - julia: nightly
       arch: amd64
       os: linux
