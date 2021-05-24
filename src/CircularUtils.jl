@@ -1,8 +1,9 @@
 # Test naive implementation of entropy calculations towards efficient calculation of entropy on a manifold
 
 
+import TransformUtils.logmap_SO2
+
 export
-    logmap_SO2,
     difftheta,
     addtheta,
     rbfAccAt!,
@@ -20,16 +21,16 @@ global const reci_s2pi=1.0/sqrt(2.0*pi) # 1.0/2.5066282746310002
 
 # On-manifold circular product callbacks
 
-# manifold distance, add, and subtract
-function logmap_SO2(Rl::Matrix{Float64})
-    ct = abs(Rl[1,1]) > 1.0 ? 1.0 : Rl[1,1]  # reinserting the sign below
-    -sign(Rl[2,1])*acos(ct)
-end
-difftheta(wth1, wth2) = logmap_SO2(TUs.R(wth1)'*TUs.R(wth2))
-addtheta(wth1, wth2) = TUs.wrapRad( wth1+wth2 )
+
+
+const _AMP_CIRCLE = Manifolds.Circle()
+
+difftheta(wth1, wth2) = log(_AMP_CIRCLE, wth1, wth2) # logmap_SO2(TUs.R(wth1)'*TUs.R(wth2))
+addtheta(wth1, wth2) =  exp(_AMP_CIRCLE, wth1, wth2)   # TUs.wrapRad( wth1+wth2 )
 
 # manifold get Gaussian products mean
-getCircMu = (m::Vector{Float64}, s::Vector{Float64}, dummy::Float64) -> TUs.wrapRad(get2DMu(m, s, diffop=difftheta, initrange=(-pi+0.0,pi+0.0)))
+getCircMu(m::Vector{Float64}, s::Vector{Float64}, dummy::Float64) = addtheta(0, get2DMu(m, s, diffop=difftheta, initrange=(-pi+0.0,pi+0.0)) )
+
 # getCircMu = (m::Vector{Float64}, s::Vector{Float64}, dummy::Float64) -> TUs.wrapRad(get2DMuMin(m, s, diffop=difftheta, initrange=(-pi+0.0,pi+0.0)))
 
 getCircLambda(x) = getEuclidLambda(x)
