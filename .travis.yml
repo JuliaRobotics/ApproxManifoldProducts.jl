@@ -6,22 +6,17 @@ os:
 arch:
     - amd64
 
+env:
+    - JULIA_PKG_SERVER=""
+
 jobs:
   include:
     - julia: 1.6
-      arch: amd64
-      os: linux
-      env:
-        - JULIA_PKG_SERVER=""
     - julia: nightly
-      arch: amd64
-      os: linux
     - julia: 1.6
-      arch: amd64
       os: osx
     - julia: 1.6
       arch: arm64
-      os: linux
   fast_finish: true
   allow_failures:
     - julia: nightly
