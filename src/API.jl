@@ -45,7 +45,6 @@ function manifoldProduct( ff::Vector{BallTreeDensity},
   ndims = Ndim(ff[1])
   N = Npts(ff[1])
 
-
   addopT, diffopT, getManiMu, getManiLam = buildHybridManifoldCallbacks(manif)
 
   bws = ones(ndims)

@@ -11,18 +11,32 @@ const MKD{M,B} = ManifoldKernelDensity{M, B}
 # ManifoldKernelDensity(m::M,b::B) where {M <: MB.AbstractManifold{MB.ℝ}, B} = ManifoldKernelDensity{M,B}(m,b)
 
 
-function ManifoldKernelDensity(m::MB.AbstractManifold, pts::AbstractArray{<:Real})
-  tup = convert(Tuple, m)
-  bel = manikde!(pts, m)
-  ManifoldKernelDensity(m, bel)
+function ManifoldKernelDensity( M::MB.AbstractManifold,
+                                ptsArr::AbstractVector{P},
+                                bw::AbstractVector{<:Real}  ) where P
+  #
+  # FIXME obsolete
+  arr = Matrix{Float64}(undef, length(ptsArr[1]), length(ptsArr))
+  @cast arr[i,j] = ptsArr[j][i]
+  manis = convert(Tuple, M)
+  addopT, diffopT, _, _ = buildHybridManifoldCallbacks(manis)
+  bel = KernelDensityEstimate.kde!(arr, bw, addopT, diffopT)
+  return ManifoldKernelDensity(M, bel)
 end
 
-
-@deprecate ManifoldBelief(w...;kw...) ManifoldKernelDensity(w...;kw...)
-function ManifoldBelief(::M, mkd::ManifoldKernelDensity{M,T}) where {M <: MB.AbstractManifold{MB.ℝ}, T} 
-  @warn "ManifoldBelief is deprecated, use ManifoldKernelDensity instead"
-  return mkd
+function ManifoldKernelDensity( M::MB.AbstractManifold, 
+                                ptsArr::AbstractVector{P} ) where P
+  #
+  # FIXME obsolete
+  arr = Matrix{Float64}(undef, length(ptsArr[1]), length(ptsArr))
+  @cast arr[i,j] = ptsArr[j][i]
+  manis = convert(Tuple, M)
+  bw = getKDEManifoldBandwidths(arr, manis )
+  addopT, diffopT, _, _ = buildHybridManifoldCallbacks(manis)
+  bel = KernelDensityEstimate.kde!(arr, bw, addopT, diffopT)
+  return ManifoldKernelDensity(M, bel)
 end
+
 
 function Base.show(io::IO, mkd::ManifoldKernelDensity{M,B}) where {M, B}
   printstyled(io, "ManifoldKernelDensity{$M,$B}(\n", bold=true )
@@ -102,8 +116,14 @@ export getPoints, getBW, Ndims, Npts
 export getKDERange, getKDEMax, getKDEMean, getKDEfit
 export sample, rand, resample, kld, minkld
 
+# with DFG v0.15 change points to Vector{P}
+function getPoints(x::ManifoldKernelDensity, w...;kw...) 
+  pts = getPoints(x.belief,w...;kw...)
+  @cast ptsArr[j][i] := pts[i,j]
+  return ptsArr
+end
 
-getPoints(x::ManifoldKernelDensity, w...;kw...) = getPoints(x.belief,w...;kw...)
+
 getBW(x::ManifoldKernelDensity, w...;kw...) = getBW(x.belief,w...;kw...)
 
 Ndims(x::ManifoldKernelDensity, w...;kw...) = Ndims(x.belief,w...;kw...)
@@ -166,17 +186,20 @@ Notes
 - `partials` are treated per each unique Tuple subgrouping, i.e. (1,2), (2,), ...
 - Incorporate ApproxManifoldProducts to process variables in individual batches.
 """
-function productbelief( denspts::AbstractArray,
+function productbelief( denspts::AbstractVector{P},
                         manifold::ManifoldsBase.AbstractManifold,
                         dens::Vector{<:BallTreeDensity},
                         partials::Dict{Any, <:AbstractVector{<:BallTreeDensity}},
                         N::Int;
                         dbg::Bool=false,
-                        logger=ConsoleLogger()  )
+                        logger=ConsoleLogger()  ) where P <: AbstractVector{<:Real}
   #
   manis = manifold |> getManifolds
-  lennonp, lenpart = length(dens), length(partials)
-  Ndims = size(denspts,1)
+  # TODO only works of P <: Vector
+  @show typeof(dens), typeof(partials)
+  @show lennonp = Ndim(dens[1])
+  @show lenpart = length(partials)
+  Ndims = size(denspts[1])
   with_logger(logger) do
     @info "[$(lennonp)x$(lenpart)p,d$(Ndims),N$(N)],"
   end
@@ -201,7 +224,9 @@ function productbelief( denspts::AbstractArray,
   # take the product between partial dimensions
   _partialProducts!(pGM, partials, manis, useExisting=uE)
 
-  return pGM
+  @cast pGM_Arr[j][i] := pGM[i,j]
+
+  return pGM_Arr
 end
 
 

@@ -59,8 +59,8 @@ Base.convert(::Type{<:Tuple}, ::typeof(SE3_Manifold)) = (:Euclid,:Euclid,:Euclid
 
 Calculate the KDE bandwidths for each dimension independly, as per manifold of each.  Return vector of all dimension bandwidths.
 """
-function getKDEManifoldBandwidths(pts::AA,
-                                  manif::T1 ) where {AA <: AbstractArray{Float64,2}, T1 <: Tuple}
+function getKDEManifoldBandwidths(pts::AbstractMatrix{<:Real},
+                                  manif::T1 ) where {T1 <: Tuple}
   #
   ndims = size(pts, 1)
   bws = ones(ndims)
@@ -92,40 +92,14 @@ function ensurePeriodicDomains!( pts::AA, manif::T1 ) where {AA <: AbstractArray
 end
 
 
-"""
-    $(SIGNATURES)
 
-Legacy extension of KDE.kde! function to approximate smooth functions based on samples, using likelihood cross validation for bandwidth selection.  This method allows approximation over hybrid manifolds.
-"""
-function manikde!(pts::AA2,
-                  bws::AbstractVector{<:Real},
-                  manifolds::T  ) where {AA2 <: AbstractArray{Float64,2}, T <: Tuple}
-  #
-  addopT, diffopT, getManiMu, getManiLam = buildHybridManifoldCallbacks(manifolds)
-  bel = KernelDensityEstimate.kde!(pts, bws, addopT, diffopT)
-end
+manikde!( ptsArr::AbstractVector{P}, 
+          M::MB.AbstractManifold  ) where P <: AbstractVector = ManifoldKernelDensity(M, ptsArr) 
+#
 
-function manikde!(pts::AA2,
-                  manifolds::T  ) where {AA2 <: AbstractArray{Float64,2}, T <: Tuple}
-  #
-  bws = getKDEManifoldBandwidths(pts, manifolds)
-  ensurePeriodicDomains!(pts, manifolds)
-  ApproxManifoldProducts.manikde!(pts, bws, manifolds)
-end
+manikde!( ptsArr::AbstractVector{P}, 
+          bw::AbstractVector{<:Real}, 
+          M::MB.AbstractManifold  ) where P <: AbstractVector = ManifoldKernelDensity(M, ptsArr, bw)
+#
 
-function manikde!(pts::AA2,
-                  manifold::Type{<:MB.AbstractManifold{MB.ℝ}}  ) where {AA2 <: AbstractArray{Float64,2}}
-  #
-  maniT = convert(Tuple, manifold)
-  manikde!(pts, maniT)
-end
-
-function manikde!(pts::AbstractArray, manifold::MB.AbstractManifold)
-  maniT = convert(Tuple, manifold)
-  manikde!(pts, maniT)
-end
-
-function manikde!(pts::AbstractArray, bws::AbstractVector{<:Real}, manifold::MB.AbstractManifold)
-  maniT = convert(Tuple, manifold)
-  manikde!(pts, bws, maniT)
-end
+#
