@@ -26,8 +26,8 @@ df = DataFrame(offsets=[], mmd=[])
 
 for i in 1:length(offsets), j in mc
 
-P = randn(1,100)
-Q = randn(1,100) .+ offsets[i]
+P = [[randn();]  for k in 1:100]
+Q = [[randn()+offsets[i];]  for k in 1:100]
 
 res = zeros(1)
 
@@ -64,8 +64,8 @@ df = DataFrame(offsets=[], mmd=[])
 
 for i in 1:length(offsets), j in mc
 
-P = randn(2,100)
-Q = randn(2,100) .+ offsets[i]
+P = [randn(2) for k in 1:100]
+Q = [randn(2) .+ offsets[i] for k in 1:100]
 
 res = zeros(1)
 

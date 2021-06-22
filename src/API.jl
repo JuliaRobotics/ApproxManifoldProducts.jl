@@ -29,23 +29,25 @@ plot( x=getPoints(pq)[1,:], y=getPoints(pq)[2,:], Geom.histogram2d )
 ```
 
 """
-function manifoldProduct( ff::Vector{BallTreeDensity},
-                          manif::T;
+function manifoldProduct( ff::AbstractVector{<:ManifoldKernelDensity},
+                          ::Union{M, Type{M}};
                           makeCopy::Bool=false,
                           Niter::Int=1,
                           addEntropy::Bool=true,
                           recordLabels::Bool=false,
-                          selectedLabels::Vector{Vector{Int}}=Vector{Vector{Int}}()) where {T <: Tuple}
+                          selectedLabels::Vector{Vector{Int}}=Vector{Vector{Int}}()) where {M <: MB.AbstractManifold}
   #
   # check quick exit
   if 1 == length(ff)
     return (makeCopy ? x->deepcopy(x) : x->x)(ff[1])
   end
-
+  
   ndims = Ndim(ff[1])
   N = Npts(ff[1])
-
-  addopT, diffopT, getManiMu, getManiLam = buildHybridManifoldCallbacks(manif)
+  
+  # TODO DEPRECATE ::NTuple{Symbol} approach
+  manif = getManifolds(M)
+  addopT, diffopT, getManiMu, _ = buildHybridManifoldCallbacks(manif)
 
   bws = ones(ndims)
 
@@ -54,7 +56,9 @@ function manifoldProduct( ff::Vector{BallTreeDensity},
   glbs = KDE.makeEmptyGbGlb();
   glbs.recordChoosen = recordLabels
 
-  pGM, = prodAppxMSGibbsS(dummy, ff,
+  # TODO REMOVE
+  _ff = (x->x.belief).(ff)
+  pGM, = prodAppxMSGibbsS(dummy, _ff,
                           nothing, nothing, Niter=Niter,
                           addop=addopT,
                           diffop=diffopT,
@@ -79,16 +83,16 @@ function manifoldProduct( ff::Vector{BallTreeDensity},
   end
 
   bws[:] = getKDEManifoldBandwidths(pGM, manif)
-  kde!(pGM, bws, addopT, diffopT)
+  bel = kde!(pGM, bws, addopT, diffopT)
+  @show M
+  ManifoldKernelDensity{M, BallTreeDensity}(bel)
 end
 
-function manifoldProduct( ff::Vector{<:ManifoldKernelDensity},
-                          mani::ManifoldsBase.AbstractManifold;
+function manifoldProduct( ff::Union{Vector{BallTreeDensity},<:Vector{<:ManifoldKernelDensity}},
+                          manis::Tuple;
                           kwargs... )
   #
-  bels = (x->x.belief).(ff)
-  manif = getManifolds(mani)
-  manifoldProduct(bels, manif; kwargs...)
+  error("Obsolete, use manifoldProduct(::Vector{MKD}, <:AbstractManifold) instead.\n`::NTuple{Symbol}` for manifolds is outdated, use `getManifold(...)` and `ManfoldsBase.AbstractManifold` instead.")
 end
 
 

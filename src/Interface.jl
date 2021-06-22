@@ -3,12 +3,12 @@
 export productbelief
 
 mutable struct ManifoldKernelDensity{M <: MB.AbstractManifold{MB.ℝ}, B <: BallTreeDensity}
-  manifold::M
+  # manifold::M
   belief::B
 end
 const MKD{M,B} = ManifoldKernelDensity{M, B}
 
-# ManifoldKernelDensity(m::M,b::B) where {M <: MB.AbstractManifold{MB.ℝ}, B} = ManifoldKernelDensity{M,B}(m,b)
+ManifoldKernelDensity(::M, bel::B) where {M <: MB.AbstractManifold, B <: BallTreeDensity} = MKD{M,B}(bel)
 
 
 function ManifoldKernelDensity( M::MB.AbstractManifold,
@@ -54,8 +54,8 @@ end
 function *(P1::MKD{M,B}, P2::MKD{M,B}) where {M<:MB.AbstractManifold{MB.ℝ},B}
   # @info "taking manifold product of $(length(PP)) terms, $M, $B"
   # @error "No known product definition"
-  manis = convert(Tuple, M)
-  manifoldProduct([P1.belief;P2.belief], manis)
+  # manis = convert(Tuple, M)
+  manifoldProduct([P1;P2], M)
 end
 
 
@@ -126,7 +126,7 @@ end
 
 getBW(x::ManifoldKernelDensity, w...;kw...) = getBW(x.belief,w...;kw...)
 
-Ndims(x::ManifoldKernelDensity, w...;kw...) = Ndims(x.belief,w...;kw...)
+Ndim(x::ManifoldKernelDensity, w...;kw...) = Ndim(x.belief,w...;kw...)
 Npts(x::ManifoldKernelDensity, w...;kw...) = Npts(x.belief,w...;kw...)
 
 getWeights(x::ManifoldKernelDensity, w...;kw...) = getWeights(x.belief, w...;kw...)
@@ -187,9 +187,9 @@ Notes
 - Incorporate ApproxManifoldProducts to process variables in individual batches.
 """
 function productbelief( denspts::AbstractVector{P},
-                        manifold::ManifoldsBase.AbstractManifold,
-                        dens::Vector{<:BallTreeDensity},
-                        partials::Dict{Any, <:AbstractVector{<:BallTreeDensity}},
+                        manifold::MB.AbstractManifold,
+                        dens::Vector{<:ManifoldKernelDensity},
+                        partials::Dict{Any, <:AbstractVector{<:ManifoldKernelDensity}},
                         N::Int;
                         dbg::Bool=false,
                         logger=ConsoleLogger()  ) where P <: AbstractVector{<:Real}
@@ -215,7 +215,7 @@ function productbelief( denspts::AbstractVector{P},
   # pGM = Array{Float64,2}(undef, 0,0)
   # new, slightly condensed partialProduct operation
   (pGM, uE) = if 0 < lennonp
-    getPoints(AMP.manifoldProduct(dens, manis, Niter=1)), true
+    getPoints(AMP.manifoldProduct(dens, manifold, Niter=1)), true
   elseif lennonp == 0 && 0 < lenpart
     deepcopy(denspts), false
   else
@@ -224,9 +224,10 @@ function productbelief( denspts::AbstractVector{P},
   # take the product between partial dimensions
   _partialProducts!(pGM, partials, manis, useExisting=uE)
 
-  @cast pGM_Arr[j][i] := pGM[i,j]
+  # @show typeof(pGM)
+  # @cast pGM_Arr[j][i] := pGM[i,j]
 
-  return pGM_Arr
+  return pGM
 end
 
 
