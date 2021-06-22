@@ -30,7 +30,7 @@ plot( x=getPoints(pq)[1,:], y=getPoints(pq)[2,:], Geom.histogram2d )
 
 """
 function manifoldProduct( ff::AbstractVector{<:ManifoldKernelDensity},
-                          ::Union{M, Type{M}};
+                          mani::M;
                           makeCopy::Bool=false,
                           Niter::Int=1,
                           addEntropy::Bool=true,
@@ -85,7 +85,7 @@ function manifoldProduct( ff::AbstractVector{<:ManifoldKernelDensity},
   bws[:] = getKDEManifoldBandwidths(pGM, manif)
   bel = kde!(pGM, bws, addopT, diffopT)
   @show M
-  ManifoldKernelDensity{M, BallTreeDensity}(bel)
+  ManifoldKernelDensity(mani,bel)
 end
 
 function manifoldProduct( ff::Union{Vector{BallTreeDensity},<:Vector{<:ManifoldKernelDensity}},

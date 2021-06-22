@@ -6,7 +6,7 @@ export
   mmd
 
 
-function ker( ::Type{<:typeof(Euclidean(1))},
+function ker( ::typeof(Euclidean(1)),
               x::AbstractVector{P1},
               y::AbstractVector{P2},
               dx::Vector{<:Real},
@@ -21,7 +21,7 @@ function ker( ::Type{<:typeof(Euclidean(1))},
   exp( dx[1] )
 end
 
-function ker( ::Type{<:typeof(Euclidean(2))},
+function ker( ::typeof(Euclidean(2)),
               x::AbstractVector{P1},
               y::AbstractVector{P2},
               dx::Vector{<:Real},
@@ -39,7 +39,7 @@ function ker( ::Type{<:typeof(Euclidean(2))},
   exp( dx[1] )
 end
 
-function ker( ::Type{<:typeof(SE2_Manifold)},
+function ker( ::typeof(SE2_Manifold),
               x::AbstractVector{P1},
               y::AbstractVector{P2},
               dx::Vector{<:Real},
@@ -53,7 +53,7 @@ end
 
 # This functin is still very slow, needs speedup
 # Obviously want to get away from the Euler angles throughout
-function ker( ::Type{<:typeof(SE3_Manifold)},
+function ker( ::typeof(SE3_Manifold),
               x::AbstractVector{P1},
               y::AbstractVector{P2},
               dx::Vector{<:Real},
@@ -85,7 +85,7 @@ mmd, ker
 function mmd!(val::AbstractVector{<:Real},
               a::AbstractVector{P1},
               b::AbstractVector{P2},
-              ::Union{MF,Type{MF}}=Euclidean(1),
+              mani::MF=Euclidean(1),
               N::Int=size(a,2), M::Int=size(b,2); 
               bw::AbstractVector{<:Real}=[0.001;] ) where {P1<:AbstractVector, P2<:AbstractVector, MF <: MB.AbstractManifold}
   #
@@ -96,14 +96,14 @@ function mmd!(val::AbstractVector{<:Real},
   dx = zeros(2)
   @inbounds @fastmath for i in 1:N
     @simd for j in 1:M
-      val[1] -= ker(MF, a, b, dx, i, j, sigma=bw[1])
+      val[1] -= ker(mani, a, b, dx, i, j, sigma=bw[1])
     end
   end
   val .*= 2.0
   @inbounds @fastmath for i in 1:N
     @simd for j in 1:M
-      val[1] += ker(MF, a, a, dx, i, j, sigma=bw[1])
-      val[1] += ker(MF, b, b, dx, i, j, sigma=bw[1])
+      val[1] += ker(mani, a, a, dx, i, j, sigma=bw[1])
+      val[1] += ker(mani, b, b, dx, i, j, sigma=bw[1])
     end
   end
   val ./= N
@@ -125,13 +125,13 @@ mmd!, ker
 """
 function mmd( a::AbstractVector{P1},
               b::AbstractVector{P2},
-              ::Union{MF,Type{MF}}=Euclidean(1),
+              mani::MF=Euclidean(1),
               N::Int=size(a,2), M::Int=size(b,2); 
               bw::AbstractVector{<:Real}=[0.001;]) where {MF <: MB.AbstractManifold, P1<:AbstractVector, P2<:AbstractVector}
   #
   val = [0.0;]
   mmd!( val, a,b,
-        MF,
+        mani,
         N, M; bw=bw )
   #
   return val[1]
@@ -142,7 +142,7 @@ function mmd(a::ManifoldKernelDensity{M}, b::ManifoldKernelDensity{M}; bw::Vecto
   # @assert a.manifold == b.manifold "Manifolds not the same $(a.manifold), $(b.manifold)"
   aPts = getPoints(a)
   bPts = getPoints(b)
-  mmd(aPts, bPts, M, length(aPts), length(bPts), bw=bw)
+  mmd(aPts, bPts, a.manifold, length(aPts), length(bPts), bw=bw)
 end
 
 

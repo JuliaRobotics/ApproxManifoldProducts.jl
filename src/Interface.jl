@@ -3,12 +3,12 @@
 export productbelief
 
 mutable struct ManifoldKernelDensity{M <: MB.AbstractManifold{MB.ℝ}, B <: BallTreeDensity}
-  # manifold::M
+  manifold::M
   belief::B
 end
 const MKD{M,B} = ManifoldKernelDensity{M, B}
 
-ManifoldKernelDensity(::M, bel::B) where {M <: MB.AbstractManifold, B <: BallTreeDensity} = MKD{M,B}(bel)
+ManifoldKernelDensity(mani::M, bel::B) where {M <: MB.AbstractManifold, B <: BallTreeDensity} = MKD{M,B}(mani,bel)
 
 
 function ManifoldKernelDensity( M::MB.AbstractManifold,
@@ -47,15 +47,11 @@ end
 Base.show(io::IO, ::MIME"text/plain", mkd::ManifoldKernelDensity) = show(io, mkd)
 
 function *(PP::AbstractVector{<:MKD{M,B}}) where {M<:MB.AbstractManifold{MB.ℝ},B}
-  @info "taking manifold product of $(length(PP)) terms, $M, $B"
-  @error "No known product definition"
+  manifoldProduct(PP, PP[1].manifold)
 end
 
-function *(P1::MKD{M,B}, P2::MKD{M,B}) where {M<:MB.AbstractManifold{MB.ℝ},B}
-  # @info "taking manifold product of $(length(PP)) terms, $M, $B"
-  # @error "No known product definition"
-  # manis = convert(Tuple, M)
-  manifoldProduct([P1;P2], M)
+function *(P1::MKD{M,B}, P2::MKD{M,B}, P_...) where {M<:MB.AbstractManifold{MB.ℝ},B}
+  manifoldProduct([P1;P2;P_...], P1.manifold)
 end
 
 
