@@ -46,7 +46,6 @@ export
   get2DMu,
   get2DMuMin,
   resid2DLinear,
-  ensurePeriodicDomains!,
   solveresid2DLinear!,
   solveresid2DLinear,
   *,

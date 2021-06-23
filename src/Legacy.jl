@@ -1,6 +1,15 @@
 # legacy content to facilitate transition to AMP
 
 
+function _reducePartialManifoldElements(el::Symbol)
+  if el == :Euclid
+    return Euclidean(1)
+  elseif el == :Circular
+    return Circle()
+  end
+  error("unknown manifold_symbol $el")
+end
+
 """
     $SIGNATURES
 
@@ -38,6 +47,8 @@ function buildHybridManifoldCallbacks(manif::Tuple)
   return (addopT...,), (diffopT...,), (getManiMu...,), (getManiLam...,)
 end
 
+
+
 # FIXME temp conversion during consolidation
 Base.convert(::Type{<:Tuple}, ::Type{<: typeof(Euclid)}) = (:Euclid,)
 Base.convert(::Type{<:Tuple}, ::Type{<: typeof(Euclid2)}) = (:Euclid,:Euclid)
@@ -52,7 +63,6 @@ Base.convert(::Type{<:Tuple}, ::typeof(Euclid3)) = (:Euclid,:Euclid,:Euclid)
 Base.convert(::Type{<:Tuple}, ::typeof(Euclid4)) = (:Euclid,:Euclid,:Euclid,:Euclid)
 Base.convert(::Type{<:Tuple}, ::typeof(SE2_Manifold)) = (:Euclid,:Euclid,:Circular)
 Base.convert(::Type{<:Tuple}, ::typeof(SE3_Manifold)) = (:Euclid,:Euclid,:Euclid,:Circular,:Circular,:Circular)
-
 
 """
     $(SIGNATURES)
@@ -78,28 +88,47 @@ function getKDEManifoldBandwidths(pts::AbstractMatrix{<:Real},
   return bws
 end
 
-function ensurePeriodicDomains!( pts::AA, manif::T1 ) where {AA <: AbstractArray{Float64,2}, T1 <: Tuple}
+function ManifoldKernelDensity( M::MB.AbstractManifold,
+                                ptsArr::AbstractVector{P},
+                                bw::Union{<:AbstractVector{<:Real},Nothing}=nothing  ) where P
+  #
+  # FIXME obsolete
+  arr = Matrix{Float64}(undef, length(ptsArr[1]), length(ptsArr))
+  @cast arr[i,j] = ptsArr[j][i]
+  manis = convert(Tuple, M)
+  # find or have the bandwidth
+  _bw = bw === nothing ? getKDEManifoldBandwidths(arr, manis ) : bw
+  addopT, diffopT, _, _ = buildHybridManifoldCallbacks(manis)
+  bel = KernelDensityEstimate.kde!(arr, _bw, addopT, diffopT)
+  return ManifoldKernelDensity(M, bel)
+end
 
-  i = 0
-  for mn in manif
-    i += 1
-    if manif[i] == :Circular
-      pts[i,:] = TUs.wrapRad.(pts[i,:])
-    end
+# override
+function marginal(x::ManifoldKernelDensity, dims, w...;kw...)
+  manis = convert(Tuple, x.manifold)
+  partMani = _reducePartialManifoldElements(manis[dims])
+  ManifoldKernelDensity(partMani, marginal(x.belief, dims, w...;kw...))
+end
+
+# internal workaround function for building partial submanifold dimensions, must be upgraded/standarized
+function _buildManifoldPartial( fullM::MB.AbstractManifold, 
+                                partial_coord_dims )
+  #
+  # temporary workaround during Manifolds.jl integration
+  manif = convert(Tuple, fullM)[partial_coord_dims]
+  # 
+  newMani = MB.AbstractManifold[]
+  for me in manif
+    push!(newMani, _reducePartialManifoldElements(me))
   end
 
-  nothing
+  # assume independent dimensions for definition, ONLY USED AS DECORATOR AT THIS TIME, FIXME
+  return ProductManifold(newMani...)
 end
 
 
 
-manikde!( ptsArr::AbstractVector{P}, 
-          M::MB.AbstractManifold  ) where P <: AbstractVector = ManifoldKernelDensity(M, ptsArr) 
-#
 
-manikde!( ptsArr::AbstractVector{P}, 
-          bw::AbstractVector{<:Real}, 
-          M::MB.AbstractManifold  ) where P <: AbstractVector = ManifoldKernelDensity(M, ptsArr, bw)
-#
+
 
 #

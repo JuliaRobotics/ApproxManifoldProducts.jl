@@ -1,13 +1,28 @@
 # define the api for users
 
+
+manikde!( ptsArr::AbstractVector{P}, 
+          M::MB.AbstractManifold  ) where P <: AbstractVector = ManifoldKernelDensity(M, ptsArr) 
+#
+
+manikde!( ptsArr::AbstractVector{P}, 
+          bw::AbstractVector{<:Real}, 
+          M::MB.AbstractManifold  ) where P <: AbstractVector = ManifoldKernelDensity(M, ptsArr, bw)
+#
+
+
 """
     $SIGNATURES
 
 Approximate the pointwise the product of functionals on manifolds using KernelDensityEstimate.
 
+Notes:
+- Always pass full beliefs, for partials use for e.g. `partialDimsWorkaround=[1;3;6]`
+
 Example
 -------
 ```julia
+# WARNING, outdated example TODO
 using ApproxManifoldProducts
 
 # two densities on a cylinder
@@ -27,12 +42,13 @@ pq = manifoldProduct([p;q], (:Euclid, :Circular))
 using Gadfly
 plot( x=getPoints(pq)[1,:], y=getPoints(pq)[2,:], Geom.histogram2d )
 ```
-
 """
 function manifoldProduct( ff::AbstractVector{<:ManifoldKernelDensity},
                           mani::M;
                           makeCopy::Bool=false,
                           Niter::Int=1,
+                          partialDimsWorkaround=1:MB.manifold_dimension(mani),
+                          ndims::Int=length(partialDimsWorkaround),
                           addEntropy::Bool=true,
                           recordLabels::Bool=false,
                           selectedLabels::Vector{Vector{Int}}=Vector{Vector{Int}}()) where {M <: MB.AbstractManifold}
@@ -42,22 +58,19 @@ function manifoldProduct( ff::AbstractVector{<:ManifoldKernelDensity},
     return (makeCopy ? x->deepcopy(x) : x->x)(ff[1])
   end
   
-  ndims = Ndim(ff[1])
   N = Npts(ff[1])
+  glbs = KDE.makeEmptyGbGlb();
+  glbs.recordChoosen = recordLabels
   
   # TODO DEPRECATE ::NTuple{Symbol} approach
-  manif = getManifolds(M)
+  manif = convert(Tuple,M)[partialDimsWorkaround]
   addopT, diffopT, getManiMu, _ = buildHybridManifoldCallbacks(manif)
 
   bws = ones(ndims)
-
   dummy = kde!(rand(ndims,N), bws, addopT, diffopT );
 
-  glbs = KDE.makeEmptyGbGlb();
-  glbs.recordChoosen = recordLabels
-
   # TODO REMOVE
-  _ff = (x->x.belief).(ff)
+  _ff = (x->marginal(x.belief, partialDimsWorkaround) ).(ff)
   pGM, = prodAppxMSGibbsS(dummy, _ff,
                           nothing, nothing, Niter=Niter,
                           addop=addopT,
@@ -88,12 +101,7 @@ function manifoldProduct( ff::AbstractVector{<:ManifoldKernelDensity},
   ManifoldKernelDensity(mani,bel)
 end
 
-function manifoldProduct( ff::Union{Vector{BallTreeDensity},<:Vector{<:ManifoldKernelDensity}},
-                          manis::Tuple;
-                          kwargs... )
-  #
-  error("Obsolete, use manifoldProduct(::Vector{MKD}, <:AbstractManifold) instead.\n`::NTuple{Symbol}` for manifolds is outdated, use `getManifold(...)` and `ManfoldsBase.AbstractManifold` instead.")
-end
+
 
 
 #

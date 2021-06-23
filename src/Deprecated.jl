@@ -4,6 +4,44 @@
 ## Remove below before v0.5
 ## ======================================================================================================
 
+# function ManifoldKernelDensity( M::MB.AbstractManifold, 
+#                                 ptsArr::AbstractVector{P} ) where P
+#   #
+#   # FIXME obsolete
+#   arr = Matrix{Float64}(undef, length(ptsArr[1]), length(ptsArr))
+#   @cast arr[i,j] = ptsArr[j][i]
+#   manis = convert(Tuple, M)
+#   bw = getKDEManifoldBandwidths(arr, manis )
+#   addopT, diffopT, _, _ = buildHybridManifoldCallbacks(manis)
+#   bel = KernelDensityEstimate.kde!(arr, bw, addopT, diffopT)
+#   return ManifoldKernelDensity(M, bel)
+# end
+
+
+export ensurePeriodicDomains!
+function ensurePeriodicDomains!( pts::AA, manif::T1 ) where {AA <: AbstractArray{Float64,2}, T1 <: Tuple}
+  @warn "ensurePeriodicDomains! is being deprecated without replacement."
+  i = 0
+  for mn in manif
+    i += 1
+    if manif[i] == :Circular
+      pts[i,:] = TUs.wrapRad.(pts[i,:])
+    end
+  end
+
+  nothing
+end
+
+function manifoldProduct( ff::Union{Vector{BallTreeDensity},<:Vector{<:ManifoldKernelDensity}},
+  manis::Tuple;
+  kwargs... )
+#
+error("Obsolete, use manifoldProduct(::Vector{MKD}, <:AbstractManifold) instead.\n`::NTuple{Symbol}` for manifolds is outdated, use `getManifold(...)` and `ManfoldsBase.AbstractManifold` instead.")
+end
+
+@deprecate getManifolds(::Type{<:T}) where {T <: ManifoldsBase.AbstractManifold} convert(Tuple, T)
+getManifolds(::T) where {T <: ManifoldsBase.AbstractManifold} = getManifolds(T)
+
 
 # struct Euclid2 <: MB.AbstractManifold{MB.ℝ}
 #   dof::Int
