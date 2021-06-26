@@ -11,6 +11,12 @@ manikde!( ptsArr::AbstractVector{P},
 #
 
 
+# TODO move to better src file location
+isPartial(mkd::ManifoldKernelDensity{M,B,L}) where {M,B,L} = true
+isPartial(mkd::ManifoldKernelDensity{M,B,Nothing}) where {M,B} = false
+
+
+
 """
     $SIGNATURES
 
@@ -44,11 +50,11 @@ plot( x=getPoints(pq)[1,:], y=getPoints(pq)[2,:], Geom.histogram2d )
 ```
 """
 function manifoldProduct( ff::AbstractVector{<:ManifoldKernelDensity},
-                          mani::M;
+                          mani::M=ff[1].manifold;
                           makeCopy::Bool=false,
                           Niter::Int=1,
-                          partialDimsWorkaround=1:MB.manifold_dimension(mani),
-                          ndims::Int=length(partialDimsWorkaround),
+                          # partialDimsWorkaround=1:MB.manifold_dimension(mani),
+                          ndims::Int=maximum(Ndim.(ff)),
                           addEntropy::Bool=true,
                           recordLabels::Bool=false,
                           selectedLabels::Vector{Vector{Int}}=Vector{Vector{Int}}()) where {M <: MB.AbstractManifold}
@@ -63,16 +69,28 @@ function manifoldProduct( ff::AbstractVector{<:ManifoldKernelDensity},
   glbs.recordChoosen = recordLabels
   
   # TODO DEPRECATE ::NTuple{Symbol} approach
-  manif = convert(Tuple,M)[partialDimsWorkaround]
+  manif = convert(Tuple,M) #[partialDimsWorkaround]
   addopT, diffopT, getManiMu, _ = buildHybridManifoldCallbacks(manif)
 
   bws = ones(ndims)
   dummy = kde!(rand(ndims,N), bws, addopT, diffopT );
 
   # TODO REMOVE
-  _ff = (x->marginal(x.belief, partialDimsWorkaround) ).(ff)
+  _ff = (x->x.belief).(ff)
+  partialDimMask = Vector{BitVector}(undef, length(ff))
+  for (k,md) in enumerate(ff)
+    partialDimMask[k] = ones(Int,ndims) .== 1
+    if isPartial(md)
+      for i in 1:ndims
+        if !(i in md._partial)
+          partialDimMask[k][i] = false
+        end
+      end
+    end
+  end
   pGM, = prodAppxMSGibbsS(dummy, _ff,
                           nothing, nothing, Niter=Niter,
+                          partialDimMask=partialDimMask,
                           addop=addopT,
                           diffop=diffopT,
                           getMu=getManiMu,
@@ -95,9 +113,10 @@ function manifoldProduct( ff::AbstractVector{<:ManifoldKernelDensity},
     end
   end
 
+  # build new output ManifoldKernelDensity
   bws[:] = getKDEManifoldBandwidths(pGM, manif)
   bel = kde!(pGM, bws, addopT, diffopT)
-  @show M
+  # @show M
   ManifoldKernelDensity(mani,bel)
 end
 

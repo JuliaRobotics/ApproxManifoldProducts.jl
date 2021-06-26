@@ -47,9 +47,11 @@ function buildHybridManifoldCallbacks(manif::Tuple)
   return (addopT...,), (diffopT...,), (getManiMu...,), (getManiLam...,)
 end
 
-
-
 # FIXME temp conversion during consolidation
+_MtoSymbol(::Euclidean{Tuple{1}}) = :Euclid
+_MtoSymbol(::Circle) = :Circular
+Base.convert(::Type{<:Tuple}, M::ProductManifold) = _MtoSymbol.(M.manifolds)
+
 Base.convert(::Type{<:Tuple}, ::Type{<: typeof(Euclid)}) = (:Euclid,)
 Base.convert(::Type{<:Tuple}, ::Type{<: typeof(Euclid2)}) = (:Euclid,:Euclid)
 Base.convert(::Type{<:Tuple}, ::Type{<: typeof(Euclid3)}) = (:Euclid,:Euclid,:Euclid)
@@ -103,12 +105,6 @@ function ManifoldKernelDensity( M::MB.AbstractManifold,
   return ManifoldKernelDensity(M, bel)
 end
 
-# override
-function marginal(x::ManifoldKernelDensity, dims, w...;kw...)
-  manis = convert(Tuple, x.manifold)
-  partMani = _reducePartialManifoldElements(manis[dims])
-  ManifoldKernelDensity(partMani, marginal(x.belief, dims, w...;kw...))
-end
 
 # internal workaround function for building partial submanifold dimensions, must be upgraded/standarized
 function _buildManifoldPartial( fullM::MB.AbstractManifold, 
