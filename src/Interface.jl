@@ -219,17 +219,17 @@ DevNotes
 function productbelief( denspts::AbstractVector{P},
                         manifold::MB.AbstractManifold,
                         dens::Vector{<:ManifoldKernelDensity},
-                        partials::Dict{Any, <:AbstractVector{<:ManifoldKernelDensity}},
+                        # partials::Dict{Any, <:AbstractVector{<:ManifoldKernelDensity}},
                         N::Int;
                         dbg::Bool=false,
                         logger=ConsoleLogger()  ) where P <: AbstractVector{<:Real}
   #
   # TODO only works of P <: Vector
-  Nfulldim = length(dens)
-  Npartials = length(partials)
-  Ndims = size(denspts[1])
+  Ndens = length(dens)
+  # Npartials = length(partials)
+  Ndims = maximum(Ndim.(dens)) # size(denspts[1])
   with_logger(logger) do
-    @info "[$(Nfulldim)x$(Npartials)p,d$(Ndims),N$(N)],"
+    @info "[$(Ndens)x,d$(Ndims),N$(N)],"
   end
   
   # # resize for #1013
@@ -239,18 +239,20 @@ function productbelief( denspts::AbstractVector{P},
   # else
   #   pGM = deepcopy(denspts)
   # end
-  
-  # TODO VALIDATE inclFull is the right order
-  (pGM, inclFull) = if 0 < Nfulldim
-    getPoints(AMP.manifoldProduct(dens, manifold, Niter=1)), true # false
-  elseif Nfulldim == 0 && 0 < Npartials
-    deepcopy(denspts), false # true
-  else
-    error("Unknown density product Nfulldim=$(Nfulldim), Npartials=$(Npartials)")
-  end
 
-  # take the product between partial dimensions
-  _partialProducts!(pGM, partials, manifold, inclFull=inclFull)
+  pGM = AMP.manifoldProduct(dens, manifold, Niter=1) |> getPoints
+
+  # # TODO VALIDATE inclFull is the right order
+  # (pGM, inclFull) = if 0 < Ndens
+  #   getPoints(AMP.manifoldProduct(dens, manifold, Niter=1)), true # false
+  # elseif Ndens == 0 && 0 < Npartials
+  #   deepcopy(denspts), false # true
+  # else
+  #   error("Unknown density product Ndens=$(Ndens), Npartials=$(Npartials)")
+  # end
+
+  # # take the product between partial dimensions
+  # _partialProducts!(pGM, partials, manifold, inclFull=inclFull)
 
   return pGM
 end
