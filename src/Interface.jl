@@ -72,6 +72,11 @@ function getPoints(x::ManifoldKernelDensity{M,B,L}) where {M <: AbstractManifold
   return ptsArr
 end
 
+function resample(x::ManifoldKernelDensity, N::Int)
+  bel = resample(x.belief, N)
+  ManifoldKernelDensity(x.manifold, bel, x._partial)
+end
+
 
 ## ================================================================================================================================
 # Serialization
@@ -131,7 +136,6 @@ getWeights(x::ManifoldKernelDensity, w...;kw...) = getWeights(x.belief, w...;kw.
 # marginal(_)
 sample(x::ManifoldKernelDensity, w...;kw...) = sample(x.belief, w...;kw...)
 Random.rand(x::ManifoldKernelDensity, d::Integer=1) = rand(x.belief, d)
-resample(x::ManifoldKernelDensity, w...;kw...) = resample(x.belief, w...;kw...)
 
 getKDERange(x::ManifoldKernelDensity, w...;kw...) = getKDERange(x.belief, w...;kw...)
 getKDEMax(x::ManifoldKernelDensity, w...;kw...) = getKDEMax(x.belief, w...;kw...)
@@ -161,45 +165,45 @@ end
 
 
 
-# take the full pGM in, but only update the coordinate dimensions that are actually affected by new information.
-function _partialProducts!( pGM::AbstractVector{P}, 
-                            partials::Dict{Any, <:AbstractVector{<:ManifoldKernelDensity}},
-                            manifold::MB.AbstractManifold; 
-                            inclFull::Bool=true  ) where P <: AbstractVector
-  #
-  # manis = convert(Tuple, manifold)
-  keepold = inclFull ? deepcopy(pGM) : typeof(pGM)()
+# # take the full pGM in, but only update the coordinate dimensions that are actually affected by new information.
+# function _partialProducts!( pGM::AbstractVector{P}, 
+#                             partials::Dict{Any, <:AbstractVector{<:ManifoldKernelDensity}},
+#                             manifold::MB.AbstractManifold; 
+#                             inclFull::Bool=true  ) where P <: AbstractVector
+#   #
+#   # manis = convert(Tuple, manifold)
+#   keepold = inclFull ? deepcopy(pGM) : typeof(pGM)()
 
-  # TODO remove requirement for P <: AbstractVector
-  allPartDimsMask = 0 .== zeros(Int, length(pGM[1]))
-  # FIXME, remove temporary Tuple manifolds method 
-  for (dimnum,pp) in partials
-    # mark dimensions getting partial information
-    for d in dimnum
-      allPartDimsMask[d] = true
-    end
-    # change to vector
-    dimv = [dimnum...]
-    # include previous calcs (if full density products were done before partials)
-    partialMani = _buildManifoldPartial(manifold, dimv)
-    # take product of this partial's subset of dimensions
-    partial_GM = AMP.manifoldProduct(pp, partialMani, Niter=1) |> getPoints
-    # partial_GM = AMP.manifoldProduct(pp, (manis[dimv]...,), Niter=1) |> getPoints
+#   # TODO remove requirement for P <: AbstractVector
+#   allPartDimsMask = 0 .== zeros(Int, length(pGM[1]))
+#   # FIXME, remove temporary Tuple manifolds method 
+#   for (dimnum,pp) in partials
+#     # mark dimensions getting partial information
+#     for d in dimnum
+#       allPartDimsMask[d] = true
+#     end
+#     # change to vector
+#     dimv = [dimnum...]
+#     # include previous calcs (if full density products were done before partials)
+#     partialMani = _buildManifoldPartial(manifold, dimv)
+#     # take product of this partial's subset of dimensions
+#     partial_GM = AMP.manifoldProduct(pp, partialMani, Niter=1) |> getPoints
+#     # partial_GM = AMP.manifoldProduct(pp, (manis[dimv]...,), Niter=1) |> getPoints
     
-    for i in 1:length(pGM)
-      pGM[i][dimv] = partial_GM[i]
-    end
-  end
+#     for i in 1:length(pGM)
+#       pGM[i][dimv] = partial_GM[i]
+#     end
+#   end
   
-  # multiply together previous full dim and new product of various partials
-  if inclFull
-    partialPts = [pGM[i][dimv] for i in 1:length(pGM)]
-    push!( pp, AMP.manikde!(partialPts, partialMani) )
-  end
+#   # multiply together previous full dim and new product of various partials
+#   if inclFull
+#     partialPts = [pGM[i][dimv] for i in 1:length(pGM)]
+#     push!( pp, AMP.manikde!(partialPts, partialMani) )
+#   end
   
 
-  nothing
-end
+#   nothing
+# end
 
 
 """
