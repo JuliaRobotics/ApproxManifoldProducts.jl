@@ -3,22 +3,8 @@
 using ApproxManifoldProducts
 using KernelDensityEstimate
 using Test
-
-
-# # 2D
-#
-# pts1 = [0.05*randn(100)'; 0.5*randn(100)']
-# pts2 = [0.05*randn(100)'; 0.5*randn(100)']
-#
-# P1 = manikde!(pts1, (:Euclid, :Circular))
-# P2 = manikde!(pts2, (:Euclid, :Circular))
-#
-# P12 = P1*P2
-#
-#
-#
-# plotKDE([P1;P2;P12], c=["red";"blue";"magenta"],levels=1)
-#
+using TensorCast
+using Manifolds
 
 
 # 3D
@@ -27,21 +13,22 @@ using Test
 
 N = 100
 
-pts1 = [0.05*randn(N)'; 0.05*randn(N)'; 0.75*randn(N)']
-pts2 = [0.05*randn(N)'; 0.05*randn(N)'; 0.75*randn(N)']
+pts1_ = [0.05*randn(N)'; 0.05*randn(N)'; 0.75*randn(N)']
+pts2_ = [0.05*randn(N)'; 0.05*randn(N)'; 0.75*randn(N)']
 
-# P1 = manikde!(pts1, (:Euclid,:Euclid,:Circular))
-# P2 = manikde!(pts2, (:Euclid,:Euclid,:Circular))
+# lazy
+@cast pts1[j][i] := pts1_[i,j]
+@cast pts2[j][i] := pts2_[i,j]
 
-# P1 = manikde!(pts1, (:Euclid,:Euclid,:Euclid))
-# P2 = manikde!(pts2, (:Euclid,:Euclid,:Euclid))
 
-P2 = kde!(pts2)
-P1 = kde!(pts1)
+P1 = manikde!(pts1, Euclidean(3))
+P2 = manikde!(pts2, Euclidean(3))
 
 P12 = P1*P2
 
-pts = getPoints(P12)
+pts_ = getPoints(P12)
+
+@cast pts[i,j] := pts_[j][i]
 
 @test 0.8*N < sum(abs.(pts[1,:]) .< 0.1)
 @test 0.8*N < sum(abs.(pts[2,:]) .< 0.1)
@@ -49,28 +36,14 @@ pts = getPoints(P12)
 
 
 
-
-P1 = manikde!(pts1, (:Euclid,:Euclid,:Euclid))
-P2 = manikde!(pts2, (:Euclid,:Euclid,:Euclid))
-
-P12 = P1*P2
-
-pts = getPoints(P12)
-
-@test 0.8*N < sum(abs.(pts[1,:]) .< 0.1)
-@test 0.8*N < sum(abs.(pts[2,:]) .< 0.1)
-@test 0.8*N < sum(abs.(pts[3,:]) .< 2.0)
-
-
-
-
-
-P1 = manikde!(pts1, (:Euclid,:Euclid,:Circular))
-P2 = manikde!(pts2, (:Euclid,:Euclid,:Circular))
+P1 = manikde!(pts1, SpecialEuclidean(2))
+P2 = manikde!(pts2, SpecialEuclidean(2))
 
 P12 = P1*P2
 
-pts = getPoints(P12)
+pts_ = getPoints(P12)
+
+@cast pts[i,j] := pts_[j][i]
 
 @test 0.8*N < sum(abs.(pts[1,:]) .< 0.1)
 @test 0.8*N < sum(abs.(pts[2,:]) .< 0.1)

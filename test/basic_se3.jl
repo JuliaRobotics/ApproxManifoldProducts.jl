@@ -6,8 +6,8 @@ using Test
 
 @testset "Basic SE3 manifold test (transition version)" begin
 
-a = randn(6,50)
-b = randn(6,50)
+a = [randn(6) for i in 1:50]
+b = [randn(6) for i in 1:50]
 
 ret = mmd(a, b, SE3_Manifold)
 

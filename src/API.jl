@@ -1,13 +1,34 @@
 # define the api for users
 
+
+manikde!( ptsArr::AbstractVector{P}, 
+          M::MB.AbstractManifold  ) where P <: AbstractVector = ManifoldKernelDensity(M, ptsArr) 
+#
+
+manikde!( ptsArr::AbstractVector{P}, 
+          bw::AbstractVector{<:Real}, 
+          M::MB.AbstractManifold  ) where P <: AbstractVector = ManifoldKernelDensity(M, ptsArr, bw)
+#
+
+
+# TODO move to better src file location
+isPartial(mkd::ManifoldKernelDensity{M,B,L}) where {M,B,L} = true
+isPartial(mkd::ManifoldKernelDensity{M,B,Nothing}) where {M,B} = false
+
+
+
 """
     $SIGNATURES
 
 Approximate the pointwise the product of functionals on manifolds using KernelDensityEstimate.
 
+Notes:
+- Always pass full beliefs, for partials use for e.g. `partialDimsWorkaround=[1;3;6]`
+
 Example
 -------
 ```julia
+# WARNING, outdated example TODO
 using ApproxManifoldProducts
 
 # two densities on a cylinder
@@ -27,36 +48,53 @@ pq = manifoldProduct([p;q], (:Euclid, :Circular))
 using Gadfly
 plot( x=getPoints(pq)[1,:], y=getPoints(pq)[2,:], Geom.histogram2d )
 ```
-
 """
-function manifoldProduct( ff::Vector{BallTreeDensity},
-                          manif::T;
+function manifoldProduct( ff::AbstractVector{<:ManifoldKernelDensity},
+                          mani::M=ff[1].manifold;
                           makeCopy::Bool=false,
                           Niter::Int=1,
+                          # partialDimsWorkaround=1:MB.manifold_dimension(mani),
+                          ndims::Int=maximum(Ndim.(ff)),
+                          N::Int = maximum(Npts.(ff)),
+                          oldPoints::AbstractVector{P}=[randn(ndims) for _ in 1:N],
                           addEntropy::Bool=true,
                           recordLabels::Bool=false,
-                          selectedLabels::Vector{Vector{Int}}=Vector{Vector{Int}}()) where {T <: Tuple}
+                          selectedLabels::Vector{Vector{Int}}=Vector{Vector{Int}}()) where {M <: MB.AbstractManifold, P}
   #
   # check quick exit
   if 1 == length(ff)
+    # @show Ndim(ff[1]), Npts(ff[1]), getPoints(ff[1],false)[1]
     return (makeCopy ? x->deepcopy(x) : x->x)(ff[1])
   end
-
-  ndims = Ndim(ff[1])
-  N = Npts(ff[1])
-
-
-  addopT, diffopT, getManiMu, getManiLam = buildHybridManifoldCallbacks(manif)
-
-  bws = ones(ndims)
-
-  dummy = kde!(rand(ndims,N), bws, addopT, diffopT );
-
+  
   glbs = KDE.makeEmptyGbGlb();
   glbs.recordChoosen = recordLabels
+  
+  # TODO DEPRECATE ::NTuple{Symbol} approach
+  manif = convert(Tuple,M) #[partialDimsWorkaround]
+  addopT, diffopT, getManiMu, _ = buildHybridManifoldCallbacks(manif)
 
-  pGM, = prodAppxMSGibbsS(dummy, ff,
+  bws = ones(ndims)
+  @cast oldpts_[i,j] := oldPoints[j][i]
+  oldpts = collect(oldpts_)
+  dummy = kde!(oldpts, bws, addopT, diffopT ); # rand(ndims,N)
+
+  # TODO REMOVE
+  _ff = (x->x.belief).(ff)
+  partialDimMask = Vector{BitVector}(undef, length(ff))
+  for (k,md) in enumerate(ff)
+    partialDimMask[k] = ones(Int,ndims) .== 1
+    if isPartial(md)
+      for i in 1:ndims
+        if !(i in md._partial)
+          partialDimMask[k][i] = false
+        end
+      end
+    end
+  end
+  pGM, = prodAppxMSGibbsS(dummy, _ff,
                           nothing, nothing, Niter=Niter,
+                          partialDimMask=partialDimMask,
                           addop=addopT,
                           diffop=diffopT,
                           getMu=getManiMu,
@@ -79,18 +117,21 @@ function manifoldProduct( ff::Vector{BallTreeDensity},
     end
   end
 
+  # # if only partials, then keep other dimension values from oldPoints
+  # otherDims = ones(ndims) .== 0
+  # for msk in partialDimMask
+  #   otherDims .|= msk
+  # end
+  # error(otherDims)
+
+  # build new output ManifoldKernelDensity
   bws[:] = getKDEManifoldBandwidths(pGM, manif)
-  kde!(pGM, bws, addopT, diffopT)
+  bel = kde!(pGM, bws, addopT, diffopT)
+  # @show M
+  ManifoldKernelDensity(mani,bel)
 end
 
-function manifoldProduct( ff::Vector{<:ManifoldKernelDensity},
-                          mani::ManifoldsBase.AbstractManifold;
-                          kwargs... )
-  #
-  bels = (x->x.belief).(ff)
-  manif = getManifolds(mani)
-  manifoldProduct(bels, manif; kwargs...)
-end
+
 
 
 #

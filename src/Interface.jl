@@ -1,47 +1,88 @@
 # Interface
 
+import KernelDensityEstimate: getPoints, getBW, Ndim, Npts, getWeights, marginal 
+import KernelDensityEstimate: getKDERange, getKDEMax, getKDEMean, getKDEfit
+import KernelDensityEstimate: sample, rand, resample, kld, minkld
+import Random: rand
+
+export getPoints, getBW, Ndims, Npts
+export getKDERange, getKDEMax, getKDEMean, getKDEfit
+export sample, rand, resample, kld, minkld
 export productbelief
 
-mutable struct ManifoldKernelDensity{M <: MB.AbstractManifold{MB.ℝ}, B <: BallTreeDensity}
+struct ManifoldKernelDensity{M <: MB.AbstractManifold{MB.ℝ}, B <: BallTreeDensity, L}
   manifold::M
   belief::B
+  _partial::L
 end
-const MKD{M,B} = ManifoldKernelDensity{M, B}
+const MKD{M,B,L} = ManifoldKernelDensity{M, B, L}
 
-# ManifoldKernelDensity(m::M,b::B) where {M <: MB.AbstractManifold{MB.ℝ}, B} = ManifoldKernelDensity{M,B}(m,b)
-
-
-function ManifoldKernelDensity(m::MB.AbstractManifold, pts::AbstractArray{<:Real})
-  tup = convert(Tuple, m)
-  bel = manikde!(pts, m)
-  ManifoldKernelDensity(m, bel)
-end
+ManifoldKernelDensity(mani::M, bel::B, partial::L=nothing) where {M <: MB.AbstractManifold, B <: BallTreeDensity, L} = ManifoldKernelDensity{M,B,L}(mani,bel,partial)
 
 
-@deprecate ManifoldBelief(w...;kw...) ManifoldKernelDensity(w...;kw...)
-function ManifoldBelief(::M, mkd::ManifoldKernelDensity{M,T}) where {M <: MB.AbstractManifold{MB.ℝ}, T} 
-  @warn "ManifoldBelief is deprecated, use ManifoldKernelDensity instead"
-  return mkd
-end
-
-function Base.show(io::IO, mkd::ManifoldKernelDensity{M,B}) where {M, B}
-  printstyled(io, "ManifoldKernelDensity{$M,$B}(\n", bold=true )
-  show(io, mkd.belief)
+function Base.show(io::IO, mkd::ManifoldKernelDensity{M,B,L}) where {M, B,L}
+  printstyled(io, "ManifoldKernelDensity", bold=true, color=:blue )
+  printstyled(io, "{$M,", bold=true )
+  println(io)
+  printstyled(io, "                      $B,", bold=true )
+  println(io)
+  printstyled(io, "                      $L}(", bold=true )
+  println(io)
+  println(io, "  dims: ", Ndim(mkd.belief))
+  println(io, "  Npts: ", Npts(mkd.belief))
+  println(io, "  bws:  ", getBW(mkd.belief)[:,1] .|> x->round(x,digits=4))
+  println(io, "  prtl: ", mkd._partial)
   println(io, ")")
+  nothing
 end
 
 Base.show(io::IO, ::MIME"text/plain", mkd::ManifoldKernelDensity) = show(io, mkd)
 
-function *(PP::AbstractVector{<:MKD{M,B}}) where {M<:MB.AbstractManifold{MB.ℝ},B}
-  @info "taking manifold product of $(length(PP)) terms, $M, $B"
-  @error "No known product definition"
+
+# override
+function marginal(x::ManifoldKernelDensity{M,B}, 
+                  dims::AbstractVector{<:Integer}  ) where {M <: AbstractManifold , B}
+  #
+  ldims::Vector{Int} = collect(dims)
+  ManifoldKernelDensity(x.manifold, x.belief, ldims)
 end
 
-function *(P1::MKD{M,B}, P2::MKD{M,B}) where {M<:MB.AbstractManifold{MB.ℝ},B}
-  # @info "taking manifold product of $(length(PP)) terms, $M, $B"
-  # @error "No known product definition"
-  manis = convert(Tuple, M)
-  manifoldProduct([P1.belief;P2.belief], manis)
+function marginal(x::ManifoldKernelDensity{M,B,L}, 
+                  dims::AbstractVector{<:Integer}  ) where {M <: AbstractManifold , B, L <: AbstractVector{<:Integer}}
+  #
+  ldims::Vector{Int} = collect(L[dims])
+  ManifoldKernelDensity(x.manifold, x.belief, ldims)
+end
+# manis = convert(Tuple, x.manifold)
+# partMani = _reducePartialManifoldElements(manis[dims])
+# pts = getPoints(x)
+
+"""
+    $SIGNATURES
+
+Return underlying points used to construct the [`ManifoldKernelDensity`](@ref).
+
+Notes
+- Return type is `::Vector{P}` where `P` represents a Manifold point type (e.g. group element or coordinates).
+- Second argument controls whether partial dimensions only should be returned.
+
+"""
+function getPoints(x::ManifoldKernelDensity{M,B}, ::Bool=true) where {M <: AbstractManifold, B}
+  pts = getPoints(x.belief)
+  @cast ptsArr[j][i] := pts[i,j]
+  return ptsArr
+end
+
+function getPoints(x::ManifoldKernelDensity{M,B,L}, aspartial::Bool=true) where {M <: AbstractManifold, B, L <: AbstractVector{Int}}
+  pts = getPoints(x.belief)
+  pts_ = aspartial ? view(pts,x._partial,:) : pts
+  @cast ptsArr[j][i] := pts_[i,j]
+  return ptsArr
+end
+
+function resample(x::ManifoldKernelDensity, N::Int)
+  bel = resample(x.belief, N)
+  ManifoldKernelDensity(x.manifold, bel, x._partial)
 end
 
 
@@ -93,27 +134,16 @@ end
 # getManifold(x::ManifoldKernelDensity) = x.manifold
 
 
-import KernelDensityEstimate: getPoints, getBW, Ndim, Npts, getWeights, marginal 
-import KernelDensityEstimate: getKDERange, getKDEMax, getKDEMean, getKDEfit
-import KernelDensityEstimate: sample, rand, resample, kld, minkld
-import Random: rand
 
-export getPoints, getBW, Ndims, Npts
-export getKDERange, getKDEMax, getKDEMean, getKDEfit
-export sample, rand, resample, kld, minkld
-
-
-getPoints(x::ManifoldKernelDensity, w...;kw...) = getPoints(x.belief,w...;kw...)
 getBW(x::ManifoldKernelDensity, w...;kw...) = getBW(x.belief,w...;kw...)
 
-Ndims(x::ManifoldKernelDensity, w...;kw...) = Ndims(x.belief,w...;kw...)
+Ndim(x::ManifoldKernelDensity, w...;kw...) = Ndim(x.belief,w...;kw...)
 Npts(x::ManifoldKernelDensity, w...;kw...) = Npts(x.belief,w...;kw...)
 
 getWeights(x::ManifoldKernelDensity, w...;kw...) = getWeights(x.belief, w...;kw...)
-marginal(x::ManifoldKernelDensity, w...;kw...) = marginal(x.belief, w...;kw...)
+# marginal(_)
 sample(x::ManifoldKernelDensity, w...;kw...) = sample(x.belief, w...;kw...)
 Random.rand(x::ManifoldKernelDensity, d::Integer=1) = rand(x.belief, d)
-resample(x::ManifoldKernelDensity, w...;kw...) = resample(x.belief, w...;kw...)
 
 getKDERange(x::ManifoldKernelDensity, w...;kw...) = getKDERange(x.belief, w...;kw...)
 getKDEMax(x::ManifoldKernelDensity, w...;kw...) = getKDEMax(x.belief, w...;kw...)
@@ -131,54 +161,90 @@ minkld(x::ManifoldKernelDensity, w...;kw...) = minkld(x.belief, w...;kw...)
 # Legacy Interface for product of full and partial dimensions
 ## ================================================================================================================================
 
-# legacy
 
-"""
-    $SIGNATURES
-Interface function to return the `variableType` manifolds of an InferenceVariable, extend this function for all Types<:InferenceVariable.
-"""
-function getManifolds end
+# NOTE, this product does not handle combinations of different partial beliefs properly yet
+function *(PP::AbstractVector{<:MKD{M,B}}) where {M<:MB.AbstractManifold{MB.ℝ},B}
+  manifoldProduct(PP, PP[1].manifold)
+end
 
-getManifolds(::Type{<:T}) where {T <: ManifoldsBase.AbstractManifold} = convert(Tuple, T)
-getManifolds(::T) where {T <: ManifoldsBase.AbstractManifold} = getManifolds(T)
-
-
-function _partialProducts!(pGM, partials, manis; useExisting::Bool=false)
-  for (dimnum,pp) in partials
-    dimv = [dimnum...]
-    # include previous calcs (if full density products were done before partials)
-    !useExisting ? nothing : push!(pp, AMP.manikde!(pGM[dimv,:], (manis[dimv]...,) ))
-    # take product of this partial's subset of dimensions
-    pGM[dimv,:] = AMP.manifoldProduct(pp, (manis[dimv]...,), Niter=1) |> getPoints
-  end
-  nothing
+function *(P1::MKD{M,B}, P2::MKD{M,B}, P_...) where {M<:MB.AbstractManifold{MB.ℝ},B}
+  manifoldProduct([P1;P2;P_...], P1.manifold)
 end
 
 
+
+# # take the full pGM in, but only update the coordinate dimensions that are actually affected by new information.
+# function _partialProducts!( pGM::AbstractVector{P}, 
+#                             partials::Dict{Any, <:AbstractVector{<:ManifoldKernelDensity}},
+#                             manifold::MB.AbstractManifold; 
+#                             inclFull::Bool=true  ) where P <: AbstractVector
+#   #
+#   # manis = convert(Tuple, manifold)
+#   keepold = inclFull ? deepcopy(pGM) : typeof(pGM)()
+
+#   # TODO remove requirement for P <: AbstractVector
+#   allPartDimsMask = 0 .== zeros(Int, length(pGM[1]))
+#   # FIXME, remove temporary Tuple manifolds method 
+#   for (dimnum,pp) in partials
+#     # mark dimensions getting partial information
+#     for d in dimnum
+#       allPartDimsMask[d] = true
+#     end
+#     # change to vector
+#     dimv = [dimnum...]
+#     # include previous calcs (if full density products were done before partials)
+#     partialMani = _buildManifoldPartial(manifold, dimv)
+#     # take product of this partial's subset of dimensions
+#     partial_GM = AMP.manifoldProduct(pp, partialMani, Niter=1) |> getPoints
+#     # partial_GM = AMP.manifoldProduct(pp, (manis[dimv]...,), Niter=1) |> getPoints
+    
+#     for i in 1:length(pGM)
+#       pGM[i][dimv] = partial_GM[i]
+#     end
+#   end
+  
+#   # multiply together previous full dim and new product of various partials
+#   if inclFull
+#     partialPts = [pGM[i][dimv] for i in 1:length(pGM)]
+#     push!( pp, AMP.manikde!(partialPts, partialMani) )
+#   end
+  
+
+#   nothing
+# end
+
+
 """
     $SIGNATURES
 
-Take product of `dens` accompanied by optional `partials` proposal belief densities.
+Take product of `dens` (including optional partials beliefs) as proposals to be multiplied together.
 
 Notes
 -----
+- Return points of full dimension, even if only partial dimensions in proposals.
+  - 'Other' dimensions left unchanged from incoming `denspts`
 - `d` dimensional product approximation
 - `partials` are treated per each unique Tuple subgrouping, i.e. (1,2), (2,), ...
 - Incorporate ApproxManifoldProducts to process variables in individual batches.
+
+DevNotes
+- TODO Consolidate with AMP.manifoldProduct, especially concerning partials. 
 """
-function productbelief( denspts::AbstractArray,
-                        manifold::ManifoldsBase.AbstractManifold,
-                        dens::Vector{<:BallTreeDensity},
-                        partials::Dict{Any, <:AbstractVector{<:BallTreeDensity}},
+function productbelief( denspts::AbstractVector{P},
+                        manifold::MB.AbstractManifold,
+                        dens::Vector{<:ManifoldKernelDensity},
+                        # partials::Dict{Any, <:AbstractVector{<:ManifoldKernelDensity}},
                         N::Int;
+                        asPartial::Bool=false,
                         dbg::Bool=false,
-                        logger=ConsoleLogger()  )
+                        logger=ConsoleLogger()  ) where P <: AbstractVector{<:Real}
   #
-  manis = manifold |> getManifolds
-  lennonp, lenpart = length(dens), length(partials)
-  Ndims = size(denspts,1)
+  # TODO only works of P <: Vector
+  Ndens = length(dens)
+  # Npartials = length(partials)
+  Ndims = maximum(Ndim.(dens))
   with_logger(logger) do
-    @info "[$(lennonp)x$(lenpart)p,d$(Ndims),N$(N)],"
+    @info "[$(Ndens)x,d$(Ndims),N$(N)],"
   end
   
   # # resize for #1013
@@ -188,18 +254,21 @@ function productbelief( denspts::AbstractArray,
   # else
   #   pGM = deepcopy(denspts)
   # end
-  
-  # pGM = Array{Float64,2}(undef, 0,0)
-  # new, slightly condensed partialProduct operation
-  (pGM, uE) = if 0 < lennonp
-    getPoints(AMP.manifoldProduct(dens, manis, Niter=1)), true
-  elseif lennonp == 0 && 0 < lenpart
-    deepcopy(denspts), false
-  else
-    error("Unknown density product lennonp=$(lennonp), lenpart=$(lenpart)")
-  end
-  # take the product between partial dimensions
-  _partialProducts!(pGM, partials, manis, useExisting=uE)
+
+  mkd = AMP.manifoldProduct(dens, manifold, Niter=1, oldPoints=denspts)
+  pGM = getPoints(mkd, asPartial)
+
+  # # TODO VALIDATE inclFull is the right order
+  # (pGM, inclFull) = if 0 < Ndens
+  #   getPoints(AMP.manifoldProduct(dens, manifold, Niter=1)), true # false
+  # elseif Ndens == 0 && 0 < Npartials
+  #   deepcopy(denspts), false # true
+  # else
+  #   error("Unknown density product Ndens=$(Ndens), Npartials=$(Npartials)")
+  # end
+
+  # # take the product between partial dimensions
+  # _partialProducts!(pGM, partials, manifold, inclFull=inclFull)
 
   return pGM
 end

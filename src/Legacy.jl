@@ -1,6 +1,15 @@
 # legacy content to facilitate transition to AMP
 
 
+function _reducePartialManifoldElements(el::Symbol)
+  if el == :Euclid
+    return Euclidean(1)
+  elseif el == :Circular
+    return Circle()
+  end
+  error("unknown manifold_symbol $el")
+end
+
 """
     $SIGNATURES
 
@@ -39,6 +48,10 @@ function buildHybridManifoldCallbacks(manif::Tuple)
 end
 
 # FIXME temp conversion during consolidation
+_MtoSymbol(::Euclidean{Tuple{1}}) = :Euclid
+_MtoSymbol(::Circle) = :Circular
+Base.convert(::Type{<:Tuple}, M::ProductManifold) = _MtoSymbol.(M.manifolds)
+
 Base.convert(::Type{<:Tuple}, ::Type{<: typeof(Euclid)}) = (:Euclid,)
 Base.convert(::Type{<:Tuple}, ::Type{<: typeof(Euclid2)}) = (:Euclid,:Euclid)
 Base.convert(::Type{<:Tuple}, ::Type{<: typeof(Euclid3)}) = (:Euclid,:Euclid,:Euclid)
@@ -53,14 +66,13 @@ Base.convert(::Type{<:Tuple}, ::typeof(Euclid4)) = (:Euclid,:Euclid,:Euclid,:Euc
 Base.convert(::Type{<:Tuple}, ::typeof(SE2_Manifold)) = (:Euclid,:Euclid,:Circular)
 Base.convert(::Type{<:Tuple}, ::typeof(SE3_Manifold)) = (:Euclid,:Euclid,:Euclid,:Circular,:Circular,:Circular)
 
-
 """
     $(SIGNATURES)
 
 Calculate the KDE bandwidths for each dimension independly, as per manifold of each.  Return vector of all dimension bandwidths.
 """
-function getKDEManifoldBandwidths(pts::AA,
-                                  manif::T1 ) where {AA <: AbstractArray{Float64,2}, T1 <: Tuple}
+function getKDEManifoldBandwidths(pts::AbstractMatrix{<:Real},
+                                  manif::T1 ) where {T1 <: Tuple}
   #
   ndims = size(pts, 1)
   bws = ones(ndims)
@@ -78,54 +90,41 @@ function getKDEManifoldBandwidths(pts::AA,
   return bws
 end
 
-function ensurePeriodicDomains!( pts::AA, manif::T1 ) where {AA <: AbstractArray{Float64,2}, T1 <: Tuple}
+function ManifoldKernelDensity( M::MB.AbstractManifold,
+                                ptsArr::AbstractVector{P},
+                                bw::Union{<:AbstractVector{<:Real},Nothing}=nothing  ) where P
+  #
+  # FIXME obsolete
+  arr = Matrix{Float64}(undef, length(ptsArr[1]), length(ptsArr))
+  @cast arr[i,j] = ptsArr[j][i]
+  manis = convert(Tuple, M)
+  # find or have the bandwidth
+  _bw = bw === nothing ? getKDEManifoldBandwidths(arr, manis ) : bw
+  addopT, diffopT, _, _ = buildHybridManifoldCallbacks(manis)
+  bel = KernelDensityEstimate.kde!(arr, _bw, addopT, diffopT)
+  return ManifoldKernelDensity(M, bel)
+end
 
-  i = 0
-  for mn in manif
-    i += 1
-    if manif[i] == :Circular
-      pts[i,:] = TUs.wrapRad.(pts[i,:])
-    end
+
+# internal workaround function for building partial submanifold dimensions, must be upgraded/standarized
+function _buildManifoldPartial( fullM::MB.AbstractManifold, 
+                                partial_coord_dims )
+  #
+  # temporary workaround during Manifolds.jl integration
+  manif = convert(Tuple, fullM)[partial_coord_dims]
+  # 
+  newMani = MB.AbstractManifold[]
+  for me in manif
+    push!(newMani, _reducePartialManifoldElements(me))
   end
 
-  nothing
+  # assume independent dimensions for definition, ONLY USED AS DECORATOR AT THIS TIME, FIXME
+  return ProductManifold(newMani...)
 end
 
 
-"""
-    $(SIGNATURES)
 
-Legacy extension of KDE.kde! function to approximate smooth functions based on samples, using likelihood cross validation for bandwidth selection.  This method allows approximation over hybrid manifolds.
-"""
-function manikde!(pts::AA2,
-                  bws::AbstractVector{<:Real},
-                  manifolds::T  ) where {AA2 <: AbstractArray{Float64,2}, T <: Tuple}
-  #
-  addopT, diffopT, getManiMu, getManiLam = buildHybridManifoldCallbacks(manifolds)
-  bel = KernelDensityEstimate.kde!(pts, bws, addopT, diffopT)
-end
 
-function manikde!(pts::AA2,
-                  manifolds::T  ) where {AA2 <: AbstractArray{Float64,2}, T <: Tuple}
-  #
-  bws = getKDEManifoldBandwidths(pts, manifolds)
-  ensurePeriodicDomains!(pts, manifolds)
-  ApproxManifoldProducts.manikde!(pts, bws, manifolds)
-end
 
-function manikde!(pts::AA2,
-                  manifold::Type{<:MB.AbstractManifold{MB.ℝ}}  ) where {AA2 <: AbstractArray{Float64,2}}
-  #
-  maniT = convert(Tuple, manifold)
-  manikde!(pts, maniT)
-end
 
-function manikde!(pts::AbstractArray, manifold::MB.AbstractManifold)
-  maniT = convert(Tuple, manifold)
-  manikde!(pts, maniT)
-end
-
-function manikde!(pts::AbstractArray, bws::AbstractVector{<:Real}, manifold::MB.AbstractManifold)
-  maniT = convert(Tuple, manifold)
-  manikde!(pts, bws, maniT)
-end
+#
