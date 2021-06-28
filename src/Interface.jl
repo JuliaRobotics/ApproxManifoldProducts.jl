@@ -57,17 +57,25 @@ end
 # partMani = _reducePartialManifoldElements(manis[dims])
 # pts = getPoints(x)
 
+"""
+    $SIGNATURES
 
-# with DFG v0.15 change points to Vector{P}
-function getPoints(x::ManifoldKernelDensity{M,B}) where {M <: AbstractManifold, B}
+Return underlying points used to construct the [`ManifoldKernelDensity`](@ref).
+
+Notes
+- Return type is `::Vector{P}` where `P` represents a Manifold point type (e.g. group element or coordinates).
+- Second argument controls whether partial dimensions only should be returned.
+
+"""
+function getPoints(x::ManifoldKernelDensity{M,B}, ::Bool=true) where {M <: AbstractManifold, B}
   pts = getPoints(x.belief)
   @cast ptsArr[j][i] := pts[i,j]
   return ptsArr
 end
 
-function getPoints(x::ManifoldKernelDensity{M,B,L}) where {M <: AbstractManifold, B, L <: AbstractVector{Int}}
+function getPoints(x::ManifoldKernelDensity{M,B,L}, aspartial::Bool=true) where {M <: AbstractManifold, B, L <: AbstractVector{Int}}
   pts = getPoints(x.belief)
-  pts_ = view(pts,x._partial,:)
+  pts_ = aspartial ? view(pts,x._partial,:) : pts
   @cast ptsArr[j][i] := pts_[i,j]
   return ptsArr
 end
@@ -209,10 +217,12 @@ end
 """
     $SIGNATURES
 
-Take product of `dens` accompanied by optional `partials` proposal belief densities.
+Take product of `dens` (including optional partials beliefs) as proposals to be multiplied together.
 
 Notes
 -----
+- Return points of full dimension, even if only partial dimensions in proposals.
+  - 'Other' dimensions left unchanged from incoming `denspts`
 - `d` dimensional product approximation
 - `partials` are treated per each unique Tuple subgrouping, i.e. (1,2), (2,), ...
 - Incorporate ApproxManifoldProducts to process variables in individual batches.
@@ -225,13 +235,14 @@ function productbelief( denspts::AbstractVector{P},
                         dens::Vector{<:ManifoldKernelDensity},
                         # partials::Dict{Any, <:AbstractVector{<:ManifoldKernelDensity}},
                         N::Int;
+                        asPartial::Bool=false,
                         dbg::Bool=false,
                         logger=ConsoleLogger()  ) where P <: AbstractVector{<:Real}
   #
   # TODO only works of P <: Vector
   Ndens = length(dens)
   # Npartials = length(partials)
-  Ndims = maximum(Ndim.(dens)) # size(denspts[1])
+  Ndims = maximum(Ndim.(dens))
   with_logger(logger) do
     @info "[$(Ndens)x,d$(Ndims),N$(N)],"
   end
@@ -244,7 +255,8 @@ function productbelief( denspts::AbstractVector{P},
   #   pGM = deepcopy(denspts)
   # end
 
-  pGM = AMP.manifoldProduct(dens, manifold, Niter=1) |> getPoints
+  mkd = AMP.manifoldProduct(dens, manifold, Niter=1, oldPoints=denspts)
+  pGM = getPoints(mkd, asPartial)
 
   # # TODO VALIDATE inclFull is the right order
   # (pGM, inclFull) = if 0 < Ndens

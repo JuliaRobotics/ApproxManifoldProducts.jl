@@ -55,16 +55,18 @@ function manifoldProduct( ff::AbstractVector{<:ManifoldKernelDensity},
                           Niter::Int=1,
                           # partialDimsWorkaround=1:MB.manifold_dimension(mani),
                           ndims::Int=maximum(Ndim.(ff)),
+                          N::Int = maximum(Npts.(ff)),
+                          oldPoints::AbstractVector{P}=[randn(ndims) for _ in 1:N],
                           addEntropy::Bool=true,
                           recordLabels::Bool=false,
-                          selectedLabels::Vector{Vector{Int}}=Vector{Vector{Int}}()) where {M <: MB.AbstractManifold}
+                          selectedLabels::Vector{Vector{Int}}=Vector{Vector{Int}}()) where {M <: MB.AbstractManifold, P}
   #
   # check quick exit
   if 1 == length(ff)
+    # @show Ndim(ff[1]), Npts(ff[1]), getPoints(ff[1],false)[1]
     return (makeCopy ? x->deepcopy(x) : x->x)(ff[1])
   end
   
-  N = Npts(ff[1])
   glbs = KDE.makeEmptyGbGlb();
   glbs.recordChoosen = recordLabels
   
@@ -73,7 +75,9 @@ function manifoldProduct( ff::AbstractVector{<:ManifoldKernelDensity},
   addopT, diffopT, getManiMu, _ = buildHybridManifoldCallbacks(manif)
 
   bws = ones(ndims)
-  dummy = kde!(rand(ndims,N), bws, addopT, diffopT );
+  @cast oldpts_[i,j] := oldPoints[j][i]
+  oldpts = collect(oldpts_)
+  dummy = kde!(oldpts, bws, addopT, diffopT ); # rand(ndims,N)
 
   # TODO REMOVE
   _ff = (x->x.belief).(ff)
@@ -112,6 +116,13 @@ function manifoldProduct( ff::AbstractVector{<:ManifoldKernelDensity},
       end
     end
   end
+
+  # # if only partials, then keep other dimension values from oldPoints
+  # otherDims = ones(ndims) .== 0
+  # for msk in partialDimMask
+  #   otherDims .|= msk
+  # end
+  # error(otherDims)
 
   # build new output ManifoldKernelDensity
   bws[:] = getKDEManifoldBandwidths(pGM, manif)
