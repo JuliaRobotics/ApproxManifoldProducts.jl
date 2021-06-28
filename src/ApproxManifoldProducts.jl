@@ -46,7 +46,6 @@ export
   get2DMu,
   get2DMuMin,
   resid2DLinear,
-  ensurePeriodicDomains!,
   solveresid2DLinear!,
   solveresid2DLinear,
   *,
@@ -75,6 +74,8 @@ include("TrackingLabels.jl")
 
 include("Legacy.jl")
 include("API.jl")
+
+include("Deprecated.jl")
 
 function __init__()
   @require Gadfly="c91e804a-d5a3-530f-b6f0-dfbca275c004" begin
