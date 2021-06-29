@@ -25,8 +25,9 @@ global const reci_s2pi=1.0/sqrt(2.0*pi) # 1.0/2.5066282746310002
 
 const _AMP_CIRCLE = Manifolds.Circle()
 
-difftheta(wth1, wth2) = log(_AMP_CIRCLE, wth1, wth2) # logmap_SO2(TUs.R(wth1)'*TUs.R(wth2))
-addtheta(wth1, wth2) =  exp(_AMP_CIRCLE, wth1, wth2)   # TUs.wrapRad( wth1+wth2 )
+# sign migth be flipped, but kept for legacy support -- FIXME this should be standardized!!
+difftheta(wth1, wth2) = log(_AMP_CIRCLE, wth2, wth1) # logmap_SO2(TUs.R(wth1)'*TUs.R(wth2))
+addtheta(wth1, wth2) =  exp(_AMP_CIRCLE, wth2, wth1)   # TUs.wrapRad( wth1+wth2 )
 
 # manifold get Gaussian products mean
 getCircMu(m::Vector{Float64}, s::Vector{Float64}, dummy::Float64) = addtheta(0, get2DMu(m, s, diffop=difftheta, initrange=(-pi+0.0,pi+0.0)) )
