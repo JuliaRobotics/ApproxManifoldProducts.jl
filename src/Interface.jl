@@ -74,7 +74,7 @@ makeManifoldPoint(M::MB.AbstractManifold,
                   coords::AbstractVector{<:Real},
                   u0=zeros(0),
                   ϵ=identity(M,u0),
-                  _exp::Function=exp ) = _exp(M, ϵ, hat(M, ϵ, coords))
+                  retraction_method::AbstractRetractionMethod=ExponentialRetraction() ) = retract(M, ϵ, hat(M, ϵ, coords), retraction_method)
 #
 
 # TODO DEPRECATE

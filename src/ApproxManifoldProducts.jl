@@ -1,6 +1,5 @@
 module ApproxManifoldProducts
 
-using Base: print_stackframe
 using Reexport
 @reexport using KernelDensityEstimate
 @reexport using TransformUtils
