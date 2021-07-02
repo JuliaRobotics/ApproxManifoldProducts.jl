@@ -1,20 +1,16 @@
 # define the api for users
 
 
-manikde!( ptsArr::AbstractVector{P}, 
-          M::MB.AbstractManifold  ) where P <: AbstractVector = ManifoldKernelDensity(M, ptsArr) 
-#
-
-manikde!( ptsArr::AbstractVector{P}, 
-          bw::AbstractVector{<:Real}, 
-          M::MB.AbstractManifold  ) where P <: AbstractVector = ManifoldKernelDensity(M, ptsArr, bw)
+# TODO deprecate name
+manikde!( M::MB.AbstractManifold,
+          vecP::AbstractVector{P},
+          bw::Union{<:AbstractVector{<:Real},Nothing}=nothing ) where P = ManifoldKernelDensity(M, vecP, vecP[1], bw=bw) 
 #
 
 
 # TODO move to better src file location
 isPartial(mkd::ManifoldKernelDensity{M,B,L}) where {M,B,L} = true
 isPartial(mkd::ManifoldKernelDensity{M,B,Nothing}) where {M,B} = false
-
 
 
 """

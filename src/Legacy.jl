@@ -47,7 +47,7 @@ function buildHybridManifoldCallbacks(manif::Tuple)
   return (addopT...,), (diffopT...,), (getManiMu...,), (getManiLam...,)
 end
 
-# FIXME temp conversion during consolidation
+# FIXME TO BE REMOVED
 _MtoSymbol(::Euclidean{Tuple{1}}) = :Euclid
 _MtoSymbol(::Circle) = :Circular
 Base.convert(::Type{<:Tuple}, M::ProductManifold) = _MtoSymbol.(M.manifolds)
@@ -90,19 +90,23 @@ function getKDEManifoldBandwidths(pts::AbstractMatrix{<:Real},
   return bws
 end
 
+
+ManifoldKernelDensity(mani::M, bel::B, partial::L=nothing, u0::P=zeros(0)) where {M <: MB.AbstractManifold, B <: BallTreeDensity, L, P} = ManifoldKernelDensity{M,B,L,P}(mani,bel,partial,u0)
+
 function ManifoldKernelDensity( M::MB.AbstractManifold,
-                                ptsArr::AbstractVector{P},
+                                vecP::AbstractVector{P},
+                                u0=vecP[1];
                                 bw::Union{<:AbstractVector{<:Real},Nothing}=nothing  ) where P
   #
   # FIXME obsolete
-  arr = Matrix{Float64}(undef, length(ptsArr[1]), length(ptsArr))
-  @cast arr[i,j] = ptsArr[j][i]
+  arr = Matrix{Float64}(undef, length(vecP[1]), length(vecP))
+  @cast arr[i,j] = vecP[j][i]
   manis = convert(Tuple, M)
   # find or have the bandwidth
   _bw = bw === nothing ? getKDEManifoldBandwidths(arr, manis ) : bw
   addopT, diffopT, _, _ = buildHybridManifoldCallbacks(manis)
   bel = KernelDensityEstimate.kde!(arr, _bw, addopT, diffopT)
-  return ManifoldKernelDensity(M, bel)
+  return ManifoldKernelDensity(M, bel, nothing, u0)
 end
 
 
