@@ -5,24 +5,52 @@ using Test
 using Manifolds
 using TensorCast
 
+##
+
 @testset "multiply big and small" begin
 
+##
+
+M = SpecialEuclidean(2)
 N = 100
+u0 = ProductRepr([0;0.0],[1 0; 0 1.0])
+ϵ = identity(M, u0)
 
-X1 = [randn(3) for i in 1:N]
-X2 = [0.1.*randn(3) for i in 1:N]
+X1 = [exp(M, ϵ, hat(M, ϵ, randn(3))) for i in 1:N]
+X2 = [exp(M, ϵ, hat(M, ϵ, 0.1.*randn(3))) for i in 1:N]
 
-p = manikde!(X1, SpecialEuclidean(2))
-q = manikde!(X2, SpecialEuclidean(2))
+# test get_coordinates
+testval = vee(M, ϵ, log(M, ϵ, X1[1]))
+@test length(testval) === 3
+@test all(abs.(testval) .< 10.0)
 
-pq = manifoldProduct([p;q], SpecialEuclidean(2))
+
+##
+
+
+p = manikde!(M, X1)
+q = manikde!(M, X2)
+
+# check new MKD have right type info cached
+@test (p._u0 |> typeof) == typeof(u0)
+@test (p._u0 |> typeof) == typeof(u0)
+
+pq = manifoldProduct([p;q], M)
+
+# check new product also has right point type info cached
+@test (pq._u0 |> typeof) == typeof(u0)
+
+##
 
 X12_ = getPoints(pq)
 
-@cast X12[i,j] := X12_[j][i]
+
+X12
 
 @test 0.7*N < sum(abs.(X12[1,:]) .< 0.3)
 @test 0.7*N < sum(abs.(X12[2,:]) .< 0.3)
 @test 0.7*N < sum(abs.(X12[3,:]) .< 0.3)
+
+##
 
 end

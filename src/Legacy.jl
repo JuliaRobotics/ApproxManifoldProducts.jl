@@ -91,41 +91,36 @@ function getKDEManifoldBandwidths(pts::AbstractMatrix{<:Real},
 end
 
 
-ManifoldKernelDensity(mani::M, bel::B, partial::L=nothing, u0::P=zeros(0)) where {M <: MB.AbstractManifold, B <: BallTreeDensity, L, P} = ManifoldKernelDensity{M,B,L,P}(mani,bel,partial,u0)
 
-function ManifoldKernelDensity( M::MB.AbstractManifold,
-                                vecP::AbstractVector{P},
-                                u0=vecP[1];
-                                bw::Union{<:AbstractVector{<:Real},Nothing}=nothing  ) where P
-  #
-  # FIXME obsolete
-  arr = Matrix{Float64}(undef, length(vecP[1]), length(vecP))
-  @cast arr[i,j] = vecP[j][i]
-  manis = convert(Tuple, M)
-  # find or have the bandwidth
-  _bw = bw === nothing ? getKDEManifoldBandwidths(arr, manis ) : bw
-  addopT, diffopT, _, _ = buildHybridManifoldCallbacks(manis)
-  bel = KernelDensityEstimate.kde!(arr, _bw, addopT, diffopT)
-  return ManifoldKernelDensity(M, bel, nothing, u0)
-end
+## ================================================================================================================================
+# pass through API
+## ================================================================================================================================
+
+# not exported yet
+# getManifold(x::ManifoldKernelDensity) = x.manifold
 
 
-# internal workaround function for building partial submanifold dimensions, must be upgraded/standarized
-function _buildManifoldPartial( fullM::MB.AbstractManifold, 
-                                partial_coord_dims )
-  #
-  # temporary workaround during Manifolds.jl integration
-  manif = convert(Tuple, fullM)[partial_coord_dims]
-  # 
-  newMani = MB.AbstractManifold[]
-  for me in manif
-    push!(newMani, _reducePartialManifoldElements(me))
-  end
+import KernelDensityEstimate: getPoints, getBW, Ndim, Npts, getWeights, marginal 
+import KernelDensityEstimate: getKDERange, getKDEMax, getKDEMean, getKDEfit
+import KernelDensityEstimate: sample, rand, resample, kld, minkld
 
-  # assume independent dimensions for definition, ONLY USED AS DECORATOR AT THIS TIME, FIXME
-  return ProductManifold(newMani...)
-end
+getBW(x::ManifoldKernelDensity, w...;kw...) = getBW(x.belief,w...;kw...)
 
+Ndim(x::ManifoldKernelDensity, w...;kw...) = Ndim(x.belief,w...;kw...)
+Npts(x::ManifoldKernelDensity, w...;kw...) = Npts(x.belief,w...;kw...)
+
+getWeights(x::ManifoldKernelDensity, w...;kw...) = getWeights(x.belief, w...;kw...)
+Random.rand(x::ManifoldKernelDensity, d::Integer=1) = rand(x.belief, d)
+
+getKDERange(x::ManifoldKernelDensity, w...;kw...) = getKDERange(x.belief, w...;kw...)
+getKDEMax(x::ManifoldKernelDensity, w...;kw...) = getKDEMax(x.belief, w...;kw...)
+getKDEMean(x::ManifoldKernelDensity, w...;kw...) = getKDEMean(x.belief, w...;kw...)
+getKDEfit(x::ManifoldKernelDensity, w...;kw...) = getKDEfit(x.belief, w...;kw...)
+
+kld(x::ManifoldKernelDensity, w...;kw...) = kld(x.belief, w...;kw...)
+minkld(x::ManifoldKernelDensity, w...;kw...) = minkld(x.belief, w...;kw...)
+
+(x::ManifoldKernelDensity)(w...;kw...) = x.belief(w...;kw...)
 
 
 

@@ -4,6 +4,82 @@
 ## Remove below before v0.5
 ## ======================================================================================================
 
+
+
+# use Circle1 instead
+# struct Circular <: MB.AbstractManifold{MB.ℝ}
+#   dof::Int
+#   addop::Function
+#   diffop::Function
+#   getMu
+#   getLambda
+#   domain::Tuple{Float64, Float64}
+# end
+
+# Circular() = Circular(1,
+#                       addtheta,
+#                       difftheta,
+#                       getCircMu,
+#                       getCircLambda,
+#                       (-pi+0.0,pi-1e-15))
+
+# struct SO2Manifold <: MB.AbstractManifold
+# end
+#
+#
+# # should not be defined in AMP, since we want IIF indepent of manifolds
+# function *(PP::Vector{MKD{SO2Manifold,B}}) where B
+#   @info "taking manifold product of $(length(PP)) terms"
+#   @warn "SO2Manifold: work in progress"
+# end
+#
+# mbr1 = ManifoldKernelDensity(SO2Manifold, 0.0)
+# mbr2 = ManifoldKernelDensity(SO2Manifold, 0.0)
+#
+# *([mbr1;mbr2])
+
+
+# # take the full pGM in, but only update the coordinate dimensions that are actually affected by new information.
+# function _partialProducts!( pGM::AbstractVector{P}, 
+#                             partials::Dict{Any, <:AbstractVector{<:ManifoldKernelDensity}},
+#                             manifold::MB.AbstractManifold; 
+#                             inclFull::Bool=true  ) where P <: AbstractVector
+#   #
+#   # manis = convert(Tuple, manifold)
+#   keepold = inclFull ? deepcopy(pGM) : typeof(pGM)()
+
+#   # TODO remove requirement for P <: AbstractVector
+#   allPartDimsMask = 0 .== zeros(Int, length(pGM[1]))
+#   # FIXME, remove temporary Tuple manifolds method 
+#   for (dimnum,pp) in partials
+#     # mark dimensions getting partial information
+#     for d in dimnum
+#       allPartDimsMask[d] = true
+#     end
+#     # change to vector
+#     dimv = [dimnum...]
+#     # include previous calcs (if full density products were done before partials)
+#     partialMani = _buildManifoldPartial(manifold, dimv)
+#     # take product of this partial's subset of dimensions
+#     partial_GM = AMP.manifoldProduct(pp, partialMani, Niter=1) |> getPoints
+#     # partial_GM = AMP.manifoldProduct(pp, (manis[dimv]...,), Niter=1) |> getPoints
+    
+#     for i in 1:length(pGM)
+#       pGM[i][dimv] = partial_GM[i]
+#     end
+#   end
+  
+#   # multiply together previous full dim and new product of various partials
+#   if inclFull
+#     partialPts = [pGM[i][dimv] for i in 1:length(pGM)]
+#     push!( pp, AMP.manikde!(partialPts, partialMani) )
+#   end
+  
+
+#   nothing
+# end
+
+
 @deprecate manikde!( vecP::AbstractVector, M::MB.AbstractManifold ) manikde!(M, vecP)
 @deprecate manikde!( vecP::AbstractVector, bw::AbstractVector{<:Real}, M::MB.AbstractManifold ) manikde!(M, vecP, bw=bw) 
 

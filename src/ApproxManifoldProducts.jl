@@ -61,18 +61,23 @@ export
 # internal features not exported
 include("_BiMaps.jl")
 
-# regular features
+# AMP types and some legacy support 
+include("entities/ManifoldKernelDensity.jl")
+include("entities/ManifoldDefinitions.jl")
+include("Legacy.jl")
 include("Interface.jl")
+
+# regular features
+include("services/ManifoldKernelDensity.jl")
+
 include("CommonUtils.jl")
-include("ManifoldDefinitions.jl")
 include("Euclidean.jl")
 include("CircularUtils.jl")
-include("Circular.jl")
+include("services/Circular.jl")
 include("KernelHilbertEmbeddings.jl")
 
 include("TrackingLabels.jl")
 
-include("Legacy.jl")
 include("API.jl")
 
 include("Deprecated.jl")
