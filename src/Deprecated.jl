@@ -4,6 +4,10 @@
 ## Remove below before v0.5
 ## ======================================================================================================
 
+@deprecate mmd!(v::AbstractVector{<:Real}, a::AbstractArray,b::AbstractArray,MF::MB.AbstractManifold, w...; kw...) mmd!(MF, v, a, b, w...; kw...)
+@deprecate mmd(a::AbstractArray,b::AbstractArray,MF::MB.AbstractManifold, w...; kw...) mmd(MF, a, b, w...; kw...)
+
+
 # function ker( ::typeof(Euclidean(1)),
 #               x::AbstractVector{P1},
 #               y::AbstractVector{P2},
