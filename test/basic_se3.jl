@@ -46,6 +46,10 @@ C = ManifoldKernelDensity(M, pts3)
 
 ##
 
+show(A)
+
+##
+
 end
 
 
