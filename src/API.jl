@@ -1,5 +1,7 @@
 # define the api for users
 
+export productbelief
+
 
 # MAYBE deprecate name
 manikde!( M::MB.AbstractManifold,

@@ -1,8 +1,6 @@
 # Interface
 
-
-export productbelief
-
+ManifoldsBase.identity(::Euclidean{Tuple{N}}, val::AbstractVector{T}) where{N, T} = zeros(T, N)
 
 """
     $SIGNATURES
@@ -27,7 +25,6 @@ function _matrixCoordsToPoints( M::MB.AbstractManifold,
                                 pts::AbstractMatrix{<:Real}, 
                                 u0  )
   #
-  @show u0
   # ptsArr = Vector{Vector{Float64}}(undef, size(pts, 2))
   # @cast ptsArr[j][i] = pts[i,j]
   vecP = Vector{typeof(u0)}(undef, size(pts, 2))
@@ -38,10 +35,12 @@ function _matrixCoordsToPoints( M::MB.AbstractManifold,
   return vecP
 end
 
-function _pointsToMatrixCoords(pr::MKD)
-  mat = zeros(Ndim(pr), Npts(pr))
-  for (j,pt) in enumerate(mat_)
-    mat[:,j] = vee(pr.manifold, ϵ, log(M, ϵ, pt))
+
+function _pointsToMatrixCoords(M::MB.AbstractManifold, pts::AbstractVector{P}) where P
+  mat = zeros(manifold_dimension(M), length(pts))
+  ϵ = identity(M, pts[1])
+  for (j,pt) in enumerate(pts)
+    mat[:,j] = vee(M, ϵ, log(M, ϵ, pt))
   end
 
   return mat

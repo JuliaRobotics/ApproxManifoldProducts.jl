@@ -44,8 +44,7 @@ pq = manifoldProduct([p;q], M)
 
 X12_ = getPoints(pq)
 
-
-X12
+X12 = AMP._pointsToMatrixCoords(pq.manifold, X12_)
 
 @test 0.7*N < sum(abs.(X12[1,:]) .< 0.3)
 @test 0.7*N < sum(abs.(X12[2,:]) .< 0.3)

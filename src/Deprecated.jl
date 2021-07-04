@@ -4,7 +4,64 @@
 ## Remove below before v0.5
 ## ======================================================================================================
 
+# function ker( ::typeof(Euclidean(1)),
+#               x::AbstractVector{P1},
+#               y::AbstractVector{P2},
+#               dx::Vector{<:Real},
+#               i::Int,
+#               j::Int;
+#               sigma::Real=0.001 ) where {P1<:AbstractVector, P2<:AbstractVector}
+#   #
+#   dx[1] = x[i][1]
+#   dx[1] -= y[j][1]
+#   dx[1] *= dx[1]
+#   dx[1] *= -sigma
+#   exp( dx[1] )
+# end
 
+# function ker( ::typeof(Euclidean(2)),
+#               x::AbstractVector{P1},
+#               y::AbstractVector{P2},
+#               dx::Vector{<:Real},
+#               i::Int,
+#               j::Int;
+#               sigma::Real=0.001 ) where {P1<:AbstractVector, P2<:AbstractVector}
+#   #
+#   dx[1] = x[i][1]
+#   dx[2] = x[i][2]
+#   dx[1] -= y[j][1]
+#   dx[2] -= y[j][2]
+#   dx .^= 2
+#   dx[1] += dx[2]
+#   dx[1] *= -sigma
+#   exp( dx[1] )
+# end
+
+# function ker( ::typeof(SE2_Manifold),
+#               x::AbstractVector{P1},
+#               y::AbstractVector{P2},
+#               dx::Vector{<:Real},
+#               i::Int,
+#               j::Int;
+#               sigma::Real=0.001  ) where {P1<:AbstractVector, P2<:AbstractVector}
+#   #
+#   innov = se2vee(SE2(x[i][:])\SE2(y[j][:]))
+#   exp( -sigma*(  innov'*innov  ) )
+# end
+
+# # This functin is still very slow, needs speedup
+# # Obviously want to get away from the Euler angles throughout
+# function ker( ::typeof(SE3_Manifold),
+#               x::AbstractVector{P1},
+#               y::AbstractVector{P2},
+#               dx::Vector{<:Real},
+#               i::Int,
+#               j::Int;
+#               sigma::Real=0.001  )  where {P1<:AbstractVector, P2<:AbstractVector}
+#   #
+#   innov = veeEuler(SE3(x[i][1:3],Euler((x[i][4:6])...))\SE3(y[j][1:3],Euler((y[j][4:6])...)))
+#   exp( -sigma*(  innov'*innov  ) )
+# end
 
 # use Circle1 instead
 # struct Circular <: MB.AbstractManifold{MB.ℝ}

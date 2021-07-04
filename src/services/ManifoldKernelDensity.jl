@@ -7,13 +7,14 @@ export sample, rand, resample, kld, minkld
 
 function Base.show(io::IO, mkd::ManifoldKernelDensity{M,B,L,P}) where {M,B,L,P}
   printstyled(io, "ManifoldKernelDensity{", bold=true, color=:blue )
-  printstyled(io, "    $M,", bold=true )
   println(io)
-  printstyled(io, "    $B,", bold=true )
+  printstyled(io, "    M=$M,", bold=true )
   println(io)
-  printstyled(io, "    $L,", bold=true )
+  printstyled(io, "    B=$B,", bold=true )
   println(io)
-  printstyled(io, "    $P}(", bold=true )
+  printstyled(io, "    L=$L,", bold=true )
+  println(io)
+  printstyled(io, "    P=$P}(", bold=true )
   println(io)
   println(io, "  dims: ", Ndim(mkd.belief))
   println(io, "  Npts: ", Npts(mkd.belief))
@@ -24,7 +25,6 @@ function Base.show(io::IO, mkd::ManifoldKernelDensity{M,B,L,P}) where {M,B,L,P}
 end
 
 Base.show(io::IO, ::MIME"text/plain", mkd::ManifoldKernelDensity) = show(io, mkd)
-
 
 
 ManifoldKernelDensity(mani::M, bel::B, partial::L=nothing, u0::P=zeros(manifold_dimension(mani))) where {M <: MB.AbstractManifold, B <: BallTreeDensity, L, P} = ManifoldKernelDensity{M,B,L,P}(mani,bel,partial,u0)
@@ -100,7 +100,6 @@ DevNotes
 - Currently converts down to manifold from matrix of coordinates (legacy), to be deprecated TODO
 """
 function getPoints(x::ManifoldKernelDensity{M,B}, ::Bool=true) where {M <: AbstractManifold, B}
-  @show x._u0
   _matrixCoordsToPoints(x.manifold, getPoints(x.belief), x._u0)
 end
 

@@ -1,5 +1,6 @@
 module ApproxManifoldProducts
 
+using Base: ident_cmp
 using Reexport
 @reexport using KernelDensityEstimate
 @reexport using TransformUtils
@@ -78,6 +79,7 @@ include("KernelHilbertEmbeddings.jl")
 
 include("TrackingLabels.jl")
 
+include("Serialization.jl")
 include("API.jl")
 
 include("Deprecated.jl")
