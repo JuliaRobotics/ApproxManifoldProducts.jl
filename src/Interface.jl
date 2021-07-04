@@ -1,6 +1,9 @@
 # Interface
 
+import ManifoldsBase: identity
+
 export makeCoordsFromPoint, makePointFromCoords
+export identity
 
 
 ManifoldsBase.identity(::Euclidean{Tuple{N}}, val::AbstractVector{T}) where {N, T <: Number} = zeros(T, N)
