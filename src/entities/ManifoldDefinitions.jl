@@ -43,20 +43,4 @@ const SE3_Manifold = SpecialEuclidean(3)
 
 
 
-
-function calcMean(mkd::ManifoldKernelDensity{M}) where {M <: ManifoldsBase.AbstractManifold}
-  data = getPointsManifold(mkd)
-  mprepr = mean(mkd.manifold, data)
-  
-  #
-  _makeVectorManifold(mkd.manifold, mprepr)
-end
-
-
-
-
-
-
-
-
 #

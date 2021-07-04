@@ -138,20 +138,15 @@ end
 
 Base.convert(::Type{B}, mkd::ManifoldKernelDensity{M,B}) where {M,B<:BallTreeDensity} = mkd.belief
 
-function getPointsManifold(mkd::ManifoldKernelDensity{M}) where {M <: Euclidean}
-  data_ = getPoints(mkd.belief)
-  TensorCast.@cast data[i][j] := data_[j,i]
-  return data
+
+
+function calcMean(mkd::ManifoldKernelDensity{M}) where {M <: ManifoldsBase.AbstractManifold}
+  data = getPoints(mkd)
+  mprepr = mean(mkd.manifold, data)
+  
+  #
+  _makeVectorManifold(mkd.manifold, mprepr)
 end
 
-function getPointsManifold(mkd::ManifoldKernelDensity{M}) where {M <: Circle}
-  data_ = getPoints(mkd.belief)
-  return data_[:]
-end
-
-function getPointsManifold(mkd::ManifoldKernelDensity{M}) where {M <: SpecialEuclidean}
-  data_ = getPoints(mkd.belief)
-  [uncoords(M, view(data_, :, i)) for i in 1:size(data_,2)]
-end
 
 #

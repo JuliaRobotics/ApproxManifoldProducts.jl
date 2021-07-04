@@ -4,6 +4,28 @@
 ## Remove below before v0.5
 ## ======================================================================================================
 
+
+
+function getPointsManifold(mkd::ManifoldKernelDensity{M}) where {M <: Euclidean}
+  @warn "getPointsManifold is being deprecated, use getPoints(::MKD)::Vector{P} instead"
+  data_ = getPoints(mkd.belief)
+  TensorCast.@cast data[i][j] := data_[j,i]
+  return data
+end
+
+function getPointsManifold(mkd::ManifoldKernelDensity{M}) where {M <: Circle}
+  @warn "getPointsManifold is being deprecated, use getPoints(::MKD)::Vector{P} instead"
+  data_ = getPoints(mkd.belief)
+  return data_[:]
+end
+
+function getPointsManifold(mkd::ManifoldKernelDensity{M}) where {M <: SpecialEuclidean}
+  @warn "getPointsManifold is being deprecated, use getPoints(::MKD)::Vector{P} instead"
+  data_ = getPoints(mkd.belief)
+  [uncoords(M, view(data_, :, i)) for i in 1:size(data_,2)]
+end
+
+
 @deprecate mmd!(v::AbstractVector{<:Real}, a::AbstractArray,b::AbstractArray,MF::MB.AbstractManifold, w...; kw...) mmd!(MF, v, a, b, w...; kw...)
 @deprecate mmd(a::AbstractArray,b::AbstractArray,MF::MB.AbstractManifold, w...; kw...) mmd(MF, a, b, w...; kw...)
 
