@@ -4,6 +4,7 @@ import Random: rand
 export getPoints, getBW, Ndim, Npts
 export getKDERange, getKDEMax, getKDEMean, getKDEfit
 export sample, rand, resample, kld, minkld
+export calcMean
 
 function Base.show(io::IO, mkd::ManifoldKernelDensity{M,B,L,P}) where {M,B,L,P}
   printstyled(io, "ManifoldKernelDensity{", bold=true, color=:blue )
@@ -32,8 +33,9 @@ ManifoldKernelDensity(mani::M, bel::B, partial::L=nothing, u0::P=zeros(manifold_
 function ManifoldKernelDensity( M::MB.AbstractManifold,
                                 vecP::AbstractVector{P},
                                 u0=vecP[1];
+                                partial::L=nothing,
                                 dims::Int=manifold_dimension(M),
-                                bw::Union{<:AbstractVector{<:Real},Nothing}=nothing  ) where P
+                                bw::Union{<:AbstractVector{<:Real},Nothing}=nothing  ) where {P,L}
   #
   # FIXME obsolete
   arr = Matrix{Float64}(undef, dims, length(vecP))
@@ -48,7 +50,7 @@ function ManifoldKernelDensity( M::MB.AbstractManifold,
   _bw = bw === nothing ? getKDEManifoldBandwidths(arr, manis ) : bw
   addopT, diffopT, _, _ = buildHybridManifoldCallbacks(manis)
   bel = KernelDensityEstimate.kde!(arr, _bw, addopT, diffopT)
-  return ManifoldKernelDensity(M, bel, nothing, u0)
+  return ManifoldKernelDensity(M, bel, partial, u0)
 end
 
 
@@ -126,8 +128,8 @@ end
 
 
 function resample(x::ManifoldKernelDensity, N::Int)
-  pts = sample(x, N)
-  manikde!(x.manifold, pts, x._u0, x._partial)
+  pts, = sample(x, N)
+  ManifoldKernelDensity(x.manifold, pts, x._u0, partial=x._partial)
 end
 
 
@@ -137,20 +139,15 @@ end
 
 Base.convert(::Type{B}, mkd::ManifoldKernelDensity{M,B}) where {M,B<:BallTreeDensity} = mkd.belief
 
-function getPointsManifold(mkd::ManifoldKernelDensity{M}) where {M <: Euclidean}
-  data_ = getPoints(mkd.belief)
-  TensorCast.@cast data[i][j] := data_[j,i]
-  return data
+
+
+function calcMean(mkd::ManifoldKernelDensity{M}) where {M <: ManifoldsBase.AbstractManifold}
+  data = getPoints(mkd)
+  mprepr = mean(mkd.manifold, data)
+  
+  #
+  _makeVectorManifold(mkd.manifold, mprepr)
 end
 
-function getPointsManifold(mkd::ManifoldKernelDensity{M}) where {M <: Circle}
-  data_ = getPoints(mkd.belief)
-  return data_[:]
-end
-
-function getPointsManifold(mkd::ManifoldKernelDensity{M}) where {M <: SpecialEuclidean}
-  data_ = getPoints(mkd.belief)
-  [uncoords(M, view(data_, :, i)) for i in 1:size(data_,2)]
-end
 
 #

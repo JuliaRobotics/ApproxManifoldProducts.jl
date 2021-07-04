@@ -21,10 +21,13 @@ export
 export
   coords,
   uncoords,
-  getPointsManifold,
-  calcMean
+  getPointsManifold
 
 #
+
+
+const _AMP_CIRCLE = Manifolds.Circle()
+
 
 
 # this is just wrong and needs to be fixed
@@ -40,22 +43,6 @@ const Euclid4 = Euclidean(4)
 # TODO if not easy simplification exists, then just deprecate this
 const SE2_Manifold = SpecialEuclidean(2)
 const SE3_Manifold = SpecialEuclidean(3)
-
-
-
-
-function calcMean(mkd::ManifoldKernelDensity{M}) where {M <: ManifoldsBase.AbstractManifold}
-  data = getPointsManifold(mkd)
-  mprepr = mean(mkd.manifold, data)
-  
-  #
-  _makeVectorManifold(mkd.manifold, mprepr)
-end
-
-
-
-
-
 
 
 

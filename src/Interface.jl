@@ -1,6 +1,14 @@
 # Interface
 
-ManifoldsBase.identity(::Euclidean{Tuple{N}}, val::AbstractVector{T}) where{N, T} = zeros(T, N)
+import ManifoldsBase: identity
+
+export makeCoordsFromPoint, makePointFromCoords
+export identity
+
+
+ManifoldsBase.identity(::Euclidean{Tuple{N}}, val::AbstractVector{T}) where {N, T <: Number} = zeros(T, N)
+ManifoldsBase.identity(::Circle, val::AbstractVector{T}) where {T <: Real} = zeros(T, 1)
+
 
 """
     $SIGNATURES
@@ -17,6 +25,14 @@ makePointFromCoords(M::MB.AbstractManifold,
                     ϵ=identity(M,u0),
                     retraction_method::AbstractRetractionMethod=ExponentialRetraction() ) = retract(M, ϵ, hat(M, ϵ, coords), retraction_method)
 #
+
+function makeCoordsFromPoint( M::MB.AbstractManifold,
+                              pt::P ) where P
+  #
+  # only works for manifold which have an identity (eg groups)
+  ϵ = identity(M, pt)
+  vee(M, ϵ, log(M, ϵ, pt))
+end
 
 
 # TODO DEPRECATE
@@ -52,31 +68,6 @@ end
 ##============================================================================================================
 ## New Manifolds.jl aware API -- TODO find the right file placement
 ##============================================================================================================
-
-
-coords(::Type{<:typeof(SpecialEuclidean(2))}, p::ProductRepr) = [p.parts[1][1], p.parts[1][2], atan(p.parts[2][2,1],p.parts[2][1,1])]
-
-function uncoords(::Type{<:typeof(SpecialEuclidean(2))}, p::AbstractVector{<:Real}, static::Bool=true)
-  α = p[3] 
-  ArrConst = static ? SA : eltype(α)
-  return ProductRepr((ArrConst[p[1], p[2]]), ArrConst[cos(α) -sin(α); sin(α) cos(α)])
-end
-# function uncoords(::Type{<:typeof(SpecialEuclidean(2))}, p::AbstractVector{<:Real})
-#   α = p[3]
-#   return ProductRepr(([p[1], p[2]]), [cos(α) -sin(α); sin(α) cos(α)])
-# end
-
-function coords(::Type{<:typeof(SpecialEuclidean(3))}, p::ProductRepr)
-  wELo = TU.convert(Euler, SO3(p.parts[2]))
-  [p.parts[1][1:3]; wELo.R; wELo.P; wELo.Y]
-end
-
-function uncoords(::Type{<:typeof(SpecialEuclidean(3))}, p::AbstractVector{<:Real})
-  # α = p[3]
-  wRo = TU.convert(SO3, Euler(p[4:6]...))
-  return ProductRepr(([p[1], p[2], p[3]]), wRo.R)
-end
-
 
 
 

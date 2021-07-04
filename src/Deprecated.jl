@@ -4,6 +4,71 @@
 ## Remove below before v0.5
 ## ======================================================================================================
 
+#
+# """
+#     $SIGGNATURES
+#
+# Assemble oplus and ominus operations from given manifols.
+#
+# Related
+#
+# buildHybridManifoldCallbacks
+# """
+# function getManifoldOperations(manis::T) where {T <: Tuple}
+#
+# end
+#
+
+uncoords(::Type{<:MB.AbstractManifold}, w...; kw...) = error("uncoords(::Type{<:MB.AbstractManifold}, w...; kw...) is obsolete, use makePointFromCoords(M::MB.AbstractManifold, w...) instead.")
+
+coords(::Type{<:MB.AbstractManifold}, w...;   kw...) = error("coords(::Type{<:typeof(SpecialEuclidean(2))}, w...; kw...) is obsolete, use makeCoordsFromPoint(M::MB.AbstractManifold, w...) instead.")
+
+
+# coords(::Type{<:typeof(SpecialEuclidean(2))}, p::ProductRepr) = [p.parts[1][1], p.parts[1][2], atan(p.parts[2][2,1],p.parts[2][1,1])]
+
+# function coords(::Type{<:typeof(SpecialEuclidean(3))}, p::ProductRepr)
+#   wELo = TU.convert(Euler, SO3(p.parts[2]))
+#   [p.parts[1][1:3]; wELo.R; wELo.P; wELo.Y]
+# end
+
+# function uncoords(::Type{<:typeof(SpecialEuclidean(2))}, p::AbstractVector{<:Real}, static::Bool=true)
+#   α = p[3] 
+#   ArrConst = static ? SA : eltype(α)
+#   return ProductRepr((ArrConst[p[1], p[2]]), ArrConst[cos(α) -sin(α); sin(α) cos(α)])
+# end
+# # function uncoords(::Type{<:typeof(SpecialEuclidean(2))}, p::AbstractVector{<:Real})
+# #   α = p[3]
+# #   return ProductRepr(([p[1], p[2]]), [cos(α) -sin(α); sin(α) cos(α)])
+# # end
+
+# function uncoords(::Type{<:typeof(SpecialEuclidean(3))}, p::AbstractVector{<:Real})
+#   # α = p[3]
+#   wRo = TU.convert(SO3, Euler(p[4:6]...))
+#   return ProductRepr(([p[1], p[2], p[3]]), wRo.R)
+# end
+
+
+
+function getPointsManifold(mkd::ManifoldKernelDensity{M}) where {M <: Euclidean}
+  @warn "getPointsManifold is being deprecated, use getPoints(::MKD)::Vector{P} instead"
+  data_ = getPoints(mkd.belief)
+  TensorCast.@cast data[i][j] := data_[j,i]
+  return data
+end
+
+function getPointsManifold(mkd::ManifoldKernelDensity{M}) where {M <: Circle}
+  @warn "getPointsManifold is being deprecated, use getPoints(::MKD)::Vector{P} instead"
+  data_ = getPoints(mkd.belief)
+  return data_[:]
+end
+
+function getPointsManifold(mkd::ManifoldKernelDensity{M}) where {M <: SpecialEuclidean}
+  @warn "getPointsManifold is being deprecated, use getPoints(::MKD)::Vector{P} instead"
+  data_ = getPoints(mkd.belief)
+  [uncoords(M, view(data_, :, i)) for i in 1:size(data_,2)]
+end
+
+
 @deprecate mmd!(v::AbstractVector{<:Real}, a::AbstractArray,b::AbstractArray,MF::MB.AbstractManifold, w...; kw...) mmd!(MF, v, a, b, w...; kw...)
 @deprecate mmd(a::AbstractArray,b::AbstractArray,MF::MB.AbstractManifold, w...; kw...) mmd(MF, a, b, w...; kw...)
 
@@ -142,7 +207,7 @@
 
 
 @deprecate manikde!( vecP::AbstractVector, M::MB.AbstractManifold ) manikde!(M, vecP)
-@deprecate manikde!( vecP::AbstractVector, bw::AbstractVector{<:Real}, M::MB.AbstractManifold ) manikde!(M, vecP, bw=bw) 
+@deprecate manikde!( vecP::AbstractVector, bw::AbstractVector{<:Real}, M::MB.AbstractManifold ) manikde!(M, vecP, bw) 
 
 # function ManifoldKernelDensity( M::MB.AbstractManifold, 
 #                                 ptsArr::AbstractVector{P} ) where P

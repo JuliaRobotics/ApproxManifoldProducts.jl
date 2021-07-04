@@ -172,7 +172,7 @@ function productbelief( denspts::AbstractVector{P},
   # Npartials = length(partials)
   Ndims = maximum(Ndim.(dens))
   with_logger(logger) do
-    @info "[$(Ndens)x,d$(Ndims),N$(N)],"
+    @info "[x$(Ndens),d$(Ndims),N$(N)],"
   end
   
   # # resize for #1013
