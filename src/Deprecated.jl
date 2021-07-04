@@ -142,7 +142,7 @@
 
 
 @deprecate manikde!( vecP::AbstractVector, M::MB.AbstractManifold ) manikde!(M, vecP)
-@deprecate manikde!( vecP::AbstractVector, bw::AbstractVector{<:Real}, M::MB.AbstractManifold ) manikde!(M, vecP, bw=bw) 
+@deprecate manikde!( vecP::AbstractVector, bw::AbstractVector{<:Real}, M::MB.AbstractManifold ) manikde!(M, vecP, bw) 
 
 # function ManifoldKernelDensity( M::MB.AbstractManifold, 
 #                                 ptsArr::AbstractVector{P} ) where P

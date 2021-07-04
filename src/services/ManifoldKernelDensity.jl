@@ -32,8 +32,9 @@ ManifoldKernelDensity(mani::M, bel::B, partial::L=nothing, u0::P=zeros(manifold_
 function ManifoldKernelDensity( M::MB.AbstractManifold,
                                 vecP::AbstractVector{P},
                                 u0=vecP[1];
+                                partial::L=nothing,
                                 dims::Int=manifold_dimension(M),
-                                bw::Union{<:AbstractVector{<:Real},Nothing}=nothing  ) where P
+                                bw::Union{<:AbstractVector{<:Real},Nothing}=nothing  ) where {P,L}
   #
   # FIXME obsolete
   arr = Matrix{Float64}(undef, dims, length(vecP))
@@ -48,7 +49,7 @@ function ManifoldKernelDensity( M::MB.AbstractManifold,
   _bw = bw === nothing ? getKDEManifoldBandwidths(arr, manis ) : bw
   addopT, diffopT, _, _ = buildHybridManifoldCallbacks(manis)
   bel = KernelDensityEstimate.kde!(arr, _bw, addopT, diffopT)
-  return ManifoldKernelDensity(M, bel, nothing, u0)
+  return ManifoldKernelDensity(M, bel, partial, u0)
 end
 
 
@@ -126,8 +127,8 @@ end
 
 
 function resample(x::ManifoldKernelDensity, N::Int)
-  pts = sample(x, N)
-  manikde!(x.manifold, pts, x._u0, x._partial)
+  pts, = sample(x, N)
+  ManifoldKernelDensity(x.manifold, pts, x._u0, partial=x._partial)
 end
 
 
