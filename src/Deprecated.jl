@@ -4,6 +4,146 @@
 ## Remove below before v0.5
 ## ======================================================================================================
 
+@deprecate mmd!(v::AbstractVector{<:Real}, a::AbstractArray,b::AbstractArray,MF::MB.AbstractManifold, w...; kw...) mmd!(MF, v, a, b, w...; kw...)
+@deprecate mmd(a::AbstractArray,b::AbstractArray,MF::MB.AbstractManifold, w...; kw...) mmd(MF, a, b, w...; kw...)
+
+
+# function ker( ::typeof(Euclidean(1)),
+#               x::AbstractVector{P1},
+#               y::AbstractVector{P2},
+#               dx::Vector{<:Real},
+#               i::Int,
+#               j::Int;
+#               sigma::Real=0.001 ) where {P1<:AbstractVector, P2<:AbstractVector}
+#   #
+#   dx[1] = x[i][1]
+#   dx[1] -= y[j][1]
+#   dx[1] *= dx[1]
+#   dx[1] *= -sigma
+#   exp( dx[1] )
+# end
+
+# function ker( ::typeof(Euclidean(2)),
+#               x::AbstractVector{P1},
+#               y::AbstractVector{P2},
+#               dx::Vector{<:Real},
+#               i::Int,
+#               j::Int;
+#               sigma::Real=0.001 ) where {P1<:AbstractVector, P2<:AbstractVector}
+#   #
+#   dx[1] = x[i][1]
+#   dx[2] = x[i][2]
+#   dx[1] -= y[j][1]
+#   dx[2] -= y[j][2]
+#   dx .^= 2
+#   dx[1] += dx[2]
+#   dx[1] *= -sigma
+#   exp( dx[1] )
+# end
+
+# function ker( ::typeof(SE2_Manifold),
+#               x::AbstractVector{P1},
+#               y::AbstractVector{P2},
+#               dx::Vector{<:Real},
+#               i::Int,
+#               j::Int;
+#               sigma::Real=0.001  ) where {P1<:AbstractVector, P2<:AbstractVector}
+#   #
+#   innov = se2vee(SE2(x[i][:])\SE2(y[j][:]))
+#   exp( -sigma*(  innov'*innov  ) )
+# end
+
+# # This functin is still very slow, needs speedup
+# # Obviously want to get away from the Euler angles throughout
+# function ker( ::typeof(SE3_Manifold),
+#               x::AbstractVector{P1},
+#               y::AbstractVector{P2},
+#               dx::Vector{<:Real},
+#               i::Int,
+#               j::Int;
+#               sigma::Real=0.001  )  where {P1<:AbstractVector, P2<:AbstractVector}
+#   #
+#   innov = veeEuler(SE3(x[i][1:3],Euler((x[i][4:6])...))\SE3(y[j][1:3],Euler((y[j][4:6])...)))
+#   exp( -sigma*(  innov'*innov  ) )
+# end
+
+# use Circle1 instead
+# struct Circular <: MB.AbstractManifold{MB.ℝ}
+#   dof::Int
+#   addop::Function
+#   diffop::Function
+#   getMu
+#   getLambda
+#   domain::Tuple{Float64, Float64}
+# end
+
+# Circular() = Circular(1,
+#                       addtheta,
+#                       difftheta,
+#                       getCircMu,
+#                       getCircLambda,
+#                       (-pi+0.0,pi-1e-15))
+
+# struct SO2Manifold <: MB.AbstractManifold
+# end
+#
+#
+# # should not be defined in AMP, since we want IIF indepent of manifolds
+# function *(PP::Vector{MKD{SO2Manifold,B}}) where B
+#   @info "taking manifold product of $(length(PP)) terms"
+#   @warn "SO2Manifold: work in progress"
+# end
+#
+# mbr1 = ManifoldKernelDensity(SO2Manifold, 0.0)
+# mbr2 = ManifoldKernelDensity(SO2Manifold, 0.0)
+#
+# *([mbr1;mbr2])
+
+
+# # take the full pGM in, but only update the coordinate dimensions that are actually affected by new information.
+# function _partialProducts!( pGM::AbstractVector{P}, 
+#                             partials::Dict{Any, <:AbstractVector{<:ManifoldKernelDensity}},
+#                             manifold::MB.AbstractManifold; 
+#                             inclFull::Bool=true  ) where P <: AbstractVector
+#   #
+#   # manis = convert(Tuple, manifold)
+#   keepold = inclFull ? deepcopy(pGM) : typeof(pGM)()
+
+#   # TODO remove requirement for P <: AbstractVector
+#   allPartDimsMask = 0 .== zeros(Int, length(pGM[1]))
+#   # FIXME, remove temporary Tuple manifolds method 
+#   for (dimnum,pp) in partials
+#     # mark dimensions getting partial information
+#     for d in dimnum
+#       allPartDimsMask[d] = true
+#     end
+#     # change to vector
+#     dimv = [dimnum...]
+#     # include previous calcs (if full density products were done before partials)
+#     partialMani = _buildManifoldPartial(manifold, dimv)
+#     # take product of this partial's subset of dimensions
+#     partial_GM = AMP.manifoldProduct(pp, partialMani, Niter=1) |> getPoints
+#     # partial_GM = AMP.manifoldProduct(pp, (manis[dimv]...,), Niter=1) |> getPoints
+    
+#     for i in 1:length(pGM)
+#       pGM[i][dimv] = partial_GM[i]
+#     end
+#   end
+  
+#   # multiply together previous full dim and new product of various partials
+#   if inclFull
+#     partialPts = [pGM[i][dimv] for i in 1:length(pGM)]
+#     push!( pp, AMP.manikde!(partialPts, partialMani) )
+#   end
+  
+
+#   nothing
+# end
+
+
+@deprecate manikde!( vecP::AbstractVector, M::MB.AbstractManifold ) manikde!(M, vecP)
+@deprecate manikde!( vecP::AbstractVector, bw::AbstractVector{<:Real}, M::MB.AbstractManifold ) manikde!(M, vecP, bw=bw) 
+
 # function ManifoldKernelDensity( M::MB.AbstractManifold, 
 #                                 ptsArr::AbstractVector{P} ) where P
 #   #

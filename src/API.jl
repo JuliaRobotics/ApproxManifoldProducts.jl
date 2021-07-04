@@ -1,20 +1,18 @@
 # define the api for users
 
+export productbelief
 
-manikde!( ptsArr::AbstractVector{P}, 
-          M::MB.AbstractManifold  ) where P <: AbstractVector = ManifoldKernelDensity(M, ptsArr) 
-#
 
-manikde!( ptsArr::AbstractVector{P}, 
-          bw::AbstractVector{<:Real}, 
-          M::MB.AbstractManifold  ) where P <: AbstractVector = ManifoldKernelDensity(M, ptsArr, bw)
+# MAYBE deprecate name
+manikde!( M::MB.AbstractManifold,
+          vecP::AbstractVector{P},
+          bw::Union{<:AbstractVector{<:Real},Nothing}=nothing ) where P = ManifoldKernelDensity(M, vecP, vecP[1], bw=bw) 
 #
 
 
 # TODO move to better src file location
 isPartial(mkd::ManifoldKernelDensity{M,B,L}) where {M,B,L} = true
 isPartial(mkd::ManifoldKernelDensity{M,B,Nothing}) where {M,B} = false
-
 
 
 """
@@ -128,7 +126,79 @@ function manifoldProduct( ff::AbstractVector{<:ManifoldKernelDensity},
   bws[:] = getKDEManifoldBandwidths(pGM, manif)
   bel = kde!(pGM, bws, addopT, diffopT)
   # @show M
-  ManifoldKernelDensity(mani,bel)
+  ManifoldKernelDensity(mani, bel, nothing, ff[1]._u0)
+end
+
+
+
+# NOTE, this product does not handle combinations of different partial beliefs properly yet
+function *(PP::AbstractVector{<:MKD{M,B}}) where {M<:MB.AbstractManifold{MB.ℝ},B}
+  manifoldProduct(PP, PP[1].manifold)
+end
+
+function *(P1::MKD{M,B}, P2::MKD{M,B}, P_...) where {M<:MB.AbstractManifold{MB.ℝ},B}
+  manifoldProduct([P1;P2;P_...], P1.manifold)
+end
+
+
+
+"""
+    $SIGNATURES
+
+Take product of `dens` (including optional partials beliefs) as proposals to be multiplied together.
+
+Notes
+-----
+- Return points of full dimension, even if only partial dimensions in proposals.
+  - 'Other' dimensions left unchanged from incoming `denspts`
+- `d` dimensional product approximation
+- `partials` are treated per each unique Tuple subgrouping, i.e. (1,2), (2,), ...
+- Incorporate ApproxManifoldProducts to process variables in individual batches.
+
+DevNotes
+- TODO Consolidate with [`AMP.manifoldProduct`](@ref), especially concerning partials. 
+"""
+function productbelief( denspts::AbstractVector{P},
+                        manifold::MB.AbstractManifold,
+                        dens::Vector{<:ManifoldKernelDensity},
+                        # partials::Dict{Any, <:AbstractVector{<:ManifoldKernelDensity}},
+                        N::Int;
+                        asPartial::Bool=false,
+                        dbg::Bool=false,
+                        logger=ConsoleLogger()  ) where P
+  #
+  # TODO only works of P <: Vector
+  Ndens = length(dens)
+  # Npartials = length(partials)
+  Ndims = maximum(Ndim.(dens))
+  with_logger(logger) do
+    @info "[$(Ndens)x,d$(Ndims),N$(N)],"
+  end
+  
+  # # resize for #1013
+  # if size(denspts,2) < N
+  #   pGM = zeros(size(denspts,1),N)
+  #   pGM[:,1:size(denspts,2)] .= denspts
+  # else
+  #   pGM = deepcopy(denspts)
+  # end
+
+  mkd = AMP.manifoldProduct(dens, manifold, Niter=1, oldPoints=denspts)
+  pGM = getPoints(mkd, asPartial)
+
+  # # TODO VALIDATE inclFull is the right order
+  # (pGM, inclFull) = if 0 < Ndens
+  #   getPoints(AMP.manifoldProduct(dens, manifold, Niter=1)), true # false
+  # elseif Ndens == 0 && 0 < Npartials
+  #   deepcopy(denspts), false # true
+  # else
+  #   error("Unknown density product Ndens=$(Ndens), Npartials=$(Npartials)")
+  # end
+
+  # # take the product between partial dimensions
+  # _partialProducts!(pGM, partials, manifold, inclFull=inclFull)
+
+  return pGM
 end
 
 
