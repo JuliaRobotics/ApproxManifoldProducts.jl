@@ -18,20 +18,7 @@ function solveresid2DLinear(res, x, mus, Lambdas; diffop::Function=-)::Float64
   solveresid2DLinear!(res, x, mus, Lambdas, diffop=diffop)
   return res[1]
 end
-#
-# """
-#     $SIGGNATURES
-#
-# Assemble oplus and ominus operations from given manifols.
-#
-# Related
-#
-# buildHybridManifoldCallbacks
-# """
-# function getManifoldOperations(manis::T) where {T <: Tuple}
-#
-# end
-#
+
 
 """
     $SIGNATURES
