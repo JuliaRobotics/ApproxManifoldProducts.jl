@@ -4,6 +4,7 @@ import Random: rand
 export getPoints, getBW, Ndim, Npts
 export getKDERange, getKDEMax, getKDEMean, getKDEfit
 export sample, rand, resample, kld, minkld
+export calcMean
 
 function Base.show(io::IO, mkd::ManifoldKernelDensity{M,B,L,P}) where {M,B,L,P}
   printstyled(io, "ManifoldKernelDensity{", bold=true, color=:blue )

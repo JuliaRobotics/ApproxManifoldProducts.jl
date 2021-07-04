@@ -4,6 +4,49 @@
 ## Remove below before v0.5
 ## ======================================================================================================
 
+#
+# """
+#     $SIGGNATURES
+#
+# Assemble oplus and ominus operations from given manifols.
+#
+# Related
+#
+# buildHybridManifoldCallbacks
+# """
+# function getManifoldOperations(manis::T) where {T <: Tuple}
+#
+# end
+#
+
+uncoords(::Type{<:MB.AbstractManifold}, w...; kw...) = error("uncoords(::Type{<:MB.AbstractManifold}, w...; kw...) is obsolete, use makePointFromCoords(M::MB.AbstractManifold, w...) instead.")
+
+coords(::Type{<:MB.AbstractManifold}, w...;   kw...) = error("coords(::Type{<:typeof(SpecialEuclidean(2))}, w...; kw...) is obsolete, use makeCoordsFromPoint(M::MB.AbstractManifold, w...) instead.")
+
+
+# coords(::Type{<:typeof(SpecialEuclidean(2))}, p::ProductRepr) = [p.parts[1][1], p.parts[1][2], atan(p.parts[2][2,1],p.parts[2][1,1])]
+
+# function coords(::Type{<:typeof(SpecialEuclidean(3))}, p::ProductRepr)
+#   wELo = TU.convert(Euler, SO3(p.parts[2]))
+#   [p.parts[1][1:3]; wELo.R; wELo.P; wELo.Y]
+# end
+
+# function uncoords(::Type{<:typeof(SpecialEuclidean(2))}, p::AbstractVector{<:Real}, static::Bool=true)
+#   α = p[3] 
+#   ArrConst = static ? SA : eltype(α)
+#   return ProductRepr((ArrConst[p[1], p[2]]), ArrConst[cos(α) -sin(α); sin(α) cos(α)])
+# end
+# # function uncoords(::Type{<:typeof(SpecialEuclidean(2))}, p::AbstractVector{<:Real})
+# #   α = p[3]
+# #   return ProductRepr(([p[1], p[2]]), [cos(α) -sin(α); sin(α) cos(α)])
+# # end
+
+# function uncoords(::Type{<:typeof(SpecialEuclidean(3))}, p::AbstractVector{<:Real})
+#   # α = p[3]
+#   wRo = TU.convert(SO3, Euler(p[4:6]...))
+#   return ProductRepr(([p[1], p[2], p[3]]), wRo.R)
+# end
+
 
 
 function getPointsManifold(mkd::ManifoldKernelDensity{M}) where {M <: Euclidean}

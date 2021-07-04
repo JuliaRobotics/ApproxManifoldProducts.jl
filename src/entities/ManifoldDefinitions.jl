@@ -21,10 +21,13 @@ export
 export
   coords,
   uncoords,
-  getPointsManifold,
-  calcMean
+  getPointsManifold
 
 #
+
+
+const _AMP_CIRCLE = Manifolds.Circle()
+
 
 
 # this is just wrong and needs to be fixed

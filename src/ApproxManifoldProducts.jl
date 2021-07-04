@@ -69,11 +69,10 @@ include("Legacy.jl")
 include("Interface.jl")
 
 # regular features
-include("services/ManifoldKernelDensity.jl")
-
 include("CommonUtils.jl")
-include("Euclidean.jl")
-include("CircularUtils.jl")
+include("services/ManifoldKernelDensity.jl")
+include("services/Euclidean.jl")
+include("services/CircularUtils.jl")
 include("services/Circular.jl")
 include("KernelHilbertEmbeddings.jl")
 
