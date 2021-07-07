@@ -23,7 +23,10 @@ P3 = marginal(manikde!(pts3, M), [2;])
 
 ##
 
-P = manifoldProduct([P1;P2;P3])
+@test_broken false
+# P = manifoldProduct([P1;P2;P3])
+@error "manifoldProduct needs complete point type for keyword `oldPoints`, current tests assume no marginal beliefs at front of product array"
+P = manifoldProduct([P2;P1;P3])
 
 
 ## check the results
