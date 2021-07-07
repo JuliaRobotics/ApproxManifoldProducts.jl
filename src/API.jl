@@ -54,7 +54,7 @@ function manifoldProduct( ff::AbstractVector{<:ManifoldKernelDensity},
                           # partialDimsWorkaround=1:MB.manifold_dimension(mani),
                           ndims::Int=maximum(Ndim.(ff)),
                           N::Int = maximum(Npts.(ff)),
-                          oldPoints::AbstractVector{P}=[randn(ndims) for _ in 1:N],
+                          oldPoints::AbstractVector{P}=[identity(mani, getPoints(ff[1])[1]) for _ in 1:N],
                           addEntropy::Bool=true,
                           recordLabels::Bool=false,
                           selectedLabels::Vector{Vector{Int}}=Vector{Vector{Int}}()) where {M <: MB.AbstractManifold, P}
@@ -74,7 +74,7 @@ function manifoldProduct( ff::AbstractVector{<:ManifoldKernelDensity},
 
   bws = ones(ndims)
   # MAKE SURE inplace ends up as matrix of coordinates from incoming ::Vector{P}
-  oldpts = _pointsToMatrixCoords(mani,oldPoints)
+  oldpts = _pointsToMatrixCoords(mani, oldPoints)
   # FIXME currently assumes oldPoints are in coordinates...
   # @cast oldpts_[i,j] := oldPoints[j][i]
   # oldpts = collect(oldpts_)
