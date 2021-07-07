@@ -73,9 +73,12 @@ function manifoldProduct( ff::AbstractVector{<:ManifoldKernelDensity},
   addopT, diffopT, getManiMu, _ = buildHybridManifoldCallbacks(manif)
 
   bws = ones(ndims)
-  @cast oldpts_[i,j] := oldPoints[j][i]
-  oldpts = collect(oldpts_)
-  dummy = kde!(oldpts, bws, addopT, diffopT ); # rand(ndims,N)
+  # MAKE SURE inplace ends up as matrix of coordinates from incoming ::Vector{P}
+  oldpts = _pointsToMatrixCoords(mani,oldPoints)
+  # FIXME currently assumes oldPoints are in coordinates...
+  # @cast oldpts_[i,j] := oldPoints[j][i]
+  # oldpts = collect(oldpts_)
+  inplace = kde!(oldpts, bws, addopT, diffopT ); # rand(ndims,N)
 
   # TODO REMOVE
   _ff = (x->x.belief).(ff)
@@ -90,7 +93,10 @@ function manifoldProduct( ff::AbstractVector{<:ManifoldKernelDensity},
       end
     end
   end
-  pGM, = prodAppxMSGibbsS(dummy, _ff,
+
+  ## TODO check both _ff and inplace use a matrix of coordinates (columns)
+  # expects Matrix with columns as samples and rows are coordinate dimensions
+  pGM, = prodAppxMSGibbsS(inplace, _ff,
                           nothing, nothing, Niter=Niter,
                           partialDimMask=partialDimMask,
                           addop=addopT,
