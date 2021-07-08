@@ -143,10 +143,8 @@ Base.convert(::Type{B}, mkd::ManifoldKernelDensity{M,B}) where {M,B<:BallTreeDen
 
 function calcMean(mkd::ManifoldKernelDensity{M}) where {M <: ManifoldsBase.AbstractManifold}
   data = getPoints(mkd)
-  mprepr = mean(mkd.manifold, data)
-  
-  #
-  _makeVectorManifold(mkd.manifold, mprepr)
+  # Returns the mean point on manifold for consitency
+  mean(mkd.manifold, data)  
 end
 
 
