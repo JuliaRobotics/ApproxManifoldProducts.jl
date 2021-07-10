@@ -1,6 +1,6 @@
 # define the api for users
 
-export productbelief
+export productbelief, getManifold
 
 
 # MAYBE deprecate name
@@ -14,6 +14,15 @@ manikde!( M::MB.AbstractManifold,
 isPartial(mkd::ManifoldKernelDensity{M,B,L}) where {M,B,L} = true
 isPartial(mkd::ManifoldKernelDensity{M,B,Nothing}) where {M,B} = false
 
+"""
+    $SIGNATURES
+
+Return the manifold on which this ManifoldKernelDensity is defined.
+
+DevNotes
+- TODO currently ignores the .partial aspect (captured in parameter `L`)
+"""
+getManifold(mkd::ManifoldKernelDensity{M,B,L}) where {M,B,L} = mkd.manifold
 
 """
     $SIGNATURES
