@@ -5,7 +5,7 @@ using Manifolds
 
 ##
 
-@testset "test getManifoldPartial on Euclidean" begin
+@testset "test getManifoldPartial on Euclidean(N)" begin
 
 ##
 
@@ -18,7 +18,7 @@ M = Euclidean(3)
 ##
 end
 
-@testset "test getManifoldPartial on Euclidean" begin
+@testset "test getManifoldPartial on Circle()" begin
 
 ##
 
