@@ -7,7 +7,7 @@ function _checkManifoldPartialDims(M::AbstractManifold,
                                     doError::Bool=true)
   #
   mask = 0 .< (partial .- offset[]) .<= manifold_dimension(M)
-  doError && !any(mask) && error("Unknown manifold partial=$partial in dimension=$(manifold_dimension(M)) of $M")
+  doError && !any(mask) && error("Unknown manifold partial=$(partial .- offset[]) in dimension=$(manifold_dimension(M)) of $M")
   return mask
 end
 
