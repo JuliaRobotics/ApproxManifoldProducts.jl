@@ -1,52 +1,79 @@
 
 export getManifoldPartial
 
-
-function getManifoldPartial(M::Euclidean{Tuple{N}}, partial::AbstractVector{Int}, offset::Base.RefValue{Int}=Ref(0)) where N
+function _checkManifoldPartialDims(M::AbstractManifold, 
+                                    partial::AbstractVector{Int}, 
+                                    offset::Base.RefValue{Int}, 
+                                    doError::Bool=true)
+  #
   mask = 0 .< (partial .- offset[]) .<= manifold_dimension(M)
+  doError && !any(mask) && error("Unknown manifold partial=$partial in dimension=$(manifold_dimension(M)) of $M")
+  return mask
+end
+
+function getManifoldPartial(M::Euclidean{Tuple{N}}, 
+                            partial::AbstractVector{Int}, 
+                            offset::Base.RefValue{Int}=Ref(0),
+                            doError::Bool=true) where N
+  #
+  mask = _checkManifoldPartialDims(M,partial,offset, doError)
   offset[] += manifold_dimension(M)
   Euclidean(sum(mask))
 end
 
-function getManifoldPartial(M::Circle, partial::AbstractVector{Int}, offset::Base.RefValue{Int}=Ref(0))
-  mask = 0 .< (partial .- offset[]) .<= manifold_dimension(M)
-  # @assert (offset[]+1) in partial "Circle() can only take partial=[1;], not $partial"
+function getManifoldPartial(M::Circle, 
+                            partial::AbstractVector{Int}, 
+                            offset::Base.RefValue{Int}=Ref(0),
+                            doError::Bool=true)
+  #
+  mask = _checkManifoldPartialDims(M,partial,offset,doError)
   offset[] += manifold_dimension(M)
   M
 end
 
-function getManifoldPartial(M::Rotations{2}, partial::AbstractVector{Int}, offset::Base.RefValue{Int}=Ref(0))
-  mask = 0 .< (partial .- offset[]) .<= manifold_dimension(M)
-  # @assert (offset[]+1) in partial "Rotations(2) can only take partial=[1;], not $partial"
+function getManifoldPartial(M::Rotations{2}, 
+                            partial::AbstractVector{Int}, 
+                            offset::Base.RefValue{Int}=Ref(0),
+                            doError::Bool=true)
+  #
+  mask = _checkManifoldPartialDims(M,partial,offset,doError)
   offset[] += manifold_dimension(M)
   M
 end
 
-function getManifoldPartial(M::TranslationGroup{Tuple{N}}, partial::AbstractVector{Int}, offset::Base.RefValue{Int}=Ref(0)) where N
-  # @assert maximum(partial .- offset) <= N "TranslationGroup($N) cannot take partial of larger dimension $partial"
-  mask = 0 .< (partial .- offset[]) .<= manifold_dimension(M)
+function getManifoldPartial(M::TranslationGroup{Tuple{N}}, 
+                            partial::AbstractVector{Int}, 
+                            offset::Base.RefValue{Int}=Ref(0),
+                            doError::Bool=true) where N
+  #
+  mask = _checkManifoldPartialDims(M,partial,offset,doError)
   offset[] += manifold_dimension(M)
   TranslationGroup(sum(mask))
 end
 
-function getManifoldPartial(M::typeof(SpecialOrthogonal(2)), partial::AbstractVector{Int}, offset::Base.RefValue{Int}=Ref(0))
-  mask = 0 .< (partial .- offset[]) .<= manifold_dimension(M)
-  # if sum(mask) == 0
-  #   return nothing
-  # end
+function getManifoldPartial(M::typeof(SpecialOrthogonal(2)), 
+                            partial::AbstractVector{Int}, 
+                            offset::Base.RefValue{Int}=Ref(0),
+                            doError::Bool=true)
+  #
+  mask = _checkManifoldPartialDims(M,partial,offset,doError)
   offset[] += manifold_dimension(M)
   return M
 end
 
-function getManifoldPartial(M::ProductManifold, partial::AbstractVector{Int}, offset::Base.RefValue{Int}=Ref(0))
-  
+function getManifoldPartial(M::ProductManifold, 
+                            partial::AbstractVector{Int}, 
+                            offset::Base.RefValue{Int}=Ref(0),
+                            doError::Bool=true)
+  #
+  _ = _checkManifoldPartialDims(M,partial,offset,doError)
+
   # loop through the ProductManifold components 
   ARR = []
   for m in M.manifolds
-    # @info "ProductManifold" m manifold_dimension(m) offset[] string(partial)
-    mask = 0 .< (partial .- offset[]) .<= manifold_dimension(m)
+    mask = _checkManifoldPartialDims(m,partial,offset, false)
     if any(mask)
-      push!(ARR, getManifoldPartial(m, partial, offset))
+      push!(ARR, getManifoldPartial(m, partial, offset, false))
     else
       offset[] += manifold_dimension(m)
     end
@@ -57,23 +84,23 @@ function getManifoldPartial(M::ProductManifold, partial::AbstractVector{Int}, of
     return ARR[1]
   elseif 1 < length(ARR)
     return ProductManifold(ARR...)
-  else
-    return nothing
   end
+  error("partial manifold calculations should not reach here")
 end
 
-
-# i.e. has field .manifold
-function getManifoldPartial(M::GroupManifold, partial::AbstractVector{Int}, offset::Base.RefValue{Int}=Ref(0))
-  mask = 0 .< (partial .- offset[]) .<= manifold_dimension(M)
+function getManifoldPartial(M::GroupManifold, 
+                            partial::AbstractVector{Int}, 
+                            offset::Base.RefValue{Int}=Ref(0),
+                            doError::Bool=true)
+  #
+  mask = _checkManifoldPartialDims(M,partial,offset, doError)
   if sum(mask) == manifold_dimension(M)
     # asking for all coordinate dimensions as offered by M
     return M
   end
   # recursion may need to branch for ProductManifold
-  # hasfield .manifold
   # Note loss of the Group operation information at this time
-  getManifoldPartial(M.manifold, partial, offset)
+  getManifoldPartial(M.manifold, partial, offset, doError)
 end
 
 

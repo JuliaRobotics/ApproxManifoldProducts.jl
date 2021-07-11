@@ -1,6 +1,7 @@
 
 using Test
 using ApproxManifoldProducts
+using Manifolds
 
 ##
 
@@ -13,6 +14,22 @@ M = Euclidean(3)
 @test getManifoldPartial(M, [1;2;3]) == Euclidean(3)
 
 @test getManifoldPartial(M, [2;3]) == Euclidean(2)
+
+##
+end
+
+@testset "test getManifoldPartial on Euclidean" begin
+
+##
+
+M = Circle()
+
+@test getManifoldPartial(M, [1]) == Circle()
+
+@test_throws ErrorException getManifoldPartial(M, [2;])
+
+# @test 
+#  == Euclidean(2)
 
 ##
 end
