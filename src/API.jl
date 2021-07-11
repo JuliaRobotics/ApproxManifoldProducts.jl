@@ -54,7 +54,8 @@ function manifoldProduct( ff::AbstractVector{<:ManifoldKernelDensity},
                           # partialDimsWorkaround=1:MB.manifold_dimension(mani),
                           ndims::Int=maximum(Ndim.(ff)),
                           N::Int = maximum(Npts.(ff)),
-                          oldPoints::AbstractVector{P}=[identity(mani, getPoints(ff[1])[1]) for _ in 1:N],
+                          u0 = getPoints(ff[1], false)[1],
+                          oldPoints::AbstractVector{P}= [identity(mani, u0) for i in 1:N],
                           addEntropy::Bool=true,
                           recordLabels::Bool=false,
                           selectedLabels::Vector{Vector{Int}}=Vector{Vector{Int}}()) where {M <: MB.AbstractManifold, P}
@@ -71,6 +72,7 @@ function manifoldProduct( ff::AbstractVector{<:ManifoldKernelDensity},
   # TODO DEPRECATE ::NTuple{Symbol} approach
   manif = convert(Tuple,M) #[partialDimsWorkaround]
   addopT, diffopT, getManiMu, _ = buildHybridManifoldCallbacks(manif)
+
 
   bws = ones(ndims)
   # MAKE SURE inplace ends up as matrix of coordinates from incoming ::Vector{P}
@@ -131,6 +133,9 @@ function manifoldProduct( ff::AbstractVector{<:ManifoldKernelDensity},
   # build new output ManifoldKernelDensity
   bws[:] = getKDEManifoldBandwidths(pGM, manif)
   bel = kde!(pGM, bws, addopT, diffopT)
+
+  # @error "IN MANIPRODUCT" N size(oldpts) size(pGM,2)
+
   # @show M
   ManifoldKernelDensity(mani, bel, nothing, ff[1]._u0)
 end
@@ -158,7 +163,6 @@ Notes
 - Return points of full dimension, even if only partial dimensions in proposals.
   - 'Other' dimensions left unchanged from incoming `denspts`
 - `d` dimensional product approximation
-- `partials` are treated per each unique Tuple subgrouping, i.e. (1,2), (2,), ...
 - Incorporate ApproxManifoldProducts to process variables in individual batches.
 
 DevNotes
