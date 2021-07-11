@@ -66,6 +66,7 @@ include("_BiMaps.jl")
 include("entities/ManifoldKernelDensity.jl")
 include("entities/ManifoldDefinitions.jl")
 include("Legacy.jl")
+include("services/ManifoldPartials.jl")
 include("Interface.jl")
 
 # regular features

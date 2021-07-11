@@ -9,7 +9,6 @@ export identity
 ManifoldsBase.identity(::Euclidean{Tuple{N}}, val::AbstractVector{T}) where {N, T <: Number} = zeros(T, N)
 ManifoldsBase.identity(::Circle, val::AbstractVector{T}) where {T <: Real} = zeros(T, 1)
 
-
 """
     $SIGNATURES
 
@@ -23,7 +22,7 @@ makePointFromCoords(M::MB.AbstractManifold,
                     coords::AbstractVector{<:Real},
                     u0=zeros(manifold_dimension(M)),
                     ϵ=identity(M,u0),
-                    retraction_method::AbstractRetractionMethod=ExponentialRetraction() ) = retract(M, ϵ, hat(M, ϵ, coords), retraction_method)
+                    retraction_method::AbstractRetractionMethod=ExponentialRetraction()  ) = retract(M, ϵ, hat(M, ϵ, coords), retraction_method)
 #
 
 function makeCoordsFromPoint( M::MB.AbstractManifold,
