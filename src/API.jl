@@ -54,7 +54,7 @@ function manifoldProduct( ff::AbstractVector{<:ManifoldKernelDensity},
                           # partialDimsWorkaround=1:MB.manifold_dimension(mani),
                           ndims::Int=maximum(Ndim.(ff)),
                           N::Int = maximum(Npts.(ff)),
-                          u0 = getPoints(ff[1])[1],
+                          u0 = getPoints(ff[1], false)[1],
                           oldPoints::AbstractVector{P}= [identity(mani, u0) for i in 1:N],
                           addEntropy::Bool=true,
                           recordLabels::Bool=false,
@@ -163,7 +163,6 @@ Notes
 - Return points of full dimension, even if only partial dimensions in proposals.
   - 'Other' dimensions left unchanged from incoming `denspts`
 - `d` dimensional product approximation
-- `partials` are treated per each unique Tuple subgrouping, i.e. (1,2), (2,), ...
 - Incorporate ApproxManifoldProducts to process variables in individual batches.
 
 DevNotes
