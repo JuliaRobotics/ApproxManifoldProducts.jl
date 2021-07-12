@@ -115,14 +115,14 @@ function getPoints( x::ManifoldKernelDensity{M,B,L},
   #
   pts = getPoints(x.belief)
   
-  (M_,pts_) = if (L !== nothing) && aspartial
-    Mp, = getManifoldPartial(M,x._partial)
-    (Mp, view(pts, x._partial, :))
+  (M_,pts_, u0_) = if (L !== nothing) && aspartial
+    Mp, Rp = getManifoldPartial(x.manifold, x._partial, x._u0)
+    (Mp, view(pts, x._partial, :), Rp)
   else
-    (M, pts)
+    (x.manifold, pts, x._u0)
   end
 
-  _matrixCoordsToPoints(M_, pts_, x._u0)
+  _matrixCoordsToPoints(M_, pts_, u0_)
 end
 
 

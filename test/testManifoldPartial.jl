@@ -111,4 +111,30 @@ end
 ##
 end
 
+
+@testset "test getPoints under partial with representation" begin
+
+##
+
+N = 100
+M = SpecialEuclidean(2)
+u0 = ProductRepr([0.0; 0], [1 0; 0 1.0])
+
+pts = [exp(M, u0, hat(M, u0, [10 .+ randn(2);randn()])) for i in 1:N]
+
+P = manikde!(M, pts)
+
+P12 = marginal(P, [1;2])
+
+p12 = getPoints(P12)
+
+@test length(p12) == N
+@test length(p12[1]) == 2
+@test_broken P12.manifold isa TranslationGroup(2)
+
+
+##
+end
+
+
 #
