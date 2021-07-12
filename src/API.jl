@@ -6,7 +6,8 @@ export productbelief
 # MAYBE deprecate name
 manikde!( M::MB.AbstractManifold,
           vecP::AbstractVector{P},
-          bw::Union{<:AbstractVector{<:Real},Nothing}=nothing ) where P = ManifoldKernelDensity(M, vecP, vecP[1], bw=bw) 
+          bw::Union{<:AbstractVector{<:Real},Nothing}=nothing;
+          partial::Union{Nothing, <:AbstractVector{<:Integer}}=nothing ) where P = ManifoldKernelDensity(M, vecP, vecP[1], bw=bw, partial=partial) 
 #
 
 
@@ -58,7 +59,7 @@ function manifoldProduct( ff::AbstractVector{<:ManifoldKernelDensity},
                           oldPoints::AbstractVector{P}= [identity(mani, u0) for i in 1:N],
                           addEntropy::Bool=true,
                           recordLabels::Bool=false,
-                          selectedLabels::Vector{Vector{Int}}=Vector{Vector{Int}}()) where {M <: MB.AbstractManifold, P}
+                          selectedLabels::Vector{Vector{Int}}=Vector{Vector{Int}}() ) where {M <: MB.AbstractManifold, P}
   #
   # check quick exit
   if 1 == length(ff)
