@@ -110,10 +110,19 @@ function getPoints(x::ManifoldKernelDensity{M,B}, ::Bool=true) where {M <: Abstr
   _matrixCoordsToPoints(x.manifold, getPoints(x.belief), x._u0)
 end
 
-function getPoints(x::ManifoldKernelDensity{M,B,L}, aspartial::Bool=true) where {M <: AbstractManifold, B, L <: AbstractVector{Int}}
+function getPoints( x::ManifoldKernelDensity{M,B,L}, 
+                    aspartial::Bool=true) where {M <: AbstractManifold, B, L <: AbstractVector{Int}}
+  #
   pts = getPoints(x.belief)
-  pts_ = aspartial ? view(pts, x._partial, :) : pts
-  _matrixCoordsToPoints(x.manifold, pts_, x._u0)
+  
+  (M_,pts_, u0_) = if (L !== nothing) && aspartial
+    Mp, Rp = getManifoldPartial(x.manifold, x._partial, x._u0)
+    (Mp, view(pts, x._partial, :), Rp)
+  else
+    (x.manifold, pts, x._u0)
+  end
+
+  _matrixCoordsToPoints(M_, pts_, u0_)
 end
 
 
