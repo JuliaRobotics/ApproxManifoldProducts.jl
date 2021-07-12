@@ -9,23 +9,28 @@ export calcMean
 function Base.show(io::IO, mkd::ManifoldKernelDensity{M,B,L,P}) where {M,B,L,P}
   printstyled(io, "ManifoldKernelDensity{", bold=true, color=:blue )
   println(io)
-  printstyled(io, "    M= ", bold=true, color=:magenta )
-  print(io, M, ",")
+  printstyled(io, "    M", bold=true, color=:magenta )
+  print(io, " = ", M, ",")
   println(io)
-  printstyled(io, "    B= ", bold=true, color=:magenta )
-  print(io, B, ",")
+  printstyled(io, "    B", bold=true, color=:magenta )
+  print(io, " = ", B, ",")
   println(io)
-  printstyled(io, "    L= ", bold=true, color=:magenta )
-  print(io, L, ",")
+  printstyled(io, "    L", bold=true, color=:magenta )
+  print(io, " = ", L, ",")
   println(io)
-  printstyled(io, "    P= ", bold=true, color=:magenta )
-  print(io, P)
+  printstyled(io, "    P", bold=true, color=:magenta )
+  print(io, " = ", P)
   println(io)
   println(io, " }(")
-  println(io, "  dims:  ", Ndim(mkd.belief))
   println(io, "  Npts:  ", Npts(mkd.belief))
-  println(io, "  bws:   ", getBW(mkd.belief)[:,1] .|> x->round(x,digits=4))
+  println(io, "  dims:  ", Ndim(mkd.belief))
   println(io, "  prtl:  ", mkd._partial)
+  println(io, "  bws:   ", getBW(mkd.belief)[:,1] .|> x->round(x,digits=4))
+  try
+    mn = mean(mkd.manifold, getPoints(mkd, false))
+    println(io, "   mean:  ", round.(mn',digits=4))
+  catch
+  end
   println(io, ")")
   nothing
 end
