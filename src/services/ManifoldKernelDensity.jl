@@ -76,8 +76,8 @@ end
 # MAYBE deprecate name
 manikde!( M::MB.AbstractManifold,
           vecP::AbstractVector{P},
-          w...;
-          kw... ) where P = ManifoldKernelDensity(M, vecP, w...; kw...) 
+          u0::P=vecP[1];
+          kw... ) where P = ManifoldKernelDensity(M, vecP, u0; kw...) 
 #
 
 
