@@ -26,6 +26,7 @@ function Base.show(io::IO, mkd::ManifoldKernelDensity{M,B,L,P}) where {M,B,L,P}
   println(io, "  dims:  ", Ndim(mkd.belief))
   println(io, "  prtl:  ", mkd._partial)
   println(io, "  bws:   ", getBW(mkd.belief)[:,1] .|> x->round(x,digits=4))
+  println(io, "  ipc:   ", mkd.infoPerCoord .|> x->round(x,digits=4))
   try
     mn = mean(mkd.manifold, getPoints(mkd, false))
     println(io, "   mean:  ", round.(mn',digits=4))
@@ -38,12 +39,20 @@ end
 Base.show(io::IO, ::MIME"text/plain", mkd::ManifoldKernelDensity) = show(io, mkd)
 
 
-ManifoldKernelDensity(mani::M, bel::B, partial::L=nothing, u0::P=zeros(manifold_dimension(mani))) where {M <: MB.AbstractManifold, B <: BallTreeDensity, L, P} = ManifoldKernelDensity{M,B,L,P}(mani,bel,partial,u0)
+
+ManifoldKernelDensity(mani::M, 
+                      bel::B, 
+                      partial::L=nothing, 
+                      u0::P=zeros(manifold_dimension(mani));
+                      infoPerCoord::AbstractVector{<:Real}=ones(getNumberCoords(mani, u0)) ) where {M <: MB.AbstractManifold, B <: BallTreeDensity, L, P} = ManifoldKernelDensity{M,B,L,P}(mani,bel,partial,u0,infoPerCoord)
+#
+
 
 function ManifoldKernelDensity( M::MB.AbstractManifold,
                                 vecP::AbstractVector{P},
                                 u0=vecP[1];
                                 partial::L=nothing,
+                                infoPerCoord::AbstractVector{<:Real}=ones(getNumberCoords(M, u0)),
                                 dims::Int=manifold_dimension(M),
                                 bw::Union{<:AbstractVector{<:Real},Nothing}=nothing  ) where {P,L}
   #
@@ -60,8 +69,16 @@ function ManifoldKernelDensity( M::MB.AbstractManifold,
   _bw = bw === nothing ? getKDEManifoldBandwidths(arr, manis ) : bw
   addopT, diffopT, _, _ = buildHybridManifoldCallbacks(manis)
   bel = KernelDensityEstimate.kde!(arr, _bw, addopT, diffopT)
-  return ManifoldKernelDensity(M, bel, partial, u0)
+  return ManifoldKernelDensity(M, bel, partial, u0, infoPerCoord)
 end
+
+
+# MAYBE deprecate name
+manikde!( M::MB.AbstractManifold,
+          vecP::AbstractVector{P},
+          u0::P=vecP[1];
+          kw... ) where P = ManifoldKernelDensity(M, vecP, u0; kw...) 
+#
 
 
 # internal workaround function for building partial submanifold dimensions, must be upgraded/standarized

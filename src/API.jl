@@ -3,13 +3,6 @@
 export productbelief
 
 
-# MAYBE deprecate name
-manikde!( M::MB.AbstractManifold,
-          vecP::AbstractVector{P},
-          bw::Union{<:AbstractVector{<:Real},Nothing}=nothing;
-          partial::Union{Nothing, <:AbstractVector{<:Integer}}=nothing ) where P = ManifoldKernelDensity(M, vecP, vecP[1], bw=bw, partial=partial) 
-#
-
 
 # TODO move to better src file location
 isPartial(mkd::ManifoldKernelDensity{M,B,L}) where {M,B,L} = true
