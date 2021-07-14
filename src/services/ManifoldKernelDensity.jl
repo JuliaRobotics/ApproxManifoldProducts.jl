@@ -44,7 +44,7 @@ ManifoldKernelDensity(mani::M,
                       bel::B, 
                       partial::L=nothing, 
                       u0::P=zeros(manifold_dimension(mani));
-                      infoPerCoord::AbstractVector{<:Real}=zeros(getNumberCoords(mani, u0)) ) where {M <: MB.AbstractManifold, B <: BallTreeDensity, L, P} = ManifoldKernelDensity{M,B,L,P}(mani,bel,partial,u0,infoPerCoord)
+                      infoPerCoord::AbstractVector{<:Real}=ones(getNumberCoords(mani, u0)) ) where {M <: MB.AbstractManifold, B <: BallTreeDensity, L, P} = ManifoldKernelDensity{M,B,L,P}(mani,bel,partial,u0,infoPerCoord)
 #
 
 
@@ -52,7 +52,7 @@ function ManifoldKernelDensity( M::MB.AbstractManifold,
                                 vecP::AbstractVector{P},
                                 u0=vecP[1];
                                 partial::L=nothing,
-                                infoPerCoord::AbstractVector{<:Real}=zeros(getNumberCoords(M, u0)),
+                                infoPerCoord::AbstractVector{<:Real}=ones(getNumberCoords(M, u0)),
                                 dims::Int=manifold_dimension(M),
                                 bw::Union{<:AbstractVector{<:Real},Nothing}=nothing  ) where {P,L}
   #
@@ -75,8 +75,9 @@ end
 
 # MAYBE deprecate name
 manikde!( M::MB.AbstractManifold,
-          vecP::AbstractVector{P};
-          kw... ) where P = ManifoldKernelDensity(M, vecP; kw...) 
+          vecP::AbstractVector{P},
+          w...;
+          kw... ) where P = ManifoldKernelDensity(M, vecP, w...; kw...) 
 #
 
 
