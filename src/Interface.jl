@@ -2,7 +2,7 @@
 
 import ManifoldsBase: identity
 
-export makeCoordsFromPoint, makePointFromCoords
+export makeCoordsFromPoint, makePointFromCoords, getNumberCoords
 export identity
 
 
@@ -33,6 +33,8 @@ function makeCoordsFromPoint( M::MB.AbstractManifold,
   vee(M, ϵ, log(M, ϵ, pt))
 end
 
+# Sphere(2) has 3 coords, even though the manifolds only has 2 dimensions (degrees of freedom)
+getNumberCoords(M::MB.AbstractManifold, p) = length(makeCoordsFromPoint(M,p))
 
 # TODO DEPRECATE
 # related _pointsToMatrixCoords
