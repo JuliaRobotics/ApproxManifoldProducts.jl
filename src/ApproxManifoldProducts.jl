@@ -56,7 +56,8 @@ export
   buildHybridManifoldCallbacks,
   getKDEManifoldBandwidths,
   manifoldProduct,
-  manikde!
+  manikde!,
+  calcVariableCovarianceBasic
 
 
 # internal features not exported
