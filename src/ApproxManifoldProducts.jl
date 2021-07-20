@@ -18,7 +18,7 @@ using CoordinateTransformations
 using Requires
 using SLEEFPirates
 using LinearAlgebra
-using JSON2
+# using JSON2
 using TensorCast
 using StaticArrays
 using Logging
