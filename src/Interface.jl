@@ -5,7 +5,7 @@ import ManifoldsBase: identity
 export makeCoordsFromPoint, makePointFromCoords, getNumberCoords
 export identity
 
-
+# Deprecate in favor of TranslationGroup instead
 ManifoldsBase.identity(::Euclidean{Tuple{N}}, val::AbstractVector{T}) where {N, T <: Number} = zeros(T, N)
 ManifoldsBase.identity(::Circle, val::AbstractVector{T}) where {T <: Real} = zeros(T, 1)
 

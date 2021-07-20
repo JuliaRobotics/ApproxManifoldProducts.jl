@@ -18,7 +18,7 @@ using CoordinateTransformations
 using Requires
 using SLEEFPirates
 using LinearAlgebra
-using JSON2
+# using JSON2
 using TensorCast
 using StaticArrays
 using Logging
@@ -79,7 +79,7 @@ include("KernelHilbertEmbeddings.jl")
 
 include("TrackingLabels.jl")
 
-include("Serialization.jl")
+# include("Serialization.jl") # moved downstream to IIF to use InferenceVariable serialized types instead
 include("API.jl")
 
 include("Deprecated.jl")
