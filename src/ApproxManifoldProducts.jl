@@ -1,9 +1,8 @@
 module ApproxManifoldProducts
 
-using Base: ident_cmp
 using Reexport
 @reexport using KernelDensityEstimate
-@reexport using TransformUtils
+@reexport using TransformUtils  # likely to be deprecated
 using Random
 
 import ManifoldsBase
