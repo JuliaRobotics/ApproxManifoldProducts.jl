@@ -64,7 +64,7 @@ function manifoldProduct( ff::AbstractVector{<:ManifoldKernelDensity},
   glbs.recordChoosen = recordLabels
   
   # TODO DEPRECATE ::NTuple{Symbol} approach
-  manif = convert(Tuple,M) #[partialDimsWorkaround]
+  manif = convert(Tuple, mani)  #[partialDimsWorkaround]
   addopT, diffopT, getManiMu, _ = buildHybridManifoldCallbacks(manif)
 
 
