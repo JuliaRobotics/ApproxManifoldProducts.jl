@@ -79,7 +79,7 @@ include("KernelHilbertEmbeddings.jl")
 
 include("TrackingLabels.jl")
 
-include("Serialization.jl")
+# include("Serialization.jl") # moved downstream to IIF to use InferenceVariable serialized types instead
 include("API.jl")
 
 include("Deprecated.jl")
