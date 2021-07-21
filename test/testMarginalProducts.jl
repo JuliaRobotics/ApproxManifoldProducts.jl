@@ -9,9 +9,9 @@ using Test
 
 ## random data
 
-pts1 = [rand(2) .- 10.0 for _ in 1:100]
-pts2 = [rand(2) for _ in 1:100]
-pts3 = [rand(2) .+ 10.0 for _ in 1:100]
+pts1 = [randn(2) .- 10.0 for _ in 1:100]
+pts2 = [randn(2) for _ in 1:100]
+pts3 = [randn(2) .+ 10.0 for _ in 1:100]
 
 ## get different marginals
 
@@ -42,7 +42,7 @@ pts = getPoints(P)
 
 P_ = manifoldProduct([P1;P3])
 
-pts = getPoints(P)
+pts = getPoints(P_)
 @cast pGM[i,j] := pts[j][i]
 
 
