@@ -59,6 +59,7 @@ function manifoldProduct( ff::AbstractVector{<:ManifoldKernelDensity},
     # @show Ndim(ff[1]), Npts(ff[1]), getPoints(ff[1],false)[1]
     return (makeCopy ? x->deepcopy(x) : x->x)(ff[1])
   end
+
   
   glbs = KDE.makeEmptyGbGlb();
   glbs.recordChoosen = recordLabels
@@ -66,8 +67,8 @@ function manifoldProduct( ff::AbstractVector{<:ManifoldKernelDensity},
   # TODO DEPRECATE ::NTuple{Symbol} approach
   manif = convert(Tuple, mani)  #[partialDimsWorkaround]
   addopT, diffopT, getManiMu, _ = buildHybridManifoldCallbacks(manif)
-
-
+  
+  
   bws = ones(ndims)
   # MAKE SURE inplace ends up as matrix of coordinates from incoming ::Vector{P}
   oldpts = _pointsToMatrixCoords(mani, oldPoints)
@@ -75,7 +76,7 @@ function manifoldProduct( ff::AbstractVector{<:ManifoldKernelDensity},
   # @cast oldpts_[i,j] := oldPoints[j][i]
   # oldpts = collect(oldpts_)
   inplace = kde!(oldpts, bws, addopT, diffopT ); # rand(ndims,N)
-
+  
   # TODO REMOVE
   _ff = (x->x.belief).(ff)
   partialDimMask = Vector{BitVector}(undef, length(ff))
@@ -89,6 +90,8 @@ function manifoldProduct( ff::AbstractVector{<:ManifoldKernelDensity},
       end
     end
   end
+  
+  # @assert !isPartial(ff[1]) "currently only supports first product element as full density, isPartial.=$(isPartial.(ff)), dims.=$(Ndim.(_ff))"
 
   ## TODO check both _ff and inplace use a matrix of coordinates (columns)
   # expects Matrix with columns as samples and rows are coordinate dimensions

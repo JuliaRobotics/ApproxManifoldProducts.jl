@@ -37,9 +37,21 @@ pts = getPoints(P)
 @test 80 < sum(-10 .< pGM[1,:] .< 0)
 @test 80 < sum(0 .< pGM[2,:] .< 10 )
 
-##
 
+## check product of only partials/marginals
+
+P_ = manifoldProduct([P1;P3])
+
+pts = getPoints(P)
+@cast pGM[i,j] := pts[j][i]
+
+
+@test 70 < sum(-12 .< pGM[1,:] .< -8)
+@test 70 < sum(  8 .< pGM[2,:] .< 12 )
+
+##
 end
+
 
 
 #

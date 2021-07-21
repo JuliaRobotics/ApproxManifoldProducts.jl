@@ -97,6 +97,15 @@ function _buildManifoldPartial( fullM::MB.AbstractManifold,
   return ProductManifold(newMani...)
 end
 
+"""
+    $SIGNATURES
+
+Return true if this ManifoldKernelDensity is a partial.
+"""
+isPartial(mkd::ManifoldKernelDensity{M,B,Nothing}) where {M,B} = false
+isPartial(mkd::ManifoldKernelDensity{M,B,<:AbstractVector}) where {M,B} = true
+
+
 # override
 function marginal(x::ManifoldKernelDensity{M,B}, 
   dims::AbstractVector{<:Integer}  ) where {M <: AbstractManifold , B}
