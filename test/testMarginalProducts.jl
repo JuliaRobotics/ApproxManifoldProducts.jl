@@ -1,4 +1,5 @@
 
+using Manifolds
 using ApproxManifoldProducts
 using TensorCast
 using Test
@@ -48,6 +49,34 @@ pts = getPoints(P_)
 
 @test 70 < sum(-12 .< pGM[1,:] .< -8)
 @test 70 < sum(  8 .< pGM[2,:] .< 12 )
+
+## 
+
+N = 5
+M = TranslationGroup(3)
+
+pts4 = [3*randn(3) .- 10.0 for _ in 1:N]
+(x->x[2:3].=-100.0).(pts4)
+pts5 = [3*randn(3) .+ 10.0 for _ in 1:N]
+(x->x[1:2].=100.0).(pts5)
+
+P4 = marginal(manikde!(pts4, M), [1;])
+P5 = marginal(manikde!(pts5, M), [3;])
+
+
+# test duplication
+pts4_ = [3*randn(3) .- 10.0 for _ in 1:N]
+(x->x[2:3].=-100.0).(pts4_)
+pts5_ = [3*randn(3) .+ 10.0 for _ in 1:N]
+(x->x[1:2].=100.0).(pts5_)
+
+P4_ = marginal(manikde!(pts4_, M), [1;])
+P5_ = marginal(manikde!(pts5_, M), [3;])
+
+##
+
+P45 = manifoldProduct([P4;P4_;P5;P5_])
+
 
 ##
 end
