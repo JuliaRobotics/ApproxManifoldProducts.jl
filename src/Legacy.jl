@@ -111,7 +111,6 @@ Ndim(x::ManifoldKernelDensity, w...;kw...) = Ndim(x.belief,w...;kw...)
 Npts(x::ManifoldKernelDensity, w...;kw...) = Npts(x.belief,w...;kw...)
 
 getWeights(x::ManifoldKernelDensity, w...;kw...) = getWeights(x.belief, w...;kw...)
-Random.rand(x::ManifoldKernelDensity, d::Integer=1) = rand(x.belief, d)
 
 getKDERange(x::ManifoldKernelDensity, w...;kw...) = getKDERange(x.belief, w...;kw...)
 getKDEMax(x::ManifoldKernelDensity, w...;kw...) = getKDEMax(x.belief, w...;kw...)
