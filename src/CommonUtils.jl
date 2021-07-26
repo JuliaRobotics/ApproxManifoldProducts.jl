@@ -75,6 +75,55 @@ function calcVariableCovarianceBasic(M::AbstractManifold, ptsArr::Vector{P}) whe
   return msst_
 end
 
+"""
+    $SIGNATURES
+
+Calculate covariance weighted mean as product of incoming Gaussian points ``μ_`` and coordinate covariances ``Σ_``.
+
+Notes
+- Return both weighted mean and new covariance (teh congruent product)
+- More efficient helper function allows passing keyword inverse covariances `Λ_` instead. 
+- Assume `size(Σ_[1],1) == manifold_dimension(M)`.
+- calc lambdas first and use to calculate mean product second.
+- https://ccrma.stanford.edu/~jos/sasp/Product_Two_Gaussian_PDFs.html
+- Pennec, X. Intrinsic Statistics on Riemannian Manifolds: Basic Tools for Geometric Measurements, HAL Archive, 2011, Inria, France.
+"""
+function calcProductGaussians(M::AbstractManifold, 
+                              μ_::Union{<:AbstractVector{P},<:NTuple{N,P}}, # point type commonly known as P 
+                              Σ_::Union{Nothing,<:AbstractVector{S},<:NTuple{N,S}};
+                                dim::Integer=manifold_dimension(M),
+                              Λ_ = inv.(Σ_),
+                              ) where {N,P,S<:AbstractMatrix{<:Real}}
+  #
+  # calc sum of covariances  
+  Λ = zeros(MMatrix{dim,dim})
+  Λ = sum(Λ_)
+  
+  # Tangent space reference around the evenly weighted mean of incoming points
+  u0 = mean(M, μ_)
+
+  # calc the covariance weighted delta means of incoming points and covariances
+  ΛΔμ = zeros(MVector{dim})
+  for (s,u) in zip(Λ_, μ_)
+    # require vee as per Pennec, Caesar Ref [3.6]
+    Δuvee = vee(M, u0, log(M, u0, u))
+    ΛΔμ += s*Δuvee
+  end
+
+  # calculate the delta mean
+  Δμ = Λ \ ΛΔμ
+
+  # return new mean and covariance
+  return exp(M, u0, hat(M, u0, Δμ)), inv(Λ) 
+end
+
+
+calcProductGaussians( M::AbstractManifold, 
+                      μ_::Union{<:AbstractVector{P},<:NTuple{N,P}};
+                        dim::Integer=manifold_dimension(M),
+                      Λ_ = [diagm(ones(dim)) for _ in 1:length(μ_)],
+                      ) where {N,P} = calcProductGaussians(M, μ_, nothing; dim=dim, Λ_=Λ_ )
+#
 
 # """
 #     $SIGNATURES
