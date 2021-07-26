@@ -6,6 +6,18 @@ export getKDERange, getKDEMax, getKDEMean, getKDEfit
 export sample, rand, resample, kld, minkld
 export calcMean
 
+
+function Statistics.mean(mkd::ManifoldKernelDensity, aspartial::Bool=true)
+  M = if aspartial && isPartial(mkd)
+    getManifoldPartial(mkd.manifold, mkd._partial)
+  else
+    mkd.manifold
+  end
+
+  mean(mkd.manifold, getPoints(mkd, aspartial))
+end
+
+
 function Base.show(io::IO, mkd::ManifoldKernelDensity{M,B,L,P}) where {M,B,L,P}
   printstyled(io, "ManifoldKernelDensity{", bold=true, color=:blue )
   println(io)
@@ -23,12 +35,17 @@ function Base.show(io::IO, mkd::ManifoldKernelDensity{M,B,L,P}) where {M,B,L,P}
   println(io)
   println(io, " }(")
   println(io, "  Npts:  ", Npts(mkd.belief))
-  println(io, "  dims:  ", Ndim(mkd.belief))
+  print(io, "  dims:  ", Ndim(mkd.belief))
+  printstyled(io, isPartial(mkd) ? "* --> $(length(mkd._partial))" : "", bold=true)
+  println(io)
   println(io, "  prtl:  ", mkd._partial)
-  println(io, "  bws:   ", getBW(mkd.belief)[:,1] .|> x->round(x,digits=4))
-  println(io, "  ipc:   ", mkd.infoPerCoord .|> x->round(x,digits=4))
+  bw = getBW(mkd.belief)[:,1]
+  pvec = isPartial(mkd) ? mkd._partial : collect(1:length(bw))
+  println(io, "  bws:   ", bw[pvec] .|> x->round(x,digits=4))
+  println(io, "  ipc:   ", mkd.infoPerCoord[pvec] .|> x->round(x,digits=4))
   try
-    mn = mean(mkd.manifold, getPoints(mkd, false))
+    # mn = mean(mkd.manifold, getPoints(mkd, false))
+    mn = mean(mkd)
     println(io, "   mean:  ", round.(mn',digits=4))
   catch
   end
@@ -97,12 +114,20 @@ function _buildManifoldPartial( fullM::MB.AbstractManifold,
   return ProductManifold(newMani...)
 end
 
+"""
+    $SIGNATURES
+
+Return true if this ManifoldKernelDensity is a partial.
+"""
+isPartial(mkd::ManifoldKernelDensity{M,B,L}) where {M,B,L} = true
+isPartial(mkd::ManifoldKernelDensity{M,B,Nothing}) where {M,B} = false
+  
 # override
 function marginal(x::ManifoldKernelDensity{M,B}, 
-  dims::AbstractVector{<:Integer}  ) where {M <: AbstractManifold , B}
-#
-ldims::Vector{Int} = collect(dims)
-ManifoldKernelDensity(x.manifold, x.belief, ldims, x._u0)
+                  dims::AbstractVector{<:Integer}  ) where {M <: AbstractManifold , B}
+  #
+  ldims::Vector{Int} = collect(dims)
+  ManifoldKernelDensity(x.manifold, x.belief, ldims, x._u0)
 end
 
 function marginal(x::ManifoldKernelDensity{M,B,L}, 
