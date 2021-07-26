@@ -97,7 +97,7 @@ function calcProductGaussians(M::AbstractManifold,
   #
   # calc sum of covariances  
   Λ = zeros(MMatrix{dim,dim})
-  Λ = sum(Λ_)
+  Λ .= sum(Λ_)
   
   # Tangent space reference around the evenly weighted mean of incoming points
   u0 = mean(M, μ_)
