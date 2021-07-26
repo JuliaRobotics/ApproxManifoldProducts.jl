@@ -18,14 +18,14 @@ using CoordinateTransformations
 using Requires
 using SLEEFPirates
 using LinearAlgebra
-# using JSON2
 using TensorCast
 using StaticArrays
 using Logging
+using Statistics
 
 import Base: *, isapprox, convert
-# import KernelDensityEstimate: kde!
 import LinearAlgebra: rotate!
+import Statistics: mean
 
 
 const AMP = ApproxManifoldProducts
@@ -57,7 +57,9 @@ export
   manifoldProduct,
   manikde!,
   calcVariableCovarianceBasic,
-  isPartial
+  isPartial,
+  mean,
+  calcProductGaussians
 
 
 # internal features not exported

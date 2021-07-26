@@ -4,11 +4,6 @@ export productbelief
 
 
 
-# TODO move to better src file location
-isPartial(mkd::ManifoldKernelDensity{M,B,L}) where {M,B,L} = true
-isPartial(mkd::ManifoldKernelDensity{M,B,Nothing}) where {M,B} = false
-
-
 """
     $SIGNATURES
 
