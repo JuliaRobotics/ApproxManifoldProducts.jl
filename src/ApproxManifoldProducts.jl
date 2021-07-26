@@ -56,7 +56,8 @@ export
   getKDEManifoldBandwidths,
   manifoldProduct,
   manikde!,
-  calcVariableCovarianceBasic
+  calcVariableCovarianceBasic,
+  calcProductGaussians
 
 
 # internal features not exported
