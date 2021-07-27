@@ -343,7 +343,7 @@ for sidx in 1:N
   u12, = calcProductGaussians(M, [u1,u2], [bw1,bw2]);
   u34, = calcProductGaussians(M, [u3,u4], [bw3,bw4]);
 
-  @info "DEBU" string(u1) string(u2) string(u3) string(u4) u12[1], u34[2]
+  # @info "DEBU" string(u1) string(u2) string(u3) string(u4) u12[1], u34[2]
   @test isapprox( u12[1], getPoints(P45__)[sidx][1])
   @test isapprox( u34[2], getPoints(P45__)[sidx][2])
 
