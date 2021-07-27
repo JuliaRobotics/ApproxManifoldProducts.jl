@@ -56,7 +56,7 @@ export
   getKDEManifoldBandwidths,
   manifoldProduct,
   manikde!,
-  calcVariableCovarianceBasic,
+  calcCovarianceBasic,
   isPartial,
   mean,
   calcProductGaussians

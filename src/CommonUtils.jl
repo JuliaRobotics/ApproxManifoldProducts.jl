@@ -61,13 +61,13 @@ function updateProductSample( dest::BallTreeDensity,
 end
 
 # Returns the covariance (square), not deviation
-function calcVariableCovarianceBasic(M::AbstractManifold, ptsArr::Vector{P}) where P
+function calcCovarianceBasic(M::AbstractManifold, ptsArr::Vector{P}) where P
   #TODO double check the maths,. it looks like its working at least for groups
   μ = mean(M, ptsArr)
   Xcs = vee.(Ref(M), Ref(μ), log.(Ref(M), Ref(μ), ptsArr))
   Σ = mean(Xcs .* transpose.(Xcs))
-  @debug "calcVariableCovarianceBasic" μ
-  @debug "calcVariableCovarianceBasic" Σ
+  @debug "calcCovarianceBasic" μ
+  @debug "calcCovarianceBasic" Σ
   # TODO don't know what to do here so keeping as before, #FIXME it will break
   # a change between this and previous is that a full covariance matrix is returned
   msst = Σ
