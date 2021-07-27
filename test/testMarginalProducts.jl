@@ -25,7 +25,7 @@ end
 @testset "comparison test with basic product" begin
 ## simply multiply two beliefs, sim2
 
-N = 5
+N = 10
 d = 2
 M = TranslationGroup(d)
 
@@ -74,7 +74,7 @@ end
 @testset "test dim=2 product with one partial/marginal" begin
 ## basic test one full with one partial
 
-N = 5
+N = 10
 d = 2
 M = TranslationGroup(d)
 
@@ -145,7 +145,7 @@ P3_ = manikde!(M, pts3, partial=[1;])
 
 sl = Vector{Vector{Int}}()
 
-P123_ = manifoldProduct([P1;P2_;P3_], recordLabels=true, selectedLabels=sl)
+P123_ = manifoldProduct([P1;P2_;P3_], recordLabels=true, selectedLabels=sl, addEntropy=false)
 
 @test isapprox( mean(P12_)[1], 0, atol=1 )
 @test isapprox( mean(P12_)[2], 0, atol=1 )
@@ -154,6 +154,25 @@ P123_ = manifoldProduct([P1;P2_;P3_], recordLabels=true, selectedLabels=sl)
 @show sl
 
 P123_
+
+##
+
+for sidx in 1:N
+
+  bw1 = getBW(P1)[:,1] .^2
+  bw2 = getBW(P2)[:,1] .^2
+  bw3 = getBW(P3_)[:,1] .^2
+
+  u1 = pts1[sl[sidx][1]]
+  u2 = pts2[sl[sidx][2]]
+  u3 = pts3[sl[sidx][3]]
+
+  u123, = calcProductGaussians(M, [u1,u2,u3], [bw1,bw2,bw3]);
+
+  @test isapprox( u123[1], getPoints(P123_)[sidx][1] , atol=0.1)
+  @test isapprox( pts1[sl[sidx][1]][2], getPoints(P123_)[sidx][2] )
+
+end
 
 ##
 end
