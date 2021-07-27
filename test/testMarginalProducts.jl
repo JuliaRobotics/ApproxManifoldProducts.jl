@@ -181,7 +181,7 @@ end
 @testset "test dim=2 product with one full and two different marginals" begin
 ## random data
 
-N = 10
+N = 50
 M = TranslationGroup(2)
 
 pts1 = [randn(2) .- 10.0 for _ in 1:N]
@@ -200,7 +200,7 @@ sl = Vector{Vector{Int}}()
 P = manifoldProduct([P2;P1;P3], recordLabels=true, selectedLabels=sl, addEntropy=false)
 
 (x->println()).(1:5)
-@show sl;
+# @show sl;
 P
 
 ## check the results
@@ -208,8 +208,8 @@ P
 pts = getPoints(P)
 @cast pGM[i,j] := pts[j][i]
 
-@test 0.8*N < sum(-10 .< pGM[1,:] .< 0)
-@test 0.8*N < sum(0 .< pGM[2,:] .< 10 )
+@test 0.7*N < sum(-10 .< pGM[1,:] .< 0)
+@test 0.7*N < sum(0 .< pGM[2,:] .< 10 )
 
 
 ## check the selection of labels and resulting Gaussian products are correct
@@ -240,7 +240,7 @@ end
 @testset "product of only one marginal per each of two dimensions" begin
 ## random data
 
-N = 10
+N = 50
 M = TranslationGroup(2)
 
 pts1 = [randn(2) .- 10.0 for _ in 1:N]
@@ -258,7 +258,7 @@ sl = Vector{Vector{Int}}()
 P_ = manifoldProduct([P1;P3], recordLabels=true, selectedLabels=sl, addEntropy=false)
 
 (x->println()).(1:5)
-@show sl
+# @show sl
 
 ##
 
@@ -290,7 +290,7 @@ end
 @testset "test dim=2 product of only marginals, two per dimension, 4 factors total" begin
 ##
 
-N = 5
+N = 50
 d = 2
 M = TranslationGroup(d)
 
@@ -318,7 +318,7 @@ sl = Vector{Vector{Int}}()
 P45__ = manifoldProduct([P4;P4_;P5;P5_], recordLabels=true, selectedLabels=sl, addEntropy=false)
 
 (x->println()).(1:5)
-@show sl;
+# @show sl;
 
 P45__
 
@@ -357,7 +357,7 @@ end
 ## random data
 
 d = 3
-N = 10
+N = 50
 M = TranslationGroup(3)
 
 pts1 = [randn(d) .- 10.0 for _ in 1:N]
@@ -379,7 +379,7 @@ sl = Vector{Vector{Int}}()
 P = manifoldProduct([P2;P1;P3], recordLabels=true, selectedLabels=sl, addEntropy=false)
 
 (x->println()).(1:5)
-@show sl;
+# @show sl;
 P
 
 ## check the results
@@ -421,7 +421,7 @@ end
 ## random data
 
 d = 3
-N = 10
+N = 50
 M = TranslationGroup(3)
 
 pts1 = [randn(d) .- 10.0 for _ in 1:N]
@@ -440,7 +440,7 @@ sl = Vector{Vector{Int}}()
 P = manifoldProduct([P1;P2;P3], recordLabels=true, selectedLabels=sl, addEntropy=false)
 
 (x->println()).(1:5)
-@show sl;
+# @show sl;
 P
 
 ## check the results
@@ -481,7 +481,7 @@ end
 ## random data
 
 d = 3
-N = 10
+N = 50
 M = TranslationGroup(3)
 
 pts1 = [randn(d) .- 10.0 for _ in 1:N]
@@ -498,7 +498,7 @@ sl = Vector{Vector{Int}}()
 P = manifoldProduct([P1;P3], recordLabels=true, selectedLabels=sl, addEntropy=false)
 
 (x->println()).(1:5)
-@show sl;
+# @show sl;
 P
 
 ## check the results
