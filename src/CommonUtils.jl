@@ -106,7 +106,7 @@ function calcProductGaussians(M::AbstractManifold,
   ΛΔμ = zeros(MVector{dim})
   for (s,u) in zip(Λ_, μ_)
     # require vee as per Pennec, Caesar Ref [3.6]
-    Δuvee = vee(M, u0, log(M, u0, u))
+    @show Δuvee = vee(M, u0, log(M, u0, u))
     ΛΔμ += s*Δuvee
   end
 
