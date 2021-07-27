@@ -295,18 +295,18 @@ d = 2
 M = TranslationGroup(d)
 
 pts4 = [randn(d) .- 10.0 for _ in 1:N]
-(x->x[2]=-100.0).(pts4)
+(x->x[2]-=90.0).(pts4)
 pts5 = [randn(d) .+ 10.0 for _ in 1:N]
-(x->x[1]=100.0).(pts5)
+(x->x[1]+=90.0).(pts5)
 
 P4 = marginal(manikde!(M, pts4), [1;])
 P5 = marginal(manikde!(M, pts5), [d;])
 
 # test duplication
 pts4_ = [randn(d) .- 10.0 for _ in 1:N]
-(x->x[2]=-100.0).(pts4_)
+(x->x[2]-=90.0).(pts4_)
 pts5_ = [randn(d) .+ 10.0 for _ in 1:N]
-(x->x[1]=100.0).(pts5_)
+(x->x[1]+=90.0).(pts5_)
 
 P4_ = marginal(manikde!(M, pts4_), [1;])
 P5_ = marginal(manikde!(M, pts5_), [d;])
@@ -324,10 +324,11 @@ P45__
 
 ## check the selection of labels and resulting Gaussian products are correct
 
-println("getPoints(P45__) = ")
-getPoints(P45__) .|> println
-println()
+# println("getPoints(P45__) = ")
+# getPoints(P45__) .|> println
+# println()
 
+# sidx = 1
 for sidx in 1:N
 
   bw1 = getBW(P4)[:,1] .^2
