@@ -110,7 +110,7 @@ function manifoldProduct( ff::AbstractVector{<:ManifoldKernelDensity},
     for i in 1:N
       selectedLabels[i] = Int[]
       for j in 1:length(ff)
-        push!(selectedLabels[i], lc[i][j][nLevels] - Npts(ff[j]))
+        push!(selectedLabels[i], lc[i][j][nLevels])
       end
     end
   end

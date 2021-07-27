@@ -117,13 +117,25 @@ function calcProductGaussians(M::AbstractManifold,
   return exp(M, u0, hat(M, u0, Δμ)), inv(Λ) 
 end
 
+# additional support case where covariances are passed as diagonal-only vectors 
+# still pass nothing, to avoid stack overflow.  Only Λ_ is needed further
+calcProductGaussians( M::AbstractManifold, 
+                      μ_::Union{<:AbstractVector{P},<:NTuple{N,P}},
+                      Σ_::Union{<:AbstractVector{S},<:NTuple{N,S}};
+                        dim::Integer=manifold_dimension(M),
+                      Λ_ = map(s->diagm( 1.0 ./ s), Σ_),
+                      ) where {N,P,S<:AbstractVector} = calcProductGaussians(M, μ_, nothing; dim=dim, Λ_=Λ_ )
+#
 
 calcProductGaussians( M::AbstractManifold, 
                       μ_::Union{<:AbstractVector{P},<:NTuple{N,P}};
                         dim::Integer=manifold_dimension(M),
-                      Λ_ = [diagm(ones(dim)) for _ in 1:length(μ_)],
+                      Λ_ = diagm.( (1.0 ./ μ_) ),
                       ) where {N,P} = calcProductGaussians(M, μ_, nothing; dim=dim, Λ_=Λ_ )
 #
+
+
+
 
 # """
 #     $SIGNATURES

@@ -2,9 +2,25 @@
 using Manifolds
 using ApproxManifoldProducts
 using TensorCast
+using LinearAlgebra
 using Test
 
 ##
+
+@testset "test calcProductGaussians" begin
+##
+
+M = TranslationGroup(2)
+u = [[1;1.0], [0.0;0]]
+c = [([1.0;1]), ([1.0;1])]
+
+u_, C_ = calcProductGaussians(M, u, c)
+@test isapprox( u_, [0.5, 0.5])
+@test isapprox( C_, [0.5 0.0; 0.0 0.5])
+
+##
+end
+
 
 @testset "comparison test with basic product" begin
 ## simply multiply two beliefs, sim2
@@ -15,19 +31,19 @@ M = TranslationGroup(d)
 
 #densities to multiply
 pts1 = [randn(d) for _ in 1:N]
-P1 = manikde!(M, pts1)
+P1 = manikde!(M, pts1, bw=[1;1.0])
 
 pts2 = [randn(d)  for _ in 1:N]
-P2 = manikde!(M, pts2)
+P2 = manikde!(M, pts2, bw=[1;1.0])
 
 ##
 
 sl = Vector{Vector{Int}}()
 
-P12 = manifoldProduct([P1;P2], recordLabels=true, selectedLabels=sl)
+P12 = manifoldProduct([P1;P2], recordLabels=true, selectedLabels=sl, addEntropy=false)
 
-@test isapprox( mean(P12)[1], 0, atol=1 )
-@test isapprox( mean(P12)[2], 0, atol=1 )
+# @test isapprox( mean(P12)[1], 0, atol=1 )
+# @test isapprox( mean(P12)[2], 0, atol=1 )
 
 (x->println()).(1:5)
 @show sl;
@@ -35,12 +51,21 @@ P12 = manifoldProduct([P1;P2], recordLabels=true, selectedLabels=sl)
 P12
 
 
-## validate selected labels are working properly...
+## validate selected labels are working properly, with addEntropy=false
 
+for sidx in 1:N
 
+  bw1 = getBW(P1)[:,1] .^ 2
+  bw2 = getBW(P2)[:,1] .^ 2
 
+  u1 = pts1[sl[sidx][1]]
+  u2 = pts2[sl[sidx][2]]
 
+  u12, = calcProductGaussians(M, [u1,u2], [bw1,bw2]);
 
+  @test isapprox( u12, getPoints(P12)[sidx] )
+
+end
 
 ##
 end
@@ -65,7 +90,7 @@ P2_ = manikde!(M, pts2, partial=[1;])
 
 sl = Vector{Vector{Int}}()
 
-P12_ = manifoldProduct([P1;P2_], recordLabels=true, selectedLabels=sl)
+P12_ = manifoldProduct([P1;P2_], recordLabels=true, selectedLabels=sl, addEntropy=false)
 
 @test isapprox( mean(P12_)[1], 0, atol=1 )
 @test isapprox( mean(P12_)[2], 0, atol=1 )
@@ -74,6 +99,23 @@ P12_ = manifoldProduct([P1;P2_], recordLabels=true, selectedLabels=sl)
 @show sl
 
 P12_
+
+##
+
+for sidx in 1:N
+
+  bw1 = getBW(P1)[:,1] .^2
+  bw2 = getBW(P2_)[:,1] .^2
+
+  u1 = pts1[sl[sidx][1]]
+  u2 = pts2[sl[sidx][2]]
+
+  u12, = calcProductGaussians(M, [u1,u2], [bw1,bw2]);
+
+  @test isapprox( u12[1], getPoints(P12_)[sidx][1] , atol=0.1)
+  @test isapprox( pts1[sl[sidx][1]][2], getPoints(P12_)[sidx][2] )
+
+end
 
 ##
 end
