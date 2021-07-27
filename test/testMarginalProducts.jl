@@ -265,8 +265,8 @@ P_ = manifoldProduct([P1;P3], recordLabels=true, selectedLabels=sl, addEntropy=f
 pts = getPoints(P_)
 @cast pGM[i,j] := pts[j][i]
 
-@test 0.7*N < sum(-12 .< pGM[1,:] .< -8)
-@test 0.7*N < sum(  8 .< pGM[2,:] .< 12 )
+@test 0.7*N < sum(-13 .< pGM[1,:] .< -7)
+@test 0.7*N < sum(  7 .< pGM[2,:] .< 13 )
 
 ## check the selection of labels and resulting Gaussian products are correct
 
