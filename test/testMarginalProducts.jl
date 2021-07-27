@@ -354,7 +354,6 @@ end
 end
 
 
-
 @testset "test dim=3 product with one full and two different marginals" begin
 ## random data
 
@@ -419,7 +418,7 @@ end
 end
 
 
-@testset "test dim=3 product with one full and two different marginals" begin
+@testset "test dim=3 product with one full and two different marginals (marginal first in product)" begin
 ## random data
 
 d = 3
@@ -462,14 +461,13 @@ for sidx in 1:N
   bw3 = getBW(P3)[:,1] .^2
 
   # full density first
-  u1 = pts2[sl[sidx][1]]
-  u2 = pts1[sl[sidx][2]]
+  u1 = pts1[sl[sidx][1]]
+  u2 = pts2[sl[sidx][2]]
   u3 = pts3[sl[sidx][3]]
 
   u12, = calcProductGaussians(M, [u1,u2], [bw1,bw2]);
   u23, = calcProductGaussians(M, [u2,u3], [bw2,bw3]);
 
-  @show sidx u12[1] getPoints(P)[sidx][1]
   @test isapprox( u12[1], getPoints(P)[sidx][1])
   @test isapprox(  u2[2], getPoints(P)[sidx][2])
   @test isapprox( u23[3], getPoints(P)[sidx][3])
@@ -480,10 +478,56 @@ end
 end
 
 
+@testset "test dim=3 product with two different marginals and one open dimension" begin
+## random data
 
-@test_broken false
-# P = manifoldProduct([P1;P2;P3])
-@error "manifoldProduct needs complete point type for keyword `oldPoints`, current tests assume no marginal beliefs at front of product array"
+d = 3
+N = 10
+M = TranslationGroup(3)
+
+pts1 = [randn(d) .- 10.0 for _ in 1:N]
+pts3 = [randn(d) .+ 10.0 for _ in 1:N]
+
+## get different marginals
+
+P1 = marginal(manikde!(pts1, M), [1;])
+P3 = marginal(manikde!(pts3, M), [d;])
+
+##
+
+sl = Vector{Vector{Int}}()
+P = manifoldProduct([P1;P3], recordLabels=true, selectedLabels=sl, addEntropy=false)
+
+(x->println()).(1:5)
+@show sl;
+P
+
+## check the results
+
+pts = getPoints(P)
+@cast pGM[i,j] := pts[j][i]
+
+@test 0.7*N < sum(-13 .< pGM[1,:] .< -8 )
+@test 0.7*N < sum(  8 .< pGM[3,:] .< 12 )
+
+## check the selection of labels and resulting Gaussian products are correct
+
+for sidx in 1:N
+
+  bw1 = getBW(P1)[:,1] .^2
+  bw3 = getBW(P3)[:,1] .^2
+
+  # full density first
+  u1 = pts1[sl[sidx][1]]
+  u3 = pts3[sl[sidx][2]]
+
+  @test isapprox( u1[1], getPoints(P)[sidx][1])
+  @test isapprox( u3[3], getPoints(P)[sidx][3])
+
+end
+
+##
+end
 
 
 
