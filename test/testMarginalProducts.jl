@@ -74,7 +74,7 @@ end
 @testset "test dim=2 product with one partial/marginal" begin
 ## basic test one full with one partial
 
-N = 10
+N = 50
 d = 2
 M = TranslationGroup(d)
 
@@ -96,7 +96,7 @@ P12_ = manifoldProduct([P1;P2_], recordLabels=true, selectedLabels=sl, addEntrop
 @test isapprox( mean(P12_)[2], 0, atol=1 )
 
 (x->println()).(1:5)
-@show sl
+# @show sl
 
 P12_
 
@@ -124,7 +124,7 @@ end
 @testset "test dim=2 product with one full and two similar marginals" begin
 ## basic test one full with one partial
 
-N = 5
+N = 50
 d = 2
 M = TranslationGroup(d)
 
@@ -151,7 +151,7 @@ P123_ = manifoldProduct([P1;P2_;P3_], recordLabels=true, selectedLabels=sl, addE
 @test isapprox( mean(P123_)[2], 0, atol=1 )
 
 (x->println()).(1:5)
-@show sl
+# @show sl
 
 P123_
 
@@ -343,7 +343,7 @@ for sidx in 1:N
   u12, = calcProductGaussians(M, [u1,u2], [bw1,bw2]);
   u34, = calcProductGaussians(M, [u3,u4], [bw3,bw4]);
 
-  @show u12[1], u34[2]
+  # @show u12[1], u34[2]
   @test isapprox( u12[1], getPoints(P45__)[sidx][1])
   @test isapprox( u34[2], getPoints(P45__)[sidx][2])
 
