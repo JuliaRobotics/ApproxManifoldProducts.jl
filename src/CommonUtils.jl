@@ -97,18 +97,17 @@ function calcProductGaussians(M::AbstractManifold,
   #
   # calc sum of covariances  
   Λ = zeros(MMatrix{dim,dim})
-  @show Λ = sum(Λ_)
+  Λ = sum(Λ_)
   
   # Tangent space reference around the evenly weighted mean of incoming points
-  @show u0 = mean(M, μ_)
+  u0 = mean(M, μ_)
 
   # calc the covariance weighted delta means of incoming points and covariances
-  @show ΛΔμ = zeros(MVector{dim})
+  ΛΔμ = zeros(MVector{dim})
   for (s,u) in zip(Λ_, μ_)
     # require vee as per Pennec, Caesar Ref [3.6]
-    @show s
-    @show Δuvee = vee(M, u0, log(M, u0, u))
-    @show ΛΔμ += s*Δuvee
+    Δuvee = vee(M, u0, log(M, u0, u))
+    ΛΔμ += s*Δuvee
   end
 
   # calculate the delta mean
