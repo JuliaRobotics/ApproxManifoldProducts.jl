@@ -17,6 +17,13 @@ function Statistics.mean(mkd::ManifoldKernelDensity, aspartial::Bool=true)
   mean(mkd.manifold, getPoints(mkd, aspartial))
 end
 
+"""
+    $SIGNATURES
+
+Alias for overloaded `Statistics.mean`.
+"""
+calcMean(mkd::ManifoldKernelDensity, aspartial::Bool=true) = mean(mkd, aspartial)
+
 
 function Base.show(io::IO, mkd::ManifoldKernelDensity{M,B,L,P}) where {M,B,L,P}
   printstyled(io, "ManifoldKernelDensity{", bold=true, color=:blue )
@@ -203,13 +210,6 @@ end
 
 Base.convert(::Type{B}, mkd::ManifoldKernelDensity{M,B}) where {M,B<:BallTreeDensity} = mkd.belief
 
-
-
-function calcMean(mkd::ManifoldKernelDensity{M}) where {M <: ManifoldsBase.AbstractManifold}
-  data = getPoints(mkd)
-  # Returns the mean point on manifold for consitency
-  mean(mkd.manifold, data)  
-end
 
 
 #

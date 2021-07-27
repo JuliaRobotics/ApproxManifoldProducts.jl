@@ -16,7 +16,7 @@ using NLsolve
 import Optim
 using CoordinateTransformations
 using Requires
-using SLEEFPirates
+# using SLEEFPirates
 using LinearAlgebra
 using TensorCast
 using StaticArrays
@@ -56,7 +56,7 @@ export
   getKDEManifoldBandwidths,
   manifoldProduct,
   manikde!,
-  calcVariableCovarianceBasic,
+  calcCovarianceBasic,
   isPartial,
   mean,
   calcProductGaussians
