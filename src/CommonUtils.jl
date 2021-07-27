@@ -107,7 +107,7 @@ function calcProductGaussians(M::AbstractManifold,
   for (s,u) in zip(Λ_, μ_)
     # require vee as per Pennec, Caesar Ref [3.6]
     @show Δuvee = vee(M, u0, log(M, u0, u))
-    ΛΔμ += s*Δuvee
+    @show ΛΔμ += s*Δuvee
   end
 
   # calculate the delta mean
