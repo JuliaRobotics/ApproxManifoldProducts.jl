@@ -16,7 +16,7 @@ using NLsolve
 import Optim
 using CoordinateTransformations
 using Requires
-using SLEEFPirates
+# using SLEEFPirates
 using LinearAlgebra
 using TensorCast
 using StaticArrays
