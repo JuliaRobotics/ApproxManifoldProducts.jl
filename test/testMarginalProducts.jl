@@ -190,9 +190,9 @@ pts3 = [randn(2) .+ 10.0 for _ in 1:N]
 
 # get different marginals
 
-P1 = marginal(manikde!(pts1, M), [1;])
-P2 =          manikde!(pts2, M)
-P3 = marginal(manikde!(pts3, M), [2;])
+P1 = marginal(manikde!(M, pts1), [1;])
+P2 =          manikde!(M, pts2)
+P3 = marginal(manikde!(M, pts3), [2;])
 
 ##
 
@@ -248,8 +248,8 @@ pts3 = [randn(2) .+ 10.0 for _ in 1:N]
 
 # different marginals
 
-P1 = marginal(manikde!(pts1, M), [1;])
-P3 = marginal(manikde!(pts3, M), [2;])
+P1 = marginal(manikde!(M, pts1), [1;])
+P3 = marginal(manikde!(M, pts3), [2;])
 
 ## 
 
@@ -299,8 +299,8 @@ pts4 = [randn(d) .- 10.0 for _ in 1:N]
 pts5 = [randn(d) .+ 10.0 for _ in 1:N]
 (x->x[1]=100.0).(pts5)
 
-P4 = marginal(manikde!(pts4, M), [1;])
-P5 = marginal(manikde!(pts5, M), [d;])
+P4 = marginal(manikde!(M, pts4), [1;])
+P5 = marginal(manikde!(M, pts5), [d;])
 
 # test duplication
 pts4_ = [randn(d) .- 10.0 for _ in 1:N]
@@ -308,8 +308,8 @@ pts4_ = [randn(d) .- 10.0 for _ in 1:N]
 pts5_ = [randn(d) .+ 10.0 for _ in 1:N]
 (x->x[1]=100.0).(pts5_)
 
-P4_ = marginal(manikde!(pts4_, M), [1;])
-P5_ = marginal(manikde!(pts5_, M), [d;])
+P4_ = marginal(manikde!(M, pts4_), [1;])
+P5_ = marginal(manikde!(M, pts5_), [d;])
 
 ##
 
@@ -366,9 +366,9 @@ pts3 = [randn(d) .+ 10.0 for _ in 1:N]
 
 ## get different marginals
 
-P1 = marginal(manikde!(pts1, M), [1;])
-P2 =          manikde!(pts2, M)
-P3 = marginal(manikde!(pts3, M), [d;])
+P1 = marginal(manikde!(M, pts1), [1;])
+P2 =          manikde!(M, pts2)
+P3 = marginal(manikde!(M, pts3), [d;])
 
 ##
 
@@ -430,9 +430,9 @@ pts3 = [randn(d) .+ 10.0 for _ in 1:N]
 
 ## get different marginals
 
-P1 = marginal(manikde!(pts1, M), [1;])
-P2 =          manikde!(pts2, M)
-P3 = marginal(manikde!(pts3, M), [d;])
+P1 = marginal(manikde!(M, pts1), [1;])
+P2 =          manikde!(M, pts2)
+P3 = marginal(manikde!(M, pts3), [d;])
 
 ##
 
@@ -489,8 +489,8 @@ pts3 = [randn(d) .+ 10.0 for _ in 1:N]
 
 ## get different marginals
 
-P1 = marginal(manikde!(pts1, M), [1;])
-P3 = marginal(manikde!(pts3, M), [d;])
+P1 = marginal(manikde!(M, pts1), [1;])
+P3 = marginal(manikde!(M, pts3), [d;])
 
 ##
 
