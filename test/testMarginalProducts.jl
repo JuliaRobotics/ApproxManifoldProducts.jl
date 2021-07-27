@@ -147,8 +147,8 @@ sl = Vector{Vector{Int}}()
 
 P123_ = manifoldProduct([P1;P2_;P3_], recordLabels=true, selectedLabels=sl, addEntropy=false)
 
-@test isapprox( mean(P12_)[1], 0, atol=1 )
-@test isapprox( mean(P12_)[2], 0, atol=1 )
+@test isapprox( mean(P123_)[1], 0, atol=1 )
+@test isapprox( mean(P123_)[2], 0, atol=1 )
 
 (x->println()).(1:5)
 @show sl
@@ -160,7 +160,7 @@ P123_
 for sidx in 1:N
 
   bw1 = getBW(P1)[:,1] .^2
-  bw2 = getBW(P2)[:,1] .^2
+  bw2 = getBW(P2_)[:,1] .^2
   bw3 = getBW(P3_)[:,1] .^2
 
   u1 = pts1[sl[sidx][1]]
@@ -182,14 +182,13 @@ end
 ## random data
 
 N = 10
+M = TranslationGroup(2)
 
 pts1 = [randn(2) .- 10.0 for _ in 1:N]
 pts2 = [randn(2) for _ in 1:N]
 pts3 = [randn(2) .+ 10.0 for _ in 1:N]
 
-## get different marginals
-
-M = TranslationGroup(2)
+# get different marginals
 
 P1 = marginal(manikde!(pts1, M), [1;])
 P2 =          manikde!(pts2, M)
@@ -388,8 +387,8 @@ P
 pts = getPoints(P)
 @cast pGM[i,j] := pts[j][i]
 
-@test 0.8*N < sum(-10 .< pGM[1,:] .< 0)
-@test 0.8*N < sum(0 .< pGM[3,:] .< 10 )
+@test 0.7*N < sum(-10 .< pGM[1,:] .< 0)
+@test 0.7*N < sum(  0 .< pGM[3,:] .< 10 )
 
 
 ## check the selection of labels and resulting Gaussian products are correct
