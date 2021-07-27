@@ -91,6 +91,12 @@ function ManifoldKernelDensity( M::MB.AbstractManifold,
   manis = convert(Tuple, M)
   # find or have the bandwidth
   _bw = bw === nothing ? getKDEManifoldBandwidths(arr, manis ) : bw
+  # NOTE workaround for partials and user did not specify a bw
+  if bw === nothing && partial !== nothing
+    mask = ones(Int, length(_bw)) .== 1
+    mask[partial] .= false
+    _bw[mask] .= 1.0
+  end
   addopT, diffopT, _, _ = buildHybridManifoldCallbacks(manis)
   bel = KernelDensityEstimate.kde!(arr, _bw, addopT, diffopT)
   return ManifoldKernelDensity(M, bel, partial, u0, infoPerCoord)
