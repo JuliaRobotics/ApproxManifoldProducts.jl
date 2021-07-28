@@ -127,6 +127,13 @@ using ApproxManifoldProducts
 
 # a familiar manifold of translation and rotation in 2D
 M = SpecialEuclidean(2)
+
+
+# make a new partial of only the translation components
+M_x, _ = getManifoldPartial(M,[1;])
+# returns a new TranslationGroup(1) information corresponding to x
+
+
 # representation is semidirect product of translation and rotation matrix
 u0 = ProductRepr([0.0;0],[1 0; 0 1.0])
 
@@ -134,16 +141,12 @@ u0 = ProductRepr([0.0;0],[1 0; 0 1.0])
 #   vee(M,identity(M,u0),log(M,identity(M,u0),u0))
 #   [0;0;0] in this example
 
-# make a new partial of only the translation components
-M_x, u_x = getManifoldPartial(M,u0,[1;])
-# returns a new TranslationGroup(1) information corresponding to x
-
 # make another new partial of only the rotation component
-M_rot, u_rot = getManifoldPartial(M,u0,[3])
+M_rot, u_rot = getManifoldPartial(M,[3],u0)
 # returns SpecialOrthogonal(2) information
 
 # make another new partial of only  y and θ
-M_yθ, u_yθ = getManifoldPartial(M,u0,[2;3])
+M_yθ, u_yθ = getManifoldPartial(M,[2;3],u0)
 # returns new manifold information as ProductArray(TranslationGroup(1),SpecialOrthogonal(2))
 ```
 
