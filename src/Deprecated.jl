@@ -1,6 +1,20 @@
 
 
 ## ======================================================================================================
+## Remove below before v0.6
+## ======================================================================================================
+
+
+# function calcMean(mkd::ManifoldKernelDensity{M}) where {M <: ManifoldsBase.AbstractManifold}
+#   data = getPoints(mkd)
+#   # Returns the mean point on manifold for consitency
+#   mean(mkd.manifold, data)  
+# end
+
+
+@deprecate calcVariableCovarianceBasic(M::AbstractManifold, vecP::Vector{P}) where P calcCovarianceBasic(M, vecP)
+
+## ======================================================================================================
 ## Remove below before v0.5
 ## ======================================================================================================
 
