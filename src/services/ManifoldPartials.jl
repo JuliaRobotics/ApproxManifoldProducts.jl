@@ -131,8 +131,7 @@ M = SpecialEuclidean(2)
 
 # make a new partial of only the translation components
 M_x, _ = getManifoldPartial(M,[1;])
-# returns a new TranslationGroup(1) information corresponding to x
-
+# returns a new TranslationGroup(1) corresponding to just x dimension
 
 # representation is semidirect product of translation and rotation matrix
 u0 = ProductRepr([0.0;0],[1 0; 0 1.0])
