@@ -137,4 +137,32 @@ p12 = getPoints(P12)
 end
 
 
+@testset "test marginal of marginal (partial) helper" begin
+##
+
+M = TranslationGroup(3)
+pts = [randn(3) for _ in 1:75]
+
+X = manikde!(M, pts, partial=[1;3])
+
+X_ = marginal(X, [3])
+
+ps3 = getPoints(X_)
+
+for (i,pt) in enumerate(pts)
+  @test isapprox(ps3[i][1], pt[3])
+end
+
+try
+  M = TranslationGroup(4)
+  # check the constructor when only a few points are available
+  X = manikde(M, pts, partial=[1;3;4])
+catch
+  @test_broken false
+end
+
+##
+end
+
+
 #
