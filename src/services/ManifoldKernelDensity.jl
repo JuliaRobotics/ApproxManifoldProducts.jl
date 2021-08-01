@@ -45,7 +45,7 @@ function Base.show(io::IO, mkd::ManifoldKernelDensity{M,B,L,P}) where {M,B,L,P}
   print(io, "  dims:  ", Ndim(mkd.belief))
   printstyled(io, isPartial(mkd) ? "* --> $(length(mkd._partial))" : "", bold=true)
   println(io)
-  println(io, "  prtl:  ", mkd._partial)
+  println(io, "  prtl:   ", mkd._partial)
   bw = getBW(mkd.belief)[:,1]
   pvec = isPartial(mkd) ? mkd._partial : collect(1:length(bw))
   println(io, "  bws:   ", bw[pvec] .|> x->round(x,digits=4))
@@ -53,7 +53,7 @@ function Base.show(io::IO, mkd::ManifoldKernelDensity{M,B,L,P}) where {M,B,L,P}
   try
     # mn = mean(mkd.manifold, getPoints(mkd, false))
     mn = mean(mkd)
-    println(io, "   mean:  ", round.(mn',digits=4))
+    println(io, "   mean: ", round.(mn',digits=4))
   catch
   end
   println(io, ")")
@@ -144,10 +144,11 @@ function marginal(x::ManifoldKernelDensity{M,B},
 end
 
 function marginal(x::ManifoldKernelDensity{M,B,L}, 
-  dims::AbstractVector{<:Integer}  ) where {M <: AbstractManifold , B, L <: AbstractVector{<:Integer}}
-#
-ldims::Vector{Int} = collect(L[dims])
-ManifoldKernelDensity(x.manifold, x.belief, ldims, x._u0)
+                  dims::AbstractVector{<:Integer}  ) where {M <: AbstractManifold , B, L <: AbstractVector{<:Integer}}
+  #
+  # @show dims x._partial
+  ldims::Vector{Int} = intersect(x._partial, dims)
+  ManifoldKernelDensity(x.manifold, x.belief, ldims, x._u0)
 end
 # manis = convert(Tuple, x.manifold)
 # partMani = _reducePartialManifoldElements(manis[dims])
