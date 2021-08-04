@@ -165,4 +165,32 @@ end
 end
 
 
+@testset "test replace overloads full and partial/marginal" begin
+##
+
+M = TranslationGroup(3)
+pts0 = [zeros(3) for _ in 1:75]
+X0 = manikde!(M, pts0, bw=zeros(3))
+
+pts = [randn(3) for _ in 1:75]
+X = manikde!(M, pts)
+
+##
+
+X_ = replace(X0, X)
+
+@test isapprox(X_, X)
+
+##
+
+X = manikde!(M, pts, partial=[1;3])
+X_ = replace(X0, X)
+
+
+## must also test replace for partial into different partial
+
+##
+end
+
+
 #
