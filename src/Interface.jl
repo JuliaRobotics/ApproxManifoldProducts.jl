@@ -1,9 +1,11 @@
 # Interface
 
+import Base: copy!
 import ManifoldsBase: identity
 
 export makeCoordsFromPoint, makePointFromCoords, getNumberCoords
 export identity
+export copy!
 
 # Deprecate in favor of TranslationGroup instead
 ManifoldsBase.identity(::Euclidean{Tuple{N}}, val::AbstractVector{T}) where {N, T <: Number} = zeros(T, N)
@@ -64,6 +66,94 @@ function _pointsToMatrixCoords(M::MB.AbstractManifold, pts::AbstractVector{P}) w
 end
 
 
+
+# default replace non-partial/non-marginal values
+# TODO optimize in-place performance later (currently not fully in-place yet)
+function Base.copy!(dest::ManifoldKernelDensity{M,<:BallTreeDensity,Nothing}, 
+                    src::ManifoldKernelDensity{M,<:BallTreeDensity,Nothing} 
+                    ) where {M<:AbstractManifold}
+  #
+  # TODO future do better way on copy of arbitrary belief containers
+  dest.belief = deepcopy(src.belief)
+  dest.infoPerCoord .= src.infoPerCoord
+  _setPointsMani!(dest._u0, src._u0)
+
+  dest
+end
+
+# replace dest non-partial with incoming partial values
+function Base.copy!(dest::ManifoldKernelDensity{M,<:BallTreeDensity,Nothing}, 
+                    src::ManifoldKernelDensity{M,<:BallTreeDensity,<:AbstractVector} 
+                    ) where {M<:AbstractManifold}
+  #
+  pl = src._partial
+  oldPts = getPoints(dest.belief)
+  # get source partial points only 
+  newPts = getPoints(src.belief)
+  @assert size(newPts,2) == size(oldPts,2) "this copy! currently requires the number of points to be the same, dest=$(size(oldPts,2)), src=$(size(newPts,2))"
+  for i in 1:size(oldPts, 2)
+    oldPts[pl,i] .= newPts[pl,i]
+  end
+  # and new bandwidth
+  oldBw = getBW(dest.belief)[:,1]
+  oldBw[pl] .= getBW(src.belief)[pl,1]
+
+  # finaly update the belief with a new container
+  newBel = kde!(oldPts, oldBw)
+  dest.belief = newBel
+
+  # also set the metadata values
+  dest.infoPerCoord .= src.infoPerCoord
+  # and _u0 point is a bit more tricky
+  c0 = vee(dest.manifold, dest._u0, log(dest.manifold, dest._u0, dest._u0))
+  c_ = vee(dest.manifold, dest._u0, log(dest.manifold, dest._u0, src._u0))
+  c0[pl] .= c_[pl]
+  u0 = exp(dest.manifold, dest._u0, hat(dest.manifold, dest._u0, c0))
+  dest._u0 = u0
+
+  # return the update destimation ManifoldKernelDensity object
+  dest
+end
+
+
+# replace partial/marginal with different incoming partial values
+function Base.copy!(dest::ManifoldKernelDensity{M,<:BallTreeDensity,<:AbstractVector}, 
+                    src::ManifoldKernelDensity{M,<:BallTreeDensity,<:AbstractVector} 
+                    ) where {M<:AbstractManifold}
+  #
+  pl = src._partial
+  oldPts = getPoints(dest.belief)
+  # get source partial points only 
+  newPts = getPoints(src.belief)
+  @assert size(newPts,2) == size(oldPts,2) "this copy! currently requires the number of points to be the same, dest=$(size(oldPts,2)), src=$(size(newPts,2))"
+  for i in 1:size(oldPts, 2)
+    oldPts[pl,i] .= newPts[pl,i]
+  end
+  # and new bandwidth
+  oldBw = getBW(dest.belief)[:,1]
+  oldBw[pl] .= getBW(src.belief)[pl,1]
+
+  # finaly update the belief with a new container
+  newBel = kde!(oldPts, oldBw)
+  dest.belief = newBel
+
+  # also set the metadata values
+  dest.infoPerCoord .= src.infoPerCoord
+  # and _u0 point is a bit more tricky
+  c0 = vee(dest.manifold, dest._u0, log(dest.manifold, dest._u0, dest._u0))
+  c_ = vee(dest.manifold, dest._u0, log(dest.manifold, dest._u0, src._u0))
+  c0[pl] .= c_[pl]
+  u0 = exp(dest.manifold, dest._u0, hat(dest.manifold, dest._u0, c0))
+  dest._u0 = u0
+
+  # and update the partial information
+  pl_ = union(pl, src._partial)
+  resize!(dest._partial, length(pl_))
+  dest._partial .= pl_
+
+  # return the update destimation ManifoldKernelDensity object
+  dest
+end
 
 
 ##============================================================================================================

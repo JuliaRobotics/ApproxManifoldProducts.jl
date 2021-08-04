@@ -163,7 +163,6 @@ DevNotes
 function productbelief( denspts::AbstractVector{P},
                         manifold::MB.AbstractManifold,
                         dens::Vector{<:ManifoldKernelDensity},
-                        # partials::Dict{Any, <:AbstractVector{<:ManifoldKernelDensity}},
                         N::Int;
                         asPartial::Bool=false,
                         dbg::Bool=false,
