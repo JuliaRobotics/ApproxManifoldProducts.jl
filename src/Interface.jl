@@ -7,9 +7,9 @@ export makeCoordsFromPoint, makePointFromCoords, getNumberCoords
 export identity
 export replace
 
-# Deprecate in favor of TranslationGroup instead
-ManifoldsBase.identity_element(::Euclidean{Tuple{N}}, val::AbstractVector{T}) where {N, T <: Number} = zeros(T, N)
-ManifoldsBase.identity_element(::Circle, val::AbstractVector{T}) where {T <: Real} = zeros(T, 1)
+# Deprecate in favor of TranslationGroup instead, also type piracy
+Manifolds.identity_element(::Euclidean{Tuple{N}}, val::AbstractVector{T}) where {N, T <: Number} = zeros(T, N)
+Manifolds.identity_element(::Circle, val::AbstractVector{T}) where {T <: Real} = zeros(T, 1)
 
 """
     $SIGNATURES
