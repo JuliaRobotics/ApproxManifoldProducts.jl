@@ -14,10 +14,32 @@ export calcMean
 
 ManifoldKernelDensity(mani::M, 
                       bel::B, 
-                      partial::L=nothing, 
+                      ::Nothing=nothing, 
                       u0::P=zeros(manifold_dimension(mani));
-                      infoPerCoord::AbstractVector{<:Real}=ones(getNumberCoords(mani, u0)) ) where {M <: MB.AbstractManifold, B <: BallTreeDensity, L, P} = ManifoldKernelDensity{M,B,L,P}(mani,bel,partial,u0,infoPerCoord)
+                      infoPerCoord::AbstractVector{<:Real}=ones(getNumberCoords(mani, u0)) ) where {M <: MB.AbstractManifold, B <: BallTreeDensity, P} = ManifoldKernelDensity{M,B,Nothing,P}(mani,bel,nothing,u0,infoPerCoord)
 #
+
+function ManifoldKernelDensity( mani::M, 
+                                bel::B, 
+                                partial::L, 
+                                u0::P=zeros(manifold_dimension(mani));
+                                infoPerCoord::AbstractVector{<:Real}=ones(getNumberCoords(mani, u0)) ) where {M <: MB.AbstractManifold, B <: BallTreeDensity, L<:AbstractVector{<:Integer}, P}
+  #
+  if length(partial) != manifold_dimension(mani)
+    # call the constructor direct
+    return ManifoldKernelDensity{M,B,L,P}(mani,bel,partial,u0,infoPerCoord)
+  else
+    # full manifold, therefore equivalent to L::Nothing
+    return ManifoldKernelDensity(mani,bel,nothing,u0;infoPerCoord=infoPerCoord)
+  end
+end
+
+ManifoldKernelDensity(mani::M, 
+                      bel::B, 
+                      pl_mask::Union{<:BitVector,<:AbstractVector{<:Bool}}, 
+                      u0::P=zeros(manifold_dimension(mani));
+                      infoPerCoord::AbstractVector{<:Real}=ones(getNumberCoords(mani, u0)) ) where {M <: MB.AbstractManifold, B <: BallTreeDensity, P} = ManifoldKernelDensity(mani,bel,(1:manifold_dimension(mani))[pl_mask],u0;infoPerCoord=infoPerCoord)
+
 
 function ManifoldKernelDensity( M::MB.AbstractManifold,
                                 vecP::AbstractVector{P},
