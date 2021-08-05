@@ -7,6 +7,61 @@ export sample, rand, resample, kld, minkld
 export calcMean
 
 
+## ==========================================================================================
+## helper functions to contruct MKD objects
+## ==========================================================================================
+
+
+ManifoldKernelDensity(mani::M, 
+                      bel::B, 
+                      partial::L=nothing, 
+                      u0::P=zeros(manifold_dimension(mani));
+                      infoPerCoord::AbstractVector{<:Real}=ones(getNumberCoords(mani, u0)) ) where {M <: MB.AbstractManifold, B <: BallTreeDensity, L, P} = ManifoldKernelDensity{M,B,L,P}(mani,bel,partial,u0,infoPerCoord)
+#
+
+function ManifoldKernelDensity( M::MB.AbstractManifold,
+                                vecP::AbstractVector{P},
+                                u0=vecP[1];
+                                partial::L=nothing,
+                                infoPerCoord::AbstractVector{<:Real}=ones(getNumberCoords(M, u0)),
+                                dims::Int=manifold_dimension(M),
+                                bw::Union{<:AbstractVector{<:Real},Nothing}=nothing  ) where {P,L}
+  #
+  # FIXME obsolete
+  arr = Matrix{Float64}(undef, dims, length(vecP))
+  ϵ = identity(M, vecP[1])
+
+  for j in 1:length(vecP)
+    arr[:,j] = vee(M, ϵ, log(M, ϵ, vecP[j]))
+  end
+
+  manis = convert(Tuple, M)
+  # find or have the bandwidth
+  _bw = bw === nothing ? getKDEManifoldBandwidths(arr, manis ) : bw
+  # NOTE workaround for partials and user did not specify a bw
+  if bw === nothing && partial !== nothing
+    mask = ones(Int, length(_bw)) .== 1
+    mask[partial] .= false
+    _bw[mask] .= 1.0
+  end
+  addopT, diffopT, _, _ = buildHybridManifoldCallbacks(manis)
+  bel = KernelDensityEstimate.kde!(arr, _bw, addopT, diffopT)
+  return ManifoldKernelDensity(M, bel, partial, u0, infoPerCoord)
+end
+
+
+# MAYBE deprecate name
+manikde!( M::MB.AbstractManifold,
+          vecP::AbstractVector{P},
+          u0::P=vecP[1];
+          kw... ) where P = ManifoldKernelDensity(M, vecP, u0; kw...) 
+#
+
+
+## ==========================================================================================
+## a few utilities
+## ==========================================================================================
+
 function Statistics.mean(mkd::ManifoldKernelDensity, aspartial::Bool=true)
   M = if aspartial && isPartial(mkd)
     getManifoldPartial(mkd.manifold, mkd._partial)
@@ -61,55 +116,6 @@ function Base.show(io::IO, mkd::ManifoldKernelDensity{M,B,L,P}) where {M,B,L,P}
 end
 
 Base.show(io::IO, ::MIME"text/plain", mkd::ManifoldKernelDensity) = show(io, mkd)
-
-
-
-ManifoldKernelDensity(mani::M, 
-                      bel::B, 
-                      partial::L=nothing, 
-                      u0::P=zeros(manifold_dimension(mani));
-                      infoPerCoord::AbstractVector{<:Real}=ones(getNumberCoords(mani, u0)) ) where {M <: MB.AbstractManifold, B <: BallTreeDensity, L, P} = ManifoldKernelDensity{M,B,L,P}(mani,bel,partial,u0,infoPerCoord)
-#
-
-
-function ManifoldKernelDensity( M::MB.AbstractManifold,
-                                vecP::AbstractVector{P},
-                                u0=vecP[1];
-                                partial::L=nothing,
-                                infoPerCoord::AbstractVector{<:Real}=ones(getNumberCoords(M, u0)),
-                                dims::Int=manifold_dimension(M),
-                                bw::Union{<:AbstractVector{<:Real},Nothing}=nothing  ) where {P,L}
-  #
-  # FIXME obsolete
-  arr = Matrix{Float64}(undef, dims, length(vecP))
-  ϵ = identity(M, vecP[1])
-
-  for j in 1:length(vecP)
-    arr[:,j] = vee(M, ϵ, log(M, ϵ, vecP[j]))
-  end
-
-  manis = convert(Tuple, M)
-  # find or have the bandwidth
-  _bw = bw === nothing ? getKDEManifoldBandwidths(arr, manis ) : bw
-  # NOTE workaround for partials and user did not specify a bw
-  if bw === nothing && partial !== nothing
-    mask = ones(Int, length(_bw)) .== 1
-    mask[partial] .= false
-    _bw[mask] .= 1.0
-  end
-  addopT, diffopT, _, _ = buildHybridManifoldCallbacks(manis)
-  bel = KernelDensityEstimate.kde!(arr, _bw, addopT, diffopT)
-  return ManifoldKernelDensity(M, bel, partial, u0, infoPerCoord)
-end
-
-
-# MAYBE deprecate name
-manikde!( M::MB.AbstractManifold,
-          vecP::AbstractVector{P},
-          u0::P=vecP[1];
-          kw... ) where P = ManifoldKernelDensity(M, vecP, u0; kw...) 
-#
-
 
 # internal workaround function for building partial submanifold dimensions, must be upgraded/standarized
 function _buildManifoldPartial( fullM::MB.AbstractManifold, 

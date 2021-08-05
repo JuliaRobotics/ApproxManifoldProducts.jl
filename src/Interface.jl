@@ -107,7 +107,7 @@ function Base.replace( dest::ManifoldKernelDensity{M,<:BallTreeDensity,Nothing},
   u0 = exp(dest.manifold, dest._u0, hat(dest.manifold, dest._u0, c0))
 
   # return the update destimation ManifoldKernelDensity object
-  manikde!(dest.manifold, newBel, u0, bw=oldBw, infoPerCoord=ipc)
+  ManifoldKernelDensity(dest.manifold, newBel, nothing, u0, infoPerCoord=ipc)
 end
 
 
@@ -130,7 +130,6 @@ function Base.replace(dest::ManifoldKernelDensity{M,<:BallTreeDensity,<:Abstract
 
   # finaly update the belief with a new container
   newBel = kde!(oldPts, oldBw)
-  dest.belief = newBel
 
   # also set the metadata values
   ipc = deepcopy(dest.infoPerCoord)
@@ -143,11 +142,16 @@ function Base.replace(dest::ManifoldKernelDensity{M,<:BallTreeDensity,<:Abstract
   u0 = exp(dest.manifold, dest._u0, hat(dest.manifold, dest._u0, c0))
 
   # and update the partial information
-  pl_ = union(pl, src._partial)
-  resize!(dest._partial, length(pl_))
+  pl_ = union(dest._partial, pl)
 
   # return the update destimation ManifoldKernelDensity object
-  manikde!(dest.manifold, newBel, u0, bw=oldBw, partial=pl_, infoPerCoord=ipc)
+  if length(pl_) == manifold_dimension(dest.manifold)
+    # no longer a partial/marginal
+    return ManifoldKernelDensity(dest.manifold, newBel, nothing, u0, infoPerCoord=ipc)
+  else
+    # still a partial
+    return ManifoldKernelDensity(dest.manifold, newBel, pl_, u0, infoPerCoord=ipc)
+  end
 end
 
 
