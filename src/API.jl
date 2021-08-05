@@ -116,19 +116,23 @@ function manifoldProduct( ff::AbstractVector{<:ManifoldKernelDensity},
     end
   end
 
-  # # if only partials, then keep other dimension values from oldPoints
-  # otherDims = ones(ndims) .== 0
-  # for msk in partialDimMask
-  #   otherDims .|= msk
-  # end
+  # if only partials, then keep other dimension values from oldPoints
+  otherDims = ones(ndims) .== 0
+  for msk in partialDimMask
+    otherDims .|= msk
+  end
   # error(otherDims)
 
   # build new output ManifoldKernelDensity
   bws[:] = getKDEManifoldBandwidths(pGM, manif)
   bel = kde!(pGM, bws, addopT, diffopT)
-
-  # FIXME, Might still be partial!  nothinga nd u0 are problems here
-  ManifoldKernelDensity(mani, bel, nothing, ff[1]._u0)
+  
+  # FIXME u0 might not be representative of the partial information
+  if sum(otherDims) == ndims
+    return ManifoldKernelDensity(mani, bel, nothing, ff[1]._u0)
+  else
+    return ManifoldKernelDensity(mani, bel, (1:ndims)[otherDims], ff[1]._u0)
+  end
 end
 
 
