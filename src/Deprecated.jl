@@ -4,6 +4,39 @@
 ## Remove below before v0.6
 ## ======================================================================================================
 
+export productbelief
+
+"""
+    $SIGNATURES
+
+Take product of `dens` (including optional partials beliefs) as proposals to be multiplied together.
+
+Notes
+-----
+- Return points of full dimension, even if only partial dimensions in proposals.
+  - 'Other' dimensions left unchanged from incoming `denspts`
+- `d` dimensional product approximation
+- Incorporate ApproxManifoldProducts to process variables in individual batches.
+
+DevNotes
+- TODO Consolidate with [`AMP.manifoldProduct`](@ref), especially concerning partials. 
+"""
+function productbelief( denspts::AbstractVector{P},
+                        manifold::MB.AbstractManifold,
+                        dens::Vector{<:ManifoldKernelDensity},
+                        N::Int;
+                        asPartial::Bool=false,
+                        dbg::Bool=false,
+                        logger=ConsoleLogger()  ) where P
+  #
+
+  @warn "productbelief is being deprecated, use manifoldProduct together with getPoints instead."
+  mkd = AMP.manifoldProduct(dens, manifold, Niter=1, oldPoints=denspts, logger=logger)
+  pGM = getPoints(mkd, asPartial)
+
+  return pGM
+end
+
 
 # function calcMean(mkd::ManifoldKernelDensity{M}) where {M <: ManifoldsBase.AbstractManifold}
 #   data = getPoints(mkd)
