@@ -42,6 +42,8 @@ sl = Vector{Vector{Int}}()
 
 P12 = manifoldProduct([P1;P2], recordLabels=true, selectedLabels=sl, addEntropy=false)
 
+@test !isPartial(P12)
+@test P12._partial === nothing
 # @test isapprox( mean(P12)[1], 0, atol=1 )
 # @test isapprox( mean(P12)[2], 0, atol=1 )
 
@@ -91,6 +93,8 @@ P2_ = manikde!(M, pts2, partial=[1;])
 sl = Vector{Vector{Int}}()
 
 P12_ = manifoldProduct([P1;P2_], recordLabels=true, selectedLabels=sl, addEntropy=false)
+
+@test !isPartial(P12_)
 
 @test isapprox( mean(P12_)[1], 0, atol=1 )
 @test isapprox( mean(P12_)[2], 0, atol=1 )
@@ -147,6 +151,8 @@ sl = Vector{Vector{Int}}()
 
 P123_ = manifoldProduct([P1;P2_;P3_], recordLabels=true, selectedLabels=sl, addEntropy=false)
 
+@test !isPartial(P123_)
+
 @test isapprox( mean(P123_)[1], 0, atol=1 )
 @test isapprox( mean(P123_)[2], 0, atol=1 )
 
@@ -198,6 +204,8 @@ P3 = marginal(manikde!(M, pts3), [2;])
 
 sl = Vector{Vector{Int}}()
 P = manifoldProduct([P2;P1;P3], recordLabels=true, selectedLabels=sl, addEntropy=false)
+
+@test !isPartial(P)
 
 (x->println()).(1:5)
 # @show sl;
@@ -256,6 +264,8 @@ P3 = marginal(manikde!(M, pts3), [2;])
 sl = Vector{Vector{Int}}()
 
 P_ = manifoldProduct([P1;P3], recordLabels=true, selectedLabels=sl, addEntropy=false)
+
+@test !isPartial(P_)
 
 (x->println()).(1:5)
 # @show sl
@@ -316,6 +326,8 @@ P5_ = marginal(manikde!(M, pts5_), [d;])
 sl = Vector{Vector{Int}}()
 
 P45__ = manifoldProduct([P4;P4_;P5;P5_], recordLabels=true, selectedLabels=sl, addEntropy=false)
+
+@test !isPartial(P45__)
 
 (x->println()).(1:5)
 # @show sl;
@@ -379,6 +391,8 @@ P3 = marginal(manikde!(M, pts3), [d;])
 sl = Vector{Vector{Int}}()
 P = manifoldProduct([P2;P1;P3], recordLabels=true, selectedLabels=sl, addEntropy=false)
 
+@test !isPartial(P)
+
 (x->println()).(1:5)
 # @show sl;
 P
@@ -440,6 +454,8 @@ P3 = marginal(manikde!(M, pts3), [d;])
 sl = Vector{Vector{Int}}()
 P = manifoldProduct([P1;P2;P3], recordLabels=true, selectedLabels=sl, addEntropy=false)
 
+@test !isPartial(P)
+
 (x->println()).(1:5)
 # @show sl;
 P
@@ -498,13 +514,16 @@ P3 = marginal(manikde!(M, pts3), [d;])
 sl = Vector{Vector{Int}}()
 P = manifoldProduct([P1;P3], recordLabels=true, selectedLabels=sl, addEntropy=false)
 
+@test isPartial(P)
+@test P._partial == [1;3]
+
 (x->println()).(1:5)
 # @show sl;
 P
 
 ## check the results
 
-pts = getPoints(P)
+pts = getPoints(P, false)
 @cast pGM[i,j] := pts[j][i]
 
 @test 0.7*N < sum(-13 .< pGM[1,:] .< -7 )
@@ -521,8 +540,8 @@ for sidx in 1:N
   u1 = pts1[sl[sidx][1]]
   u3 = pts3[sl[sidx][2]]
 
-  @test isapprox( u1[1], getPoints(P)[sidx][1])
-  @test isapprox( u3[3], getPoints(P)[sidx][3])
+  @test isapprox( u1[1], getPoints(P, false)[sidx][1])
+  @test isapprox( u3[3], getPoints(P, false)[sidx][3])
 
 end
 
