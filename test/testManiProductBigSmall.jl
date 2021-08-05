@@ -14,7 +14,7 @@ using TensorCast
 M = SpecialEuclidean(2)
 N = 100
 u0 = ProductRepr([0;0.0],[1 0; 0 1.0])
-ϵ = identity(M, u0)
+ϵ = identity_element(M, u0)
 
 X1 = [exp(M, ϵ, hat(M, ϵ, randn(3))) for i in 1:N]
 X2 = [exp(M, ϵ, hat(M, ϵ, 0.1.*randn(3))) for i in 1:N]

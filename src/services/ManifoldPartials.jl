@@ -137,7 +137,7 @@ M_x, _ = getManifoldPartial(M,[1;])
 u0 = ProductRepr([0.0;0],[1 0; 0 1.0])
 
 # known coordinates are [x,y,θ], eg
-#   vee(M,identity(M,u0),log(M,identity(M,u0),u0))
+#   vee(M,identity_element(M,u0),log(M,identity_element(M,u0),u0))
 #   [0;0;0] in this example
 
 # make another new partial of only the rotation component
