@@ -51,7 +51,7 @@ function ManifoldKernelDensity( M::MB.AbstractManifold,
   #
   # FIXME obsolete
   arr = Matrix{Float64}(undef, dims, length(vecP))
-  ϵ = identity(M, vecP[1])
+  ϵ = identity_element(M, vecP[1])
 
   for j in 1:length(vecP)
     arr[:,j] = vee(M, ϵ, log(M, ϵ, vecP[j]))

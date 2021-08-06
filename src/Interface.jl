@@ -7,9 +7,9 @@ export makeCoordsFromPoint, makePointFromCoords, getNumberCoords
 export identity
 export replace
 
-# Deprecate in favor of TranslationGroup instead
-ManifoldsBase.identity(::Euclidean{Tuple{N}}, val::AbstractVector{T}) where {N, T <: Number} = zeros(T, N)
-ManifoldsBase.identity(::Circle, val::AbstractVector{T}) where {T <: Real} = zeros(T, 1)
+# Deprecate in favor of TranslationGroup instead, also type piracy
+Manifolds.identity_element(::Euclidean{Tuple{N}}, val::AbstractVector{T}) where {N, T <: Number} = zeros(T, N)
+Manifolds.identity_element(::Circle, val::AbstractVector{T}) where {T <: Real} = zeros(T, 1)
 
 """
     $SIGNATURES
@@ -23,7 +23,7 @@ Notes
 makePointFromCoords(M::MB.AbstractManifold,
                     coords::AbstractVector{<:Real},
                     u0=zeros(manifold_dimension(M)),
-                    ϵ=identity(M,u0),
+                    ϵ=identity_element(M,u0),
                     retraction_method::AbstractRetractionMethod=ExponentialRetraction()  ) = retract(M, ϵ, hat(M, ϵ, coords), retraction_method)
 #
 
@@ -31,7 +31,7 @@ function makeCoordsFromPoint( M::MB.AbstractManifold,
                               pt::P ) where P
   #
   # only works for manifold which have an identity (eg groups)
-  ϵ = identity(M, pt)
+  ϵ = identity_element(M, pt)
   vee(M, ϵ, log(M, ϵ, pt))
 end
 
@@ -57,7 +57,7 @@ end
 
 function _pointsToMatrixCoords(M::MB.AbstractManifold, pts::AbstractVector{P}) where P
   mat = zeros(manifold_dimension(M), length(pts))
-  ϵ = identity(M, pts[1])
+  ϵ = identity_element(M, pts[1])
   for (j,pt) in enumerate(pts)
     mat[:,j] = vee(M, ϵ, log(M, ϵ, pt))
   end
