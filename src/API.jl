@@ -38,7 +38,7 @@ function manifoldProduct( ff::AbstractVector{<:ManifoldKernelDensity},
                           ndims::Int=maximum(Ndim.(ff)),
                           N::Int = maximum(Npts.(ff)),
                           u0 = getPoints(ff[1], false)[1],
-                          oldPoints::AbstractVector{P}= [identity(mani, u0) for i in 1:N],
+                          oldPoints::AbstractVector{P}= [identity_element(mani, u0) for i in 1:N],
                           addEntropy::Bool=true,
                           recordLabels::Bool=false,
                           selectedLabels::Vector{Vector{Int}}=Vector{Vector{Int}}(),
@@ -121,18 +121,13 @@ function manifoldProduct( ff::AbstractVector{<:ManifoldKernelDensity},
   for msk in partialDimMask
     otherDims .|= msk
   end
-  # error(otherDims)
 
   # build new output ManifoldKernelDensity
   bws[:] = getKDEManifoldBandwidths(pGM, manif)
   bel = kde!(pGM, bws, addopT, diffopT)
   
   # FIXME u0 might not be representative of the partial information
-  if sum(otherDims) == ndims
-    return ManifoldKernelDensity(mani, bel, nothing, ff[1]._u0)
-  else
-    return ManifoldKernelDensity(mani, bel, (1:ndims)[otherDims], ff[1]._u0)
-  end
+  return ManifoldKernelDensity(mani, bel, otherDims, ff[1]._u0)
 end
 
 

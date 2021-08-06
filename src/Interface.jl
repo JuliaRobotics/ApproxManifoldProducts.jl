@@ -1,15 +1,16 @@
 # Interface
 
 import Base: replace
-import ManifoldsBase: identity
+import ManifoldsBase: identity_element
 
 export makeCoordsFromPoint, makePointFromCoords, getNumberCoords
-export identity
+export identity_element
+export setPointsManiPartial!, setPointsMani!
 export replace
 
-# Deprecate in favor of TranslationGroup instead
-ManifoldsBase.identity(::Euclidean{Tuple{N}}, val::AbstractVector{T}) where {N, T <: Number} = zeros(T, N)
-ManifoldsBase.identity(::Circle, val::AbstractVector{T}) where {T <: Real} = zeros(T, 1)
+# Deprecate in favor of TranslationGroup instead, also type piracy
+Manifolds.identity_element(::Euclidean{Tuple{N}}, val::AbstractVector{T}) where {N, T <: Number} = zeros(T, N)
+Manifolds.identity_element(::Circle, val::AbstractVector{T}) where {T <: Real} = zeros(T, 1)
 
 """
     $SIGNATURES
@@ -23,15 +24,16 @@ Notes
 makePointFromCoords(M::MB.AbstractManifold,
                     coords::AbstractVector{<:Real},
                     u0=zeros(manifold_dimension(M)),
-                    ϵ=identity(M,u0),
+                    ϵ=identity_element(M,u0),
                     retraction_method::AbstractRetractionMethod=ExponentialRetraction()  ) = retract(M, ϵ, hat(M, ϵ, coords), retraction_method)
 #
 
+# should perhaps just be dispatched for <:AbstractGroupManifold
 function makeCoordsFromPoint( M::MB.AbstractManifold,
                               pt::P ) where P
   #
   # only works for manifold which have an identity (eg groups)
-  ϵ = identity(M, pt)
+  ϵ = identity_element(M, pt)
   vee(M, ϵ, log(M, ϵ, pt))
 end
 
@@ -57,13 +59,67 @@ end
 
 function _pointsToMatrixCoords(M::MB.AbstractManifold, pts::AbstractVector{P}) where P
   mat = zeros(manifold_dimension(M), length(pts))
-  ϵ = identity(M, pts[1])
+  ϵ = identity_element(M, pts[1])
   for (j,pt) in enumerate(pts)
     mat[:,j] = vee(M, ϵ, log(M, ϵ, pt))
   end
 
   return mat
 end
+
+
+# asPartial=true indicates that src coords are smaller than dest coords, and false implying src has dummy values in placeholder dimensions
+function setPointsManiPartial!( Mdest::AbstractManifold, 
+                                dest, 
+                                Msrc::AbstractManifold, 
+                                src, 
+                                partial::AbstractVector{<:Integer},
+                                asPartial::Bool=true )
+  #
+
+  dest_ = AMP.makeCoordsFromPoint(Mdest,dest)
+  # e0 = identity_element(Mdest, dest)
+  # dest_ = vee(Mdest, e0, log(Mdest, e0, dest))
+
+  src_ = AMP.makeCoordsFromPoint(Msrc,src)
+  # e0s = identity_element(Msrc, src)
+  # src_ = vee(Msrc, e0s, log(Msrc, e0s, src))
+
+  # do the copy in coords 
+  dest_[partial] .= asPartial ? src_ : view(src_, partial)
+
+  # update points base in original
+  dest__ = makePointFromCoords(Mdest, dest_, dest)
+  # dest__ = exp(Mdest, e0, hat(Mdest, e0, dest_))
+  setPointsMani!(dest, dest__)
+
+  #
+  return dest 
+end
+
+
+setPointsMani!(dest::AbstractVector, src::AbstractVector) = (dest .= src)
+setPointsMani!(dest::AbstractMatrix, src::AbstractMatrix) = (dest .= src)
+function setPointsMani!(dest::AbstractVector, src::AbstractMatrix)
+  @assert size(src,2) == 1 "Workaround setPointsMani! currently only allows size(::Matrix, 2) == 1"
+  setPointsMani!(dest, src[:])
+end
+function setPointsMani!(dest::AbstractMatrix, src::AbstractVector)
+  @assert size(dest,2) == 1 "Workaround setPointsMani! currently only allows size(::Matrix, 2) == 1"
+  setPointsMani!(view(dest,:,1), src)
+end
+
+function setPointsMani!(dest::AbstractVector, src::AbstractVector{<:AbstractVector})
+  @assert length(src) == 1 "Workaround setPointsMani! currently only allows Vector{Vector{P}}(...) |> length == 1"
+  setPointsMani!(dest, src[1])
+end
+
+function setPointsMani!(dest::ProductRepr, src::ProductRepr)
+  for (k,prt) in enumerate(dest.parts)
+    setPointsMani!(prt, src.parts[k])
+  end
+end
+
 
 
 
