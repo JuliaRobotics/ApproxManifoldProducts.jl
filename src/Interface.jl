@@ -1,10 +1,11 @@
 # Interface
 
 import Base: replace
-import ManifoldsBase: identity
+import ManifoldsBase: identity_element
 
 export makeCoordsFromPoint, makePointFromCoords, getNumberCoords
-export identity
+export identity_element
+export setPointsManiPartial!, setPointsMani!
 export replace
 
 # Deprecate in favor of TranslationGroup instead, also type piracy
@@ -27,6 +28,7 @@ makePointFromCoords(M::MB.AbstractManifold,
                     retraction_method::AbstractRetractionMethod=ExponentialRetraction()  ) = retract(M, ϵ, hat(M, ϵ, coords), retraction_method)
 #
 
+# should perhaps just be dispatched for <:AbstractGroupManifold
 function makeCoordsFromPoint( M::MB.AbstractManifold,
                               pt::P ) where P
   #
@@ -64,6 +66,59 @@ function _pointsToMatrixCoords(M::MB.AbstractManifold, pts::AbstractVector{P}) w
 
   return mat
 end
+
+
+# asPartial=true indicates that src coords are smaller than dest coords, and false implying src has dummy values in placeholder dimensions
+function setPointsManiPartial!(Mdest::AbstractManifold, 
+                                dest, 
+                                Msrc::AbstractManifold, 
+                                src, 
+                                partial::AbstractVector{<:Integer},
+                                asPartial::Bool=true )
+  #
+
+  dest_ = AMP.makeCoordsFromPoint(Mdest,dest)
+  # e0 = identity_element(Mdest, dest)
+  # dest_ = vee(Mdest, e0, log(Mdest, e0, dest))
+
+  src_ = AMP.makeCoordsFromPoint(Msrc,src)
+  # e0s = identity_element(Msrc, src)
+  # src_ = vee(Msrc, e0s, log(Msrc, e0s, src))
+
+  # do the copy in coords 
+  dest_[partial] .= asPartial ? src_ : view(src_, partial)
+
+  # update points base in original
+  dest__ = exp(Mdest, e0, hat(Mdest, e0, dest_))
+  setPointsMani!(dest, dest__)
+
+  #
+  return dest 
+end
+
+
+setPointsMani!(dest::AbstractVector, src::AbstractVector) = (dest .= src)
+setPointsMani!(dest::AbstractMatrix, src::AbstractMatrix) = (dest .= src)
+function setPointsMani!(dest::AbstractVector, src::AbstractMatrix)
+  @assert size(src,2) == 1 "Workaround setPointsMani! currently only allows size(::Matrix, 2) == 1"
+  setPointsMani!(dest, src[:])
+end
+function setPointsMani!(dest::AbstractMatrix, src::AbstractVector)
+  @assert size(dest,2) == 1 "Workaround setPointsMani! currently only allows size(::Matrix, 2) == 1"
+  setPointsMani!(view(dest,:,1), src)
+end
+
+function setPointsMani!(dest::AbstractVector, src::AbstractVector{<:AbstractVector})
+  @assert length(src) == 1 "Workaround setPointsMani! currently only allows Vector{Vector{P}}(...) |> length == 1"
+  setPointsMani!(dest, src[1])
+end
+
+function setPointsMani!(dest::ProductRepr, src::ProductRepr)
+  for (k,prt) in enumerate(dest.parts)
+    setPointsMani!(prt, src.parts[k])
+  end
+end
+
 
 
 
