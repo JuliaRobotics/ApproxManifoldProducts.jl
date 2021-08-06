@@ -69,7 +69,7 @@ end
 
 
 # asPartial=true indicates that src coords are smaller than dest coords, and false implying src has dummy values in placeholder dimensions
-function setPointsManiPartial!(Mdest::AbstractManifold, 
+function setPointsManiPartial!( Mdest::AbstractManifold, 
                                 dest, 
                                 Msrc::AbstractManifold, 
                                 src, 
@@ -89,7 +89,8 @@ function setPointsManiPartial!(Mdest::AbstractManifold,
   dest_[partial] .= asPartial ? src_ : view(src_, partial)
 
   # update points base in original
-  dest__ = exp(Mdest, e0, hat(Mdest, e0, dest_))
+  dest__ = makePointFromCoords(Mdest, dest_, dest)
+  # dest__ = exp(Mdest, e0, hat(Mdest, e0, dest_))
   setPointsMani!(dest, dest__)
 
   #
