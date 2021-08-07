@@ -5,6 +5,7 @@ export getPoints, getBW, Ndim, Npts
 export getKDERange, getKDEMax, getKDEMean, getKDEfit
 export sample, rand, resample, kld, minkld
 export calcMean
+export getInfoPerCoord, getBandwidth
 export antimarginal
 
 
@@ -147,23 +148,29 @@ end
 # partMani = _reducePartialManifoldElements(manis[dims])
 # pts = getPoints(x)
 
-getInfoPerCoord(mkd::ManifoldKernelDensity{M,B,Nothing}, ::Bool=true) where {M,B} = mkd.infoPerCoord
-function getInfoPerCoord(mkd::ManifoldKernelDensity{M,B,<:AbstractVector}, aspartial::Bool=true) where {M,B}
-  ipc = mkd.infoPerCoord
-  if aspartial && (length(ipc) == length(mkd._partial))
-    return ipc
-  elseif !aspartial && (length(ipc) == length(mkd._partial))
-    ipc_ = zeros(manifold_dimension(mkd.manifold))
-    ipc_[mkd._partial] .= ipc
-    return ipc_
-  elseif aspartial && (length(ipc) == manifold_dimension(mkd.manifold))
-    return ipc[mkd._partial]
-  elseif !aspartial && (length(ipc) == manifold_dimension(mkd.manifold))
-    return ipc
+_getFieldPartials(mkd::ManifoldKernelDensity{M,B,Nothing}, field::Function, aspartial::Bool=true) where {M,B} = field(mkd)
+
+function _getFieldPartials(mkd::ManifoldKernelDensity{M,B,<:AbstractVector}, field::Function, aspartial::Bool=true) where {M,B}
+  val = field(mkd)
+  if aspartial && (length(val) == length(mkd._partial))
+    return val
+  elseif !aspartial && (length(val) == length(mkd._partial))
+    val_ = zeros(manifold_dimension(mkd.manifold))
+    val_[mkd._partial] .= val
+    return val_
+  elseif aspartial && (length(val) == manifold_dimension(mkd.manifold))
+    return val[mkd._partial]
+  elseif !aspartial && (length(val) == manifold_dimension(mkd.manifold))
+    return val
   else
-    error("unknown infoPerCoord length=$(length(ipc)) vs. partial length=$(length(mkd._partial))")
+    error("unknown size MKD.$(field) with partial length=$(length(mkd._partial)) vs length=$(length(val)) --- and value=$val")
   end
 end
+
+getInfoPerCoord(mkd::ManifoldKernelDensity, aspartial::Bool=true) = _getFieldPartials(mkd, x->x.infoPerCoord, aspartial)
+
+getBandwidth(mkd::ManifoldKernelDensity, aspartial::Bool=true) = _getFieldPartials(mkd, x->getBW(x)[:,1], aspartial)
+
 
 function antimarginal(newM::AbstractManifold,
                       u0,
@@ -237,10 +244,9 @@ end
 Random.rand(mkd::ManifoldKernelDensity, N::Integer=1) = sample(mkd, N)[1]
 
 
-
 function resample(x::ManifoldKernelDensity, N::Int)
   pts, = sample(x, N)
-  ManifoldKernelDensity(x.manifold, pts, x._u0, partial=x._partial)
+  ManifoldKernelDensity(x.manifold, pts, x._u0, partial=x._partial, infoPerCoord=x.infoPerCoord)
 end
 
 
@@ -267,8 +273,8 @@ function Base.show(io::IO, mkd::ManifoldKernelDensity{M,B,L,P}) where {M,B,L,P}
   println(io, "  prtl:   ", mkd._partial)
   bw = getBW(mkd.belief)[:,1]
   pvec = isPartial(mkd) ? mkd._partial : collect(1:length(bw))
-  println(io, "  bws:   ", bw[pvec] .|> x->round(x,digits=4))
-  println(io, "  ipc:   ", mkd.infoPerCoord[pvec] .|> x->round(x,digits=4))
+  println(io, "  bws:   ", getBandwidth(mkd, true) .|> x->round(x,digits=4))
+  println(io, "  ipc:   ", getInfoPerCoord(mkd, true) .|> x->round(x,digits=4))
   try
     # mn = mean(mkd.manifold, getPoints(mkd, false))
     mn = mean(mkd)
