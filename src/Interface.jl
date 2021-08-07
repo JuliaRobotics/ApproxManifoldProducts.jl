@@ -1,7 +1,7 @@
 # Interface
 
 import Base: replace
-import ManifoldsBase: identity_element
+import Manifolds: identity_element
 
 export makeCoordsFromPoint, makePointFromCoords, getNumberCoords
 export identity_element

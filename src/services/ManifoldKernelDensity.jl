@@ -5,6 +5,7 @@ export getPoints, getBW, Ndim, Npts
 export getKDERange, getKDEMax, getKDEMean, getKDEfit
 export sample, rand, resample, kld, minkld
 export calcMean
+export antimarginal
 
 
 ## ==========================================================================================
@@ -102,42 +103,6 @@ Alias for overloaded `Statistics.mean`.
 calcMean(mkd::ManifoldKernelDensity, aspartial::Bool=true) = mean(mkd, aspartial)
 
 
-function Base.show(io::IO, mkd::ManifoldKernelDensity{M,B,L,P}) where {M,B,L,P}
-  printstyled(io, "ManifoldKernelDensity{", bold=true, color=:blue )
-  println(io)
-  printstyled(io, "    M", bold=true, color=:magenta )
-  print(io, " = ", M, ",")
-  println(io)
-  printstyled(io, "    B", bold=true, color=:magenta )
-  print(io, " = ", B, ",")
-  println(io)
-  printstyled(io, "    L", bold=true, color=:magenta )
-  print(io, " = ", L, ",")
-  println(io)
-  printstyled(io, "    P", bold=true, color=:magenta )
-  print(io, " = ", P)
-  println(io)
-  println(io, " }(")
-  println(io, "  Npts:  ", Npts(mkd.belief))
-  print(io, "  dims:  ", Ndim(mkd.belief))
-  printstyled(io, isPartial(mkd) ? "* --> $(length(mkd._partial))" : "", bold=true)
-  println(io)
-  println(io, "  prtl:   ", mkd._partial)
-  bw = getBW(mkd.belief)[:,1]
-  pvec = isPartial(mkd) ? mkd._partial : collect(1:length(bw))
-  println(io, "  bws:   ", bw[pvec] .|> x->round(x,digits=4))
-  println(io, "  ipc:   ", mkd.infoPerCoord[pvec] .|> x->round(x,digits=4))
-  try
-    # mn = mean(mkd.manifold, getPoints(mkd, false))
-    mn = mean(mkd)
-    println(io, "   mean: ", round.(mn',digits=4))
-  catch
-  end
-  println(io, ")")
-  nothing
-end
-
-Base.show(io::IO, ::MIME"text/plain", mkd::ManifoldKernelDensity) = show(io, mkd)
 
 # internal workaround function for building partial submanifold dimensions, must be upgraded/standarized
 function _buildManifoldPartial( fullM::MB.AbstractManifold, 
@@ -182,6 +147,46 @@ end
 # partMani = _reducePartialManifoldElements(manis[dims])
 # pts = getPoints(x)
 
+getInfoPerCoord(mkd::ManifoldKernelDensity{M,B,Nothing}, ::Bool=true) where {M,B} = mkd.infoPerCoord
+function getInfoPerCoord(mkd::ManifoldKernelDensity{M,B,<:AbstractVector}, aspartial::Bool=true) where {M,B}
+  ipc = mkd.infoPerCoord
+  if aspartial && (length(ipc) == length(mkd._partial))
+    return ipc
+  elseif !aspartial && (length(ipc) == length(mkd._partial))
+    ipc_ = zeros(manifold_dimension(mkd.manifold))
+    ipc_[mkd._partial] .= ipc
+    return ipc_
+  elseif aspartial && (length(ipc) == manifold_dimension(mkd.manifold))
+    return ipc[mkd._partial]
+  elseif !aspartial && (length(ipc) == manifold_dimension(mkd.manifold))
+    return ipc
+  else
+    error("unknown infoPerCoord length=$(length(ipc)) vs. partial length=$(length(mkd._partial))")
+  end
+end
+
+function antimarginal(newM::AbstractManifold,
+                      u0,
+                      mkd::ManifoldKernelDensity, 
+                      newpartial::AbstractVector{<:Integer} )
+  #
+
+  # convert to antimarginal by copying user provided example point for bigger manifold
+  pts = getPoints(mkd, false)
+  nPts = Vector{typeof(u0)}(undef, length(pts))
+  for (i,pt) in enumerate(pts)
+    nPts[i] = setPointsManiPartial!(newM, deepcopy(u0), mkd.manifold, pt, newpartial)
+  end
+
+  # also update metadata elements
+  finalpartial = !isPartial(mkd) ? newpartial : error("not built yet, to shift incoming partial")
+  bw = zeros(manifold_dimension(newM))
+  bw[finalpartial] .= getBW(mkd)[:,1]
+  ipc = zeros(manifold_dimension(newM))
+  ipc[finalpartial] .= getInfoPerCoord(mkd, true)
+  
+  manikde!(newM, nPts, u0, bw=bw, partial=finalpartial, infoPerCoord=ipc)
+end
 
 """
     $SIGNATURES
@@ -238,6 +243,44 @@ function resample(x::ManifoldKernelDensity, N::Int)
   ManifoldKernelDensity(x.manifold, pts, x._u0, partial=x._partial)
 end
 
+
+function Base.show(io::IO, mkd::ManifoldKernelDensity{M,B,L,P}) where {M,B,L,P}
+  printstyled(io, "ManifoldKernelDensity{", bold=true, color=:blue )
+  println(io)
+  printstyled(io, "    M", bold=true, color=:magenta )
+  print(io, " = ", M, ",")
+  println(io)
+  printstyled(io, "    B", bold=true, color=:magenta )
+  print(io, " = ", B, ",")
+  println(io)
+  printstyled(io, "    L", bold=true, color=:magenta )
+  print(io, " = ", L, ",")
+  println(io)
+  printstyled(io, "    P", bold=true, color=:magenta )
+  print(io, " = ", P)
+  println(io)
+  println(io, " }(")
+  println(io, "  Npts:  ", Npts(mkd.belief))
+  print(io, "  dims:  ", Ndim(mkd.belief))
+  printstyled(io, isPartial(mkd) ? "* --> $(length(mkd._partial))" : "", bold=true)
+  println(io)
+  println(io, "  prtl:   ", mkd._partial)
+  bw = getBW(mkd.belief)[:,1]
+  pvec = isPartial(mkd) ? mkd._partial : collect(1:length(bw))
+  println(io, "  bws:   ", bw[pvec] .|> x->round(x,digits=4))
+  println(io, "  ipc:   ", mkd.infoPerCoord[pvec] .|> x->round(x,digits=4))
+  try
+    # mn = mean(mkd.manifold, getPoints(mkd, false))
+    mn = mean(mkd)
+    println(io, "   mean: ", round.(mn',digits=4))
+  catch
+  end
+  println(io, ")")
+  nothing
+end
+
+Base.show(io::IO, ::MIME"text/plain", mkd::ManifoldKernelDensity) = show(io, mkd)
+Base.show(io::IO, ::MIME"application/juno.inline", mkd::ManifoldKernelDensity) = show(io, mkd)
 
 ## =======================================================================================
 ##  deprecate as necessary below
