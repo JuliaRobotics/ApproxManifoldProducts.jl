@@ -171,16 +171,17 @@ function antimarginal(newM::AbstractManifold,
                       newpartial::AbstractVector{<:Integer} )
   #
 
+  # convert to antimarginal by copying user provided example point for bigger manifold
   pts = getPoints(mkd, false)
-  @show pts[1]
   nPts = Vector{typeof(u0)}(undef, length(pts))
   for (i,pt) in enumerate(pts)
     nPts[i] = setPointsManiPartial!(newM, deepcopy(u0), mkd.manifold, pt, newpartial)
   end
 
-  @show finalpartial = !isPartial(mkd) ? newpartial : error("not built yet, to shift incoming partial")
+  # also update metadata elements
+  finalpartial = !isPartial(mkd) ? newpartial : error("not built yet, to shift incoming partial")
   bw = zeros(manifold_dimension(newM))
-  @show bw[finalpartial] .= getBW(mkd)[:,1]
+  bw[finalpartial] .= getBW(mkd)[:,1]
   ipc = zeros(manifold_dimension(newM))
   ipc[finalpartial] .= getInfoPerCoord(mkd, true)
   
