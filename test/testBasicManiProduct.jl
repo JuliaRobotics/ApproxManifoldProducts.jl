@@ -19,8 +19,8 @@ pts1 = [[0.05*randn(2);0.75*randn()] for i in 1:N]
 pts2 = [[0.05*randn(2);0.75*randn()] for i in 1:N]
 
 
-P1 = manikde!(Euclidean(3),pts1)
-P2 = manikde!(Euclidean(3),pts2)
+P1 = manikde!(TranslationGroup(3),pts1)
+P2 = manikde!(TranslationGroup(3),pts2)
 
 P12 = P1*P2
 

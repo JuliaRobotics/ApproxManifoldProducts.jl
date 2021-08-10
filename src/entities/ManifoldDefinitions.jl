@@ -33,12 +33,12 @@ const _AMP_CIRCLE = Manifolds.Circle()
 # this is just wrong and needs to be fixed
 const Circle1 = Circle()
 
-const Euclid =  Euclidean(1)
+const Euclid =  TranslationGroup(1)
 const EuclideanManifold = Euclid
 
-const Euclid2 = Euclidean(2)
-const Euclid3 = Euclidean(3)
-const Euclid4 = Euclidean(4)
+const Euclid2 = TranslationGroup(2)
+const Euclid3 = TranslationGroup(3)
+const Euclid4 = TranslationGroup(4)
 
 # TODO if not easy simplification exists, then just deprecate this
 const SE2_Manifold = SpecialEuclidean(2)

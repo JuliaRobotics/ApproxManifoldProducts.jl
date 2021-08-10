@@ -3,7 +3,7 @@
 
 function _reducePartialManifoldElements(el::Symbol)
   if el == :Euclid
-    return Euclidean(1)
+    return TranslationGroup(1)
   elseif el == :Circular
     return Circle()
   end
