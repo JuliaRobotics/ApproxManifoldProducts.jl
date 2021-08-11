@@ -53,7 +53,7 @@ end
 ## EXTRACT PARTIAL MANIFOLD
 
 
-function getManifoldPartial(M::Euclidean{Tuple{N}}, 
+function getManifoldPartial(M::Union{<:Euclidean{Tuple{N}},<:TranslationGroup}, 
                             partial::AbstractVector{Int}, 
                             repr::_PartiableRepresentationFlat{T}=nothing,
                             offset::Base.RefValue{Int}=Ref(0);
@@ -63,7 +63,7 @@ function getManifoldPartial(M::Euclidean{Tuple{N}},
   offset[] += manifold_dimension(M)
   len = sum(mask)
   repr_p = repr === nothing ? nothing : zeros(T,len) 
-  return (Euclidean(len),repr_p)
+  return (TranslationGroup(len),repr_p)
 end
 
 function getManifoldPartial(M::Circle, 
