@@ -33,6 +33,8 @@ function makeCoordsFromPoint( M::MB.AbstractManifold,
                               pt::P ) where P
   #
   # only works for manifold which have an identity (eg groups)
+  # @show M
+  # @show pt
   ϵ = identity_element(M, pt)
   vee(M, ϵ, log(M, ϵ, pt))
 end
