@@ -241,8 +241,11 @@ function sample(x::ManifoldKernelDensity{M,B,L,P}, N::Int) where {M,B,L,P}
   vecP, lbls
 end
 
-Random.rand(mkd::ManifoldKernelDensity, N::Integer=1) = sample(mkd, N)[1]
-
+# Random.rand(mkd::ManifoldKernelDensity, N::Integer=1) = sample(mkd, N)[1]
+function Random.rand(mkd::ManifoldKernelDensity, N::Int=1) 
+  # Base.depwarn("rand(::MKD) changed to coords",:rand)
+  sample(mkd.belief, N)[1]
+end
 
 function resample(x::ManifoldKernelDensity, N::Int)
   pts, = sample(x, N)
