@@ -228,17 +228,17 @@ end
 
 
 # TODO check that partials / marginals are sampled correctly
-function sample(x::ManifoldKernelDensity{M,B,L,P}, N::Int) where {M,B,L,P}
+function sample(x::ManifoldKernelDensity{M,B,L,P}, p::T=mean(x), as_tangent::Bool=true) where {M,B,L,P,T}
   # get legacy matrix of coordinates and selected labels
-  coords, lbls = sample(x.belief, N)
+  coords, lbls = sample(x.belief,1)
 
-  # pack samples into vector of point type P
-  vecP = Vector{P}(undef, N)
-  for j in 1:N
-    vecP[j] = makePointFromCoords(x.manifold, view(coords, :, j), x._u0)
+  X = hat(x.manifold, p, coords)
+  if as_tangent
+    return X, lbls
   end
 
-  vecP, lbls
+  # or return full point
+  return exp(x.manifold, p, X), lbls
 end
 
 Random.rand(mkd::ManifoldKernelDensity, N::Integer=1) = sample(mkd, N)[1]

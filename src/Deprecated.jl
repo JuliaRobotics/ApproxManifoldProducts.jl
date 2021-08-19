@@ -4,6 +4,8 @@
 ## Remove below before v0.6
 ## ======================================================================================================
 
+@deprecate sample(x::ManifoldKernelDensity, N::Int) [sample(x, identity_element(x.manifold, x._u0), false)[1] for _ in 1:N]
+
 export productbelief
 
 """
@@ -45,7 +47,7 @@ end
 # end
 
 
-@deprecate calcVariableCovarianceBasic(M::AbstractManifold, vecP::Vector{P}) where P calcCovarianceBasic(M, vecP)
+@deprecate calcVariableCovarianceBasic(M::AbstractManifold, vecP::AbstractVector{P}) where P calcCovarianceBasic(M, vecP)
 
 ## ======================================================================================================
 ## Remove below before v0.5
