@@ -9,7 +9,7 @@
                                   Msrc::AbstractManifold, 
                                   src, 
                                   partial::AbstractVector{<:Integer},
-                                  asPartial::Bool=true ) setPointsManiPartial!( Mdest, dest, Msrc, src, partial, asPartial )
+                                  asPartial::Bool=true ) setPointPartial!( Mdest, dest, Msrc, src, partial, asPartial )
 
 
 export productbelief
