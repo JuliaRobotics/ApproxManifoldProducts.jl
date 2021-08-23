@@ -5,7 +5,7 @@ import Manifolds: identity_element
 
 export makeCoordsFromPoint, makePointFromCoords, getNumberCoords
 export identity_element
-export setPointsManiPartial!, setPointsMani!
+export setPointPartial!, setPointsMani!
 export replace
 
 # Deprecate in favor of TranslationGroup instead, also type piracy
@@ -69,12 +69,12 @@ end
 
 
 # asPartial=true indicates that src coords are smaller than dest coords, and false implying src has dummy values in placeholder dimensions
-function setPointsManiPartial!( Mdest::AbstractManifold, 
-                                dest, 
-                                Msrc::AbstractManifold, 
-                                src, 
-                                partial::AbstractVector{<:Integer},
-                                asPartial::Bool=true )
+function setPointPartial!(Mdest::AbstractManifold, 
+                          dest, 
+                          Msrc::AbstractManifold, 
+                          src, 
+                          partial::AbstractVector{<:Integer},
+                          asPartial::Bool=true )
   #
 
   dest_ = AMP.makeCoordsFromPoint(Mdest,dest)
