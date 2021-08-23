@@ -9,16 +9,16 @@ using Manifolds
 
 ##
 
-M = Euclidean(3)
+M = TranslationGroup(3)
 
-@test getManifoldPartial(M, [1;2;3])[1] == Euclidean(3)
-@test getManifoldPartial(M, [2;3])[1] == Euclidean(2)
+@test getManifoldPartial(M, [1;2;3])[1] == TranslationGroup(3)
+@test getManifoldPartial(M, [2;3])[1] == TranslationGroup(2)
 
 
-@test getManifoldPartial(M, [1;2;3], zeros(3))[1] == Euclidean(3)
+@test getManifoldPartial(M, [1;2;3], zeros(3))[1] == TranslationGroup(3)
 @test isapprox( getManifoldPartial(M, [1;2;3], zeros(3))[2], zeros(3) )
 
-@test getManifoldPartial(M, [2;3], zeros(3))[1] == Euclidean(2)
+@test getManifoldPartial(M, [2;3], zeros(3))[1] == TranslationGroup(2)
 @test isapprox( getManifoldPartial(M, [2;3], zeros(3))[2], zeros(2))
 
 

@@ -182,7 +182,7 @@ function antimarginal(newM::AbstractManifold,
   pts = getPoints(mkd, false)
   nPts = Vector{typeof(u0)}(undef, length(pts))
   for (i,pt) in enumerate(pts)
-    nPts[i] = setPointsManiPartial!(newM, deepcopy(u0), mkd.manifold, pt, newpartial)
+    nPts[i] = setPointPartial!(newM, deepcopy(u0), mkd.manifold, pt, newpartial)
   end
 
   # also update metadata elements
