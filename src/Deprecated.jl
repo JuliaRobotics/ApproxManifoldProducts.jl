@@ -4,6 +4,14 @@
 ## Remove below before v0.6
 ## ======================================================================================================
 
+@deprecate setPointsManiPartial!( Mdest::AbstractManifold, 
+                                  dest, 
+                                  Msrc::AbstractManifold, 
+                                  src, 
+                                  partial::AbstractVector{<:Integer},
+                                  asPartial::Bool=true ) setPointPartial!( Mdest, dest, Msrc, src, partial, asPartial )
+
+
 export productbelief
 
 """
