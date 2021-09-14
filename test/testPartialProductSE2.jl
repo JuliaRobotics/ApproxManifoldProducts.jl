@@ -11,13 +11,13 @@ using FileIO
 @testset "partial product with a SpecialEuclidean(2)" begin
 ##
 
-datafile = joinpath(@__DIR__, "test", "testdata", "partialtest.jld2")
+datafile = joinpath(@__DIR__, "testdata", "partialtest.jld2")
 dict = load(datafile)
 pts1 = dict["pts1"]
 pts2 = dict["pts2"]
 
 
-# define test manifold
+## define test manifold
 M = SpecialEuclidean(2)
 e0 = identity_element(M)
 
@@ -54,6 +54,9 @@ _p12_ = manikde!(TranslationGroup(2), getPoints(p12_))
 
 
 ## Plots showing the problem, p12 is wrong!!
+# using Cairo, RoMEPlotting
+# Gadfly.set_default_plot_size(35cm,20cm)
+
 # plotKDE([p1_;p2; p12], levels=5)
 # plotKDE([p1__; p2__; p12__])
 # plotKDE([_p12_; p12__])
