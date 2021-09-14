@@ -104,6 +104,31 @@ Alias for overloaded `Statistics.mean`.
 calcMean(mkd::ManifoldKernelDensity, aspartial::Bool=true) = mean(mkd, aspartial)
 
 
+_getFieldPartials(mkd::ManifoldKernelDensity{M,B,Nothing}, field::Function, aspartial::Bool=true) where {M,B} = field(mkd)
+
+function _getFieldPartials(mkd::ManifoldKernelDensity{M,B,<:AbstractVector}, field::Function, aspartial::Bool=true) where {M,B}
+  val = field(mkd)
+  if aspartial && (length(val) == length(mkd._partial))
+    return val
+  elseif !aspartial && (length(val) == length(mkd._partial))
+    val_ = zeros(manifold_dimension(mkd.manifold))
+    val_[mkd._partial] .= val
+    return val_
+  elseif aspartial && (length(val) == manifold_dimension(mkd.manifold))
+    return val[mkd._partial]
+  elseif !aspartial && (length(val) == manifold_dimension(mkd.manifold))
+    return val
+  else
+    error("unknown size MKD.$(field) with partial length=$(length(mkd._partial)) vs length=$(length(val)) --- and value=$val")
+  end
+end
+
+
+
+getInfoPerCoord(mkd::ManifoldKernelDensity, aspartial::Bool=true) = _getFieldPartials(mkd, x->x.infoPerCoord, aspartial)
+
+getBandwidth(mkd::ManifoldKernelDensity, aspartial::Bool=true) = _getFieldPartials(mkd, x->getBW(x)[:,1], aspartial)
+
 
 # internal workaround function for building partial submanifold dimensions, must be upgraded/standarized
 function _buildManifoldPartial( fullM::MB.AbstractManifold, 
@@ -128,72 +153,6 @@ Return true if this ManifoldKernelDensity is a partial.
 """
 isPartial(mkd::ManifoldKernelDensity{M,B,L}) where {M,B,L} = true
 isPartial(mkd::ManifoldKernelDensity{M,B,Nothing}) where {M,B} = false
-  
-# override
-function marginal(x::ManifoldKernelDensity{M,B}, 
-                  dims::AbstractVector{<:Integer}  ) where {M <: AbstractManifold , B}
-  #
-  ldims::Vector{Int} = collect(dims)
-  ManifoldKernelDensity(x.manifold, x.belief, ldims, x._u0)
-end
-
-function marginal(x::ManifoldKernelDensity{M,B,L}, 
-                  dims::AbstractVector{<:Integer}  ) where {M <: AbstractManifold , B, L <: AbstractVector{<:Integer}}
-  #
-  # @show dims x._partial
-  ldims::Vector{Int} = intersect(x._partial, dims)
-  ManifoldKernelDensity(x.manifold, x.belief, ldims, x._u0)
-end
-# manis = convert(Tuple, x.manifold)
-# partMani = _reducePartialManifoldElements(manis[dims])
-# pts = getPoints(x)
-
-_getFieldPartials(mkd::ManifoldKernelDensity{M,B,Nothing}, field::Function, aspartial::Bool=true) where {M,B} = field(mkd)
-
-function _getFieldPartials(mkd::ManifoldKernelDensity{M,B,<:AbstractVector}, field::Function, aspartial::Bool=true) where {M,B}
-  val = field(mkd)
-  if aspartial && (length(val) == length(mkd._partial))
-    return val
-  elseif !aspartial && (length(val) == length(mkd._partial))
-    val_ = zeros(manifold_dimension(mkd.manifold))
-    val_[mkd._partial] .= val
-    return val_
-  elseif aspartial && (length(val) == manifold_dimension(mkd.manifold))
-    return val[mkd._partial]
-  elseif !aspartial && (length(val) == manifold_dimension(mkd.manifold))
-    return val
-  else
-    error("unknown size MKD.$(field) with partial length=$(length(mkd._partial)) vs length=$(length(val)) --- and value=$val")
-  end
-end
-
-getInfoPerCoord(mkd::ManifoldKernelDensity, aspartial::Bool=true) = _getFieldPartials(mkd, x->x.infoPerCoord, aspartial)
-
-getBandwidth(mkd::ManifoldKernelDensity, aspartial::Bool=true) = _getFieldPartials(mkd, x->getBW(x)[:,1], aspartial)
-
-
-function antimarginal(newM::AbstractManifold,
-                      u0,
-                      mkd::ManifoldKernelDensity, 
-                      newpartial::AbstractVector{<:Integer} )
-  #
-
-  # convert to antimarginal by copying user provided example point for bigger manifold
-  pts = getPoints(mkd, false)
-  nPts = Vector{typeof(u0)}(undef, length(pts))
-  for (i,pt) in enumerate(pts)
-    nPts[i] = setPointPartial!(newM, deepcopy(u0), mkd.manifold, pt, newpartial)
-  end
-
-  # also update metadata elements
-  finalpartial = !isPartial(mkd) ? newpartial : error("not built yet, to shift incoming partial")
-  bw = zeros(manifold_dimension(newM))
-  bw[finalpartial] .= getBW(mkd)[:,1]
-  ipc = zeros(manifold_dimension(newM))
-  ipc[finalpartial] .= getInfoPerCoord(mkd, true)
-  
-  manikde!(newM, nPts, u0, bw=bw, partial=finalpartial, infoPerCoord=ipc)
-end
 
 """
     $SIGNATURES
@@ -285,8 +244,55 @@ function Base.show(io::IO, mkd::ManifoldKernelDensity{M,B,L,P}) where {M,B,L,P}
   nothing
 end
 
+
 Base.show(io::IO, ::MIME"text/plain", mkd::ManifoldKernelDensity) = show(io, mkd)
 Base.show(io::IO, ::MIME"application/juno.inline", mkd::ManifoldKernelDensity) = show(io, mkd)
+
+
+# override
+function marginal(x::ManifoldKernelDensity{M,B}, 
+                  dims::AbstractVector{<:Integer}  ) where {M <: AbstractManifold , B}
+  #
+  ldims::Vector{Int} = collect(dims)
+  ManifoldKernelDensity(x.manifold, x.belief, ldims, x._u0)
+end
+
+function marginal(x::ManifoldKernelDensity{M,B,L}, 
+                  dims::AbstractVector{<:Integer}  ) where {M <: AbstractManifold , B, L <: AbstractVector{<:Integer}}
+  #
+  # @show dims x._partial
+  ldims::Vector{Int} = intersect(x._partial, dims)
+  ManifoldKernelDensity(x.manifold, x.belief, ldims, x._u0)
+end
+# manis = convert(Tuple, x.manifold)
+# partMani = _reducePartialManifoldElements(manis[dims])
+# pts = getPoints(x)
+
+
+
+function antimarginal(newM::AbstractManifold,
+                      u0,
+                      mkd::ManifoldKernelDensity, 
+                      newpartial::AbstractVector{<:Integer} )
+  #
+
+  # convert to antimarginal by copying user provided example point for bigger manifold
+  pts = getPoints(mkd, false)
+  nPts = Vector{typeof(u0)}(undef, length(pts))
+  for (i,pt) in enumerate(pts)
+    nPts[i] = setPointPartial!(newM, deepcopy(u0), mkd.manifold, pt, newpartial)
+  end
+
+  # also update metadata elements
+  finalpartial = !isPartial(mkd) ? newpartial : error("not built yet, to shift incoming partial")
+  bw = zeros(manifold_dimension(newM))
+  bw[finalpartial] .= getBW(mkd)[:,1]
+  ipc = zeros(manifold_dimension(newM))
+  ipc[finalpartial] .= getInfoPerCoord(mkd, true)
+  
+  manikde!(newM, nPts, u0, bw=bw, partial=finalpartial, infoPerCoord=ipc)
+end
+
 
 ## =======================================================================================
 ##  deprecate as necessary below
