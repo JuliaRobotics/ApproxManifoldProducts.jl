@@ -186,6 +186,15 @@ function getPoints( x::ManifoldKernelDensity{M,B,L},
 end
 
 
+function getBW(x::ManifoldKernelDensity{M,B,L}, asPartial::Bool=true; kw...) where {M,B,L}
+  bw = getBW(x.belief; kw...)
+  if !(L isa Nothing) && !asPartial
+    return view(bw, x._partial)
+  end
+  return bw
+end
+
+
 # TODO check that partials / marginals are sampled correctly
 function sample(x::ManifoldKernelDensity{M,B,L,P}, N::Int) where {M,B,L,P}
   # get legacy matrix of coordinates and selected labels
