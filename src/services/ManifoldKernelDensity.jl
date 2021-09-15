@@ -188,7 +188,7 @@ end
 
 function getBW(x::ManifoldKernelDensity{M,B,L}, asPartial::Bool=true; kw...) where {M,B,L}
   bw = getBW(x.belief; kw...)
-  if !(L isa Nothing) && !asPartial
+  if !(L isa Nothing) && asPartial
     return view(bw, x._partial)
   end
   return bw
