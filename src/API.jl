@@ -87,7 +87,13 @@ function manifoldProduct( ff::AbstractVector{<:ManifoldKernelDensity},
     end
   end
   
-  # @assert !isPartial(ff[1]) "currently only supports first product element as full density, isPartial.=$(isPartial.(ff)), dims.=$(Ndim.(_ff))"
+  ndims = maximum(Ndim.(_ff))
+  Ndens = length(_ff)
+  Np    = Npts(inplace)
+  maxNp = maximum([Np; Npts.(_ff)])
+  Nlevels = floor(Int,(log(Float64(maxNp))/log(2.0))+1.0)
+  randU = rand(Int(Np*Ndens*(Niter+2)*Nlevels))
+  randN = randn(Int(ndims*Np*(Nlevels+1)))                
 
   ## TODO check both _ff and inplace use a matrix of coordinates (columns)
   # expects Matrix with columns as samples and rows are coordinate dimensions
@@ -98,7 +104,14 @@ function manifoldProduct( ff::AbstractVector{<:ManifoldKernelDensity},
                           diffop=diffopT,
                           getMu=getManiMu,
                           glbs=glbs,
-                          addEntropy=addEntropy  );
+                          addEntropy=addEntropy,
+                          ndims=ndims,
+                          Ndens=Ndens,
+                          Np=Np,
+                          maxNp=maxNp,
+                          Nlevels=Nlevels,
+                          randU=randU,
+                          randN=randN  );
   #
 
   if recordLabels
