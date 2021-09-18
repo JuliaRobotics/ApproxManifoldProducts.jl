@@ -42,6 +42,8 @@ function manifoldProduct( ff::AbstractVector{<:ManifoldKernelDensity},
                           addEntropy::Bool=true,
                           recordLabels::Bool=false,
                           selectedLabels::Vector{Vector{Int}}=Vector{Vector{Int}}(),
+                          _randU=Vector{Float64}(),
+                          _randN=Vector{Float64}(),
                           logger=ConsoleLogger()  ) where {M <: MB.AbstractManifold, P}
   #
   # check quick exit
@@ -90,10 +92,18 @@ function manifoldProduct( ff::AbstractVector{<:ManifoldKernelDensity},
   ndims = maximum(Ndim.(_ff))
   Ndens = length(_ff)
   Np    = Npts(inplace)
-  maxNp = maximum([Np; Npts.(_ff)])
+  maxNp = maximum(Int[Np; Npts.(_ff)])
   Nlevels = floor(Int,(log(Float64(maxNp))/log(2.0))+1.0)
-  randU = rand(Int(Np*Ndens*(Niter+2)*Nlevels))
-  randN = randn(Int(ndims*Np*(Nlevels+1)))                
+  if 0 == length(_randU)
+    _len = Int(Np*Ndens*(Niter+2)*Nlevels)
+    resize!(_randU, _len)
+    _randU .= rand(_len)
+  end
+  if 0 == length(_randN)
+    _len = Int(ndims*Np*(Nlevels+1))
+    resize!(_randN, _len)
+    _randN .= randn(_len) 
+  end
 
   ## TODO check both _ff and inplace use a matrix of coordinates (columns)
   # expects Matrix with columns as samples and rows are coordinate dimensions
@@ -110,8 +120,8 @@ function manifoldProduct( ff::AbstractVector{<:ManifoldKernelDensity},
                           Np=Np,
                           maxNp=maxNp,
                           Nlevels=Nlevels,
-                          randU=randU,
-                          randN=randN  );
+                          randU=_randU,
+                          randN=_randN  );
   #
 
   if recordLabels
