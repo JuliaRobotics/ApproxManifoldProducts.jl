@@ -187,8 +187,8 @@ X = manikde!(M, pts, partial=[1;3])
 X_ = replace(X0, X)
 
 # check metadata
-@test  isapprox( getBW(X_)[[1;3],1], getBW(X)[[1;3],1] )
-@test !isapprox( getBW(X_)[[1;3],1], getBW(X0)[[1;3],1] )
+@test  isapprox( getBW(X_, false)[[1;3],1], getBW(X,  false)[[1;3],1] )
+@test !isapprox( getBW(X_, false)[[1;3],1], getBW(X0, false)[[1;3],1] )
 
 @test  isapprox( X_.infoPerCoord[[1;3]], X.infoPerCoord[[1;3]] )
 
