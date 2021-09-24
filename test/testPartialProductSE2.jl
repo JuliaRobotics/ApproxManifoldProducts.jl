@@ -117,6 +117,7 @@ for sidx = 1:len
 bw1 = getBW(p1)[:,1] .^2
 bw2 = getBW(p2, false)[:,1] .^2
 
+# full-partial points, but selected from partial-partial product
 u1 = pts1[selectedLabels__[sidx][1]]
 u2 = pts2[selectedLabels__[sidx][2]]
 
@@ -131,7 +132,7 @@ end
 ##
 
 
-@test_broken mmd(_p12_, p12__) < 0.001
+@test mmd(_p12_, p12__) < 0.001
 
 
 ##
@@ -141,7 +142,7 @@ end
 
 ## DEBUG PLOTTING ==========================================================================
 
-## Plots showing the problem, p12 is wrong!!
+## Plots showing the problem, p12 was wrong!!
 
 # using Cairo, RoMEPlotting
 # Gadfly.set_default_plot_size(35cm,20cm)
