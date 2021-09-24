@@ -204,9 +204,9 @@ function getManifoldPartial(M::ProductManifold,
 end
 
 function getManifoldPartial(M::GroupManifold, 
-                            partial::AbstractVector{Int}, 
+                            partial::AbstractVector{<:Integer}, 
                             repr::_PartiableRepresentation=nothing,
-                            offset::Base.RefValue{Int}=Ref(0);
+                            offset::Base.RefValue{<:Integer}=Ref(0);
                             doError::Bool=true )
   #
   # mask the desired coordinate dimensions

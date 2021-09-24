@@ -101,11 +101,10 @@ end
 # getManifold(x::ManifoldKernelDensity) = x.manifold
 
 
-import KernelDensityEstimate: getPoints, getBW, Ndim, Npts, getWeights, marginal 
+import KernelDensityEstimate: Ndim, Npts, getWeights, marginal 
 import KernelDensityEstimate: getKDERange, getKDEMax, getKDEMean, getKDEfit
 import KernelDensityEstimate: sample, rand, resample, kld, minkld
 
-getBW(x::ManifoldKernelDensity, w...;kw...) = getBW(x.belief,w...;kw...)
 
 Ndim(x::ManifoldKernelDensity, w...;kw...) = Ndim(x.belief,w...;kw...)
 Npts(x::ManifoldKernelDensity, w...;kw...) = Npts(x.belief,w...;kw...)

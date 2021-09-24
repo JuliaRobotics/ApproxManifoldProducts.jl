@@ -108,8 +108,8 @@ P12_
 
 for sidx in 1:N
 
-  bw1 = getBW(P1)[:,1] .^2
-  bw2 = getBW(P2_)[:,1] .^2
+  bw1 = getBW(P1, false)[:,1] .^2
+  bw2 = getBW(P2_, false)[:,1] .^2
 
   u1 = pts1[sl[sidx][1]]
   u2 = pts2[sl[sidx][2]]
@@ -165,9 +165,9 @@ P123_
 
 for sidx in 1:N
 
-  bw1 = getBW(P1)[:,1] .^2
-  bw2 = getBW(P2_)[:,1] .^2
-  bw3 = getBW(P3_)[:,1] .^2
+  bw1 = getBW(P1, false)[:,1] .^2
+  bw2 = getBW(P2_, false)[:,1] .^2
+  bw3 = getBW(P3_, false)[:,1] .^2
 
   u1 = pts1[sl[sidx][1]]
   u2 = pts2[sl[sidx][2]]
@@ -224,9 +224,9 @@ pts = getPoints(P)
 
 for sidx in 1:N
 
-  bw1 = getBW(P1)[:,1] .^2
-  bw2 = getBW(P2)[:,1] .^2
-  bw3 = getBW(P3)[:,1] .^2
+  bw1 = getBW(P1, false)[:,1] .^2
+  bw2 = getBW(P2, false)[:,1] .^2
+  bw3 = getBW(P3, false)[:,1] .^2
 
   # full density first
   u2 = pts2[sl[sidx][1]]
@@ -282,8 +282,8 @@ pts = getPoints(P_)
 
 for sidx in 1:N
 
-  bw1 = getBW(P1)[:,1] .^2
-  bw3 = getBW(P3)[:,1] .^2
+  bw1 = getBW(P1, false)[:,1] .^2
+  bw3 = getBW(P3, false)[:,1] .^2
 
   u1 = pts1[sl[sidx][1]]
   u3 = pts3[sl[sidx][2]]
@@ -343,10 +343,10 @@ P45__
 # sidx = 1
 for sidx in 1:N
 
-  bw1 = getBW(P4)[:,1] .^2
-  bw2 = getBW(P4_)[:,1] .^2
-  bw3 = getBW(P5)[:,1] .^2
-  bw4 = getBW(P5_)[:,1] .^2
+  bw1 = getBW(P4, false)[:,1] .^2
+  bw2 = getBW(P4_, false)[:,1] .^2
+  bw3 = getBW(P5, false)[:,1] .^2
+  bw4 = getBW(P5_, false)[:,1] .^2
 
   u1 = pts4[ sl[sidx][1]]
   u2 = pts4_[sl[sidx][2]]
@@ -410,9 +410,9 @@ pts = getPoints(P)
 
 for sidx in 1:N
 
-  bw1 = getBW(P1)[:,1] .^2
-  bw2 = getBW(P2)[:,1] .^2
-  bw3 = getBW(P3)[:,1] .^2
+  bw1 = getBW(P1, false)[:,1] .^2
+  bw2 = getBW(P2, false)[:,1] .^2
+  bw3 = getBW(P3, false)[:,1] .^2
 
   # full density first
   u2 = pts2[sl[sidx][1]]
@@ -472,9 +472,9 @@ pts = getPoints(P)
 
 for sidx in 1:N
 
-  bw1 = getBW(P1)[:,1] .^2
-  bw2 = getBW(P2)[:,1] .^2
-  bw3 = getBW(P3)[:,1] .^2
+  bw1 = getBW(P1, false)[:,1] .^2
+  bw2 = getBW(P2, false)[:,1] .^2
+  bw3 = getBW(P3, false)[:,1] .^2
 
   # full density first
   u1 = pts1[sl[sidx][1]]

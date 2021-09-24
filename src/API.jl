@@ -42,6 +42,8 @@ function manifoldProduct( ff::AbstractVector{<:ManifoldKernelDensity},
                           addEntropy::Bool=true,
                           recordLabels::Bool=false,
                           selectedLabels::Vector{Vector{Int}}=Vector{Vector{Int}}(),
+                          _randU=Vector{Float64}(),
+                          _randN=Vector{Float64}(),
                           logger=ConsoleLogger()  ) where {M <: MB.AbstractManifold, P}
   #
   # check quick exit
@@ -87,7 +89,21 @@ function manifoldProduct( ff::AbstractVector{<:ManifoldKernelDensity},
     end
   end
   
-  # @assert !isPartial(ff[1]) "currently only supports first product element as full density, isPartial.=$(isPartial.(ff)), dims.=$(Ndim.(_ff))"
+  ndims = maximum(Ndim.(_ff))
+  Ndens = length(_ff)
+  Np    = Npts(inplace)
+  maxNp = maximum(Int[Np; Npts.(_ff)])
+  Nlevels = floor(Int,(log(Float64(maxNp))/log(2.0))+1.0)
+  if 0 == length(_randU)
+    _len = Int(Np*Ndens*(Niter+2)*Nlevels)
+    resize!(_randU, _len)
+    _randU .= rand(_len)
+  end
+  if 0 == length(_randN)
+    _len = Int(ndims*Np*(Nlevels+1))
+    resize!(_randN, _len)
+    _randN .= randn(_len) 
+  end
 
   ## TODO check both _ff and inplace use a matrix of coordinates (columns)
   # expects Matrix with columns as samples and rows are coordinate dimensions
@@ -98,7 +114,14 @@ function manifoldProduct( ff::AbstractVector{<:ManifoldKernelDensity},
                           diffop=diffopT,
                           getMu=getManiMu,
                           glbs=glbs,
-                          addEntropy=addEntropy  );
+                          addEntropy=addEntropy,
+                          ndims=ndims,
+                          Ndens=Ndens,
+                          Np=Np,
+                          maxNp=maxNp,
+                          Nlevels=Nlevels,
+                          randU=_randU,
+                          randN=_randN  );
   #
 
   if recordLabels
