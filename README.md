@@ -1,6 +1,6 @@
 # ApproxManifoldProducts.jl
 
-[![Build Status](https://travis-ci.org/JuliaRobotics/ApproxManifoldProducts.jl.svg?branch=master)](https://travis-ci.org/JuliaRobotics/ApproxManifoldProducts.jl)
+[![CI](https://github.com/JuliaRobotics/ApproxManifoldProducts.jl/actions/workflows/ci.yml/badge.svg)](https://github.com/JuliaRobotics/ApproxManifoldProducts.jl/actions/workflows/ci.yml)
 [![codecov.io](https://codecov.io/github/JuliaRobotics/ApproxManifoldProducts.jl/coverage.svg?branch=master)](https://codecov.io/github/JuliaRobotics/ApproxManifoldProducts.jl?branch=master)
 
 
