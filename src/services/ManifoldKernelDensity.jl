@@ -243,11 +243,20 @@ function Base.show(io::IO, mkd::ManifoldKernelDensity{M,B,L,P}) where {M,B,L,P}
   pvec = isPartial(mkd) ? mkd._partial : collect(1:length(bw))
   println(io, "  bws:   ", getBandwidth(mkd, true) .|> x->round(x,digits=4))
   println(io, "  ipc:   ", getInfoPerCoord(mkd, true) .|> x->round(x,digits=4))
+  print(io, "   mean: ")
   try
     # mn = mean(mkd.manifold, getPoints(mkd, false))
     mn = mean(mkd)
-    println(io, "   mean: ", round.(mn',digits=4))
+    if mn isa ProductRepr
+      println(io)
+      for prt in mn.parts
+        println(io, "         ", round.(prt,digits=4))
+      end
+    else
+      println(io, round.(mn',digits=4))
+    end
   catch
+    println(io, "----")
   end
   println(io, ")")
   nothing
