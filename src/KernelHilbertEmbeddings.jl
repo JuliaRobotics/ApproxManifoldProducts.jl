@@ -46,7 +46,7 @@ function mmd!(MF::MB.AbstractManifold,
       _val1 -= ker(MF, a[i], b[j], bw[1])
     end
   end
-  _val1 .*= 2.0*_N*_N
+  _val1 *= 2.0*_N*_M
   @inbounds @fastmath for i in 1:N
     @simd for j in 1:N
       _val2 += ker(MF, a[i], a[j], bw[1])
