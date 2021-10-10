@@ -5,7 +5,11 @@ export
   mmd!,  # KED
   mmd
 
+"""
+    $SIGNATURES
 
+Normal kernel used for Hilbert space embeddings.
+"""
 ker(M::MB.AbstractManifold, p, q, sigma::Real=0.001) = exp( -sigma*(distance(M, p, q)^2) )
 
 """
@@ -17,37 +21,47 @@ Notes:
 - This is the in-place version (well more in-place than mmd)
 
 DevNotes:
-- TODO make work for different sizes N,M
 - TODO dont assume equally weighted particles
+- TODO profile SIMD vs SLEEF
+- TODO optimize memory
+- TODO make multithreaded
 
-Related
-
-mmd, ker
+See also: [`mmd`](@ref), [`ker`](@ref)
 """
 function mmd!(MF::MB.AbstractManifold,
               val::AbstractVector{<:Real},
               a::AbstractVector,
               b::AbstractVector,
-              N::Int=length(a), M::Int=length(b); 
+              N::Integer=length(a), M::Integer=length(b); 
               bw::AbstractVector{<:Real}=[0.001;] )
   #
   # TODO allow unequal data too
-  @assert N == M "mmd! currently requires input vectors be the same length"
-  val[1] = 0.0
+  _N = 1.0/N
+  _M = 1.0/M
+  _val1 = 0.0
+  _val2 = 0.0
+  _val3 = 0.0
   @inbounds @fastmath for i in 1:N
     @simd for j in 1:M
-      val[1] -= ker(MF, a[i], b[j], bw[1])
+      _val1 -= ker(MF, a[i], b[j], bw[1])
     end
   end
-  val .*= 2.0
+  _val1 *= 2.0*_N*_M
   @inbounds @fastmath for i in 1:N
-    @simd for j in 1:M
-      val[1] += ker(MF, a[i], a[j], bw[1])
-      val[1] += ker(MF, b[i], b[j], bw[1])
+    @simd for j in 1:N
+      _val2 += ker(MF, a[i], a[j], bw[1])
     end
   end
-  val ./= N
-  val ./= M
+  _val2 *= (_N*_N)
+  @inbounds @fastmath for i in 1:M
+    @simd for j in 1:M
+      _val3 += ker(MF, b[i], b[j], bw[1])
+    end
+  end
+  _val3 *= (_M*_M)
+
+  # accumulate all terms
+  val[1] = _val1 + _val2 + _val3
   return val
 end
 
