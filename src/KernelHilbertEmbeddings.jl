@@ -12,6 +12,11 @@ Normal kernel used for Hilbert space embeddings.
 """
 ker(M::MB.AbstractManifold, p, q, sigma::Real=0.001) = exp( -sigma*(distance(M, p, q)^2) )
 
+# overwrite non-symmetric with alternate implementations 
+# ker(M::MB.AbstractManifold, p, q, sigma::Real=0.001) = exp( -sigma*(distance(M, p, q)^2) )
+
+
+
 """
     $SIGNATURES
 
