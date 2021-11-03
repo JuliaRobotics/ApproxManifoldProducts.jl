@@ -105,6 +105,6 @@ function mmd(a::ManifoldKernelDensity{M}, b::ManifoldKernelDensity{M}; bw::Vecto
 end
 
 
-function isapprox(a::ManifoldKernelDensity, b::ManifoldKernelDensity; atol::Real=0.1)
+function isapprox(a::ManifoldKernelDensity, b::ManifoldKernelDensity; mmd_tol::Real=1e-1, atol::Real=mmd_tol)
   mmd(a,b) < atol
 end
