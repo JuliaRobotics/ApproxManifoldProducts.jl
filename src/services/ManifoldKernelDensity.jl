@@ -196,7 +196,7 @@ end
 
 
 # TODO check that partials / marginals are sampled correctly
-function sample(x::ManifoldKernelDensity{M,B,L,P}, N::Int) where {M,B,L,P}
+function sample(x::ManifoldKernelDensity{M,B,L,P}, N::Integer=1) where {M,B,L,P}
   # get legacy matrix of coordinates and selected labels
   coords, lbls = sample(x.belief, N)
 
