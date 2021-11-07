@@ -58,7 +58,7 @@ wCb4 = vee(M, e0, log(M, e0, wTb4))
 # check the negative result
 @test  isapprox( [100,0.,0],      wCb0 ; atol=1e-6 )
 @test !isapprox( [110,0.,pi/2],   wCb1 ; atol=1e-6 )
-@test !isapprox( [110.,10,pi],    wCb2 ; atol=1e-6 ) || isapprox( [110,10,-pi], wCb2 ; atol=1e-6 )
+@test !(isapprox( [110.,10,pi],    wCb2 ; atol=1e-6 ) || isapprox( [110,10,-pi], wCb2 ; atol=1e-6 ))
 @test !isapprox( [100.,10,-pi/2], wCb3 ; atol=1e-6 )
 @test  isapprox( [100,0,0.],      wCb4 ; atol=1e-6 )
 
