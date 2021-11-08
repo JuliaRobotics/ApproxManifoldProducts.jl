@@ -17,11 +17,15 @@ Manifolds.identity_element(::Circle, val::AbstractVector{T}) where {T <: Real} =
 
 Helper function to convert coordinates to a desired on-manifold point.
 
+DevNotes
+- FIXME need much better consolidation or even removal of this function entirely.
+  - This function makes too strong an assumption of groups
+
 Notes
 - `u0` is used to identify the data type for a point
 - Pass in a different `exp` if needed.
 """
-makePointFromCoords(M::MB.AbstractManifold,
+makePointFromCoords(M::MB.AbstractManifold,  # Manifolds.AbstractGroupManifold
                     coords::AbstractVector{<:Real},
                     u0=zeros(manifold_dimension(M)),
                     ϵ=identity_element(M,u0),
@@ -29,11 +33,12 @@ makePointFromCoords(M::MB.AbstractManifold,
 #
 
 # should perhaps just be dispatched for <:AbstractGroupManifold
+# only works for AbstractGroupManifold (have an identity)
 function makeCoordsFromPoint( M::MB.AbstractManifold,
-                              pt::P ) where P
+                              pt::P,
+                              ϵ = identity_element(M, pt) ) where P
   #
-  # only works for manifold which have an identity (eg groups)
-  ϵ = identity_element(M, pt)
+  
   vee(M, ϵ, log(M, ϵ, pt))
 end
 

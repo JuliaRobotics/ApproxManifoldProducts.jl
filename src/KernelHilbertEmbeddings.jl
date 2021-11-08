@@ -12,6 +12,11 @@ Normal kernel used for Hilbert space embeddings.
 """
 ker(M::MB.AbstractManifold, p, q, sigma::Real=0.001) = exp( -sigma*(distance(M, p, q)^2) )
 
+# overwrite non-symmetric with alternate implementations 
+# ker(M::MB.AbstractManifold, p, q, sigma::Real=0.001) = exp( -sigma*(distance(M, p, q)^2) )
+
+
+
 """
     $SIGNATURES
 
@@ -100,6 +105,6 @@ function mmd(a::ManifoldKernelDensity{M}, b::ManifoldKernelDensity{M}; bw::Vecto
 end
 
 
-function isapprox(a::ManifoldKernelDensity, b::ManifoldKernelDensity; atol::Real=0.1)
+function isapprox(a::ManifoldKernelDensity, b::ManifoldKernelDensity; mmd_tol::Real=1e-1, atol::Real=mmd_tol)
   mmd(a,b) < atol
 end
