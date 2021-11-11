@@ -17,16 +17,27 @@ ker(M::MB.AbstractManifold, p, q, sigma::Real=0.001) = @fastmath exp( -sigma*(di
 
 
 function gramLoops(MF::AbstractManifold, a::AbstractVector, b::AbstractVector, bw::Real)
-  _val = 0.0
+  
+  function _innerLoop(i::Integer)
+    __val = 0.0
+    @inbounds for j in eachindex(b)
+      __val += ker(MF, a[i], b[j], bw)
+    end
+    return __val
+  end
+  
+  _val = Threads.Atomic{Float64}(0.0) # 0.0
+
   # not sure why the mapreduce didnt work.
   # _val -= mapreduce(bj->ker(MF, a[i], bj, bw), -, b)
-  @inbounds for i in eachindex(a)
-    for j in eachindex(b)
-      _val += ker(MF, a[i], b[j], bw)
-    end
+  Threads.@threads for i in eachindex(a)
+    Threads.atomic_add!(_val, _innerLoop(i))
+    # for j in eachindex(b)
+    #   _val += ker(MF, a[i], b[j], bw)
+    # end
   end
 
-  return _val
+  return _val[]
 end
 
 
@@ -56,38 +67,15 @@ function mmd!(MF::MB.AbstractManifold,
   # TODO allow unequal data too
   _N = 1.0/N
   _M = 1.0/M
-  _val1 = 0.0
-  _val2 = 0.0
-  _val3 = 0.0
 
-  _val1 = -gramLoops(MF, a, b, bw[1])
-  _val1 *= 2.0*_N*_M
+  _val1 = gramLoops(MF, a, b, bw[1])
+  _val1 *= -2.0*_N*_M
   
   _val2 = gramLoops(MF, a, a, bw[1])
   _val2 *= (_N^2)
 
   _val3 = gramLoops(MF, b, b, bw[1])  
   _val3 *= (_M^2)
-
-  # @inbounds for i in eachindex(a)
-  #   # not sure why the mapreduce didnt work.
-  #   # _val1 -= mapreduce(bj->ker(MF, a[i], bj, bw[1]), -, b)
-  #   for j in eachindex(b)
-  #     _val1 -= ker(MF, a[i], b[j], bw[1])
-  #   end
-  # end
-
-  # @inbounds for i in eachindex(a)
-  #   for j in eachindex(a)
-  #     _val2 += ker(MF, a[i], a[j], bw[1])
-  #   end
-  # end
-
-  # @inbounds for i in eachindex(b)
-  #   for j in eachindex(b)
-  #     _val3 += ker(MF, b[i], b[j], bw[1])
-  #   end
-  # end
 
   # accumulate all terms
   val[1] = _val1 + _val2 + _val3
