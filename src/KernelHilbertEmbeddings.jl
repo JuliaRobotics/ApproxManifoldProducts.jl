@@ -18,10 +18,11 @@ ker(M::MB.AbstractManifold, p, q, sigma::Real=0.001) = @fastmath exp( -sigma*(di
 
 function gramLoops(MF::AbstractManifold, a::AbstractVector, b::AbstractVector, bw::Real)
   
-  function _innerLoop(i::Integer)
-    __val = 0.0
+  function _innerLoop(__val::AbstractVector{<:Real},i::Integer)
+    # a_ = a[i]
+    # __val = [0.0;]
     @inbounds for j in eachindex(b)
-      __val += ker(MF, a[i], b[j], bw)
+      __val .+= ker(MF, a[i], b[j], bw)
     end
     return __val
   end
@@ -31,10 +32,7 @@ function gramLoops(MF::AbstractManifold, a::AbstractVector, b::AbstractVector, b
   # not sure why the mapreduce didnt work.
   # _val -= mapreduce(bj->ker(MF, a[i], bj, bw), -, b)
   Threads.@threads for i in eachindex(a)
-    Threads.atomic_add!(_val, _innerLoop(i))
-    # for j in eachindex(b)
-    #   _val += ker(MF, a[i], b[j], bw)
-    # end
+    Threads.atomic_add!(_val, _innerLoop([0.0;],i)[1])
   end
 
   return _val[]
