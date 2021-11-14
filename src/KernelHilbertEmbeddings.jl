@@ -16,26 +16,37 @@ ker(M::MB.AbstractManifold, p, q, sigma::Real=0.001) = @fastmath exp( -sigma*(di
 # ker(M::MB.AbstractManifold, p, q, sigma::Real=0.001) = exp( -sigma*(distance(M, p, q)^2) )
 
 
-function gramLoops(MF::AbstractManifold, a::AbstractVector, b::AbstractVector, bw::Real)
+function gramLoops(MF::AbstractManifold, a::AbstractVector, b::AbstractVector, bw::Real, threads::Bool=true)
   
-  function _innerLoop(__val::AbstractVector{<:Real},i::Integer)
+  function _innerLoop!(val::AbstractVector{<:Real}, i::Integer)
     # a_ = a[i]
-    # __val = [0.0;]
+    val_ = view(val, i)
     @inbounds for j in eachindex(b)
-      __val .+= ker(MF, a[i], b[j], bw)
+      val_ .+= ker(MF, a[i], b[j], bw)
     end
-    return __val
+
+    return nothing
+    # return val_[]
   end
   
-  _val = Threads.Atomic{Float64}(0.0) # 0.0
+  # total = Threads.Atomic{Float64}(0.0) # 0.0
+  # total = MVector{length(a),Float64}(undef)
+  total = zeros(length(a))
 
   # not sure why the mapreduce didnt work.
-  # _val -= mapreduce(bj->ker(MF, a[i], bj, bw), -, b)
-  Threads.@threads for i in eachindex(a)
-    Threads.atomic_add!(_val, _innerLoop([0.0;],i)[1])
+  # total -= mapreduce(bj->ker(MF, a[i], bj, bw), -, b)
+  @sync for i in eachindex(a)
+    # NOTE, obscure thread yield issue when loading DFG (first guess is a deadlock issue with dynamic compiler)
+    if threads
+      Threads.@spawn _innerLoop!(total,$i)
+    else
+      _innerLoop!(total, i)
+    end
+    # Threads.atomic_add!(total, _innerLoop(i))
   end
 
-  return _val[]
+  return sum(total)
+  # return total[]
 end
 
 
@@ -59,20 +70,21 @@ function mmd!(MF::MB.AbstractManifold,
               val::AbstractVector{<:Real},
               a::AbstractVector,
               b::AbstractVector,
-              N::Integer=length(a), M::Integer=length(b); 
+              N::Integer=length(a), M::Integer=length(b),
+              threads::Bool=true; 
               bw::AbstractVector{<:Real}=SA[0.001;] )
   #
   # TODO allow unequal data too
   _N = 1.0/N
   _M = 1.0/M
 
-  _val1 = gramLoops(MF, a, b, bw[1])
+  _val1 = gramLoops(MF, a, b, bw[1], threads)
   _val1 *= -2.0*_N*_M
   
-  _val2 = gramLoops(MF, a, a, bw[1])
+  _val2 = gramLoops(MF, a, a, bw[1], threads)
   _val2 *= (_N^2)
 
-  _val3 = gramLoops(MF, b, b, bw[1])  
+  _val3 = gramLoops(MF, b, b, bw[1], threads)  
   _val3 *= (_M^2)
 
   # accumulate all terms
@@ -95,23 +107,26 @@ mmd!, ker
 function mmd( MF::MB.AbstractManifold,
               a::AbstractVector,
               b::AbstractVector,
-              N::Int=length(a), M::Int=length(b); 
+              N::Int=length(a), M::Int=length(b),
+              threads::Bool=true; 
               bw::AbstractVector{<:Real}=[0.001;])
   #
   val = [0.0;]
   mmd!( MF, val, 
         a,b,
-        N, M; bw=bw )
+        N, M, 
+        threads; bw=bw )
   #
   return val[1]
 end
 
 
-function mmd(a::ManifoldKernelDensity{M}, b::ManifoldKernelDensity{M}; bw::Vector{<:Real}=[0.001;]) where M <: MB.AbstractManifold
+function mmd( a::ManifoldKernelDensity{M}, b::ManifoldKernelDensity{M}, 
+              threads::Bool=true; bw::Vector{<:Real}=[0.001;]) where M <: MB.AbstractManifold
   # @assert a.manifold == b.manifold "Manifolds not the same $(a.manifold), $(b.manifold)"
   aPts = getPoints(a)
   bPts = getPoints(b)
-  mmd(a.manifold, aPts, bPts, bw=bw)
+  mmd(a.manifold, aPts, bPts, length(aPts), length(bPts), threads; bw)
 end
 
 
