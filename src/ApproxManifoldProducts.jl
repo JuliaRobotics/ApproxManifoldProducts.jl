@@ -2,7 +2,7 @@ module ApproxManifoldProducts
 
 using Reexport
 @reexport using KernelDensityEstimate
-@reexport using TransformUtils
+@reexport using TransformUtils  # likely to be deprecated
 using Random
 
 import ManifoldsBase
@@ -16,16 +16,16 @@ using NLsolve
 import Optim
 using CoordinateTransformations
 using Requires
-using SLEEFPirates
 using LinearAlgebra
-using JSON2
 using TensorCast
 using StaticArrays
 using Logging
+using Statistics
 
 import Base: *, isapprox, convert
-# import KernelDensityEstimate: kde!
 import LinearAlgebra: rotate!
+import Statistics: mean
+import KernelDensityEstimate: getPoints, getBW
 
 
 const AMP = ApproxManifoldProducts
@@ -55,24 +55,34 @@ export
   buildHybridManifoldCallbacks,
   getKDEManifoldBandwidths,
   manifoldProduct,
-  manikde!
+  manikde!,
+  calcCovarianceBasic,
+  isPartial,
+  mean,
+  calcProductGaussians
 
 
 # internal features not exported
 include("_BiMaps.jl")
 
-# regular features
+# AMP types and some legacy support 
+include("entities/ManifoldKernelDensity.jl")
+include("entities/ManifoldDefinitions.jl")
+include("Legacy.jl")
+include("services/ManifoldPartials.jl")
 include("Interface.jl")
+
+# regular features
 include("CommonUtils.jl")
-include("ManifoldDefinitions.jl")
-include("Euclidean.jl")
-include("CircularUtils.jl")
-include("Circular.jl")
+include("services/ManifoldKernelDensity.jl")
+include("services/Euclidean.jl")
+include("services/CircularUtils.jl")
+include("services/Circular.jl")
 include("KernelHilbertEmbeddings.jl")
 
 include("TrackingLabels.jl")
 
-include("Legacy.jl")
+# include("Serialization.jl") # moved downstream to IIF to use InferenceVariable serialized types instead
 include("API.jl")
 
 include("Deprecated.jl")

@@ -3,7 +3,7 @@
 
 function _reducePartialManifoldElements(el::Symbol)
   if el == :Euclid
-    return Euclidean(1)
+    return TranslationGroup(1)
   elseif el == :Circular
     return Circle()
   end
@@ -47,10 +47,11 @@ function buildHybridManifoldCallbacks(manif::Tuple)
   return (addopT...,), (diffopT...,), (getManiMu...,), (getManiLam...,)
 end
 
-# FIXME temp conversion during consolidation
+# FIXME TO BE REMOVED
 _MtoSymbol(::Euclidean{Tuple{1}}) = :Euclid
 _MtoSymbol(::Circle) = :Circular
 Base.convert(::Type{<:Tuple}, M::ProductManifold) = _MtoSymbol.(M.manifolds)
+Base.convert(::Type{<:Tuple}, M::TranslationGroup) = tuple([:Euclid for i in 1:manifold_dimension(M)]...)
 
 Base.convert(::Type{<:Tuple}, ::Type{<: typeof(Euclid)}) = (:Euclid,)
 Base.convert(::Type{<:Tuple}, ::Type{<: typeof(Euclid2)}) = (:Euclid,:Euclid)
@@ -90,38 +91,35 @@ function getKDEManifoldBandwidths(pts::AbstractMatrix{<:Real},
   return bws
 end
 
-function ManifoldKernelDensity( M::MB.AbstractManifold,
-                                ptsArr::AbstractVector{P},
-                                bw::Union{<:AbstractVector{<:Real},Nothing}=nothing  ) where P
-  #
-  # FIXME obsolete
-  arr = Matrix{Float64}(undef, length(ptsArr[1]), length(ptsArr))
-  @cast arr[i,j] = ptsArr[j][i]
-  manis = convert(Tuple, M)
-  # find or have the bandwidth
-  _bw = bw === nothing ? getKDEManifoldBandwidths(arr, manis ) : bw
-  addopT, diffopT, _, _ = buildHybridManifoldCallbacks(manis)
-  bel = KernelDensityEstimate.kde!(arr, _bw, addopT, diffopT)
-  return ManifoldKernelDensity(M, bel)
-end
 
 
-# internal workaround function for building partial submanifold dimensions, must be upgraded/standarized
-function _buildManifoldPartial( fullM::MB.AbstractManifold, 
-                                partial_coord_dims )
-  #
-  # temporary workaround during Manifolds.jl integration
-  manif = convert(Tuple, fullM)[partial_coord_dims]
-  # 
-  newMani = MB.AbstractManifold[]
-  for me in manif
-    push!(newMani, _reducePartialManifoldElements(me))
-  end
+## ================================================================================================================================
+# pass through API
+## ================================================================================================================================
 
-  # assume independent dimensions for definition, ONLY USED AS DECORATOR AT THIS TIME, FIXME
-  return ProductManifold(newMani...)
-end
+# not exported yet
+# getManifold(x::ManifoldKernelDensity) = x.manifold
 
+
+import KernelDensityEstimate: Ndim, Npts, getWeights, marginal 
+import KernelDensityEstimate: getKDERange, getKDEMax, getKDEMean, getKDEfit
+import KernelDensityEstimate: sample, rand, resample, kld, minkld
+
+
+Ndim(x::ManifoldKernelDensity, w...;kw...) = Ndim(x.belief,w...;kw...)
+Npts(x::ManifoldKernelDensity, w...;kw...) = Npts(x.belief,w...;kw...)
+
+getWeights(x::ManifoldKernelDensity, w...;kw...) = getWeights(x.belief, w...;kw...)
+
+getKDERange(x::ManifoldKernelDensity, w...;kw...) = getKDERange(x.belief, w...;kw...)
+getKDEMax(x::ManifoldKernelDensity, w...;kw...) = getKDEMax(x.belief, w...;kw...)
+getKDEMean(x::ManifoldKernelDensity, w...;kw...) = getKDEMean(x.belief, w...;kw...)
+getKDEfit(x::ManifoldKernelDensity, w...;kw...) = getKDEfit(x.belief, w...;kw...)
+
+kld(x::ManifoldKernelDensity, w...;kw...) = kld(x.belief, w...;kw...)
+minkld(x::ManifoldKernelDensity, w...;kw...) = minkld(x.belief, w...;kw...)
+
+(x::ManifoldKernelDensity)(w...;kw...) = x.belief(w...;kw...)
 
 
 

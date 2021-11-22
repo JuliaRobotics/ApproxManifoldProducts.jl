@@ -7,48 +7,55 @@ using TensorCast
 using Manifolds
 
 
-# 3D
+## 3D
 
 @testset "Basic 3D multiply and cross dimension covariance test..." begin
 
+##
+
 N = 100
 
-pts1_ = [0.05*randn(N)'; 0.05*randn(N)'; 0.75*randn(N)']
-pts2_ = [0.05*randn(N)'; 0.05*randn(N)'; 0.75*randn(N)']
-
-# lazy
-@cast pts1[j][i] := pts1_[i,j]
-@cast pts2[j][i] := pts2_[i,j]
+pts1 = [[0.05*randn(2);0.75*randn()] for i in 1:N]
+pts2 = [[0.05*randn(2);0.75*randn()] for i in 1:N]
 
 
-P1 = manikde!(pts1, Euclidean(3))
-P2 = manikde!(pts2, Euclidean(3))
+P1 = manikde!(TranslationGroup(3),pts1)
+P2 = manikde!(TranslationGroup(3),pts2)
 
 P12 = P1*P2
 
+@test typeof(P12._u0) <: Vector{Float64}
+
 pts_ = getPoints(P12)
 
-@cast pts[i,j] := pts_[j][i]
+pts = AMP._pointsToMatrixCoords(P12.manifold, pts_)
 
 @test 0.8*N < sum(abs.(pts[1,:]) .< 0.1)
 @test 0.8*N < sum(abs.(pts[2,:]) .< 0.1)
 @test 0.8*N < sum(abs.(pts[3,:]) .< 2.0)
 
+##
 
+M = SpecialEuclidean(2)
+u0 = ProductRepr(zeros(2),[1 0; 0 1.0])
+ϵ = identity_element(M, u0)
 
-P1 = manikde!(pts1, SpecialEuclidean(2))
-P2 = manikde!(pts2, SpecialEuclidean(2))
+pts1 = [exp(M, ϵ, hat(M, ϵ, [0.05*randn(2);0.75*randn()])) for i in 1:N]
+pts2 = [exp(M, ϵ, hat(M, ϵ, [0.05*randn(2);0.75*randn()])) for i in 1:N]
+
+P1 = manikde!(M, pts1)
+P2 = manikde!(M, pts2)
 
 P12 = P1*P2
 
 pts_ = getPoints(P12)
 
-@cast pts[i,j] := pts_[j][i]
+pts = AMP._pointsToMatrixCoords(P12.manifold, pts_)
+
 
 @test 0.8*N < sum(abs.(pts[1,:]) .< 0.1)
 @test 0.8*N < sum(abs.(pts[2,:]) .< 0.1)
 @test 0.8*N < sum(abs.(pts[3,:]) .< 2.0)
-
 
 
 # using KernelDensityEstimatePlotting
@@ -57,6 +64,8 @@ pts_ = getPoints(P12)
 #
 # plotKDE([P1;P2;P12], c=["red";"blue";"magenta"],levels=1) |> PDF("/tmp/test.pdf")
 # run(`evince /tmp/test.pdf`)
+
+##
 
 end
 

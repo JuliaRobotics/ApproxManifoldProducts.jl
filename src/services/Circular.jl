@@ -3,25 +3,6 @@
 
 
 
-# use Circle1 instead
-# struct Circular <: MB.AbstractManifold{MB.ℝ}
-#   dof::Int
-#   addop::Function
-#   diffop::Function
-#   getMu
-#   getLambda
-#   domain::Tuple{Float64, Float64}
-# end
-
-# Circular() = Circular(1,
-#                       addtheta,
-#                       difftheta,
-#                       getCircMu,
-#                       getCircLambda,
-#                       (-pi+0.0,pi-1e-15))
-
-
-
 function get2DMu(mus, Lambdas; diffop::Function=-, periodicmanifold::Function=(x)->x, initrange::Tuple{Float64, Float64}=(-1e-5,1e-5) )::Float64
   # TODO: can be solved as the null space basis, but requires proper scaling
   gg = (res, x) -> solveresid2DLinear!(res, x, mus, Lambdas, diffop=diffop)
@@ -49,22 +30,6 @@ end
 
 
 
-
-
-# struct SO2Manifold <: MB.AbstractManifold
-# end
-#
-#
-# # should not be defined in AMP, since we want IIF indepent of manifolds
-# function *(PP::Vector{MKD{SO2Manifold,B}}) where B
-#   @info "taking manifold product of $(length(PP)) terms"
-#   @warn "SO2Manifold: work in progress"
-# end
-#
-# mbr1 = ManifoldKernelDensity(SO2Manifold, 0.0)
-# mbr2 = ManifoldKernelDensity(SO2Manifold, 0.0)
-#
-# *([mbr1;mbr2])
 
 
 
