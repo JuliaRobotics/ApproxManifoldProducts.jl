@@ -4,17 +4,18 @@ using Manifolds
 using ApproxManifoldProducts
 using Test
 # using Random
-using FileIO
+# using FileIO, JLD2
+using BSON
 
 ##
 
 @testset "partial product with a SpecialEuclidean(2)" begin
 ##
 
-datafile = joinpath(@__DIR__, "testdata", "partialtest.jld2")
-dict = load(datafile)
-pts1 = dict["pts1"]
-pts2 = dict["pts2"]
+datafile = joinpath(@__DIR__, "testdata", "partialtest.bson")
+dict = BSON.load(datafile)
+pts1 = dict[:pts1]
+pts2 = dict[:pts2]
 
 randU = Float64[]
 randN = Float64[]
