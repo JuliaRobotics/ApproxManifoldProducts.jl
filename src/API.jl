@@ -33,10 +33,10 @@ plot( x=getPoints(pq)[1,:], y=getPoints(pq)[2,:], Geom.histogram2d )
 function manifoldProduct( ff::AbstractVector{<:ManifoldKernelDensity},
                           mani::M=ff[1].manifold;
                           makeCopy::Bool=false,
-                          Niter::Int=1,
+                          Niter::Integer=1,
                           # partialDimsWorkaround=1:MB.manifold_dimension(mani),
-                          ndims::Int=maximum(Ndim.(ff)),
-                          N::Int = maximum(Npts.(ff)),
+                          ndims::Integer=maximum([0;Ndim.(ff)]),
+                          N::Integer = maximum([0;Npts.(ff)]),
                           u0 = getPoints(ff[1], false)[1],
                           oldPoints::AbstractVector{P}= [identity_element(mani, u0) for i in 1:N],
                           addEntropy::Bool=true,
@@ -54,7 +54,7 @@ function manifoldProduct( ff::AbstractVector{<:ManifoldKernelDensity},
 
   Ndens = length(ff)
   # Npartials = length(partials)
-  Ndims = maximum(Ndim.(ff))
+  Ndims = maximum([0;Ndim.(ff)])
   with_logger(logger) do
     @debug "[x$(Ndens),d$(Ndims),N$(N)],"
   end
