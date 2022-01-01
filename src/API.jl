@@ -47,11 +47,15 @@ function manifoldProduct( ff::AbstractVector{<:ManifoldKernelDensity},
                           logger=ConsoleLogger()  ) where {M <: MB.AbstractManifold, P}
   #
   # check quick exit
-  if 1 == length(ff)
+  if  1 == length(ff)
     # @show Ndim(ff[1]), Npts(ff[1]), getPoints(ff[1],false)[1]
     return (makeCopy ? x->deepcopy(x) : x->x)(ff[1])
   end
 
+  # TODO DEPRECATE ::NTuple{Symbol} approach
+  manif = convert(Tuple, mani)  #[partialDimsWorkaround]
+  addopT, diffopT, getManiMu, _ = buildHybridManifoldCallbacks(manif)
+  
   Ndens = length(ff)
   # Npartials = length(partials)
   Ndims = maximum([0;Ndim.(ff)])
@@ -62,21 +66,21 @@ function manifoldProduct( ff::AbstractVector{<:ManifoldKernelDensity},
   glbs = KDE.makeEmptyGbGlb();
   glbs.recordChoosen = recordLabels
   
-  # TODO DEPRECATE ::NTuple{Symbol} approach
-  manif = convert(Tuple, mani)  #[partialDimsWorkaround]
-  addopT, diffopT, getManiMu, _ = buildHybridManifoldCallbacks(manif)
-  
-  
-  bws = ones(ndims)
+  bws = 0 == length(ff) ? [1.0;] : ones(ndims)
   # MAKE SURE inplace ends up as matrix of coordinates from incoming ::Vector{P}
   oldpts = _pointsToMatrixCoords(mani, oldPoints)
   # FIXME currently assumes oldPoints are in coordinates...
   # @cast oldpts_[i,j] := oldPoints[j][i]
   # oldpts = collect(oldpts_)
   inplace = kde!(oldpts, bws, addopT, diffopT ); # rand(ndims,N)
-  
-  # TODO REMOVE
-  _ff = (x->x.belief).(ff)
+
+  # TODO refactor and reduce
+  _u0 = 0 == length(ff) ? u0 : ff[1]._u0
+  if 0 == length(ff)
+    return ManifoldKernelDensity(mani, inplace, zeros(manifold_dimension(mani)) .== 0, _u0)
+  end
+
+  _ff = map(x->x.belief, ff)
   partialDimMask = Vector{BitVector}(undef, length(ff))
   for (k,md) in enumerate(ff)
     partialDimMask[k] = ones(Int,ndims) .== 1
@@ -89,7 +93,7 @@ function manifoldProduct( ff::AbstractVector{<:ManifoldKernelDensity},
     end
   end
   
-  ndims = maximum(Ndim.(_ff))
+  ndims = maximum([0;Ndim.(_ff)])
   Ndens = length(_ff)
   Np    = Npts(inplace)
   maxNp = maximum(Int[Np; Npts.(_ff)])
@@ -150,7 +154,7 @@ function manifoldProduct( ff::AbstractVector{<:ManifoldKernelDensity},
   bel = kde!(pGM, bws, addopT, diffopT)
   
   # FIXME u0 might not be representative of the partial information
-  return ManifoldKernelDensity(mani, bel, otherDims, ff[1]._u0)
+  return ManifoldKernelDensity(mani, bel, otherDims, _u0)
 end
 
 
