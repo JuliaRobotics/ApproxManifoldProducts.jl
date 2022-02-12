@@ -53,6 +53,13 @@ _MtoSymbol(::Circle) = :Circular
 Base.convert(::Type{<:Tuple}, M::ProductManifold) = _MtoSymbol.(M.manifolds)
 Base.convert(::Type{<:Tuple}, M::TranslationGroup) = tuple([:Euclid for i in 1:manifold_dimension(M)]...)
 
+Base.convert(::Type{<:Tuple}, ::Type{<:Manifolds.Euclidean{Tuple{N}, ℝ}} ) where N = tuple([:Euclid for i in 1:N]...)
+Base.convert(::Type{<:Tuple}, ::Type{<:Manifolds.Circle{ℝ}})  = error("#FIXME")#(:Circular,)
+Base.convert(::Type{<:Tuple}, ::Type{<:Manifolds.RealCircleGroup})  = (:Circular,)
+Base.convert(::Type{<:Tuple}, ::Manifolds.Euclidean{Tuple{N}, ℝ} ) where N = tuple([:Euclid for i in 1:N]...)
+Base.convert(::Type{<:Tuple}, ::Manifolds.Circle{ℝ})  = error("#FIXME")#(:Circular,)
+Base.convert(::Type{<:Tuple}, ::Manifolds.RealCircleGroup)  = (:Circular,)
+
 Base.convert(::Type{<:Tuple}, ::Type{<: typeof(Euclid)}) = (:Euclid,)
 Base.convert(::Type{<:Tuple}, ::Type{<: typeof(Euclid2)}) = (:Euclid,:Euclid)
 Base.convert(::Type{<:Tuple}, ::Type{<: typeof(Euclid3)}) = (:Euclid,:Euclid,:Euclid)
