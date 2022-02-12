@@ -56,6 +56,9 @@ Base.convert(::Type{<:Tuple}, M::TranslationGroup) = tuple([:Euclid for i in 1:m
 Base.convert(::Type{<:Tuple}, ::Type{<:Manifolds.Euclidean{Tuple{N}, ℝ}} ) where N = tuple([:Euclid for i in 1:N]...)
 Base.convert(::Type{<:Tuple}, ::Type{<:Manifolds.Circle{ℝ}})  = error("#FIXME")#(:Circular,)
 Base.convert(::Type{<:Tuple}, ::Type{<:Manifolds.RealCircleGroup})  = (:Circular,)
+Base.convert(::Type{<:Tuple}, ::Manifolds.Euclidean{Tuple{N}, ℝ} ) where N = tuple([:Euclid for i in 1:N]...)
+Base.convert(::Type{<:Tuple}, ::Manifolds.Circle{ℝ})  = error("#FIXME")#(:Circular,)
+Base.convert(::Type{<:Tuple}, ::Manifolds.RealCircleGroup)  = (:Circular,)
 
 Base.convert(::Type{<:Tuple}, ::Type{<: typeof(Euclid)}) = (:Euclid,)
 Base.convert(::Type{<:Tuple}, ::Type{<: typeof(Euclid2)}) = (:Euclid,:Euclid)
