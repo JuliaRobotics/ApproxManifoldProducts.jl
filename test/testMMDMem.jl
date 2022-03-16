@@ -8,7 +8,6 @@ using Manifolds
 # @testset
 ##
 
-println("HERE")
 
 M = TranslationGroup(1)
 
