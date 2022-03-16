@@ -119,6 +119,7 @@ Npts(x::ManifoldKernelDensity, w...;kw...) = Npts(x.belief,w...;kw...)
 getWeights(x::ManifoldKernelDensity, w...;kw...) = getWeights(x.belief, w...;kw...)
 
 getKDERange(x::ManifoldKernelDensity, w...;kw...) = getKDERange(x.belief, w...;kw...)
+getKDERange(x::AbstractVector{<:ManifoldKernelDensity}, w...;kw...) = getKDERange((s->s.belief).(x), w...; kw...)
 getKDEMax(x::ManifoldKernelDensity, w...;kw...) = getKDEMax(x.belief, w...;kw...)
 getKDEMean(x::ManifoldKernelDensity, w...;kw...) = getKDEMean(x.belief, w...;kw...)
 getKDEfit(x::ManifoldKernelDensity, w...;kw...) = getKDEfit(x.belief, w...;kw...)

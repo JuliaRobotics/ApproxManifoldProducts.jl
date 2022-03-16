@@ -8,16 +8,16 @@ export plotCircBeliefs, plotKDECircular
 
 # import ApproxManifoldProducts: plotCircBeliefs, plotKDECircular
 
-function plotCircBeliefs(arr::V;
-                         N::Int=1000,
-                         th = range(-pi, stop=pi-1e-15, length=N),
-                         c=["green"; "blue"; "deepskyblue"; "magenta"; "cyan"],
-                         logpdf::Bool=true,
-                         rVo::Vector{Float64}=[0.0;0.0;0.0],
-                         radix::Float64=1.0,
-                         text::String="",
-                         title::String="",
-                         legend=nothing  ) where {V <: Vector}
+function plotCircBeliefs( arr::V;
+                          N::Int=1000,
+                          th = range(-pi, stop=pi-1e-15, length=N),
+                          c=["green"; "blue"; "deepskyblue"; "magenta"; "cyan"],
+                          logpdf::Bool=true,
+                          rVo::Vector{Float64}=[0.0;0.0;0.0],
+                          radix::Float64=1.0,
+                          text::String="",
+                          title::String="",
+                          legend=nothing  ) where {V <: Vector}
   #
   c = ["black";c]
   beliefs = Dict{Int, Function}()
@@ -60,17 +60,17 @@ end
 
 
 
-function plotKDECircular(bds::Vector{BallTreeDensity};
-                         c=["green"; "blue"; "deepskyblue"; "magenta"; "cyan"],
-                         logpdf::Bool=true,
-                         scale::Float64=0.2,
-                         offset::Float64=0.0,
-                         rVo::Vector{Float64}=[0.0;0.0;0.0],
-                         radix::Float64=1.0,
-                         text::String="",
-                         title::String="",
-                         legend=nothing   )
-
+function plotKDECircular( bds::AbstractVector{<:BallTreeDensity};
+                          c=["green"; "blue"; "deepskyblue"; "magenta"; "cyan"],
+                          logpdf::Bool=true,
+                          scale::Real=0.2,
+                          offset::Real=0.0,
+                          rVo::AbstractVector{<:Real}=[0.0;0.0;0.0],
+                          radix::Real=1.0,
+                          text::String="",
+                          title::String="",
+                          legend=nothing   )
+  #
   arr = []
 
   for bd in bds
@@ -81,15 +81,15 @@ function plotKDECircular(bds::Vector{BallTreeDensity};
   return plotCircBeliefs(arr, c=c, logpdf=logpdf, rVo=rVo, radix=radix, text=text, title=title, legend=legend )
 end
 
-function plotKDECircular(bd::BallTreeDensity;
-                         c=["green";],
-                         logpdf::Bool=true,
-                         scale::Float64=0.2,
-                         rVo::Vector{Float64}=[0.0;0.0;0.0],
-                         radix::Float64=1.0,
-                         text::String="",
-                         title::String="",
-                         legend=nothing   )
+function plotKDECircular( bd::BallTreeDensity;
+                          c=["green";],
+                          logpdf::Bool=true,
+                          scale::Float64=0.2,
+                          rVo::Vector{Float64}=[0.0;0.0;0.0],
+                          radix::Float64=1.0,
+                          text::String="",
+                          title::String="",
+                          legend=nothing   )
   #
   return plotKDECircular([bd;], c=c, logpdf=logpdf, scale=scale, rVo=rVo, radix=radix, text=text, title=title, legend=legend )
 end
