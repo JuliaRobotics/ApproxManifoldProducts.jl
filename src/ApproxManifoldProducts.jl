@@ -26,7 +26,7 @@ import Base: *, isapprox, convert
 import LinearAlgebra: rotate!
 import Statistics: mean
 import KernelDensityEstimate: getPoints, getBW
-
+import TransformUtils: rotate!
 
 const AMP = ApproxManifoldProducts
 const KDE = KernelDensityEstimate
