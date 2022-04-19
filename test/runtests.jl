@@ -15,5 +15,6 @@ include("testMMD.jl")
 include("testPartialProductSE2.jl")
 include("basic_se3.jl")
 include("testSymmetry.jl")
+include("testUpdateMKD.jl")
 
 #
