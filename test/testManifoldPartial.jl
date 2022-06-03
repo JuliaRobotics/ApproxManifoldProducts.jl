@@ -45,12 +45,12 @@ end
 
 ##
 
-M = Rotations(2)
+M = Manifolds.Rotations(2)
 
-@test getManifoldPartial(M, [1])[1] == Rotations(2)
+@test getManifoldPartial(M, [1])[1] == Manifolds.Rotations(2)
 @test_throws ErrorException getManifoldPartial(M, [2;])
 
-@test getManifoldPartial(M, [1], [1 0; 0 1])[1] == Rotations(2)
+@test getManifoldPartial(M, [1], [1 0; 0 1])[1] == Manifolds.Rotations(2)
 @test getManifoldPartial(M, [1], [1 0; 0 1])[2] == [1 0; 0 1]
 
 ##
