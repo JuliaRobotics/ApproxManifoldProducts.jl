@@ -18,7 +18,7 @@ using Test
 # c = kde!(c_)
 
 M = SpecialEuclidean(3)
-u0 = ProductRepr(zeros(3),[1 0 0; 0 1 0; 0 0 1.0])
+u0 = ArrayPartition(zeros(3),[1 0 0; 0 1 0; 0 0 1.0])
 ϵ = identity_element(M, u0)
 N = 50
 

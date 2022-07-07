@@ -20,8 +20,8 @@ a,b = _Rot.RotMatrix(randn()), _Rot.RotMatrix(randn())
 
 
 M = SpecialEuclidean(2)
-a = ProductRepr(randn(2),_Rot.RotMatrix(randn()))
-b = ProductRepr(randn(2),_Rot.RotMatrix(randn()))
+a = ArrayPartition(randn(2),_Rot.RotMatrix(randn()))
+b = ArrayPartition(randn(2),_Rot.RotMatrix(randn()))
 @test isapprox( distance(M, a, b), distance(M, b, a), atol = 1e-5)
 
 

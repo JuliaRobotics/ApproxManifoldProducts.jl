@@ -97,7 +97,7 @@ function setPointPartial!(Mdest::AbstractManifold,
   return dest 
 end
 
-
+#TODO  ArrayPartition should work for now as it's an AbstractVector, but it won't remain mutable
 setPointsMani!(dest::AbstractVector, src::AbstractVector) = (dest .= src)
 setPointsMani!(dest::AbstractMatrix, src::AbstractMatrix) = (dest .= src)
 function setPointsMani!(dest::AbstractVector, src::AbstractMatrix)

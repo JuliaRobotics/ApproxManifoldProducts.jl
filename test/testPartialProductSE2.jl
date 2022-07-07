@@ -67,7 +67,7 @@ for sidx = 1:len
 
   u12, = calcProductGaussians(M, [u1,u2], [bw1,bw2]);
 
-  @test isapprox( u12.parts[1], getPoints(p12)[sidx].parts[1] )
+  @test isapprox( submanifold_component(u12,1), submanifold_component(getPoints(p12)[sidx],1))
 end
 
 ## now check the marginal dimensions only
@@ -87,7 +87,7 @@ for sidx = 1:len
 
   u12, = calcProductGaussians(TranslationGroup(2), [u1,u2], [bw1,bw2])
 
-  @test isapprox( u12, getPoints(p12)[sidx].parts[1] )
+  @test isapprox( u12, submanifold_component(getPoints(p12)[sidx],1) )
 end
 
 
@@ -123,9 +123,9 @@ u1 = pts1[selectedLabels__[sidx][1]]
 u2 = pts2[selectedLabels__[sidx][2]]
 
 u12, = calcProductGaussians(M, [u1,u2], [bw1,bw2]);
-u12_, = calcProductGaussians(TranslationGroup(2), [u1.parts[1],u2.parts[1]], [bw1[1:2],bw2[1:2]]);
+u12_, = calcProductGaussians(TranslationGroup(2), [submanifold_component(u1,1),submanifold_component(u2,1)], [bw1[1:2],bw2[1:2]]);
 
-@test isapprox( u12.parts[1], u12_ )
+@test isapprox( submanifold_component(u12,1), u12_ )
 @test isapprox( getPoints(p12__)[sidx], u12_ )
 
 end

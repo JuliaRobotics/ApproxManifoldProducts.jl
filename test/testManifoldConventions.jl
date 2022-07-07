@@ -14,10 +14,10 @@ M = SpecialEuclidean(2)
 e0 = identity_element(M)
 
 # body to body next
-bTb_ = ProductRepr([10.0;0], _Rot.RotMatrix(pi/2))
+bTb_ = ArrayPartition([10.0;0], _Rot.RotMatrix(pi/2))
 
 # drive in a clockwise square from the origin
-wTb0 = ProductRepr([100.0;0], _Rot.RotMatrix(0.0))
+wTb0 = ArrayPartition([100.0;0], _Rot.RotMatrix(0.0))
 wTb1 = Manifolds.compose(M, wTb0, bTb_)    # right
 wTb2 = Manifolds.compose(M, wTb1, bTb_)    # top right
 wTb3 = Manifolds.compose(M, wTb2, bTb_)    # top
@@ -43,7 +43,7 @@ wCb4 = vee(M, e0, log(M, e0, wTb4))
 
 
 # Use opposite convention from above to show it is wrong
-wTb0 = ProductRepr([100.0;0], _Rot.RotMatrix(0.0))
+wTb0 = ArrayPartition([100.0;0], _Rot.RotMatrix(0.0))
 wTb1 = Manifolds.compose(M, bTb_, wTb0)    # right
 wTb2 = Manifolds.compose(M, bTb_, wTb1)    # top right
 wTb3 = Manifolds.compose(M, bTb_, wTb2)    # top
