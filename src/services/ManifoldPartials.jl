@@ -2,7 +2,7 @@
 export getManifoldPartial
 
 # forcing ProductManifold to use ArrayPartition as accompanying representation
-const _PartiableRepresentationProduct = Union{Nothing,<:ArrayPartition}
+const _PartiableRepresentationProduct = Union{Nothing,<:ArrayPartition, <:ProductRepr}
 # forcing ProductManifold to use ArrayPartition as accompanying representation
 const _PartiableRepresentationFlat{T} = Union{Nothing,<:AbstractVector{T}}
 # More general representation for Manifold Factors or Groups
