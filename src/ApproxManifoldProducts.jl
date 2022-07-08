@@ -7,6 +7,9 @@ using Random
 
 import ManifoldsBase
 import ManifoldsBase: AbstractManifold
+using RecursiveArrayTools: ArrayPartition
+export ArrayPartition
+
 const MB = ManifoldsBase
 using Manifolds
 

@@ -74,7 +74,7 @@ M = SpecialEuclidean(2)
 @test getManifoldPartial(M, [1;3;])[1] == ProductManifold(TranslationGroup(1), SpecialOrthogonal(2))
 
 
-repr = ProductRepr([0.0; 0], [1 0; 0 1.0])
+repr = ArrayPartition([0.0; 0], [1 0; 0 1.0])
 
 @test getManifoldPartial(M, [1;2;3], repr)[1] == SpecialEuclidean(2)
 @test getManifoldPartial(M, [1;2;3], repr)[2] == repr
@@ -89,13 +89,13 @@ repr = ProductRepr([0.0; 0], [1 0; 0 1.0])
 @test getManifoldPartial(M, [1;2], repr)[2] == [0.0;0]
 
 @test getManifoldPartial(M, [3;], repr)[1] == SpecialOrthogonal(2)
-@test getManifoldPartial(M, [3;], repr)[2] == repr.parts[2]
+@test getManifoldPartial(M, [3;], repr)[2] == submanifold_component(repr,2)
 
 @test getManifoldPartial(M, [1;3;], repr)[1] == ProductManifold(TranslationGroup(1), SpecialOrthogonal(2))
 r_repr = getManifoldPartial(M, [1;3;], repr)[2]
-@test r_repr isa ProductRepr
-@test r_repr.parts[1] == [0.0;]
-@test r_repr.parts[2] == [1 0; 0 1.0]
+@test r_repr isa ArrayPartition
+@test submanifold_component(r_repr,1) == [0.0;]
+@test submanifold_component(r_repr,2) == [1 0; 0 1.0]
 
 ##
 end
@@ -118,7 +118,7 @@ end
 
 N = 100
 M = SpecialEuclidean(2)
-u0 = ProductRepr([0.0; 0], [1 0; 0 1.0])
+u0 = ArrayPartition([0.0; 0], [1 0; 0 1.0])
 
 pts = [exp(M, u0, hat(M, u0, [10 .+ randn(2);randn()])) for i in 1:N]
 

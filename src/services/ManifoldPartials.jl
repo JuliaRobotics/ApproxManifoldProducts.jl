@@ -1,9 +1,9 @@
 
 export getManifoldPartial
 
-# forcing ProductManifold to use ProductRepr as accompanying representation
-const _PartiableRepresentationProduct = Union{Nothing,<:ProductRepr}
-# forcing ProductManifold to use ProductRepr as accompanying representation
+# forcing ProductManifold to use ArrayPartition as accompanying representation
+const _PartiableRepresentationProduct = Union{Nothing,<:ArrayPartition, <:ProductRepr}
+# forcing ProductManifold to use ArrayPartition as accompanying representation
 const _PartiableRepresentationFlat{T} = Union{Nothing,<:AbstractVector{T}}
 # More general representation for Manifold Factors or Groups
 const _PartiableRepresentation = Union{<:_PartiableRepresentationProduct,<:_PartiableRepresentationFlat,<:AbstractMatrix}
@@ -134,7 +134,7 @@ M_x, _ = getManifoldPartial(M,[1;])
 # returns a new TranslationGroup(1) corresponding to just x dimension
 
 # representation is semidirect product of translation and rotation matrix
-u0 = ProductRepr([0.0;0],[1 0; 0 1.0])
+u0 = ArrayPartition([0.0;0],[1 0; 0 1.0])
 
 # known coordinates are [x,y,θ], eg
 #   vee(M,identity_element(M,u0),log(M,identity_element(M,u0),u0))
@@ -160,7 +160,7 @@ DevNotes
 
 Related
 
-[`getManifold`](@ref), [`AbstractManifold`], [`ProductManifold`], [`GroupManifold`], [`ProductRepr`]
+[`getManifold`](@ref), [`AbstractManifold`], [`ProductManifold`], [`GroupManifold`], [`ArrayPartition`]
 """
 function getManifoldPartial(M::ProductManifold, 
                             partial::AbstractVector{Int}, 
@@ -181,8 +181,9 @@ function getManifoldPartial(M::ProductManifold,
         Mp, = getManifoldPartial(m, partial, nothing, offset, doError=false)
         Mp
       else
-        # hard assumption that repr::ProductRepr to go along with M::ProductManifold
-        Mp, Rp = getManifoldPartial(m, partial, repr.parts[i], offset, doError=false)
+        # hard assumption that repr::ArrayPartition to go along with M::ProductManifold
+        # NOTE submanifold_component is the correct way to avoid this assumption
+        Mp, Rp = getManifoldPartial(m, partial, submanifold_component(repr,i), offset, doError=false)
         push!(ReprArr, Rp)
         Mp
       end
@@ -197,7 +198,7 @@ function getManifoldPartial(M::ProductManifold,
     repr_p = repr === nothing ? nothing : ReprArr[1]
     return (ManiArr[1],repr_p)
   elseif 1 < length(ManiArr)
-    repr_p = repr === nothing ? nothing : ProductRepr(ReprArr...)
+    repr_p = repr === nothing ? nothing : ArrayPartition(ReprArr...)
     return (ProductManifold(ManiArr...), repr_p)
   end
   error("partial manifold calculations should not reach here")
