@@ -211,17 +211,6 @@ function Base.replace(dest::ManifoldKernelDensity{M,<:BallTreeDensity,<:Abstract
 end
 
 
-##============================================================================================================
-## New Manifolds.jl aware API -- TODO find the right file placement
-##============================================================================================================
-
-
-
-# TODO, hack, use the proper Manifolds.jl intended vectoration methods instead
-_makeVectorManifold(::MB.AbstractManifold, arr::AbstractArray{<:Real}) = arr
-_makeVectorManifold(::MB.AbstractManifold, val::Real) = [val;]
-_makeVectorManifold(::M, prr::ProductRepr) where {M <: typeof(SpecialEuclidean(2))} = coords(M, prr)
-_makeVectorManifold(::M, prr::ProductRepr) where {M <: typeof(SpecialEuclidean(3))} = coords(M, prr)
 
 
 
