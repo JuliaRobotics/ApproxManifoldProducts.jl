@@ -18,10 +18,6 @@ export
   Circle1
   # Circular,
 
-export
-  coords,
-  uncoords,
-  getPointsManifold
 
 #
 
