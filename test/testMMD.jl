@@ -31,7 +31,7 @@ Q = [[randn()+offsets[i];]  for k in 1:100]
 
 res = zeros(1)
 
-AMP.mmd!(res, P, Q, AMP.Euclid, bw=[0.001])
+AMP.mmd!(TranslationGroup(1), res, P, Q, bw=[0.001])
 
 checkGrid[i,j] = res[1]
 push!(df, (offsets[i],res[1]))
@@ -69,7 +69,7 @@ Q = [randn(2) .+ offsets[i] for k in 1:100]
 
 res = zeros(1)
 
-AMP.mmd!(res, P, Q, AMP.Euclid2, bw=[0.001])
+AMP.mmd!(TranslationGroup(2), res, P, Q, bw=[0.001])
 
 checkGrid[i,j] = res[1]
 push!(df, (offsets[i],res[1]))
