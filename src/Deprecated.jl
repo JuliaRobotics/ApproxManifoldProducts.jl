@@ -4,9 +4,13 @@
 ## ======================================================================================================
 
 
+# export
+#   coords,
+#   uncoords,
+#   getPointsManifold
+
+
 ## New Manifolds.jl aware API -- TODO find the right file placement
-
-
 
 # # TODO, hack, use the proper Manifolds.jl intended vectoration methods instead
 # _makeVectorManifold(::MB.AbstractManifold, arr::AbstractArray{<:Real}) = arr
