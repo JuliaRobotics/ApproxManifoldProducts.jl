@@ -35,7 +35,8 @@ ManifoldKernelDensity(mani::M,
 
 function ManifoldKernelDensity( M::MB.AbstractManifold,
                                 vecP::AbstractVector{P},
-                                u0=vecP[1];
+                                u0=vecP[1],
+                                ϵ = identity_element(M, vecP[1]);
                                 partial::L=nothing,
                                 infoPerCoord::AbstractVector{<:Real}=ones(getNumberCoords(M, u0)),
                                 dims::Int=manifold_dimension(M),
@@ -43,7 +44,7 @@ function ManifoldKernelDensity( M::MB.AbstractManifold,
   #
   # FIXME obsolete
   arr = Matrix{Float64}(undef, dims, length(vecP))
-  ϵ = identity_element(M, vecP[1])
+  
 
   for j in 1:length(vecP)
     arr[:,j] = vee(M, ϵ, log(M, ϵ, vecP[j]))
