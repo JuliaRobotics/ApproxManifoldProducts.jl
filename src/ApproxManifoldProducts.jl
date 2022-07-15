@@ -25,9 +25,11 @@ using StaticArrays
 using Logging
 using Statistics
 
+import Random: rand
+
 import Base: *, isapprox, convert
 import LinearAlgebra: rotate!
-import Statistics: mean
+import Statistics: mean, std, cov, var
 import KernelDensityEstimate: getPoints, getBW
 import TransformUtils: rotate!
 
@@ -39,31 +41,8 @@ const CTs = CoordinateTransformations
 # TODO temporary for initial version of on-manifold products
 KDE.setForceEvalDirect!(true)
 
-export  
-  # new local features
-  AMP,
-  MKD,
-  AbstractManifold,
-  ManifoldKernelDensity,
-  get2DLambda,
-  get2DMu,
-  get2DMuMin,
-  resid2DLinear,
-  solveresid2DLinear!,
-  solveresid2DLinear,
-  *,
-  isapprox,
-
-  # APi and util functions
-  buildHybridManifoldCallbacks,
-  getKDEManifoldBandwidths,
-  manifoldProduct,
-  manikde!,
-  calcCovarianceBasic,
-  isPartial,
-  mean,
-  calcProductGaussians
-
+# the exported API
+include("ExportAPI.jl")
 
 # internal features not exported
 include("_BiMaps.jl")
