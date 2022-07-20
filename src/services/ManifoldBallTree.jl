@@ -25,12 +25,12 @@
 
 
 
-# A ManifoldBallTreeBalanced (also called Metric tree) is a tree that is created
+# A ManifoldBalancedBallTree (also called Metric tree) is a tree that is created
 # from successively splitting points into surrounding hyper spheres
 # which radius are determined from the given metric.
 # The tree uses the triangle inequality to prune the search space
 # when finding the neighbors to a point,
-struct ManifoldBallTreeBalanced{V <: ArrayPartition,T,M <: DST.Metric,F} <: NNTree{V,M}
+struct ManifoldBalancedBallTree{V <: ArrayPartition,T,M <: DST.Metric,F} <: NNTree{V,M}
     """ tree points exist on some manifold `<:Manifolds.AbstractManifold` """
     manifold::T
     """ data points associated with this tree """
@@ -60,11 +60,11 @@ end
 
 
 """
-    ManifoldBallTreeBalanced(data [, metric = Euclidean(); leafsize = 10, reorder = true]) -> ManifoldballtreeBalanced
+    ManifoldBalancedBallTree(data [, metric = Euclidean(); leafsize = 10, reorder = true]) -> ManifoldBalancedballtree
 
-Creates a `ManifoldBallTreeBalanced` from the data using the given `metric` and `leafsize`.
+Creates a `ManifoldBalancedBallTree` from the data using the given `metric` and `leafsize`.
 """
-function ManifoldBallTreeBalanced(
+function ManifoldBalancedBallTree(
                     mani::AbstractManifold,
                     data::AbstractVector{V},
                     metric::M = Euclidean();
@@ -107,8 +107,8 @@ function ManifoldBallTreeBalanced(
     end
 
     if n_p > 0
-        # Call the recursive ManifoldBallTreeBalanced builder
-        build_ManifoldBallTreeBalanced( mani, 1, data, data_reordered, hyper_spheres, metric, 
+        # Call the recursive ManifoldBalancedBallTree builder
+        build_MaBalancednifoldBallTree( mani, 1, data, data_reordered, hyper_spheres, metric, 
                                         indices, indices_reordered, 1,  length(data), 
                                         tree_data, array_buffs, reorder )
     end
@@ -118,10 +118,10 @@ function ManifoldBallTreeBalanced(
         indices = indices_reordered
     end
 
-    ManifoldBallTreeBalanced(mani, storedata ? data : similar(data, 0), hyper_spheres, indices, metric, tree_data, reorder)
+    ManifoldBalancedBallTree(mani, storedata ? data : similar(data, 0), hyper_spheres, indices, metric, tree_data, reorder)
 end
 
-function ManifoldBallTreeBalanced(  mani::AbstractManifold,
+function ManifoldBalancedBallTree(  mani::AbstractManifold,
                             data::AbstractVector{T},
                             metric::M = Euclidean();
                             leafsize::Int = 10,
@@ -137,12 +137,12 @@ function ManifoldBallTreeBalanced(  mani::AbstractManifold,
     else
         reorderbuffer_points = copy_svec(T, reorderbuffer, Val(dim))
     end
-    ManifoldBallTreeBalanced(mani, points, metric, leafsize = leafsize, storedata = storedata, reorder = reorder,
+    ManifoldBalancedBallTree(mani, points, metric, leafsize = leafsize, storedata = storedata, reorder = reorder,
             reorderbuffer = reorderbuffer_points)
 end
 
 # Recursive function to build the tree.
-function build_ManifoldBallTreeBalanced(
+function build_MaBalancednifoldBallTree(
         mani::AbstractManifold,
         index::Int,
         data::AbstractVector{V},
@@ -191,11 +191,11 @@ function build_ManifoldBallTreeBalanced(
     tree_data.lchild[index] = left
     tree_data.rchild[index] = right
 
-    build_ManifoldBallTreeBalanced(mani, getleft(index), data, data_reordered, hyper_spheres, metric,
+    build_MaBalancednifoldBallTree(mani, getleft(index), data, data_reordered, hyper_spheres, metric,
                     indices, indices_reordered, low, mid_idx,
                     tree_data, array_buffs, reorder)
 
-    build_ManifoldBallTreeBalanced(mani, getright(index), data, data_reordered, hyper_spheres, metric,
+    build_MaBalancednifoldBallTree(mani, getright(index), data, data_reordered, hyper_spheres, metric,
                     indices, indices_reordered, mid_idx+1, high,
                     tree_data, array_buffs, reorder)
 
@@ -205,7 +205,7 @@ function build_ManifoldBallTreeBalanced(
                                             array_buffs)
 end
 
-# function _knn(tree::ManifoldBallTreeBalanced,
+# function _knn(tree::ManifoldBalancedBallTree,
 #               point::AbstractVector,
 #               best_idxs::AbstractVector{Int},
 #               best_dists::AbstractVector,
@@ -215,7 +215,7 @@ end
 # end
 
 
-# function knn_kernel!(tree::ManifoldBallTreeBalanced{V},
+# function knn_kernel!(tree::ManifoldBalancedBallTree{V},
 #                            index::Int,
 #                            point::AbstractArray,
 #                            best_idxs::AbstractVector{Int},
@@ -248,7 +248,7 @@ end
 #     return
 # end
 
-# function _inrange(tree::ManifoldBallTreeBalanced{V},
+# function _inrange(tree::ManifoldBalancedBallTree{V},
 #                   point::AbstractVector,
 #                   radius::Number,
 #                   idx_in_ball::Union{Nothing, Vector{Int}}) where {V}
@@ -256,7 +256,7 @@ end
 #     return inrange_kernel!(tree, 1, point, ball, idx_in_ball)  # Call the recursive range finder
 # end
 
-# function inrange_kernel!(tree::ManifoldBallTreeBalanced,
+# function inrange_kernel!(tree::ManifoldBalancedBallTree,
 #                          index::Int,
 #                          point::AbstractVector,
 #                          query_ball::ManifoldHyperSphere,
