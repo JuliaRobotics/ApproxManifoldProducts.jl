@@ -7,8 +7,7 @@ using Random
 
 import ManifoldsBase
 import ManifoldsBase: AbstractManifold
-using RecursiveArrayTools: ArrayPartition
-export ArrayPartition
+# using RecursiveArrayTools: ArrayPartition
 
 using Manifolds
 
@@ -23,13 +22,20 @@ using TensorCast
 using StaticArrays
 using Logging
 using Statistics
-import NearestNeighbors as NNR
 
-import Random: rand
+import NearestNeighbors as NNR
+import Distances as DST
+
+
 
 import Base: *, isapprox, convert
 import LinearAlgebra: rotate!
 import Statistics: mean, std, cov, var
+import Random: rand
+
+import NearestNeighbors: TreeData, NNTree
+import Manifolds: ArrayPartition
+
 import KernelDensityEstimate: getPoints, getBW
 import TransformUtils: rotate!
 
@@ -41,6 +47,8 @@ const TUs = TransformUtils
 
 # TODO temporary for initial version of on-manifold products
 KDE.setForceEvalDirect!(true)
+
+export ArrayPartition
 
 # the exported API
 include("ExportAPI.jl")
@@ -57,6 +65,9 @@ include("Interface.jl")
 
 # Experimental ManifoldBallTreeBalanced
 include("services/TreeDataBalanced.jl")
+include("services/ManifoldTreeOps.jl")
+include("services/ManifoldHyperSpheres.jl")
+include("services/ManifoldBallTree.jl")
 
 # regular features
 include("CommonUtils.jl")

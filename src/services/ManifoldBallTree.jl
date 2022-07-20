@@ -23,12 +23,6 @@
 # > SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
-using Manifolds, StaticArrays
-
-import Distances as DST
-# import Distances: Metric
-import NearestNeighbors: TreeData, NNTree
-import Manifolds: ArrayPartition
 
 
 # A ManifoldBallTreeBalanced (also called Metric tree) is a tree that is created
@@ -36,13 +30,13 @@ import Manifolds: ArrayPartition
 # which radius are determined from the given metric.
 # The tree uses the triangle inequality to prune the search space
 # when finding the neighbors to a point,
-struct ManifoldBallTreeBalanced{V <: ArrayPartition,T,M <: DST.Metric,T} <: NNTree{V,M}
+struct ManifoldBallTreeBalanced{V <: ArrayPartition,T,M <: DST.Metric,F} <: NNTree{V,M}
     """ tree points exist on some manifold `<:Manifolds.AbstractManifold` """
     manifold::T
     """ data points associated with this tree """
     data::Vector{V}
     """ Each hyper sphere bounds its children """
-    hyper_spheres::Vector{ManifoldHyperSphere{V,T}} 
+    hyper_spheres::Vector{ManifoldHyperSphere{V,F}} 
     """ Translates from tree index -> point index """
     indices::Vector{Int}                            
     """ Metric used for tree """
@@ -154,7 +148,7 @@ function build_ManifoldBallTreeBalanced(
         data::AbstractVector{V},
         data_reordered::Vector{V},
         hyper_spheres::AbstractVector{<:ManifoldHyperSphere{N,T}},
-        metric::Metric,
+        metric::DST.Metric,
         indices::AbstractVector{Int},
         indices_reordered::AbstractVector{Int},
         low::Int,

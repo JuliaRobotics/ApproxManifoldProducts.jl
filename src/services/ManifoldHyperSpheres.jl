@@ -36,13 +36,13 @@ end
 
 @inline function intersects(m::M,
                             s1::ManifoldHyperSphere{C,T},
-                            s2::ManifoldHyperSphere{C,T}) where {T <: ArrayPartition, C, M <: Metric}
+                            s2::ManifoldHyperSphere{C,T}) where {T <: ArrayPartition, C, M <: DST.Metric}
     evaluate(m, s1.center, s2.center) <= s1.r + s2.r
 end
 
 @inline function encloses(m::M,
                           s1::ManifoldHyperSphere{C,T},
-                          s2::ManifoldHyperSphere{C,T}) where {T <: ArrayPartition, C, M <: Metric}
+                          s2::ManifoldHyperSphere{C,T}) where {T <: ArrayPartition, C, M <: DST.Metric}
     evaluate(m, s1.center, s2.center) + s1.r <= s2.r
 end
 
@@ -65,11 +65,11 @@ end
                              ::V,
                              ::Any,
                              ::Any,
-                             ::Any) where {V <: AbstractVector, M <: Metric}
+                             ::Any) where {V <: AbstractVector, M <: DST.Metric}
     return c1, false
 end
 
-function create_bsphere(mani::AbstractManifold, data::AbstractVector{V}, metric::Metric, indices::Vector{Int}, low, high, ab) where {V}
+function create_bsphere(mani::AbstractManifold, data::AbstractVector{V}, metric::DST.Metric, indices::Vector{Int}, low, high, ab) where {V}
     n_points = high - low + 1
     # First find center of all points
     fill!(ab.center, 0.0)
@@ -93,7 +93,7 @@ end
 
 # Creates a bounding sphere from two other spheres
 function create_bsphere(mani::AbstractManifold,
-                        m::Metric,
+                        m::DST.Metric,
                         s1::ManifoldHyperSphere{C,T},
                         s2::ManifoldHyperSphere{C,T},
                         ab) where {C, T <: AbstractFloat}
