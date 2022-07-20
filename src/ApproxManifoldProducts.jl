@@ -2,8 +2,10 @@ module ApproxManifoldProducts
 
 using Reexport
 @reexport using KernelDensityEstimate
-@reexport using TransformUtils  # likely to be deprecated
 using Random
+
+import TransformUtils as TUs
+import Rotations as _Rot
 
 import ManifoldsBase
 import ManifoldsBase: AbstractManifold
@@ -37,13 +39,11 @@ import NearestNeighbors: TreeData, NNTree
 import Manifolds: ArrayPartition
 
 import KernelDensityEstimate: getPoints, getBW
-import TransformUtils: rotate!
 
 const MB = ManifoldsBase
 const CTs = CoordinateTransformations
 const AMP = ApproxManifoldProducts
 const KDE = KernelDensityEstimate
-const TUs = TransformUtils
 
 # TODO temporary for initial version of on-manifold products
 KDE.setForceEvalDirect!(true)
