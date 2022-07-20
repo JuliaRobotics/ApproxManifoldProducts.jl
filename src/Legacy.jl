@@ -48,7 +48,7 @@ function buildHybridManifoldCallbacks(manif::Tuple)
 end
 
 # FIXME TO BE REMOVED
-_MtoSymbol(::Euclidean{Tuple{1}}) = :Euclid
+_MtoSymbol(::Manifolds.Euclidean{Tuple{1}}) = :Euclid
 _MtoSymbol(::Circle) = :Circular
 Base.convert(::Type{<:Tuple}, M::ProductManifold) = _MtoSymbol.(M.manifolds)
 Base.convert(::Type{<:Tuple}, M::TranslationGroup) = tuple([:Euclid for i in 1:manifold_dimension(M)]...)

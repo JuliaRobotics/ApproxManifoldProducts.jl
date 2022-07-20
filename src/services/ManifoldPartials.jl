@@ -53,7 +53,7 @@ end
 ## EXTRACT PARTIAL MANIFOLD
 
 
-function getManifoldPartial(M::Union{<:Euclidean{Tuple{N}},<:TranslationGroup}, 
+function getManifoldPartial(M::Union{<:Manifolds.Euclidean{Tuple{N}},<:TranslationGroup}, 
                             partial::AbstractVector{Int}, 
                             repr::_PartiableRepresentationFlat{T}=nothing,
                             offset::Base.RefValue{Int}=Ref(0);
