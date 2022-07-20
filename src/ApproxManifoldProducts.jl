@@ -10,7 +10,6 @@ import ManifoldsBase: AbstractManifold
 using RecursiveArrayTools: ArrayPartition
 export ArrayPartition
 
-const MB = ManifoldsBase
 using Manifolds
 
 using DocStringExtensions
@@ -35,10 +34,11 @@ import KernelDensityEstimate: getPoints, getBW
 import TransformUtils: rotate!
 
 const NNR = NearestNeighbors
+const MB = ManifoldsBase
+const CTs = CoordinateTransformations
 const AMP = ApproxManifoldProducts
 const KDE = KernelDensityEstimate
 const TUs = TransformUtils
-const CTs = CoordinateTransformations
 
 # TODO temporary for initial version of on-manifold products
 KDE.setForceEvalDirect!(true)
