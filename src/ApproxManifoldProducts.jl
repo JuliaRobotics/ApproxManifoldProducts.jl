@@ -24,6 +24,7 @@ using TensorCast
 using StaticArrays
 using Logging
 using Statistics
+using NearestNeighbors
 
 import Random: rand
 
@@ -33,6 +34,7 @@ import Statistics: mean, std, cov, var
 import KernelDensityEstimate: getPoints, getBW
 import TransformUtils: rotate!
 
+const NNR = NearestNeighbors
 const AMP = ApproxManifoldProducts
 const KDE = KernelDensityEstimate
 const TUs = TransformUtils
