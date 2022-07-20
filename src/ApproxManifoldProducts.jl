@@ -55,6 +55,9 @@ include("Legacy.jl")
 include("services/ManifoldPartials.jl")
 include("Interface.jl")
 
+# Experimental ManifoldBallTreeBalanced
+include("services/TreeDataBalanced.jl")
+
 # regular features
 include("CommonUtils.jl")
 include("services/ManifoldKernelDensity.jl")

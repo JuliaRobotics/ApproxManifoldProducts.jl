@@ -23,12 +23,12 @@
 # > SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
-using Distances, NearestNeighbors, Manifolds, StaticArrays
+using Manifolds, StaticArrays
 
-import Distances: Metric
+import Distances as DST
+# import Distances: Metric
 import NearestNeighbors: TreeData, NNTree
 import Manifolds: ArrayPartition
-
 
 
 # A ManifoldBallTreeBalanced (also called Metric tree) is a tree that is created
@@ -36,7 +36,7 @@ import Manifolds: ArrayPartition
 # which radius are determined from the given metric.
 # The tree uses the triangle inequality to prune the search space
 # when finding the neighbors to a point,
-struct ManifoldBallTreeBalanced{V <: ArrayPartition,T,M <: Metric,T} <: NNTree{V,M}
+struct ManifoldBallTreeBalanced{V <: ArrayPartition,T,M <: DST.Metric,T} <: NNTree{V,M}
     """ tree points exist on some manifold `<:Manifolds.AbstractManifold` """
     manifold::T
     """ data points associated with this tree """
@@ -64,6 +64,7 @@ function ArrayPartitionBuffers(::Type{Val{N}}, ::Type{T}) where {N, T}
     ArrayPartitionBuffers{N,T}()
 end
 
+
 """
     ManifoldBallTreeBalanced(data [, metric = Euclidean(); leafsize = 10, reorder = true]) -> ManifoldballtreeBalanced
 
@@ -76,7 +77,7 @@ function ManifoldBallTreeBalanced(
                     leafsize::Int = 10,
                     reorder::Bool = true,
                     storedata::Bool = true,
-                    reorderbuffer::Vector{V} = Vector{V}()) where {V <: AbstractArray, M <: Metric}
+                    reorderbuffer::Vector{V} = Vector{V}()) where {V <: AbstractArray, M <: DST.Metric}
     #
     reorder = !isempty(reorderbuffer) || (storedata ? reorder : false)
 
@@ -119,8 +120,8 @@ function ManifoldBallTreeBalanced(
     end
 
     if reorder
-       data = data_reordered
-       indices = indices_reordered
+        data = data_reordered
+        indices = indices_reordered
     end
 
     ManifoldBallTreeBalanced(mani, storedata ? data : similar(data, 0), hyper_spheres, indices, metric, tree_data, reorder)
@@ -132,7 +133,7 @@ function ManifoldBallTreeBalanced(  mani::AbstractManifold,
                             leafsize::Int = 10,
                             storedata::Bool = true,
                             reorder::Bool = true,
-                            reorderbuffer::Matrix{T} = Matrix{T}(undef, 0, 0)) where {T <: AbstractFloat, M <: Metric}
+                            reorderbuffer::Matrix{T} = Matrix{T}(undef, 0, 0)) where {T <: AbstractFloat, M <: DST.Metric}
     #
     dim = size(data, 1)
     # npoints = size(data, 2)
@@ -197,12 +198,12 @@ function build_ManifoldBallTreeBalanced(
     tree_data.rchild[index] = right
 
     build_ManifoldBallTreeBalanced(mani, getleft(index), data, data_reordered, hyper_spheres, metric,
-                   indices, indices_reordered, low, mid_idx,
-                   tree_data, array_buffs, reorder)
+                    indices, indices_reordered, low, mid_idx,
+                    tree_data, array_buffs, reorder)
 
     build_ManifoldBallTreeBalanced(mani, getright(index), data, data_reordered, hyper_spheres, metric,
-                  indices, indices_reordered, mid_idx+1, high,
-                  tree_data, array_buffs, reorder)
+                    indices, indices_reordered, mid_idx+1, high,
+                    tree_data, array_buffs, reorder)
 
     # Finally create bounding hyper sphere from the two children's hyper spheres
     hyper_spheres[index]  =  create_bsphere(mani, metric, hyper_spheres[getleft(index)],
