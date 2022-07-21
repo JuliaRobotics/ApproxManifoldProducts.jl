@@ -25,7 +25,7 @@
 # const NormMetric = Union{Euclidean,Chebyshev,Cityblock,Minkowski,WeightedEuclidean,WeightedCityblock,WeightedMinkowski,Mahalanobis}
 
 
-struct ManifoldHyperSphere{C <: ArrayPartition, T <: AbstractFloat}
+struct ManifoldHyperSphere{C <:AbstractArray, T <: AbstractFloat}
     """ center of the hypersphere, represented as a point on the manifold """
     center::C
     """ radius of the hypersphere over all dimensions.  TODO, upgrade to radius per product submanifold spaces. """ 
@@ -61,34 +61,40 @@ end
 # end
 
 @inline function interpolate(::M,
-                             c1::V,
-                             ::V,
-                             ::Any,
-                             ::Any,
-                             ::Any) where {V <: AbstractVector, M <: DST.Metric}
+                            c1::V,
+                            ::V,
+                            ::Any,
+                            ::Any,
+                            ::Any ) where {V <: AbstractVector, M <: DST.Metric}
     return c1, false
 end
 
-function create_bsphere(mani::AbstractManifold, data::AbstractVector{V}, metric::DST.Metric, indices::Vector{Int}, low, high, ab) where {V}
+function create_bsphere(
+        mani::AbstractManifold, 
+        data::AbstractVector{V}, 
+        metric::DST.Metric, 
+        indices::Vector{Int}, 
+        low, 
+        high, 
+        ab
+    ) where {V}
+    #
     n_points = high - low + 1
     # First find center of all points
-    fill!(ab.center, 0.0)
-    ab.center[:] .= Identity(mani)
-    for i in low:high
-        ab.center[j] += data[indices[i]][j]
-        # for j in 1:length(ab.center)
-        #     FIXME  
-        # end
-    end
-    ab.center .*= 1 / n_points
+    mn = mean(mani, view(data, low:high))
+    @info "THIS" typeof(mn) typeof(ab.center)
+    _setc!(dst::AbstractArray, src::AbstractArray) = (dst[:] .= src[:])
+    # _setc!(dst::ArrayPartition, src::ArrayPartition) = map((i,x)->_setc!(...))
+
+    _setc!(ab.center, mn)
 
     # Then find r
-    r = zero(get_T(eltype(V)))
+    r = zero(NNR.get_T(eltype(V)))
     for i in low:high
-        r = max(r, NN.evaluate(metric, data[indices[i]], ab.center))
+        r = max(r, NNR.evaluate(metric, data[indices[i]], ab.center))
     end
-    r += eps(get_T(eltype(V)))
-    return ManifoldHyperSphere(SVector{length(V),eltype(V)}(ab.center), r)
+    r += eps(NNR.get_T(eltype(V)))
+    return ManifoldHyperSphere(ab.center, r)
 end
 
 # Creates a bounding sphere from two other spheres

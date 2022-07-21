@@ -45,6 +45,7 @@ end
 
 
 function TreeDataBalanced(data::AbstractVector{V}, leafsize) where V
+    @info "HERE" V typeof(data)
     n_dim, n_p = length(V), length(data)
 
     # If number of points is zero

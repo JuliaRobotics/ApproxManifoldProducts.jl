@@ -29,7 +29,6 @@ import NearestNeighbors as NNR
 import Distances as DST
 
 
-
 import Base: *, isapprox, convert
 import LinearAlgebra: rotate!
 import Statistics: mean, std, cov, var

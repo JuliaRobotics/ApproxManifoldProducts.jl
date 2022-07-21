@@ -30,13 +30,13 @@
 # which radius are determined from the given metric.
 # The tree uses the triangle inequality to prune the search space
 # when finding the neighbors to a point,
-struct ManifoldBalancedBallTree{V <: ArrayPartition,T,M <: DST.Metric,F} <: NNTree{V,M}
+struct ManifoldBalancedBallTree{V <: AbstractArray, T, M <: DST.Metric} <: NNTree{V,M}
     """ tree points exist on some manifold `<:Manifolds.AbstractManifold` """
     manifold::T
     """ data points associated with this tree """
     data::Vector{V}
     """ Each hyper sphere bounds its children """
-    hyper_spheres::Vector{ManifoldHyperSphere{V,F}} 
+    hyper_spheres::Vector{<:ManifoldHyperSphere} 
     """ Translates from tree index -> point index """
     indices::Vector{Int}                            
     """ Metric used for tree """
@@ -50,7 +50,7 @@ end
 # When we create the bounding spheres we need some temporary arrays.
 # We create a type to hold them to not allocate these arrays at every
 # function call and to reduce the number of parameters in the tree builder.
-Base.@kwdef struct ArrayPartitionBuffers{N,T <: ArrayPartition}
+Base.@kwdef struct ArrayPartitionBuffers{N,T <: Union{<:ArrayPartition, <:AbstractArray, <:Real}}
     center::MVector{N,T} = MVector{N,T}(undef)
 end
 
@@ -67,23 +67,29 @@ Creates a `ManifoldBalancedBallTree` from the data using the given `metric` and 
 function ManifoldBalancedBallTree(
                     mani::AbstractManifold,
                     data::AbstractVector{V},
-                    metric::M = Euclidean();
+                    metric::M = DST.Euclidean();
                     leafsize::Int = 10,
                     reorder::Bool = true,
                     storedata::Bool = true,
-                    reorderbuffer::Vector{V} = Vector{V}()) where {V <: AbstractArray, M <: DST.Metric}
+                    reorderbuffer::AbstractVector{V} = Vector{V}()) where {V <: AbstractArray, M <: DST.Metric}
     #
     reorder = !isempty(reorderbuffer) || (storedata ? reorder : false)
 
-    tree_data = TreeData(data, leafsize)
+    _getMSimilar(s::AbstractVector) = MVector{length(V), eltype(V)}(undef)
+    _getMSimilar(s::AbstractMatrix) = MMatrix{size(s,1), size(s,2), eltype(V)}(undef)
+    _getMSimilar(s::ArrayPartition) = ArrayPartition(map(x->_getMSimilar(x.x),s)...)
+
+    tree_data = TreeDataBalanced(data, leafsize)
     n_d = length(V)
     n_p = length(data)
 
-    array_buffs = ArrayPartitionBuffers(Val{length(V)}, get_T(eltype(V)))
+    array_buffs = ArrayPartitionBuffers(Val{length(V)}, NNR.get_T(eltype(V)))
     indices = collect(1:n_p)
 
     # Bottom up creation of hyper spheres so need spheres even for leafs)
-    hyper_spheres = Vector{ManifoldHyperSphere{length(V),eltype(V)}}(undef, tree_data.n_internal_nodes + tree_data.n_leafs)
+    mvc = _getMSimilar(data[1])
+    @info "HYPS" typeof(data[1]) typeof(mvc)
+    hyper_spheres = Vector{ManifoldHyperSphere{typeof(mvc),eltype(V)}}(undef, tree_data.n_internal_nodes + tree_data.n_leafs)
 
     if reorder
         indices_reordered = Vector{Int}(undef, n_p)
@@ -98,8 +104,8 @@ function ManifoldBalancedBallTree(
         data_reordered = Vector{V}()
     end
 
-    if metric isa Distances.UnionMetrics
-        p = parameters(metric)
+    if metric isa DST.UnionMetrics
+        p = DST.parameters(metric)
         if p !== nothing && length(p) != length(V)
             throw(ArgumentError(
                 "dimension of input points:$(length(V)) and metric parameter:$(length(p)) must agree"))
@@ -108,6 +114,7 @@ function ManifoldBalancedBallTree(
 
     if n_p > 0
         # Call the recursive ManifoldBalancedBallTree builder
+        @info "TYPES" typeof(data) typeof(data_reordered) typeof(hyper_spheres)
         build_MaBalancednifoldBallTree( mani, 1, data, data_reordered, hyper_spheres, metric, 
                                         indices, indices_reordered, 1,  length(data), 
                                         tree_data, array_buffs, reorder )
@@ -146,28 +153,31 @@ function build_MaBalancednifoldBallTree(
         mani::AbstractManifold,
         index::Int,
         data::AbstractVector{V},
-        data_reordered::Vector{V},
-        hyper_spheres::AbstractVector{<:ManifoldHyperSphere{N,T}},
+        data_reordered::AbstractVector{V},
+        hyper_spheres::AbstractVector{<:ManifoldHyperSphere{C,T}},
         metric::DST.Metric,
         indices::AbstractVector{Int},
         indices_reordered::AbstractVector{Int},
         low::Int,
         high::Int,
-        tree_data::TreeData,
+        tree_data::TreeDataBalanced,
         array_buffs::ArrayPartitionBuffers{N,T},
-        reorder::Bool ) where {V <: AbstractVector, N, T}
+        reorder::Bool 
+    ) where {V <: Union{<:ArrayPartition, <:AbstractArray}, C, N, T}
     #
     n_points = high - low + 1 # Points left
     if n_points <= tree_data.leafsize
         if reorder
-            reorder_data!(data_reordered, data, index, indices, indices_reordered, tree_data)
+            NNR.reorder_data!(data_reordered, data, index, indices, indices_reordered, tree_data)
         end
         tree_data.lleaf[index] = low
         tree_data.hleaf[index] = high
         tree_data.lchild[index] = low
         tree_data.rchild[index] = 0 # perhaps `= high`
         # Create bounding sphere of points in leaf node by brute force
-        hyper_spheres[index] = create_bsphere(mani, data, metric, indices, low, high, array_buffs)
+        nsph = create_bsphere(mani, data, metric, indices, low, high, array_buffs)
+        @info "OKAY" typeof(nsph) index isdefined(hyper_spheres, index)
+        hyper_spheres[index] = nsph
         return
     end
 
