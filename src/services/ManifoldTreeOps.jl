@@ -46,4 +46,15 @@ function NNR.reorder_data!(data_reordered::Vector{V}, data::AbstractVector{V}, i
 end
 
 
+function Base.show(io::IO, tree::ManifoldBalancedBallTree{V,M}) where {V,M}
+    println(io, typeof(tree).name.name, "{")
+    println(io, "    V = ", V)
+    println(io, "    M = ", M)
+    println(io, "  }")
+    println(io, "  Number of points: ", length(tree.data))
+    println(io, "  Dimensions:       ", manifold_dimension(tree.manifold))
+    println(io, "  Metric:           ", tree.metric)
+    print(io,   "  Reordered:        ", tree.reordered)
+end
+
 #

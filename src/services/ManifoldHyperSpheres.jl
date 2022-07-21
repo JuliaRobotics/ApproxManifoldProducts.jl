@@ -34,16 +34,16 @@ end
 # ManifoldHyperSphere(center::SVector{N,T1}, r::T2) where {N, T1, T2} = ManifoldHyperSphere(center, convert(T1, r))
 
 
-@inline function intersects(m::M,
-                            s1::ManifoldHyperSphere{C,T},
-                            s2::ManifoldHyperSphere{C,T}) where {T <: ArrayPartition, C, M <: DST.Metric}
-    evaluate(m, s1.center, s2.center) <= s1.r + s2.r
+@inline function NNR.intersects(m::DST.Metric,
+                            s1::ManifoldHyperSphere,
+                            s2::ManifoldHyperSphere)
+    NNR.evaluate(m, s1.center, s2.center) <= s1.r + s2.r
 end
 
-@inline function encloses(m::M,
-                          s1::ManifoldHyperSphere{C,T},
-                          s2::ManifoldHyperSphere{C,T}) where {T <: ArrayPartition, C, M <: DST.Metric}
-    evaluate(m, s1.center, s2.center) + s1.r <= s2.r
+@inline function NNR.encloses(m::DST.Metric,
+                          s1::ManifoldHyperSphere,
+                          s2::ManifoldHyperSphere)
+    NNR.evaluate(m, s1.center, s2.center) + s1.r <= s2.r
 end
 
 # @inline function interpolate(::M,
@@ -60,7 +60,7 @@ end
 #     return ab.center, true
 # end
 
-@inline function interpolate(::M,
+@inline function NNR.interpolate(::M,
                             c1::V,
                             ::V,
                             ::Any,
@@ -69,7 +69,7 @@ end
     return c1, false
 end
 
-function create_bsphere(
+function NNR.create_bsphere(
         mani::AbstractManifold, 
         data::AbstractVector{V}, 
         metric::DST.Metric, 
@@ -83,8 +83,8 @@ function create_bsphere(
     # First find center of all points
     mn = mean(mani, view(data, low:high))
     @info "THIS" typeof(mn) typeof(ab.center)
-    _setc!(dst::AbstractArray, src::AbstractArray) = (dst[:] .= src[:])
-    # _setc!(dst::ArrayPartition, src::ArrayPartition) = map((i,x)->_setc!(...))
+    _setc!(dst::AbstractVector, src::AbstractVector) = (dst[:] .= src[:])
+    _setc!(dst::AbstractMatrix, src::AbstractMatrix) = (dst[:,:] .= src[:,:])
 
     _setc!(ab.center, mn)
 
@@ -98,27 +98,27 @@ function create_bsphere(
 end
 
 # Creates a bounding sphere from two other spheres
-function create_bsphere(mani::AbstractManifold,
+function NNR.create_bsphere(mani::AbstractManifold,
                         m::DST.Metric,
                         s1::ManifoldHyperSphere{C,T},
                         s2::ManifoldHyperSphere{C,T},
                         ab) where {C, T <: AbstractFloat}
-    if encloses(m, s1, s2)
+    if NNR.encloses(m, s1, s2)
         return ManifoldHyperSphere(s2.center, s2.r)
-    elseif encloses(m, s2, s1)
+    elseif NNR.encloses(m, s2, s1)
         return ManifoldHyperSphere(s1.center, s1.r)
     end
 
     # Compute the distance x along a geodesic from s1.center to s2.center
     # where the new center should be placed (note that 0 <= x <= d because
     # neither s1 nor s2 contains the other)
-    dist = evaluate(m, s1.center, s2.center)
+    dist = NNR.evaluate(m, s1.center, s2.center)
     x = 0.5 * (s2.r - s1.r + dist)
-    center, is_exact_center = interpolate(m, s1.center, s2.center, x, dist, ab)
+    center, is_exact_center = NNR.interpolate(m, s1.center, s2.center, x, dist, ab)
     if is_exact_center
         rad = 0.5 * (s2.r + s1.r + dist)
     else
-        rad = max(s1.r + evaluate(m, s1.center, center), s2.r + evaluate(m, s2.center, center))
+        rad = max(s1.r + NNR.evaluate(m, s1.center, center), s2.r + evaluate(m, s2.center, center))
     end
 
     return ManifoldHyperSphere(center, rad)

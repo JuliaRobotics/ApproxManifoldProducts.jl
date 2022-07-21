@@ -30,7 +30,7 @@
 # which radius are determined from the given metric.
 # The tree uses the triangle inequality to prune the search space
 # when finding the neighbors to a point,
-struct ManifoldBalancedBallTree{V <: AbstractArray, T, M <: DST.Metric} <: NNTree{V,M}
+struct ManifoldBalancedBallTree{V <: AbstractArray, T, M <: DST.Metric} # <: NNTree{V,M}
     """ tree points exist on some manifold `<:Manifolds.AbstractManifold` """
     manifold::T
     """ data points associated with this tree """
@@ -50,13 +50,13 @@ end
 # When we create the bounding spheres we need some temporary arrays.
 # We create a type to hold them to not allocate these arrays at every
 # function call and to reduce the number of parameters in the tree builder.
-Base.@kwdef struct ArrayPartitionBuffers{N,T <: Union{<:ArrayPartition, <:AbstractArray, <:Real}}
-    center::MVector{N,T} = MVector{N,T}(undef)
+struct ArrayPartitionBuffers{N,T <: Union{<:AbstractArray, <:Real}}
+    center::T
 end
 
-function ArrayPartitionBuffers(::Type{Val{N}}, ::Type{T}) where {N, T}
-    ArrayPartitionBuffers{N,T}()
-end
+# function ArrayPartitionBuffers(::Type{Val{N}}, ::Type{T}) where {N, T}
+#     ArrayPartitionBuffers{N,T}()
+# end
 
 
 """
@@ -77,17 +77,18 @@ function ManifoldBalancedBallTree(
 
     _getMSimilar(s::AbstractVector) = MVector{length(V), eltype(V)}(undef)
     _getMSimilar(s::AbstractMatrix) = MMatrix{size(s,1), size(s,2), eltype(V)}(undef)
-    _getMSimilar(s::ArrayPartition) = ArrayPartition(map(x->_getMSimilar(x.x),s)...)
+    _getMSimilar(s::ArrayPartition) = ArrayPartition(map(x->_getMSimilar(x),s.x)...)
 
     tree_data = TreeDataBalanced(data, leafsize)
     n_d = length(V)
     n_p = length(data)
 
-    array_buffs = ArrayPartitionBuffers(Val{length(V)}, NNR.get_T(eltype(V)))
+    # dTy = NNR.get_T(eltype(V))
+    mvc = _getMSimilar(data[1])
+    array_buffs = ArrayPartitionBuffers{length(V), typeof(mvc)}(mvc)
     indices = collect(1:n_p)
 
     # Bottom up creation of hyper spheres so need spheres even for leafs)
-    mvc = _getMSimilar(data[1])
     @info "HYPS" typeof(data[1]) typeof(mvc)
     hyper_spheres = Vector{ManifoldHyperSphere{typeof(mvc),eltype(V)}}(undef, tree_data.n_internal_nodes + tree_data.n_leafs)
 
@@ -154,16 +155,16 @@ function build_MaBalancednifoldBallTree(
         index::Int,
         data::AbstractVector{V},
         data_reordered::AbstractVector{V},
-        hyper_spheres::AbstractVector{<:ManifoldHyperSphere{C,T}},
+        hyper_spheres::AbstractVector{<:ManifoldHyperSphere},
         metric::DST.Metric,
         indices::AbstractVector{Int},
         indices_reordered::AbstractVector{Int},
         low::Int,
         high::Int,
         tree_data::TreeDataBalanced,
-        array_buffs::ArrayPartitionBuffers{N,T},
+        array_buffs::ArrayPartitionBuffers,
         reorder::Bool 
-    ) where {V <: Union{<:ArrayPartition, <:AbstractArray}, C, N, T}
+    ) where {V <: AbstractArray}
     #
     n_points = high - low + 1 # Points left
     if n_points <= tree_data.leafsize
@@ -175,7 +176,8 @@ function build_MaBalancednifoldBallTree(
         tree_data.lchild[index] = low
         tree_data.rchild[index] = 0 # perhaps `= high`
         # Create bounding sphere of points in leaf node by brute force
-        nsph = create_bsphere(mani, data, metric, indices, low, high, array_buffs)
+        @info "RIGHT" typeof(hyper_spheres) typeof(array_buffs)
+        nsph = NNR.create_bsphere(mani, data, metric, indices, low, high, array_buffs)
         @info "OKAY" typeof(nsph) index isdefined(hyper_spheres, index)
         hyper_spheres[index] = nsph
         return
@@ -186,11 +188,11 @@ function build_MaBalancednifoldBallTree(
     mid_idx = find_split_balanced(high, low)
 
     # Brute force to find the dimension with the largest spread
-    split_dim = find_largest_spread(data, indices, low, high)
+    split_dim = NNR.find_largest_spread(data, indices, low, high)
 
     # Sort the data at the mid_idx boundary using the split_dim
     # to compare
-    select_spec!(indices, mid_idx, low, high, data, split_dim)
+    NNR.select_spec!(indices, mid_idx, low, high, data, split_dim)
 
     # if the left sub-tree is just one leaf, don't make a new non-leaf
     # node for it, just point left_idx directly to the leaf itself.
@@ -201,17 +203,17 @@ function build_MaBalancednifoldBallTree(
     tree_data.lchild[index] = left
     tree_data.rchild[index] = right
 
-    build_MaBalancednifoldBallTree(mani, getleft(index), data, data_reordered, hyper_spheres, metric,
+    build_MaBalancednifoldBallTree(mani, NNR.getleft(index), data, data_reordered, hyper_spheres, metric,
                     indices, indices_reordered, low, mid_idx,
                     tree_data, array_buffs, reorder)
 
-    build_MaBalancednifoldBallTree(mani, getright(index), data, data_reordered, hyper_spheres, metric,
+    build_MaBalancednifoldBallTree(mani, NNR.getright(index), data, data_reordered, hyper_spheres, metric,
                     indices, indices_reordered, mid_idx+1, high,
                     tree_data, array_buffs, reorder)
 
     # Finally create bounding hyper sphere from the two children's hyper spheres
-    hyper_spheres[index]  =  create_bsphere(mani, metric, hyper_spheres[getleft(index)],
-                                            hyper_spheres[getright(index)],
+    hyper_spheres[index]  =  NNR.create_bsphere(mani, metric, hyper_spheres[NNR.getleft(index)],
+                                            hyper_spheres[NNR.getright(index)],
                                             array_buffs)
 end
 
