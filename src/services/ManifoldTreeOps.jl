@@ -1,5 +1,9 @@
 
 
+NNR.getleft(td::TreeDataBalanced, i::Int) = td.lchild[i]
+NNR.getright(td::TreeDataBalanced, i::Int) = td.rchild[i]
+# NNR.getparent(td::TreeDataBalanced, i::Int) = div(i, 2)
+# NNR.isleaf(n_internal_nodes::Int, idx::Int) = idx > n_internal_nodes
 
 # Split the tree such that one of the sub trees have +-1 an equal number of points
 function find_split_balanced(high, low)
@@ -34,10 +38,13 @@ end
 
 # Store all the points in a leaf node continuously in memory in data_reordered to improve cache locality.
 # Also stores the mapping to get the index into the original data from the reordered data.
-function NNR.reorder_data!(data_reordered::Vector{V}, data::AbstractVector{V}, index::Int,
-                            indices::Vector{Int}, indices_reordered::Vector{Int}, tree_data::TreeDataBalanced) where {V}
+function NNR.reorder_data!(
+        data_reordered::Vector{V}, data::AbstractVector{V}, index::Int,
+        indices::Vector{Int}, indices_reordered::Vector{Int}, tree_data::TreeDataBalanced
+    ) where {V}
     #
     for i in NNR.get_leaf_range(tree_data, index)
+        @info "AND?" index i
         idx = indices[i]
         data_reordered[i] = data[idx]
         # Saves the inverse n
@@ -46,15 +53,6 @@ function NNR.reorder_data!(data_reordered::Vector{V}, data::AbstractVector{V}, i
 end
 
 
-function Base.show(io::IO, tree::ManifoldBalancedBallTree{V,M}) where {V,M}
-    println(io, typeof(tree).name.name, "{")
-    println(io, "    V = ", V)
-    println(io, "    M = ", M)
-    println(io, "  }")
-    println(io, "  Number of points: ", length(tree.data))
-    println(io, "  Dimensions:       ", manifold_dimension(tree.manifold))
-    println(io, "  Metric:           ", tree.metric)
-    print(io,   "  Reordered:        ", tree.reordered)
-end
+
 
 #

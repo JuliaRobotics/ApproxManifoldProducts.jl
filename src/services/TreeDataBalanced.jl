@@ -40,6 +40,7 @@ Base.@kwdef struct TreeDataBalanced
     hleaf::Vector{Int}      = Int[]
     lchild::Vector{Int}     = Int[]
     rchild::Vector{Int}     = Int[]
+    pselect::Vector{Int}    = Int[]
     next::Base.RefValue{Int}= Ref(0)
 end
 
@@ -49,14 +50,14 @@ function TreeDataBalanced(data::AbstractVector{V}, leafsize) where V
     n_dim, n_p = length(V), length(data)
 
     # If number of points is zero
-    n_p == 0 && return TreeDataBalanced()
+    n_p === 0 && return TreeDataBalanced()
 
     n_leafs =  ceil(Integer, n_p / leafsize)
     n_internal_nodes = n_leafs - 1
     leafrow = floor(Integer, log2(n_leafs))
     cross_node = 2^(leafrow + 1)
     last_node_size = n_p % leafsize
-    if last_node_size == 0
+    if last_node_size === 0
         last_node_size = leafsize
     end
 
@@ -71,6 +72,9 @@ function TreeDataBalanced(data::AbstractVector{V}, leafsize) where V
     last_full_node = n_leafs + n_internal_nodes
 
     vit = zeros(Int, 2*length(data))
+    vit[n_p+1:2n_p] = 1:n_p
+    vir = similar(vit)
+    vir[n_p+1:2n_p] = -1*ones(Int, n_p)
 
     TreeDataBalanced(;last_node_size, leafsize, n_leafs,
         n_internal_nodes, cross_node, offset=k1, offset_cross=k2, last_full_node,

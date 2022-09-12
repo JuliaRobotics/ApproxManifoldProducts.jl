@@ -65,7 +65,7 @@ end
                             ::V,
                             ::Any,
                             ::Any,
-                            ::Any ) where {V <: AbstractVector, M <: DST.Metric}
+                            ::Any ) where {V <: AbstractArray, M <: DST.Metric}
     return c1, false
 end
 

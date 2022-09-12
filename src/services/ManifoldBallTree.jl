@@ -54,103 +54,12 @@ struct ArrayPartitionBuffers{N,T <: Union{<:AbstractArray, <:Real}}
     center::T
 end
 
-# function ArrayPartitionBuffers(::Type{Val{N}}, ::Type{T}) where {N, T}
-#     ArrayPartitionBuffers{N,T}()
-# end
 
 
-"""
-    ManifoldBalancedBallTree(data [, metric = Euclidean(); leafsize = 10, reorder = true]) -> ManifoldBalancedballtree
 
-Creates a `ManifoldBalancedBallTree` from the data using the given `metric` and `leafsize`.
-"""
-function ManifoldBalancedBallTree(
-                    mani::AbstractManifold,
-                    data::AbstractVector{V},
-                    metric::M = DST.Euclidean();
-                    leafsize::Int = 10,
-                    reorder::Bool = true,
-                    storedata::Bool = true,
-                    reorderbuffer::AbstractVector{V} = Vector{V}()) where {V <: AbstractArray, M <: DST.Metric}
-    #
-    reorder = !isempty(reorderbuffer) || (storedata ? reorder : false)
-
-    _getMSimilar(s::AbstractVector) = MVector{length(V), eltype(V)}(undef)
-    _getMSimilar(s::AbstractMatrix) = MMatrix{size(s,1), size(s,2), eltype(V)}(undef)
-    _getMSimilar(s::ArrayPartition) = ArrayPartition(map(x->_getMSimilar(x),s.x)...)
-
-    tree_data = TreeDataBalanced(data, leafsize)
-    n_d = length(V)
-    n_p = length(data)
-
-    # dTy = NNR.get_T(eltype(V))
-    mvc = _getMSimilar(data[1])
-    array_buffs = ArrayPartitionBuffers{length(V), typeof(mvc)}(mvc)
-    indices = collect(1:n_p)
-
-    # Bottom up creation of hyper spheres so need spheres even for leafs)
-    @info "HYPS" typeof(data[1]) typeof(mvc)
-    hyper_spheres = Vector{ManifoldHyperSphere{typeof(mvc),eltype(V)}}(undef, tree_data.n_internal_nodes + tree_data.n_leafs)
-
-    if reorder
-        indices_reordered = Vector{Int}(undef, n_p)
-        if isempty(reorderbuffer)
-            data_reordered = Vector{V}(undef, n_p)
-        else
-            data_reordered = reorderbuffer
-        end
-    else
-        # Dummy variables
-        indices_reordered = Vector{Int}()
-        data_reordered = Vector{V}()
-    end
-
-    if metric isa DST.UnionMetrics
-        p = DST.parameters(metric)
-        if p !== nothing && length(p) != length(V)
-            throw(ArgumentError(
-                "dimension of input points:$(length(V)) and metric parameter:$(length(p)) must agree"))
-        end
-    end
-
-    if n_p > 0
-        # Call the recursive ManifoldBalancedBallTree builder
-        @info "TYPES" typeof(data) typeof(data_reordered) typeof(hyper_spheres)
-        build_MaBalancednifoldBallTree( mani, 1, data, data_reordered, hyper_spheres, metric, 
-                                        indices, indices_reordered, 1,  length(data), 
-                                        tree_data, array_buffs, reorder )
-    end
-
-    if reorder
-        data = data_reordered
-        indices = indices_reordered
-    end
-
-    ManifoldBalancedBallTree(mani, storedata ? data : similar(data, 0), hyper_spheres, indices, metric, tree_data, reorder)
-end
-
-function ManifoldBalancedBallTree(  mani::AbstractManifold,
-                            data::AbstractVector{T},
-                            metric::M = Euclidean();
-                            leafsize::Int = 10,
-                            storedata::Bool = true,
-                            reorder::Bool = true,
-                            reorderbuffer::Matrix{T} = Matrix{T}(undef, 0, 0)) where {T <: AbstractFloat, M <: DST.Metric}
-    #
-    dim = size(data, 1)
-    # npoints = size(data, 2)
-    points = copy_svec(T, data, Val(dim))
-    if isempty(reorderbuffer)
-        reorderbuffer_points = Vector{SVector{dim,T}}()
-    else
-        reorderbuffer_points = copy_svec(T, reorderbuffer, Val(dim))
-    end
-    ManifoldBalancedBallTree(mani, points, metric, leafsize = leafsize, storedata = storedata, reorder = reorder,
-            reorderbuffer = reorderbuffer_points)
-end
 
 # Recursive function to build the tree.
-function build_MaBalancednifoldBallTree(
+function build_ManifoldBalancedBallTree(
         mani::AbstractManifold,
         index::Int,
         data::AbstractVector{V},
@@ -166,6 +75,7 @@ function build_MaBalancednifoldBallTree(
         reorder::Bool 
     ) where {V <: AbstractArray}
     #
+    @info "@24R1" index length(tree_data.lchild) length(tree_data.rchild)
     n_points = high - low + 1 # Points left
     if n_points <= tree_data.leafsize
         if reorder
@@ -203,19 +113,111 @@ function build_MaBalancednifoldBallTree(
     tree_data.lchild[index] = left
     tree_data.rchild[index] = right
 
-    build_MaBalancednifoldBallTree(mani, NNR.getleft(index), data, data_reordered, hyper_spheres, metric,
+    build_ManifoldBalancedBallTree(mani, NNR.getleft(index), data, data_reordered, hyper_spheres, metric,
                     indices, indices_reordered, low, mid_idx,
                     tree_data, array_buffs, reorder)
 
-    build_MaBalancednifoldBallTree(mani, NNR.getright(index), data, data_reordered, hyper_spheres, metric,
+    build_ManifoldBalancedBallTree(mani, NNR.getright(tree_data, index), data, data_reordered, hyper_spheres, metric,
                     indices, indices_reordered, mid_idx+1, high,
                     tree_data, array_buffs, reorder)
 
     # Finally create bounding hyper sphere from the two children's hyper spheres
-    hyper_spheres[index]  =  NNR.create_bsphere(mani, metric, hyper_spheres[NNR.getleft(index)],
-                                            hyper_spheres[NNR.getright(index)],
+    hyper_spheres[index]  =  NNR.create_bsphere(mani, metric, hyper_spheres[NNR.getleft(tree_data, index)],
+                                            hyper_spheres[NNR.getright(tree_data, index)],
                                             array_buffs)
 end
+
+
+"""
+    ManifoldBalancedBallTree(data [, metric = Euclidean(); leafsize = 10, reorder = true]) -> ManifoldBalancedballtree
+
+Creates a `ManifoldBalancedBallTree` from the data using the given `metric` and `leafsize`.
+"""
+function ManifoldBalancedBallTree(
+                    mani::AbstractManifold,
+                    data::AbstractVector{V},
+                    metric::M = DST.Euclidean();
+                    leafsize::Int = 10,
+                    reorder::Bool = true,
+                    storedata::Bool = true,
+                    reorderbuffer::AbstractVector{V} = Vector{V}()) where {V <: AbstractArray, M <: DST.Metric}
+    #
+    reorder = !isempty(reorderbuffer) || (storedata ? reorder : false)
+
+    _getMSimilar(s::AbstractVector) = MVector{length(V), eltype(V)}(undef)
+    _getMSimilar(s::AbstractMatrix) = MMatrix{size(s,1), size(s,2), eltype(V)}(undef)
+    _getMSimilar(s::ArrayPartition) = ArrayPartition(map(x->_getMSimilar(x),s.x)...)
+
+    tree_data = TreeDataBalanced(data, leafsize)
+    n_d = length(V)
+    n_p = length(data)
+
+    # dTy = NNR.get_T(eltype(V))
+    mvc = _getMSimilar(data[1])
+    array_buffs = ArrayPartitionBuffers{length(V), typeof(mvc)}(mvc)
+    indices = collect(1:n_p)
+
+    # Bottom up creation of hyper spheres so need spheres even for leafs)
+    # @info "HYPS" typeof(data[1]) typeof(mvc)
+    hyper_spheres = Vector{ManifoldHyperSphere{typeof(mvc),eltype(V)}}(undef, 2*n_p) # tree_data.n_internal_nodes + tree_data.n_leafs)
+
+    if reorder
+        indices_reordered = Vector{Int}(undef, n_p)
+        if isempty(reorderbuffer)
+            data_reordered = Vector{V}(undef, n_p)
+        else
+            data_reordered = reorderbuffer
+        end
+    else
+        # Dummy variables
+        indices_reordered = Vector{Int}()
+        data_reordered = Vector{V}()
+    end
+
+    if metric isa DST.UnionMetrics
+        p = DST.parameters(metric)
+        if p !== nothing && length(p) != length(V)
+            throw(ArgumentError(
+                "dimension of input points:$(length(V)) and metric parameter:$(length(p)) must agree"))
+        end
+    end
+
+    if n_p > 0
+        # Call the recursive ManifoldBalancedBallTree builder
+        @info "TYPES" typeof(data) typeof(data_reordered) typeof(hyper_spheres)
+        build_ManifoldBalancedBallTree( mani, 1, data, data_reordered, hyper_spheres, metric, 
+                                        indices, indices_reordered, 1,  length(data), 
+                                        tree_data, array_buffs, reorder )
+    end
+
+    if reorder
+        data = data_reordered
+        indices = indices_reordered
+    end
+
+    ManifoldBalancedBallTree(mani, storedata ? data : similar(data, 0), hyper_spheres, indices, metric, tree_data, reorder)
+end
+
+
+function ManifoldBalancedBallTree(  mani::AbstractManifold,
+                                    data::AbstractVector{T},
+                                    w...;
+                                    reorderbuffer::AbstractVector{T} = Vector{T}(undef, 0),
+                                    kw...) where {T <: Number}
+    #
+    pts = Vector{SVector{1,T}}(undef, length(data))
+    for (i,de) in enumerate(data)
+        pts[i] = SA[de;]
+    end
+    if isempty(reorderbuffer)
+        reorderbuffer_points = Vector{SVector{1,T}}()
+    else
+        error("reorderbuffer options not fully implemented yet")
+        # reorderbuffer_points = copy_svec(T, reorderbuffer, Val(dim))
+    end
+    ManifoldBalancedBallTree(mani, pts, w...; reorderbuffer=reorderbuffer_points, kw...)
+end
+
 
 # function _knn(tree::ManifoldBalancedBallTree,
 #               point::AbstractVector,
@@ -306,16 +308,14 @@ end
 # end
 
 
-# test case
-# pts = [
-#     1.6428412203258511
-#     -0.4823265406855113
-#      0.4354221188230193
-#      1.908228908562008
-#      0.9791603637197599
-#      1.0798652993450037
-#      1.0875113872287496
-#      1.2019334066681153
-#      0.013282018302654335
-#      0.965302261228411   
-# ]
+function Base.show(io::IO, tree::ManifoldBalancedBallTree{V,M}) where {V,M}
+    println(io, typeof(tree).name.name, "{")
+    println(io, "    V = ", V)
+    println(io, "    M = ", M)
+    println(io, "  }")
+    println(io, "  Number of points: ", length(tree.data))
+    println(io, "  Dimensions:       ", manifold_dimension(tree.manifold))
+    println(io, "  Metric:           ", tree.metric)
+    print(io,   "  Reordered:        ", tree.reordered)
+end
+
