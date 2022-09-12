@@ -29,6 +29,9 @@ function plotCircBeliefs( arr::V;
     beliefs[j] = logpdf ? (x)->log(ar(x)+1.0) : (x)->ar(x) #
   end
 
+  M = SpecialOrthogonal(2)
+  e0 = Identity(M)
+
   PL = []
   # TODO loosing some modes in plotting???
   for j in 1:length(beliefs)
@@ -42,7 +45,7 @@ function plotCircBeliefs( arr::V;
       # second term directional statistics for plotting (not evaluation)
       obj[i] += (j != 1 ? beliefs[j](t-2pi) : 0.0 )
       obj[i] += (j != 1 ? beliefs[j](t+2pi) : 0.0 )
-      xy = TransformUtils.R(rVo[3])*[cos(t)*obj[i]; sin(t)*obj[i]]
+      xy = exp(M,e0,hat(M,e0,rVo[3]))*[cos(t)*obj[i]; sin(t)*obj[i]]
       X[i] = xy[1] + rVo[1]
       Y[i] = xy[2] + rVo[2]
     end
