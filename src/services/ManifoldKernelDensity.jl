@@ -1,14 +1,4 @@
 
-import Random: rand
-
-export getPoints, getBW, Ndim, Npts
-export getKDERange, getKDEMax, getKDEMean, getKDEfit
-export sample, rand, resample, kld, minkld
-export calcMean
-export getInfoPerCoord, getBandwidth
-export antimarginal
-
-
 ## ==========================================================================================
 ## helper functions to contruct MKD objects
 ## ==========================================================================================
@@ -45,7 +35,8 @@ ManifoldKernelDensity(mani::M,
 
 function ManifoldKernelDensity( M::MB.AbstractManifold,
                                 vecP::AbstractVector{P},
-                                u0=vecP[1];
+                                u0=vecP[1],
+                                ϵ = identity_element(M, vecP[1]);
                                 partial::L=nothing,
                                 infoPerCoord::AbstractVector{<:Real}=ones(getNumberCoords(M, u0)),
                                 dims::Int=manifold_dimension(M),
@@ -53,7 +44,7 @@ function ManifoldKernelDensity( M::MB.AbstractManifold,
   #
   # FIXME obsolete
   arr = Matrix{Float64}(undef, dims, length(vecP))
-  ϵ = identity_element(M, vecP[1])
+  
 
   for j in 1:length(vecP)
     arr[:,j] = vee(M, ϵ, log(M, ϵ, vecP[j]))
@@ -86,14 +77,18 @@ manikde!( M::MB.AbstractManifold,
 ## a few utilities
 ## ==========================================================================================
 
-function Statistics.mean(mkd::ManifoldKernelDensity, aspartial::Bool=true)
-  M = if aspartial && isPartial(mkd)
+# TODO this should be a public method relating to getManifold
+function _getManifoldFullOrPart(mkd::ManifoldKernelDensity, aspartial::Bool=true)
+  if aspartial && isPartial(mkd)
     getManifoldPartial(mkd.manifold, mkd._partial)
   else
     mkd.manifold
   end
+end
 
-  mean(mkd.manifold, getPoints(mkd, aspartial))
+function Statistics.mean(mkd::ManifoldKernelDensity, aspartial::Bool=true)
+  M = _getManifoldFullOrPart(mkd, aspartial)
+  mean(M, getPoints(mkd, aspartial))
 end
 
 """
@@ -102,6 +97,18 @@ end
 Alias for overloaded `Statistics.mean`.
 """
 calcMean(mkd::ManifoldKernelDensity, aspartial::Bool=true) = mean(mkd, aspartial)
+
+function Statistics.std(mkd::ManifoldKernelDensity, aspartial::Bool=true; kwargs...)
+  std(_getManifoldFullOrPart(mkd,aspartial), getPoints(mkd, aspartial); kwargs...)
+end
+function Statistics.var(mkd::ManifoldKernelDensity, aspartial::Bool=true; kwargs...)
+  var(_getManifoldFullOrPart(mkd,aspartial), getPoints(mkd, aspartial); kwargs...)
+end
+
+function Statistics.cov(mkd::ManifoldKernelDensity, aspartial::Bool=true; basis::Manifolds.AbstractBasis = Manifolds.DefaultOrthogonalBasis(), kwargs...)
+  return cov(_getManifoldFullOrPart(mkd,aspartial), getPoints(mkd, aspartial); basis, kwargs... )
+end
+
 
 
 _getFieldPartials(mkd::ManifoldKernelDensity{M,B,Nothing}, field::Function, aspartial::Bool=true) where {M,B} = field(mkd)
