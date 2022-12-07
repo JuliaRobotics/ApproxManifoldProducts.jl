@@ -69,6 +69,10 @@ function calcCovarianceBasic(M::AbstractManifold, ptsArr::Vector{P}) where P
   return msst_
 end
 
+import Statistics: cov
+
+Statistics.cov(mkd::ManifoldKernelDensity) = cov(mkd.manifold, getPoints(mkd))
+
 """
     $SIGNATURES
 
