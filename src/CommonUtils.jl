@@ -63,14 +63,8 @@ end
 # Returns the covariance (square), not deviation
 function calcCovarianceBasic(M::AbstractManifold, ptsArr::Vector{P}) where P
   #TODO double check the maths,. it looks like its working at least for groups
-  μ = mean(M, ptsArr)
-  Xcs = vee.(Ref(M), Ref(μ), log.(Ref(M), Ref(μ), ptsArr))
-  Σ = mean(Xcs .* transpose.(Xcs))
-  @debug "calcCovarianceBasic" μ
-  @debug "calcCovarianceBasic" Σ
-  # TODO don't know what to do here so keeping as before, #FIXME it will break
-  # a change between this and previous is that a full covariance matrix is returned
-  msst = Σ
+  @warn "use of calcCovarianceBasic should be deprecated or motivated.  Please comment in issue AMP#150.  Also replaces IIF.calcSTDBasicSpread"
+  Σ = cov(M, ptsArr)
   msst_ = 0 < sum(1e-10 .< msst) ? maximum(msst) : 1.0
   return msst_
 end
