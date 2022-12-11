@@ -60,20 +60,22 @@ function updateProductSample( dest::BallTreeDensity,
   manikde!(pts, manifolds)
 end
 
-# Returns the covariance (square), not deviation
-function calcCovarianceBasic(M::AbstractManifold, ptsArr::Vector{P}) where P
-  #TODO double check the maths,. it looks like its working at least for groups
-  μ = mean(M, ptsArr)
-  Xcs = vee.(Ref(M), Ref(μ), log.(Ref(M), Ref(μ), ptsArr))
-  Σ = mean(Xcs .* transpose.(Xcs))
-  @debug "calcCovarianceBasic" μ
-  @debug "calcCovarianceBasic" Σ
-  # TODO don't know what to do here so keeping as before, #FIXME it will break
-  # a change between this and previous is that a full covariance matrix is returned
-  msst = Σ
-  msst_ = 0 < sum(1e-10 .< msst) ? maximum(msst) : 1.0
-  return msst_
+function Statistics.cov(mkd::ManifoldKernelDensity, args...; kwargs...) 
+  cov(mkd.manifold, getPoints(mkd),  args...; kwargs...)
 end
+
+function Statistics.mean(mkd::ManifoldKernelDensity, args...; kwargs...)
+  return mean(mkd.manifold, getPoints(mkd), args...; kwargs...)
+end
+
+function Statistics.std(mkd::ManifoldKernelDensity, args...; kwargs...)
+  return std(mkd.manifold, getPoints(mkd), args...; kwargs...)
+end
+
+function Statistics.var(mkd::ManifoldKernelDensity, args...; kwargs...)
+  return var(mkd.manifold, getPoints(mkd), args...; kwargs...)
+end
+
 
 """
     $SIGNATURES
