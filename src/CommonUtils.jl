@@ -60,9 +60,22 @@ function updateProductSample( dest::BallTreeDensity,
   manikde!(pts, manifolds)
 end
 
-import Statistics: cov
+function Statistics.cov(mkd::ManifoldKernelDensity, args...; kwargs...) 
+  cov(mkd.manifold, getPoints(mkd),  args...; kwargs...)
+end
 
-Statistics.cov(mkd::ManifoldKernelDensity) = cov(mkd.manifold, getPoints(mkd))
+function Statistics.mean(mkd::ManifoldKernelDensity, args...; kwargs...)
+  return mean(mkd.manifold, getPoints(mkd), args...; kwargs...)
+end
+
+function Statistics.std(mkd::ManifoldKernelDensity, args...; kwargs...)
+  return std(mkd.manifold, getPoints(mkd), args...; kwargs...)
+end
+
+function Statistics.var(mkd::ManifoldKernelDensity, args...; kwargs...)
+  return var(mkd.manifold, getPoints(mkd), args...; kwargs...)
+end
+
 
 """
     $SIGNATURES
