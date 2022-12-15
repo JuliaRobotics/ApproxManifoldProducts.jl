@@ -60,20 +60,20 @@ function updateProductSample( dest::BallTreeDensity,
   manikde!(pts, manifolds)
 end
 
-function Statistics.cov(mkd::ManifoldKernelDensity, args...; kwargs...) 
-  cov(mkd.manifold, getPoints(mkd),  args...; kwargs...)
+function Statistics.cov(mkd::ManifoldKernelDensity; kwargs...) 
+  cov(mkd.manifold, getPoints(mkd); kwargs...)
 end
 
-function Statistics.mean(mkd::ManifoldKernelDensity, args...; kwargs...)
-  return mean(mkd.manifold, getPoints(mkd), args...; kwargs...)
+function Statistics.mean(mkd::ManifoldKernelDensity; kwargs...)
+  return mean(mkd.manifold, getPoints(mkd); kwargs...)
 end
 
-function Statistics.std(mkd::ManifoldKernelDensity, args...; kwargs...)
-  return std(mkd.manifold, getPoints(mkd), args...; kwargs...)
+function Statistics.std(mkd::ManifoldKernelDensity; kwargs...)
+  return std(mkd.manifold, getPoints(mkd); kwargs...)
 end
 
-function Statistics.var(mkd::ManifoldKernelDensity, args...; kwargs...)
-  return var(mkd.manifold, getPoints(mkd), args...; kwargs...)
+function Statistics.var(mkd::ManifoldKernelDensity; kwargs...)
+  return var(mkd.manifold, getPoints(mkd); kwargs...)
 end
 
 
