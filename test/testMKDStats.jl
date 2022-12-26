@@ -19,6 +19,8 @@ P = manikde!(M, pts)
 @test isapprox(var(P), var(M, pts))
 @test isapprox(std(P), std(M, pts))
 @test_broken isapprox(cov(P), cov(M, pts))
+@test isapprox(cov(P), cov(M, pts; basis=DefaultOrthogonalBasis()))
+@test isapprox(cov(P; basis=DefaultOrthonormalBasis()), cov(M, pts))
 
 ##
 end
