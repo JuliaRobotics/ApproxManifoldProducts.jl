@@ -77,39 +77,6 @@ manikde!( M::MB.AbstractManifold,
 ## a few utilities
 ## ==========================================================================================
 
-# TODO this should be a public method relating to getManifold
-function _getManifoldFullOrPart(mkd::ManifoldKernelDensity, aspartial::Bool=true)
-  if aspartial && isPartial(mkd)
-    getManifoldPartial(mkd.manifold, mkd._partial)
-  else
-    mkd.manifold
-  end
-end
-
-function Statistics.mean(mkd::ManifoldKernelDensity, aspartial::Bool=true)
-  M = _getManifoldFullOrPart(mkd, aspartial)
-  mean(M, getPoints(mkd, aspartial))
-end
-
-"""
-    $SIGNATURES
-
-Alias for overloaded `Statistics.mean`.
-"""
-calcMean(mkd::ManifoldKernelDensity, aspartial::Bool=true) = mean(mkd, aspartial)
-
-function Statistics.std(mkd::ManifoldKernelDensity, aspartial::Bool=true; kwargs...)
-  std(_getManifoldFullOrPart(mkd,aspartial), getPoints(mkd, aspartial); kwargs...)
-end
-function Statistics.var(mkd::ManifoldKernelDensity, aspartial::Bool=true; kwargs...)
-  var(_getManifoldFullOrPart(mkd,aspartial), getPoints(mkd, aspartial); kwargs...)
-end
-
-function Statistics.cov(mkd::ManifoldKernelDensity, aspartial::Bool=true; basis::Manifolds.AbstractBasis = Manifolds.DefaultOrthogonalBasis(), kwargs...)
-  return cov(_getManifoldFullOrPart(mkd,aspartial), getPoints(mkd, aspartial); basis, kwargs... )
-end
-
-
 
 _getFieldPartials(mkd::ManifoldKernelDensity{M,B,Nothing}, field::Function, aspartial::Bool=true) where {M,B} = field(mkd)
 
