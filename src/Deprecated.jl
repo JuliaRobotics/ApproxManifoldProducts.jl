@@ -7,6 +7,17 @@
 @deprecate R(th::Real) _Rot.RotMatrix2(th).mat # = [[cos(th);-sin(th)]';[sin(th);cos(th)]'];
 @deprecate R(;x::Real=0.0,y::Real=0.0,z::Real=0.0) (M=SpecialOrthogonal(3);exp(M,identity_element(M),hat(M,Identity(M),[x,y,z]))) # convert(SO3, so3([x,y,z]))
 
+export calcCovarianceBasic
+# Returns the covariance (square), not deviation
+function calcCovarianceBasic(M::AbstractManifold, ptsArr::Vector{P}) where P
+  @warn "`calcCovarianceBasic` is deprecated. Replace with IIF.calcSTDBasicSpread from IIF or `cov` or `var` from Manifolds. See issue AMP#150."
+  μ = mean(M, ptsArr)
+  Xcs = vee.(Ref(M), Ref(μ), log.(Ref(M), Ref(μ), ptsArr))
+  Σ = mean(Xcs .* transpose.(Xcs))
+  msst = Σ
+  msst_ = 0 < sum(1e-10 .< msst) ? maximum(msst) : 1.0
+  return msst_
+end
 
 ## ======================================================================================================
 ## Remove below before v0.7
