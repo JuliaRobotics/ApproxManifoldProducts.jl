@@ -71,7 +71,7 @@ function _getManifoldFullOrPart(mkd::ManifoldKernelDensity, aspartial::Bool=true
 end
 
 function Statistics.mean(mkd::ManifoldKernelDensity, aspartial::Bool=true; kwargs...)
-  return mean(_getManifoldFullOrPart(mkd,aspartial), getPoints(mkd); kwargs...)
+  return mean(_getManifoldFullOrPart(mkd,aspartial), getPoints(mkd, aspartial); kwargs...)
 end
 """
     $SIGNATURES
