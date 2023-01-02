@@ -33,7 +33,6 @@ function makeCoordsFromPoint( M::MB.AbstractManifold,
                               pt::P,
                               ϵ = identity_element(M, pt) ) where P
   #
-  
   vee(M, ϵ, log(M, ϵ, pt))
 end
 
@@ -67,7 +66,6 @@ function _pointsToMatrixCoords(M::MB.AbstractManifold, pts::AbstractVector{P}) w
   return mat
 end
 
-
 # asPartial=true indicates that src coords are smaller than dest coords, and false implying src has dummy values in placeholder dimensions
 function setPointPartial!(Mdest::AbstractManifold, 
                           dest, 
@@ -76,23 +74,33 @@ function setPointPartial!(Mdest::AbstractManifold,
                           partial::AbstractVector{<:Integer},
                           asPartial::Bool=true )
   #
+  # trivial case of empty factor
+  if length(partial) == 0
+    return dest
+  end
 
   dest_ = AMP.makeCoordsFromPoint(Mdest,dest)
   # e0 = identity_element(Mdest, dest)
   # dest_ = vee(Mdest, e0, log(Mdest, e0, dest))
+  
+  # Note on partial cases.
+  #  Mdest is always full dimensional as the destination of some new values.
+  #  Msrc is partial dimension manifold.
+  #  src is assumed to be values which only represent the partial values 
 
+  # FIXME, does this line need to cater for both partial and tangent or point cases?
   src_ = AMP.makeCoordsFromPoint(Msrc,src)
   # e0s = identity_element(Msrc, src)
   # src_ = vee(Msrc, e0s, log(Msrc, e0s, src))
 
   # do the copy in coords 
   dest_[partial] .= asPartial ? src_ : view(src_, partial)
-
+  
   # update points base in original
   dest__ = makePointFromCoords(Mdest, dest_, dest)
   # dest__ = exp(Mdest, e0, hat(Mdest, e0, dest_))
   setPointsMani!(dest, dest__)
-
+  
   #
   return dest 
 end
