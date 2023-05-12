@@ -132,7 +132,7 @@ function setPointPartial!(
 
 end
 
-#TODO workaround for supporting bitstypes, need rewrite, can consider `PowerManifoldNestedReplacing` or similar
+#TODO workaround for supporting bitstypes, need rewrite, can consider `PowerManifoldNestedReplacing` or similar, maybe copyto!
 function setPointsMani!(dest::AbstractArray{T}, src::AbstractArray{U}, destIdx, srcIdx=destIdx) where {T<:AbstractArray,U<:AbstractArray}
   if isbitstype(T)
     dest[destIdx] = src[srcIdx]
