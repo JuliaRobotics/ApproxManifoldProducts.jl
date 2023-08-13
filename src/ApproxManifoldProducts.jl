@@ -69,11 +69,8 @@ include("API.jl")
 
 include("Deprecated.jl")
 
-function __init__()
-  @require Gadfly="c91e804a-d5a3-530f-b6f0-dfbca275c004" begin
-    @require Colors="5ae59095-9a9b-59fe-a467-6f913c188581" include("plotting/CircularPlotting.jl")
-  end
-end
+# weak dependencies
+include("../ext/WeakdepsPrototypes.jl")
 
 
 end

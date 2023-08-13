@@ -1,10 +1,5 @@
 # plotting functions of manifold beliefs
 
-using .Gadfly
-using .Colors
-
-export plotCircBeliefs, plotKDECircular
-
 
 # import ApproxManifoldProducts: plotCircBeliefs, plotKDECircular
 
@@ -98,7 +93,7 @@ function plotKDECircular( bd::BallTreeDensity;
 end
 
 
-plotMKD(mkd::ManifoldKernelDensity{M}) where M <: MB.AbstractManifold = plotKDE(mkd.belief)
+plotMKD(mkd::ManifoldKernelDensity{M}) where M <: AbstractManifold = plotKDE(mkd.belief)
 plotMKD(mkds::AbstractVector{<:ManifoldKernelDensity}) = plotKDE((x->x.belief).(mkds))
 
 
