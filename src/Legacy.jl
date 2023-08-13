@@ -60,7 +60,9 @@ Base.convert(::Type{<:Tuple}, ::Manifolds.Euclidean{Tuple{N}, ℝ} ) where N = t
 Base.convert(::Type{<:Tuple}, ::Manifolds.Circle{ℝ})  = error("#FIXME")#(:Circular,)
 Base.convert(::Type{<:Tuple}, ::Manifolds.RealCircleGroup)  = (:Circular,)
 
-Base.convert(::Type{<:Tuple}, ::Manifolds.SpecialOrthogonal{N}) where N = tuple([:Circular for _ in 1:N]...)
+# included separately downstream as needed
+# Base.convert(::Type{<:Tuple}, ::Manifolds.SpecialOrthogonal{2}) = (:Circular,)
+# Base.convert(::Type{<:Tuple}, ::Manifolds.SpecialOrthogonal{3}) = tuple([:Circular for _ in 1:3]...)
 
 Base.convert(::Type{<:Tuple}, ::Type{<: typeof(Euclid)}) = (:Euclid,)
 Base.convert(::Type{<:Tuple}, ::Type{<: typeof(Euclid2)}) = (:Euclid,:Euclid)
