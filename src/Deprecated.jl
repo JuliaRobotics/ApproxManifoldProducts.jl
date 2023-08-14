@@ -3,6 +3,12 @@
 ## Remove below before v0.8
 ## ======================================================================================================
 
+# function __init__()
+#   @require Gadfly="c91e804a-d5a3-530f-b6f0-dfbca275c004" begin
+#     @require Colors="5ae59095-9a9b-59fe-a467-6f913c188581" include("plotting/CircularPlotting.jl")
+#   end
+# end
+
 
 @deprecate R(th::Real) _Rot.RotMatrix2(th).mat # = [[cos(th);-sin(th)]';[sin(th);cos(th)]'];
 @deprecate R(;x::Real=0.0,y::Real=0.0,z::Real=0.0) (M=SpecialOrthogonal(3);exp(M,identity_element(M),hat(M,Identity(M),[x,y,z]))) # convert(SO3, so3([x,y,z]))
