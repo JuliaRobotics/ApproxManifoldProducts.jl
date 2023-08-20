@@ -77,39 +77,6 @@ manikde!( M::MB.AbstractManifold,
 ## a few utilities
 ## ==========================================================================================
 
-# TODO this should be a public method relating to getManifold
-function _getManifoldFullOrPart(mkd::ManifoldKernelDensity, aspartial::Bool=true)
-  if aspartial && isPartial(mkd)
-    getManifoldPartial(mkd.manifold, mkd._partial)
-  else
-    mkd.manifold
-  end
-end
-
-function Statistics.mean(mkd::ManifoldKernelDensity, aspartial::Bool=true)
-  M = _getManifoldFullOrPart(mkd, aspartial)
-  mean(M, getPoints(mkd, aspartial))
-end
-
-"""
-    $SIGNATURES
-
-Alias for overloaded `Statistics.mean`.
-"""
-calcMean(mkd::ManifoldKernelDensity, aspartial::Bool=true) = mean(mkd, aspartial)
-
-function Statistics.std(mkd::ManifoldKernelDensity, aspartial::Bool=true; kwargs...)
-  std(_getManifoldFullOrPart(mkd,aspartial), getPoints(mkd, aspartial); kwargs...)
-end
-function Statistics.var(mkd::ManifoldKernelDensity, aspartial::Bool=true; kwargs...)
-  var(_getManifoldFullOrPart(mkd,aspartial), getPoints(mkd, aspartial); kwargs...)
-end
-
-function Statistics.cov(mkd::ManifoldKernelDensity, aspartial::Bool=true; basis::Manifolds.AbstractBasis = Manifolds.DefaultOrthogonalBasis(), kwargs...)
-  return cov(_getManifoldFullOrPart(mkd,aspartial), getPoints(mkd, aspartial); basis, kwargs... )
-end
-
-
 
 _getFieldPartials(mkd::ManifoldKernelDensity{M,B,Nothing}, field::Function, aspartial::Bool=true) where {M,B} = field(mkd)
 
@@ -294,7 +261,20 @@ end
 # pts = getPoints(x)
 
 
+"""
+    $SIGNATURES
 
+If a marginal (statistics) of a probability reduce the dimensions (i.e. casts a shadow, or projects); then an 
+antimarginal aims to increase dimension of the probability within reason.
+
+Notes
+- Marginalization is a integration of for higher dimension to lower dimension, so antimarginal likely involve 
+  differentiation (anti-integral) instead.
+- In manifold language, this is an embedding into a higher dimensional space.
+- See structure from motion in machine vision, or stereo disparity for building depth clouds from 2D images.
+- Imagine combining three different partial embedding A=[1, nan, nan, 1.4], B=[nan,2.1,nan,4], C=[nan, nan, 3, nan]
+  which should equal A+B+C = [notnan, notnan, notnan, notnan]
+"""
 function antimarginal(newM::AbstractManifold,
                       u0,
                       mkd::ManifoldKernelDensity, 
@@ -303,9 +283,10 @@ function antimarginal(newM::AbstractManifold,
 
   # convert to antimarginal by copying user provided example point for bigger manifold
   pts = getPoints(mkd, false)
+  # new coord partials must be placed into a full dimension point, thats why we use u0
   nPts = Vector{typeof(u0)}(undef, length(pts))
-  for (i,pt) in enumerate(pts)
-    nPts[i] = setPointPartial!(newM, deepcopy(u0), mkd.manifold, pt, newpartial)
+  for i in eachindex(pts)
+    setPointPartial!(newM, nPts, mkd.manifold, pts, newpartial, i)
   end
 
   # also update metadata elements

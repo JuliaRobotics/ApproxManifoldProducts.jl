@@ -3,8 +3,25 @@
 ## Remove below before v0.8
 ## ======================================================================================================
 
+# function __init__()
+#   @require Gadfly="c91e804a-d5a3-530f-b6f0-dfbca275c004" begin
+#     @require Colors="5ae59095-9a9b-59fe-a467-6f913c188581" include("plotting/CircularPlotting.jl")
+#   end
+# end
 
 
+
+export calcCovarianceBasic
+# Returns the covariance (square), not deviation
+function calcCovarianceBasic(M::AbstractManifold, ptsArr::Vector{P}) where P
+  @warn "`calcCovarianceBasic` is deprecated. Replace with IIF.calcSTDBasicSpread from IIF or `cov` or `var` from Manifolds. See issue AMP#150."
+  μ = mean(M, ptsArr)
+  Xcs = vee.(Ref(M), Ref(μ), log.(Ref(M), Ref(μ), ptsArr))
+  Σ = mean(Xcs .* transpose.(Xcs))
+  msst = Σ
+  msst_ = 0 < sum(1e-10 .< msst) ? maximum(msst) : 1.0
+  return msst_
+end
 
 ## ======================================================================================================
 ## Remove below before v0.7
