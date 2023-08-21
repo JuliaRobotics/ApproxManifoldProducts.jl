@@ -66,7 +66,7 @@ Base.convert(::Type{<:Tuple}, ::Type{<: typeof(Euclid3)}) = (:Euclid,:Euclid,:Eu
 Base.convert(::Type{<:Tuple}, ::Type{<: typeof(Euclid4)}) = (:Euclid,:Euclid,:Euclid,:Euclid)
 Base.convert(::Type{<:Tuple}, ::Type{<: typeof(SE2_Manifold)}) = (:Euclid,:Euclid,:Circular)
 Base.convert(::Type{<:Tuple}, ::Type{<: typeof(SE3_Manifold)}) = (:Euclid,:Euclid,:Euclid,:Circular,:Circular,:Circular)
-Base.convert(::Type{<:Tuple}, ::Type{<: typeof{Manifolds.SpecialOrthogonal(2)}})  = (:Circular,)
+Base.convert(::Type{<:Tuple}, ::Type{<: typeof(Manifolds.SpecialOrthogonal(2))}) = (:Circular,)
 Base.convert(::Type{<:Tuple}, ::Type{<: typeof(Manifolds.SpecialOrthogonal(3))}) = (:Circular,:Circular,:Circular)
 
 Base.convert(::Type{<:Tuple}, ::typeof(Euclid)) = (:Euclid,)
