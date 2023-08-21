@@ -23,7 +23,7 @@ len = length(pts1)
 
 # define test manifold
 M = SpecialEuclidean(2)
-e0 = identity_element(M)
+e0 = ArrayPartition([0.0;0.0], [1 0; 0 1.0]) # identity_element(M)
 
 # p1 full SpecialEuclidean(2)
 p1 = manikde!(M, pts1)
