@@ -13,6 +13,7 @@ using BSON
 ##
 
 datafile = joinpath(@__DIR__, "testdata", "partialtest.bson")
+# BSON.save(datafile, dict)
 dict = BSON.load(datafile)
 pts1 = dict[:pts1]
 pts2 = dict[:pts2]
