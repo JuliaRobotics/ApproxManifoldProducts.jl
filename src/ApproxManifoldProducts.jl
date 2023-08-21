@@ -69,6 +69,9 @@ include("API.jl")
 
 include("Deprecated.jl")
 
+# experimental
+include("services/ManellicTree.jl")
+
 # weak dependencies
 include("../ext/WeakdepsPrototypes.jl")
 

@@ -7,7 +7,7 @@ struct HyperEllipse{P,D}
   """ manifold point at which this ellipse is based """
   point::P
   """ Covariance of coords at either TBD this point or some other reference point? """
-  coord_cov::SMatrix{D,D,Float64,D*D}
+  coord_cov::SMatrix{D,D,Float64,<:Integer}
 end
 
 # ManellicTree
