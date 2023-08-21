@@ -3,8 +3,6 @@
 using Manifolds
 using ApproxManifoldProducts
 using Test
-# using Random
-# using FileIO, JLD2
 using BSON
 
 ##
@@ -13,9 +11,10 @@ using BSON
 ##
 
 datafile = joinpath(@__DIR__, "testdata", "partialtest.bson")
-dict = BSON.load(datafile)
-pts1 = dict[:pts1]
-pts2 = dict[:pts2]
+# BSON.save(datafile, dict)
+data = BSON.load(datafile)
+pts1 = data[:dict][:pts1]
+pts2 = data[:dict][:pts2]
 
 randU = Float64[]
 randN = Float64[]
