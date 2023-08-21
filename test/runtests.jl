@@ -18,4 +18,7 @@ include("testSymmetry.jl")
 include("testUpdateMKD.jl")
 include("testMKDStats.jl")
 
+# new dev
+include("manellic/testManellicTree.jl")
+
 #

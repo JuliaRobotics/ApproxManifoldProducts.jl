@@ -51,7 +51,7 @@ Rotations = "1"
 StaticArrays = "0.15, 1"
 TensorCast = "0.2, 0.3, 0.4"
 TransformUtils = "0.2.10"
-julia = "1.4"
+julia = "1.7"
 
 [extensions]
 ApproxManiProdGadflyExt = "Gadfly"
