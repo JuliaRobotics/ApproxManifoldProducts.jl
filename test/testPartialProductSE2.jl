@@ -3,8 +3,6 @@
 using Manifolds
 using ApproxManifoldProducts
 using Test
-# using Random
-# using FileIO, JLD2
 using BSON
 
 ##
@@ -13,9 +11,10 @@ using BSON
 ##
 
 datafile = joinpath(@__DIR__, "testdata", "partialtest.bson")
-dict = BSON.load(datafile)
-pts1 = dict[:pts1]
-pts2 = dict[:pts2]
+# BSON.save(datafile, dict)
+data = BSON.load(datafile)
+pts1 = data[:dict][:pts1]
+pts2 = data[:dict][:pts2]
 
 randU = Float64[]
 randN = Float64[]
@@ -24,7 +23,7 @@ len = length(pts1)
 
 # define test manifold
 M = SpecialEuclidean(2)
-e0 = identity_element(M)
+e0 = ArrayPartition([0.0;0.0], [1 0; 0 1.0]) # identity_element(M)
 
 # p1 full SpecialEuclidean(2)
 p1 = manikde!(M, pts1)

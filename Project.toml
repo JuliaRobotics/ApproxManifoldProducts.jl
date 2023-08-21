@@ -1,7 +1,7 @@
 name = "ApproxManifoldProducts"
 uuid = "9bbbb610-88a1-53cd-9763-118ce10c1f89"
 keywords = ["MM-iSAMv2", "SLAM", "inference", "sum-product", "belief-propagation", "nonparametric", "manifolds", "functional"]
-version = "0.7.1"
+version = "0.8.0"
 
 [deps]
 Base64 = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
@@ -35,13 +35,8 @@ TransformUtils = "9b8138ad-1b09-5408-aa39-e87ed6d21b63"
 UUIDs = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
 Unicode = "4ec0a83e-493e-50e2-b9ac-8f72acf5a8f5"
 
-[weakdeps]
-Gadfly = "c91e804a-d5a3-530f-b6f0-dfbca275c004"
-
-[extensions]
-ApproxManiProdGadflyExt = "Gadfly"
-
 [compat]
+Colors = "0.12"
 CoordinateTransformations = "0.5, 0.6"
 DocStringExtensions = "0.7, 0.8, 0.9"
 KernelDensityEstimate = "0.5.10"
@@ -58,6 +53,9 @@ TensorCast = "0.2, 0.3, 0.4"
 TransformUtils = "0.2.10"
 julia = "1.7"
 
+[extensions]
+ApproxManiProdGadflyExt = "Gadfly"
+
 [extras]
 BSON = "fbb218c0-5317-5bc6-957e-2ee96dd4b1f0"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
@@ -66,3 +64,6 @@ Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
 test = ["BSON", "DataFrames", "Rotations", "Test"]
+
+[weakdeps]
+Gadfly = "c91e804a-d5a3-530f-b6f0-dfbca275c004"
