@@ -1,6 +1,6 @@
 
 
-struct ManifoldKernelDensity{M <: MB.AbstractManifold, B <: BallTreeDensity, L, P <: Union{<:AbstractVector, <:ArrayPartition}}
+struct ManifoldKernelDensity{M <: MB.AbstractManifold, B <: BallTreeDensity, L, P <: AbstractArray}
   manifold::M
   """ legacy expects matrix of coordinates (as columns) """
   belief::B
