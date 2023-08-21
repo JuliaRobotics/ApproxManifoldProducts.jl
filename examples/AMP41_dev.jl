@@ -52,7 +52,7 @@ idxs, dists = knn(balltree, coords(pts[2]), k)
 
 
 
-import ApproxManifoldProducts: HyperEllipse, ManellicTree, eigenCoords, testEigenCoords, splitPointsEigen
+import ApproxManifoldProducts: HyperEllipse, ManellicTree, eigenCoords, splitPointsEigen
 
 
 
