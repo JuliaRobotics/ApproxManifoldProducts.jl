@@ -25,6 +25,7 @@ using TensorCast
 using StaticArrays
 using Logging
 using Statistics
+using Distributions
 
 import Random: rand
 
