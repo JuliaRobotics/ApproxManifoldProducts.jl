@@ -18,15 +18,44 @@
 
 # Short for Manifold Ellipse Metric Tree
 # starting as a balanced tree, relax to unbalanced in future.
-struct ManellicTree{M,K,V<:AbstractVector,N}
+struct ManellicTree{M,H,D<:AbstractVector,N}
   manifold::M
-  data::V
+  data::D
   permute::MVector{N,Int}
-  leaf_kernels::MVector{N,K}
-  tree_kernels::MVector{N,K}
+  leaf_kernels::MVector{N,H}
+  tree_kernels::MVector{N,H}
   left_idx::MVector{N,Int}
   right_idx::MVector{N,Int}
 end
+
+
+function Base.show(io::IO, mt::ManellicTree{M,H,D,N}) where {M,H,D,N}
+  printstyled(io, "ManellicTree{"; bold=true,color = :blue)
+  println(io)
+  printstyled(io, "  M = ", M, color = :magenta)
+  println(io)
+  printstyled(io, "  H = ", H, color = :magenta)
+  println(io)
+  printstyled(io, "  D = ", D, color = :magenta)
+  println(io)
+  printstyled(io, "  N = ", N, color = :magenta)
+  println(io)
+  printstyled(io, "}", bold=true, color = :blue)
+  println(io, "(")
+  dlen = length(mt.data)
+  if 0 < dlen
+    println(io, "  .data[1:$dlen]:    ", mt.data[1], ", ...")
+    println(io, "  .permute[1:]:    ", mt.permute[1], ", ...")
+    println(io, "  ...")
+  end
+  println(io, ")")
+  # TODO ad dmore stats: max depth, widest point, longest chain, max clique size, average nr children
+
+  return nothing
+end
+
+Base.show(io::IO, ::MIME"text/plain", mt::ManellicTree) = show(io, mt)
+
 
 # covariance
 function eigenCoords(
@@ -61,6 +90,8 @@ function splitPointsEigen(
   kernel_bw = nothing,
 ) where {P <: AbstractArray}
   #
+  len = length(r_PP)
+  
   # do calculations around mean point on manifold, i.e. support Riemannian
   p = mean(M, r_PP)
   
@@ -69,13 +100,15 @@ function splitPointsEigen(
   
   D = manifold_dimension(M)
   # FIXME, consider user provided bandwidth in estimating multisample covariance
-  cv = if 1 < length(r_PP) 
-    SMatrix{D,D,Float64}(Manifolds.cov(M, r_PP))
+  cv = if 1 < len 
+    SMatrix{D,D,Float64}(diagm(diag(Manifolds.cov(M, r_PP))))
   else
     # TODO case with user defined bandwidth for faster tree construction
-    SMatrix{D,D,Float64}(diagm(ones(D)))
-    return r_CCp, BitVector((true,)), kernel(p, cv)
+    bw = isnothing(kernel_bw) ? SMatrix{D,D,Float64}(diagm(eps(Float64)*ones(D))) : kernel_bw
+    return r_CCp, BitVector(ntuple(i->true,Val(len))), kernel(p, bw)
   end
+    # S = SymmetricPositiveDefinite(2)
+    # @info "COV" cv LinearAlgebra.isposdef(cv) Manifolds.check_point(S,cv) len
 
   # expecting largest variation on coord dimension `pidx[end]`
   r_R_ax, Λ, pidx = eigenCoords(cv)
@@ -143,7 +176,7 @@ function buildTree_Manellic!(
   # according to current index permutation (i.e. sort data as you build the tree)
   ido = view(mtree.permute, idc)
   # split the slice of order-permuted data
-  ax_CCp, mask, knl = splitPointsEigen(M, view(mtree.data, ido); kernel)
+  ax_CCp, mask, knl = splitPointsEigen(M, view(mtree.data, ido); kernel, kernel_bw)
 
   # set HyperEllipse at this level in tree
   # FIXME, replace with just the kernel choice, not hyper such and such needed?
@@ -165,9 +198,9 @@ function buildTree_Manellic!(
 
   if leaf_size < npts
     # recursively call two branches of tree, left
-    buildTree_Manellic!(mtree, _getleft(index), low, mid_idx-1; kernel, leaf_size)
+    buildTree_Manellic!(mtree, _getleft(index), low, mid_idx-1; kernel, kernel_bw, leaf_size)
     # and right subtree
-    buildTree_Manellic!(mtree, _getright(index), mid_idx, high; kernel, leaf_size)
+    buildTree_Manellic!(mtree, _getright(index), mid_idx, high; kernel, kernel_bw, leaf_size)
   end
 
   return mtree
@@ -179,23 +212,24 @@ function buildTree_Manellic!(
   M::AbstractManifold,
   r_PP::AbstractVector{P}; # vector of points referenced to the r_frame
   kernel = MvNormal,
-  bw = nothing # TODO
+  kernel_bw = nothing # TODO
 ) where {P <: AbstractArray}
   #
   len = length(r_PP)
   D = manifold_dimension(M)
+  CV = SMatrix{D,D,Float64,D*D}(diagm(ones(D))) 
   tknlT = kernel(
     r_PP[1],
-    SMatrix{D,D,Float64,D*D}(diagm(ones(D)))
+    CV
   ) |> typeof
   lknlT = kernel(
     r_PP[1],
-    if isnothing(bw)
-      SMatrix{D,D,Float64,D*D}(diagm(ones(D)))
+    if isnothing(kernel_bw)
+      CV
     else
-      bw
+      kernel_bw
     end
-  )
+  ) |> typeof
 
   #
   mtree = ManellicTree(
@@ -214,6 +248,7 @@ function buildTree_Manellic!(
     1, # start at root
     1, # spanning all data
     len; # to end of data
-    kernel
+    kernel,
+    kernel_bw
   )
 end
