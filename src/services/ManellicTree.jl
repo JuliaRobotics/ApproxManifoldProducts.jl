@@ -42,13 +42,19 @@ function Base.show(io::IO, mt::ManellicTree{M,H,D,N}) where {M,H,D,N}
   println(io)
   printstyled(io, "}", bold=true, color = :blue)
   println(io, "(")
-  dlen = length(mt.data)
-  if 0 < dlen
-    println(io, "  .data[1:$dlen]:    ", mt.data[1], ", ...")
-    println(io, "  .permute[1:]:    ", mt.permute[1], ", ...")
-    println(io, "  ...")
+  @assert N == length(mt.data) "show(::ManellicTree,) noticed a data size issue, expecting N$(N) == length(.data)$(length(mt.data))"
+  if 0 < N
+    println(io, "  .data[1:]:     ", mt.data[1], ", ...")
+    println(io, "  .permute[1:]:  ", mt.permute[1], ", ...")
+    printstyled(io, "  .tkernels[1]:  ", " __see below__"; color=:light_black)
+    println(io)
+    println(io, "  ...,")
   end
   println(io, ")")
+  if 0 < N
+    printstyled(io, "  .tkernels[1] = "; color=:light_black)
+    println(io, mt.tree_kernels[1])
+  end
   # TODO ad dmore stats: max depth, widest point, longest chain, max clique size, average nr children
 
   return nothing
@@ -100,7 +106,9 @@ function splitPointsEigen(
   
   D = manifold_dimension(M)
   # FIXME, consider user provided bandwidth in estimating multisample covariance
-  cv = if 1 < len 
+  cv = if 5 < len 
+    SMatrix{D,D,Float64}(Manifolds.cov(M, r_PP))
+  elseif 1 < len < 5
     SMatrix{D,D,Float64}(diagm(diag(Manifolds.cov(M, r_PP))))
   else
     # TODO case with user defined bandwidth for faster tree construction
