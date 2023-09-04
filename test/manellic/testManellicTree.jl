@@ -38,10 +38,13 @@ end
 ##
 
 M = TranslationGroup(2)
-r_CC, R, pidx, r_CV = testEigenCoords(pi/3);
+α = pi/3
+r_CC, R, pidx, r_CV = testEigenCoords(α);
 ax_CCp, mask, knl = splitPointsEigen(M, r_CC)
 @test sum(mask) == (length(r_CC) ÷ 2)
 @test knl isa MvNormal
+Mr = SpecialOrthogonal(2)
+@test isapprox( α, vee(Mr, Identity(Mr), log_lie(Mr, R))[1] ; atol=0.1)
 
 # using GLMakie
 # fig = Figure()

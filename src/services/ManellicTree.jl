@@ -18,27 +18,29 @@
 
 # Short for Manifold Ellipse Metric Tree
 # starting as a balanced tree, relax to unbalanced in future.
-struct ManellicTree{M,H,D<:AbstractVector,N}
+struct ManellicTree{M,D<:AbstractVector,N,HL,HT}
   manifold::M
   data::D
   permute::MVector{N,Int}
-  leaf_kernels::MVector{N,H}
-  tree_kernels::MVector{N,H}
+  leaf_kernels::MVector{N,HL}
+  tree_kernels::MVector{N,HT}
   left_idx::MVector{N,Int}
   right_idx::MVector{N,Int}
 end
 
 
-function Base.show(io::IO, mt::ManellicTree{M,H,D,N}) where {M,H,D,N}
+function Base.show(io::IO, mt::ManellicTree{M,D,N,HL,HT}) where {M,D,N,HL,HT}
   printstyled(io, "ManellicTree{"; bold=true,color = :blue)
   println(io)
-  printstyled(io, "  M = ", M, color = :magenta)
+  printstyled(io, "  M  = ", M, color = :magenta)
   println(io)
-  printstyled(io, "  H = ", H, color = :magenta)
+  printstyled(io, "  D  = ", D, color = :magenta)
   println(io)
-  printstyled(io, "  D = ", D, color = :magenta)
+  printstyled(io, "  N  = ", N, color = :magenta)
   println(io)
-  printstyled(io, "  N = ", N, color = :magenta)
+  printstyled(io, "  HL = ", HL, color = :magenta)
+  println(io)
+  printstyled(io, "  HT = ", HT, color = :magenta)
   println(io)
   printstyled(io, "}", bold=true, color = :blue)
   println(io, "(")
