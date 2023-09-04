@@ -3,6 +3,7 @@
 using Test
 using ApproxManifoldProducts
 using StaticArrays
+using TensorCast
 using Manifolds
 using Distributions
 import ApproxManifoldProducts: ManellicTree, eigenCoords, splitPointsEigen
@@ -78,18 +79,18 @@ mtree = ApproxManifoldProducts.buildTree_Manellic!(M, r_PP)
 
 @cast pts[i,d] := r_PP[i][d]
 
-ptsl = pts[perm[1:50],:]
-ptsr = pts[perm[51:100],:]
+ptsl = pts[mtree.permute[1:50],:]
+ptsr = pts[mtree.permute[51:100],:]
 
 ##
 
-fig = Figure()
-ax = Axis(fig[1,1])
+# fig = Figure()
+# ax = Axis(fig[1,1])
 
-plot!(ax, ptsl[:,1], ptsl[:,2], color=:blue)
-plot!(ax, ptsr[:,1], ptsr[:,2], color=:red)
+# plot!(ax, ptsl[:,1], ptsl[:,2], color=:blue)
+# plot!(ax, ptsr[:,1], ptsr[:,2], color=:red)
 
-fig
+# fig
 
 ##
 end
