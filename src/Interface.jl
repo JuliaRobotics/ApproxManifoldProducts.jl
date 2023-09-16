@@ -183,19 +183,21 @@ function Base.replace( dest::ManifoldKernelDensity{M,<:BallTreeDensity,Nothing},
                       ) where {M<:AbstractManifold}
   #
   pl = src._partial
-  oldPts = getPoints(dest.belief)
+  # FIXME what about 
+  destPts = getPoints(dest.belief)
   # get source partial points only 
   newPts = getPoints(src.belief)
-  @assert size(newPts,2) == size(oldPts,2) "this replace currently requires the number of points to be the same, dest=$(size(oldPts,2)), src=$(size(newPts,2))"
-  for i in 1:size(oldPts, 2)
-    oldPts[pl,i] .= newPts[pl,i]
+  @assert size(destPts,2) <= size(newPts,2) "MKD replace currently requires the number of points to be the same, dest=$(size(destPts,2)), src=$(size(newPts,2))"
+  # TODO use eachindex or axes instead of 1:size
+  for i in 1:size(destPts, 2)
+    destPts[pl,i] .= newPts[pl,i]
   end
   # and new bandwidth
   oldBw = getBW(dest.belief)[:,1]
   oldBw[pl] .= getBW(src.belief)[pl,1]
 
   # finaly update the belief with a new container
-  newBel = kde!(oldPts, oldBw)
+  newBel = kde!(destPts, oldBw)
 
   # also set the metadata values
   ipc = deepcopy(dest.infoPerCoord)
@@ -218,19 +220,19 @@ function Base.replace(dest::ManifoldKernelDensity{M,<:BallTreeDensity,<:Abstract
                       ) where {M<:AbstractManifold}
   #
   pl = src._partial
-  oldPts = getPoints(dest.belief)
+  destPts = getPoints(dest.belief)
   # get source partial points only 
   newPts = getPoints(src.belief)
-  @assert size(newPts,2) == size(oldPts,2) "this replace currently requires the number of points to be the same, dest=$(size(oldPts,2)), src=$(size(newPts,2))"
-  for i in 1:size(oldPts, 2)
-    oldPts[pl,i] .= newPts[pl,i]
+  @assert size(newPts,2) == size(destPts,2) "this replace currently requires the number of points to be the same, dest=$(size(destPts,2)), src=$(size(newPts,2))"
+  for i in 1:size(destPts, 2)
+    destPts[pl,i] .= newPts[pl,i]
   end
   # and new bandwidth
   oldBw = getBW(dest.belief)[:,1]
   oldBw[pl] .= getBW(src.belief)[pl,1]
 
   # finaly update the belief with a new container
-  newBel = kde!(oldPts, oldBw)
+  newBel = kde!(destPts, oldBw)
 
   # also set the metadata values
   ipc = deepcopy(dest.infoPerCoord)
