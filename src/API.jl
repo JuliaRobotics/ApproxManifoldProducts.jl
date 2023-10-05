@@ -112,18 +112,19 @@ function manifoldProduct( ff::AbstractVector{<:ManifoldKernelDensity},
   ## TODO check both _ff and inplace use a matrix of coordinates (columns)
   # expects Matrix with columns as samples and rows are coordinate dimensions
   pGM, = prodAppxMSGibbsS(inplace, _ff,
-                          nothing, nothing, Niter=Niter,
-                          partialDimMask=partialDimMask,
+                          nothing, nothing; 
+                          Niter,
+                          partialDimMask,
                           addop=addopT,
                           diffop=diffopT,
                           getMu=getManiMu,
-                          glbs=glbs,
-                          addEntropy=addEntropy,
-                          ndims=ndims,
-                          Ndens=Ndens,
-                          Np=Np,
-                          maxNp=maxNp,
-                          Nlevels=Nlevels,
+                          glbs,
+                          addEntropy,
+                          ndims,
+                          Ndens,
+                          Np,
+                          maxNp,
+                          Nlevels,
                           randU=_randU,
                           randN=_randN  );
   #
