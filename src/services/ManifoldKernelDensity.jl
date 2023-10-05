@@ -187,7 +187,12 @@ Random.rand(mkd::ManifoldKernelDensity, N::Integer=1) = sample(mkd, N)[1]
 
 
 function resample(x::ManifoldKernelDensity, N::Int)
-  pts, = sample(x, N)
+  pts = if N < Npts(x)
+    shuffle(getPoints(x))[1:N]
+  else
+    _pts, = sample(x, N)
+    _pts
+  end
   ManifoldKernelDensity(x.manifold, pts, x._u0, partial=x._partial, infoPerCoord=x.infoPerCoord)
 end
 
@@ -296,7 +301,7 @@ function antimarginal(newM::AbstractManifold,
   ipc = zeros(manifold_dimension(newM))
   ipc[finalpartial] .= getInfoPerCoord(mkd, true)
   
-  manikde!(newM, nPts, u0, bw=bw, partial=finalpartial, infoPerCoord=ipc)
+  manikde!(newM, nPts, u0; bw, partial=finalpartial, infoPerCoord=ipc)
 end
 
 
