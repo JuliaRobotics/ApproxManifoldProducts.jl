@@ -4,18 +4,28 @@
 ## ==========================================================================================
 
 
-ManifoldKernelDensity(mani::M, 
-                      bel::B, 
-                      ::Nothing=nothing, 
-                      u0::P=zeros(manifold_dimension(mani));
-                      infoPerCoord::AbstractVector{<:Real}=ones(getNumberCoords(mani, u0)) ) where {M <: MB.AbstractManifold, B <: BallTreeDensity, P} = ManifoldKernelDensity{M,B,Nothing,P}(mani,bel,nothing,u0,infoPerCoord)
+ManifoldKernelDensity(
+  mani::M, 
+  bel::B, 
+  ::Nothing=nothing, 
+  u0::P=zeros(manifold_dimension(mani));
+  infoPerCoord::AbstractVector{<:Real}=ones(getNumberCoords(mani, u0)) 
+) where {M <: MB.AbstractManifold, B <: BallTreeDensity, P} = ManifoldKernelDensity{M,B,Nothing,P}(
+  mani,
+  bel,
+  nothing,
+  u0,
+  infoPerCoord
+)
 #
 
-function ManifoldKernelDensity( mani::M, 
-                                bel::B, 
-                                partial::L, 
-                                u0::P=zeros(manifold_dimension(mani));
-                                infoPerCoord::AbstractVector{<:Real}=ones(getNumberCoords(mani, u0)) ) where {M <: MB.AbstractManifold, B <: BallTreeDensity, L<:AbstractVector{<:Integer}, P}
+function ManifoldKernelDensity( 
+  mani::M, 
+  bel::B, 
+  partial::L, 
+  u0::P=zeros(manifold_dimension(mani));
+  infoPerCoord::AbstractVector{<:Real}=ones(getNumberCoords(mani, u0)) 
+) where {M <: MB.AbstractManifold, B <: BallTreeDensity, L<:AbstractVector{<:Integer}, P}
   #
   if length(partial) != manifold_dimension(mani)
     # call the constructor direct
@@ -26,26 +36,35 @@ function ManifoldKernelDensity( mani::M,
   end
 end
 
-ManifoldKernelDensity(mani::M, 
-                      bel::B, 
-                      pl_mask::Union{<:BitVector,<:AbstractVector{<:Bool}}, 
-                      u0::P=zeros(manifold_dimension(mani));
-                      infoPerCoord::AbstractVector{<:Real}=ones(getNumberCoords(mani, u0)) ) where {M <: MB.AbstractManifold, B <: BallTreeDensity, P} = ManifoldKernelDensity(mani,bel,(1:manifold_dimension(mani))[pl_mask],u0;infoPerCoord=infoPerCoord)
+ManifoldKernelDensity(
+  mani::M, 
+  bel::B, 
+  pl_mask::Union{<:BitVector,<:AbstractVector{<:Bool}}, 
+  u0::P=zeros(manifold_dimension(mani));
+  infoPerCoord::AbstractVector{<:Real}=ones(getNumberCoords(mani, u0))
+) where {M <: MB.AbstractManifold, B <: BallTreeDensity, P} = ManifoldKernelDensity(
+  mani,
+  bel,
+  (1:manifold_dimension(mani))[pl_mask],
+  u0;
+  infoPerCoord
+)
 
 
-function ManifoldKernelDensity( M::MB.AbstractManifold,
-                                vecP::AbstractVector{P},
-                                u0=vecP[1],
-                                ϵ = identity_element(M, vecP[1]);
-                                partial::L=nothing,
-                                infoPerCoord::AbstractVector{<:Real}=ones(getNumberCoords(M, u0)),
-                                dims::Int=manifold_dimension(M),
-                                bw::Union{<:AbstractVector{<:Real},Nothing}=nothing  ) where {P,L}
+function ManifoldKernelDensity( 
+  M::MB.AbstractManifold,
+  vecP::AbstractVector{P},
+  u0 = vecP[1],
+  ϵ = identity_element(M, u0); # vecP[1]
+  partial::L=nothing,
+  infoPerCoord::AbstractVector{<:Real}=ones(getNumberCoords(M, u0)),
+  dims::Int=manifold_dimension(M),
+  bw::Union{<:AbstractVector{<:Real},Nothing}=nothing  
+) where {P,L}
   #
   # FIXME obsolete
   arr = Matrix{Float64}(undef, dims, length(vecP))
   
-
   for j in 1:length(vecP)
     arr[:,j] = vee(M, ϵ, log(M, ϵ, vecP[j]))
   end
@@ -66,10 +85,18 @@ end
 
 
 # MAYBE deprecate name
-manikde!( M::MB.AbstractManifold,
-          vecP::AbstractVector{P},
-          u0::P=vecP[1];
-          kw... ) where P = ManifoldKernelDensity(M, vecP, u0; kw...) 
+manikde!( 
+  M::MB.AbstractManifold,
+  vecP::AbstractVector{P},
+  u0::P=vecP[1];
+  kw... 
+) where P = ManifoldKernelDensity(
+  M, 
+  vecP, 
+  u0; 
+  kw...
+)
+
 #
 
 
@@ -187,7 +214,13 @@ Random.rand(mkd::ManifoldKernelDensity, N::Integer=1) = sample(mkd, N)[1]
 
 
 function resample(x::ManifoldKernelDensity, N::Int)
-  pts, = sample(x, N)
+  pts = if N < Npts(x)
+    # get points with non-partial coord dims so that new MKD can be built
+    shuffle(getPoints(x, false))[1:N]
+  else
+    _pts, = sample(x, N)
+    _pts
+  end
   ManifoldKernelDensity(x.manifold, pts, x._u0, partial=x._partial, infoPerCoord=x.infoPerCoord)
 end
 
@@ -296,7 +329,7 @@ function antimarginal(newM::AbstractManifold,
   ipc = zeros(manifold_dimension(newM))
   ipc[finalpartial] .= getInfoPerCoord(mkd, true)
   
-  manikde!(newM, nPts, u0, bw=bw, partial=finalpartial, infoPerCoord=ipc)
+  manikde!(newM, nPts, u0; bw, partial=finalpartial, infoPerCoord=ipc)
 end
 
 
