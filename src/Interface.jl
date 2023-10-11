@@ -141,6 +141,14 @@ function setPointsMani!(dest::AbstractArray{T}, src::AbstractArray{U}, destIdx, 
   end
 end
 
+function setPointsMani!(dest::AbstractArray{T}, src::AbstractArray{U}, destIdx) where {T <: AbstractArray, U <: Real}
+  if isbitstype(T)
+    dest[destIdx] = src
+  else
+    setPointsMani!(dest[destIdx], src)
+  end
+end
+
 
 #TODO  ArrayPartition should work for now as it's an AbstractVector, but it won't remain mutable
 setPointsMani!(dest::AbstractVector, src::AbstractVector) = (dest .= src)
