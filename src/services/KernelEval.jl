@@ -53,5 +53,5 @@ end
 
 Normal kernel used for Hilbert space embeddings.
 """
-ker(M::AbstractManifold, p, q, sigma::Real=0.001) = exp( -sigma*(distance(M, p, q)) )
+ker(M::AbstractManifold, p, q, sigma::Real=0.001) = exp( -sigma*(distance(M, p, q)^2) )
 
