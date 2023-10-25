@@ -21,6 +21,7 @@
 struct ManellicTree{M,D<:AbstractVector,N,HL,HT}
   manifold::M
   data::D
+  weights::MVector{N,<:Real}
   permute::MVector{N,Int}
   leaf_kernels::MVector{N,HL}
   tree_kernels::MVector{N,HT}
@@ -46,8 +47,9 @@ function Base.show(io::IO, mt::ManellicTree{M,D,N,HL,HT}) where {M,D,N,HL,HT}
   println(io, "(")
   @assert N == length(mt.data) "show(::ManellicTree,) noticed a data size issue, expecting N$(N) == length(.data)$(length(mt.data))"
   if 0 < N
-    println(io, "  .data[1:]:     ", mt.data[1], ", ...")
-    println(io, "  .permute[1:]:  ", mt.permute[1], ", ...")
+    println(io, "  .data[1:]:     ", mt.data[1], " ... ",    mt.data[end])
+    println(io, "  .weights[1:]:  ", mt.weights[1], " ... ", mt.weights[end])
+    println(io, "  .permute[1:]:  ", mt.permute[1], " ... ", mt.permute[end])
     printstyled(io, "  .tkernels[1]:  ", " __see below__"; color=:light_black)
     println(io)
     println(io, "  ...,")
@@ -221,11 +223,12 @@ end
 function buildTree_Manellic!(
   M::AbstractManifold,
   r_PP::AbstractVector{P}; # vector of points referenced to the r_frame
+  len = length(r_PP),
+  weights::AbstractVector{<:Real} = ones(len).*(1/len),
   kernel = MvNormal,
-  kernel_bw = nothing # TODO
+  kernel_bw = nothing, # TODO
 ) where {P <: AbstractArray}
   #
-  len = length(r_PP)
   D = manifold_dimension(M)
   CV = SMatrix{D,D,Float64,D*D}(diagm(ones(D))) 
   tknlT = kernel(
@@ -241,10 +244,13 @@ function buildTree_Manellic!(
     end
   ) |> typeof
 
+  # kernel scale
+
   #
   mtree = ManellicTree(
     M,
     r_PP,
+    MVector{len,Float64}(weights),
     MVector{len,Int}(1:len),
     MVector{len,lknlT}(undef),
     MVector{len,tknlT}(undef),
@@ -261,4 +267,19 @@ function buildTree_Manellic!(
     kernel,
     kernel_bw
   )
+end
+
+# TODO use geometric computing for faster evaluation
+function evaluate(
+  mt::ManellicTree{M,D,N},
+  p,
+) where {M,D,N}
+
+  sumval = 0.0
+  for i in 1:N
+    sumval += mt.weights[i] * ker(mt.manifold, mt.leaf_kernels[i], p, 0.5)
+  end
+  
+  
+  
 end

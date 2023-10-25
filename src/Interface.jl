@@ -167,11 +167,7 @@ function setPointsMani!(dest::AbstractVector, src::AbstractVector{<:AbstractVect
   setPointsMani!(dest, src[1])
 end
 
-function setPointsMani!(dest::ProductRepr, src::ProductRepr)
-  for (k,prt) in enumerate(dest.parts)
-    setPointsMani!(prt, src.parts[k])
-  end
-end
+
 
 
 

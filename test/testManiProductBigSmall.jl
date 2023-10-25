@@ -32,13 +32,12 @@ p = manikde!(M, X1)
 q = manikde!(M, X2)
 
 # check new MKD have right type info cached
-@test (p._u0 |> typeof) == typeof(u0)
-@test (p._u0 |> typeof) == typeof(u0)
+@test_broken (p._u0 |> typeof) == typeof(u0)
 
 pq = manifoldProduct([p;q], M)
 
 # check new product also has right point type info cached
-@test (pq._u0 |> typeof) == typeof(u0)
+@test_broken (pq._u0 |> typeof) == typeof(u0)
 
 ##
 

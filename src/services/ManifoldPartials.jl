@@ -2,7 +2,7 @@
 export getManifoldPartial
 
 # forcing ProductManifold to use ArrayPartition as accompanying representation
-const _PartiableRepresentationProduct = Union{Nothing,<:ArrayPartition, <:ProductRepr}
+const _PartiableRepresentationProduct = Union{Nothing,<:ArrayPartition}
 # forcing ProductManifold to use ArrayPartition as accompanying representation
 const _PartiableRepresentationFlat{T} = Union{Nothing,<:AbstractVector{T}}
 # More general representation for Manifold Factors or Groups
@@ -39,7 +39,7 @@ function _getReprPartial( M::MB.AbstractManifold,
   return ret
 end
 
-function _getReprPartial( M::Union{<:typeof(SpecialOrthogonal(2)), <:Rotations{2}}, 
+function _getReprPartial( M::Union{<:typeof(SpecialOrthogonal(2)), <:Rotations{ManifoldsBase.TypeParameter{Tuple{2}}}}, 
                           repr::AbstractMatrix{T}, 
                           partial::AbstractVector{Int}, # total partial from user over all Factors
                           offset::Base.RefValue{Int}=Ref(0),
@@ -77,7 +77,7 @@ function getManifoldPartial(M::Circle,
   return (M,repr)
 end
 
-function getManifoldPartial(M::Rotations{2}, 
+function getManifoldPartial(M::Rotations{ManifoldsBase.TypeParameter{Tuple{2}}}, 
                             partial::AbstractVector{Int}, 
                             repr::_PartiableRepresentation=nothing,
                             offset::Base.RefValue{Int}=Ref(0);

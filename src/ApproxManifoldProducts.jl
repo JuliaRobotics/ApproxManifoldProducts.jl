@@ -56,6 +56,7 @@ include("services/ManifoldPartials.jl")
 include("Interface.jl")
 
 # regular features
+include("services/KernelEval.jl")
 include("CommonUtils.jl")
 include("services/ManifoldKernelDensity.jl")
 include("services/Euclidean.jl")
