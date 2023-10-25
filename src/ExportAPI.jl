@@ -29,3 +29,5 @@ export calcMean
 export mean, cov, std, var
 export getInfoPerCoord, getBandwidth
 export antimarginal
+
+export mmd!, mmd

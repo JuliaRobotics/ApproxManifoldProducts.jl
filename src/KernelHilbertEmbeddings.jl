@@ -1,17 +1,6 @@
 
 # see: A Gretton, e.g. http://www.gatsby.ucl.ac.uk/~gretton/coursefiles/lecture4_introToRKHS.pdf
 
-export
-  mmd!,  # KED
-  mmd
-
-"""
-    $SIGNATURES
-
-Normal kernel used for Hilbert space embeddings.
-"""
-ker(M::MB.AbstractManifold, p, q, sigma::Real=0.001) = @fastmath exp( -sigma*(distance(M, p, q)^2) )
-
 # overwrite non-symmetric with alternate implementations 
 # ker(M::MB.AbstractManifold, p, q, sigma::Real=0.001) = exp( -sigma*(distance(M, p, q)^2) )
 
