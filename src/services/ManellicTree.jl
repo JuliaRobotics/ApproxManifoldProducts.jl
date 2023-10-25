@@ -250,7 +250,7 @@ function buildTree_Manellic!(
   mtree = ManellicTree(
     M,
     r_PP,
-    MVector{len,Int}(weights),
+    MVector{len,Float64}(weights),
     MVector{len,Int}(1:len),
     MVector{len,lknlT}(undef),
     MVector{len,tknlT}(undef),
