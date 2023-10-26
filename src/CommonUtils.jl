@@ -2,10 +2,11 @@
 
 
 function resid2DLinear(μ, mus, Lambdas; diffop::Function=-)  # '-' exploits EuclideanManifold commutativity a-b = b-a
-  dμ = broadcast(diffop, μ, mus)  # mus .- μ  ## μ .\ mus
+  # dμ = broadcast(diffop, μ, mus)  # mus .- μ  ## μ .\ mus
   # @show round.(dμ, digits=4)
-  ret = sum( Lambdas.*dμ )
-  return ret
+  # ret = sum( Lambdas.*dμ )
+  r = map((mu, lam) -> diffop(μ[], mu) * lam, mus, Lambdas)
+  return sum(r)
 end
 
 function solveresid2DLinear!(res, x, mus, Lambdas; diffop::Function=-)::Nothing
@@ -71,7 +72,7 @@ function _getManifoldFullOrPart(mkd::ManifoldKernelDensity, aspartial::Bool=true
 end
 
 function Statistics.mean(mkd::ManifoldKernelDensity, aspartial::Bool=true; kwargs...)
-  return mean(_getManifoldFullOrPart(mkd,aspartial), getPoints(mkd, aspartial); kwargs...)
+  return mean(_getManifoldFullOrPart(mkd,aspartial), getPoints(mkd, aspartial), GeodesicInterpolation(); kwargs...)
 end
 """
     $SIGNATURES
