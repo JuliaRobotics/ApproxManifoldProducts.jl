@@ -270,6 +270,11 @@ function buildTree_Manellic!(
 end
 
 # TODO use geometric computing for faster evaluation
+# DevNotes:
+#  - Computational Geometry
+#  - Dual tree evaluations
+#  - Fast kernels
+#  - Parallel transport shortcuts?
 function evaluate(
   mt::ManellicTree{M,D,N},
   p,
@@ -281,5 +286,20 @@ function evaluate(
   end
   
   
-  
 end
+
+
+# ## Pseudo code
+
+# X1 = fg[:x1] # Position{2}
+
+# # prob density
+# x1 = X1([12.3;0.7])
+# x1 = X1([-8.8;0.7])
+
+# X1_a = approxConvBelief(dfg, f1, :x1)
+# X1_b = approxConvBelief(dfg, f2, :x1)
+
+# _X1_ = X1_a*X1_b
+
+#
