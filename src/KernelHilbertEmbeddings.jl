@@ -11,7 +11,8 @@ function gramLoops(MF::AbstractManifold, a::AbstractVector, b::AbstractVector, b
     # a_ = a[i]
     val_ = view(val, i)
     @inbounds for j in eachindex(b)
-      val_ .+= ker(MF, a[i], b[j], bw)
+      ret = ker(MF, a[i], b[j], bw)
+      val_ .+= ret 
     end
 
     return nothing

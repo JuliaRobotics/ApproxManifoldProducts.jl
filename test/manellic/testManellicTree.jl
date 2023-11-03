@@ -72,7 +72,7 @@ A__[1] = -100
 ##
 
 r_PP = r_CC # shortcut because we are in Euclidean space
-mtree = ApproxManifoldProducts.buildTree_Manellic!(M, r_PP)
+mtree = ApproxManifoldProducts.buildTree_Manellic!(M, r_PP; kernel=AMP.MvNormalKernel)
 
 
 ##
@@ -93,5 +93,22 @@ ptsr = pts[mtree.permute[51:100],:]
 # fig
 
 ##
+
+AMP.evaluate(mtree, SA[0.0;1.0])
+
+
+##
 end
 
+
+@test "ManellicTree construction 1D" begin
+##
+
+M = TranslationGroup(1)
+pts = [randn(1) for _ in 1:100]
+mtree = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel=AMP.MvNormalKernel)
+
+
+
+##
+end

@@ -8,12 +8,15 @@
 using Test
 using ApproxManifoldProducts
 using DataFrames
+using Manifolds
+using StaticArrays
 
 const AMP = ApproxManifoldProducts
 
 
-
+##
 @testset "Test mmd distance between Euclidean beliefs" begin
+##
 
 # when not plottin
 offsets = 1:1 # -30:0.25:30
@@ -26,10 +29,10 @@ df = DataFrame(offsets=[], mmd=[])
 
 for i in 1:length(offsets), j in mc
 
-P = [[randn();]  for k in 1:100]
-Q = [[randn()+offsets[i];]  for k in 1:100]
+P = [SA[randn();]  for k in 1:1000]
+Q = [SA[randn()+offsets[i];]  for k in 1:1000]
 
-res = zeros(1)
+res = MVector(0.0)
 
 AMP.mmd!(TranslationGroup(1), res, P, Q, bw=[0.001])
 
@@ -46,7 +49,7 @@ end
 
 # (manikde!(P, (:Euclid,)) |> getBW)[1,1]
 
-
+##
 end
 
 
