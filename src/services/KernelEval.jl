@@ -78,5 +78,5 @@ $SIGNATURES
 
 Normal kernel used for Hilbert space embeddings.
 """
-ker(M::AbstractManifold, p, q, sigma::Real=-0.001, distFnc=(_M,_p,_q)->distance(_M,_p,_q)^2) = exp( sigma*distFnc(M, p, q) ) # _distance(M,p,q) # 
+ker(M::AbstractManifold, p, q, sigma::Real=0.001, distFnc=(_M,_p,_q)->distance(_M,_p,_q)^2) = exp( -sigma*distFnc(M, p, q) ) # _distance(M,p,q) # 
 

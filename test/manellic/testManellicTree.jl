@@ -103,7 +103,7 @@ AMP.evaluate(mtree, SA[10.0;-101.0])
 end
 
 
-@test "ManellicTree construction 1D" begin
+@testset "ManellicTree construction 1D" begin
 ##
 
 M = TranslationGroup(1)
