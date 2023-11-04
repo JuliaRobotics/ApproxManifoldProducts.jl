@@ -23,8 +23,8 @@ struct ManellicTree{M,D<:AbstractVector,N,HL,HT}
   weights::MVector{N,<:Real}
   permute::MVector{N,Int}
   # kernels::ArrayPartition{<:Number,KT}
-  leaf_kernels::MVector{N,HL}
-  tree_kernels::MVector{N,HT}
+  leaf_kernels::SizedVector{N,HL}
+  tree_kernels::SizedVector{N,HT}
   left_idx::MVector{N,Int}
   right_idx::MVector{N,Int}
 end

@@ -238,9 +238,9 @@ function buildTree_Manellic!(
   # kernel scale
 
   # leaf kernels
-  lkern = MVector{len,lknlT}(undef)
+  lkern = SizedVector{len,lknlT}(undef)
   for i in 1:len
-    lkern = kernel(r_PP[i], lCV)
+    lkern[i] = kernel(r_PP[i], lCV)
   end
   
   
@@ -250,7 +250,7 @@ function buildTree_Manellic!(
     MVector{len,Float64}(weights),
     MVector{len,Int}(1:len),
     lkern, # MVector{len,lknlT}(undef),
-    MVector{len,tknlT}(undef),
+    SizedVector{len,tknlT}(undef),
     # SizedVector{len,tknlT}(undef),
     MVector{len,Int}(undef),
     MVector{len,Int}(undef)
