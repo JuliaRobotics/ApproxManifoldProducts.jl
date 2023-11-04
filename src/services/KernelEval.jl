@@ -39,8 +39,9 @@ function distanceMalahanobisCoordinates(
   p = mean(K)
   i_p = inv(M,p)
   pq = Manifolds.compose(M, i_p, q)
-  X = log(M, p, pq)
-  Xc = get_coordinates(M, p, X, basis)
+  ϵ = identity_element(M,q)
+  X = log(M, ϵ, pq)
+  Xc = get_coordinates(M, ϵ, X, basis)
   return K.sqrt_iΣ*Xc
 end
 
@@ -52,8 +53,8 @@ function distanceMalahanobisSq(
 )
   δc = distanceMalahanobisCoordinates(M,K,q,basis)
   p = mean(K)
-  # ϵ = identity_element(M, q)
-  X = get_vector(M, p, δc, basis)
+  ϵ = identity_element(M, q)
+  X = get_vector(M, ϵ, δc, basis)
   return inner(M, p, X, X)
 end
 

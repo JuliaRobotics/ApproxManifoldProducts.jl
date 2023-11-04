@@ -47,6 +47,8 @@ ax_CCp, mask, knl = splitPointsEigen(M, r_CC)
 Mr = SpecialOrthogonal(2)
 @test isapprox( α, vee(Mr, Identity(Mr), log_lie(Mr, R))[1] ; atol=0.1)
 
+##
+
 # using GLMakie
 # fig = Figure()
 # ax = Axis(fig[1,1])
@@ -94,7 +96,7 @@ ptsr = pts[mtree.permute[51:100],:]
 
 ##
 
-AMP.evaluate(mtree, SA[0.0;1.0])
+AMP.evaluate(mtree, SA[10.0;-101.0])
 
 
 ##
@@ -108,6 +110,7 @@ M = TranslationGroup(1)
 pts = [randn(1) for _ in 1:100]
 mtree = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel=AMP.MvNormalKernel)
 
+AMP.evaluate(mtree, SA[0.0;])
 
 
 ##

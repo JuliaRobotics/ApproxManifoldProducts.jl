@@ -183,7 +183,7 @@ function buildTree_Manellic!(
   npts = high - low + 1
   mid_idx = low + sum(mask) - 1
 
-  @info "BUILD" index low sum(mask) mid_idx high _getleft(index) _getright(index)
+  # @info "BUILD" index low sum(mask) mid_idx high _getleft(index) _getright(index)
 
   lft = mid_idx <= low ? low : _getleft(index)
   rgt = high < mid_idx+1 ? high : _getright(index)
@@ -280,8 +280,9 @@ function evaluate(
 
   sumval = 0.0
   for i in 1:N
-    @show i
-    sumval += mt.weights[i] * ker(mt.manifold, mt.leaf_kernels[i], p, -1, distanceMalahanobisSq)
+    oneval = mt.weights[i] * ker(mt.manifold, mt.leaf_kernels[i], p, -1, distanceMalahanobisSq)
+    # @info "EVAL" i oneval
+    sumval += oneval
   end
   
   return sumval
