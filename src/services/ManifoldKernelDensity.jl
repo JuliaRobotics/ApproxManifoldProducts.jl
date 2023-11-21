@@ -79,7 +79,7 @@ function ManifoldKernelDensity(
     _bw[mask] .= 1.0
   end
   addopT, diffopT, _, _ = buildHybridManifoldCallbacks(manis)
-  bel = KernelDensityEstimate.kde!(arr, _bw, addopT, diffopT)
+  bel = KernelDensityEstimate.kde!(arr, collect(_bw), addopT, diffopT)
   return ManifoldKernelDensity(M, bel, partial, u0, infoPerCoord)
 end
 
@@ -275,17 +275,20 @@ Base.show(io::IO, ::MIME"application/juno.inline", mkd::ManifoldKernelDensity) =
 
 
 # override
-function marginal(x::ManifoldKernelDensity{M,B}, 
-                  dims::AbstractVector{<:Integer}  ) where {M <: AbstractManifold , B}
+function marginal(
+  x::ManifoldKernelDensity{M,B}, 
+  dims::AbstractVector{<:Integer}
+) where {M <: AbstractManifold, B}
   #
   ldims::Vector{Int} = collect(dims)
   ManifoldKernelDensity(x.manifold, x.belief, ldims, x._u0)
 end
 
-function marginal(x::ManifoldKernelDensity{M,B,L}, 
-                  dims::AbstractVector{<:Integer}  ) where {M <: AbstractManifold , B, L <: AbstractVector{<:Integer}}
+function marginal(
+  x::ManifoldKernelDensity{M,B,L}, 
+  dims::AbstractVector{<:Integer}
+) where {M <: AbstractManifold , B, L <: AbstractVector{<:Integer}}
   #
-  # @show dims x._partial
   ldims::Vector{Int} = intersect(x._partial, dims)
   ManifoldKernelDensity(x.manifold, x.belief, ldims, x._u0)
 end
