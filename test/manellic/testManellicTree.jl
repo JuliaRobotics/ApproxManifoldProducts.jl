@@ -8,7 +8,11 @@ using Manifolds
 using Distributions
 import ApproxManifoldProducts: ManellicTree, eigenCoords, splitPointsEigen
 
+using JSON3
+
 ##
+
+DATADIR = joinpath(dirname(@__DIR__),"testdata")
 
 # test 
 function testEigenCoords(
@@ -111,6 +115,35 @@ pts = [randn(1) for _ in 1:100]
 mtree = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel=AMP.MvNormalKernel)
 
 AMP.evaluate(mtree, SA[0.0;])
+
+## load know test data test
+
+json_string = read(joinpath(DATADIR,"manellic_test_data.json"), String)
+dict = JSON3.read(json_string, Dict{Symbol,Vector{Float64}})
+
+M = TranslationGroup(1)
+pts = [[v;] for v in dict[:evaltest_1_pts]]
+bw = reshape(dict[:evaltest_1_bw],1,1)
+mtree = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw=bw,kernel=AMP.MvNormalKernel)
+
+for (i,v) in enumerate(dict[:evaltest_1_at])
+  @test isapprox(dict[:evaltest_1_dens][i], AMP.evaluate(mtree, [v;]))
+end
+
+
+##
+end
+
+@testset "Manellic basic evaluation test 1D" begin
+##
+
+M = TranslationGroup(1)
+pts = [zeros(1) for _ in 1:100]
+bw = ones(1,1)
+mtree = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw=bw, kernel=AMP.MvNormalKernel)
+
+AMP.evaluate(mtree, SA[0.0;])
+
 
 
 ##

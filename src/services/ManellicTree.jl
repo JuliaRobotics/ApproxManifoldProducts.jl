@@ -88,10 +88,11 @@ function splitPointsEigen(
   r_CCp = vee.(Ref(M), Ref(p), r_XXp)
   
   D = manifold_dimension(M)
+  ndia = ( (D-1) ÷ 2 + 1 ) * D
   # FIXME, consider user provided bandwidth in estimating multisample covariance
-  cv = if 5 < len 
+  cv = if ndia < len
     SMatrix{D,D,Float64}(Manifolds.cov(M, r_PP))
-  elseif 1 < len < 5
+  elseif 1 < len <= ndia
     SMatrix{D,D,Float64}(diagm(diag(Manifolds.cov(M, r_PP))))
   else
     # TODO case with user defined bandwidth for faster tree construction
