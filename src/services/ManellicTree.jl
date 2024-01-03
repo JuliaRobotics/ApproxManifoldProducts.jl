@@ -279,9 +279,12 @@ function evaluate(
   p,
 ) where {M,D,N}
 
+  dim = manifold_dimension(mt.manifold)
   sumval = 0.0
   for i in 1:N
-    oneval = mt.weights[i] * ker(mt.manifold, mt.leaf_kernels[i], p, -1, distanceMalahanobisSq)
+    ekr = mt.leaf_kernels[i]
+    nscl = 1/sqrt((2*pi)^dim * det(cov(ekr.p)))
+    oneval = mt.weights[i] * nscl * ker(mt.manifold, ekr, p, 0.5, distanceMalahanobisSq)
     # @info "EVAL" i oneval
     sumval += oneval
   end

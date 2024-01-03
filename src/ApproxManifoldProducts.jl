@@ -30,7 +30,7 @@ using Distributions
 import Random: rand
 
 import Base: *, isapprox, convert, show, eltype
-import LinearAlgebra: rotate!
+import LinearAlgebra: rotate!, det
 import Statistics: mean, std, cov, var
 import KernelDensityEstimate: getPoints, getBW
 
