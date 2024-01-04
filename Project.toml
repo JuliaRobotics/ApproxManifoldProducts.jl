@@ -67,7 +67,7 @@ TensorCast = "02d47bb6-7ce6-556a-be16-bb1710789e2b"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["BSON", "DataFrames", "Rotations", "TensorCast", "Test"]
+test = ["BSON", "DataFrames", "JSON3", "Rotations", "TensorCast", "Test"]
 
 [weakdeps]
 Gadfly = "c91e804a-d5a3-530f-b6f0-dfbca275c004"
