@@ -34,7 +34,7 @@ function distanceMalahanobisCoordinates(
   M::AbstractManifold, 
   K::AbstractKernel, 
   q,
-  basis=DefaultOrthonormalBasis()
+  basis=DefaultOrthogonalBasis()
 )
   p = mean(K)
   i_p = inv(M,p)
@@ -49,7 +49,7 @@ function distanceMalahanobisSq(
   M::AbstractManifold,
   K::AbstractKernel,
   q,
-  basis=DefaultOrthonormalBasis()
+  basis=DefaultOrthogonalBasis()
 )
   δc = distanceMalahanobisCoordinates(M,K,q,basis)
   p = mean(K)

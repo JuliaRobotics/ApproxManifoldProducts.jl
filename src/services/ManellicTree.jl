@@ -88,10 +88,11 @@ function splitPointsEigen(
   r_CCp = vee.(Ref(M), Ref(p), r_XXp)
   
   D = manifold_dimension(M)
+  ndia = ( (D-1) ÷ 2 + 1 ) * D
   # FIXME, consider user provided bandwidth in estimating multisample covariance
-  cv = if 5 < len 
+  cv = if ndia < len
     SMatrix{D,D,Float64}(Manifolds.cov(M, r_PP))
-  elseif 1 < len < 5
+  elseif 1 < len <= ndia
     SMatrix{D,D,Float64}(diagm(diag(Manifolds.cov(M, r_PP))))
   else
     # TODO case with user defined bandwidth for faster tree construction
@@ -278,9 +279,12 @@ function evaluate(
   p,
 ) where {M,D,N}
 
+  dim = manifold_dimension(mt.manifold)
   sumval = 0.0
   for i in 1:N
-    oneval = mt.weights[i] * ker(mt.manifold, mt.leaf_kernels[i], p, -1, distanceMalahanobisSq)
+    ekr = mt.leaf_kernels[i]
+    nscl = 1/sqrt((2*pi)^dim * det(cov(ekr.p)))
+    oneval = mt.weights[i] * nscl * ker(mt.manifold, ekr, p, 0.5, distanceMalahanobisSq)
     # @info "EVAL" i oneval
     sumval += oneval
   end
