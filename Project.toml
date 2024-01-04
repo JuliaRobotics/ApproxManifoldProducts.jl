@@ -61,6 +61,7 @@ ApproxManiProdGadflyExt = "Gadfly"
 [extras]
 BSON = "fbb218c0-5317-5bc6-957e-2ee96dd4b1f0"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+JSON3 = "0f8b85d8-7281-11e9-16c2-39a750bddbf1"
 Rotations = "6038ab10-8711-5258-84ad-4b1120ba62dc"
 TensorCast = "02d47bb6-7ce6-556a-be16-bb1710789e2b"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
