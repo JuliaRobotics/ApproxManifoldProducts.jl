@@ -32,7 +32,7 @@ import Random: rand
 import Base: *, isapprox, convert, show, eltype
 import LinearAlgebra: rotate!, det
 import Statistics: mean, std, cov, var
-import KernelDensityEstimate: getPoints, getBW
+import KernelDensityEstimate: getPoints, getBW, evalAvgLogL
 
 const MB = ManifoldsBase
 const CTs = CoordinateTransformations

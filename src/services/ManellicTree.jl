@@ -293,6 +293,27 @@ function evaluate(
 end
 
 
+function evalAvgLogL(
+  mt::ManellicTree{M,D,N},
+  epts::AbstractVector
+) where {M,D,N}
+  # TODO really slow brute force evaluation
+  eL = MVector{length(epts),Float64}(undef)
+  for (i,p) in enumerate(epts)
+    eL[i] = evaluate(mt, p)
+  end
+  # set numerical tolerance floor
+  ind = findall(isapprox.(0,eL; atol=1e-14))
+  # nominal case with usable evaluation points
+  eL[ind] .= 1.0
+  return mean(log.(eL))
+end
+# pathelogical case
+# if 
+#   return -Inf
+# end
+
+
 # ## Pseudo code
 
 # X1 = fg[:x1] # Position{2}
