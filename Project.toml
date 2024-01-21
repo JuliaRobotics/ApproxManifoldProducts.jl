@@ -1,7 +1,7 @@
 name = "ApproxManifoldProducts"
 uuid = "9bbbb610-88a1-53cd-9763-118ce10c1f89"
 keywords = ["MM-iSAMv2", "SLAM", "inference", "sum-product", "belief-propagation", "nonparametric", "manifolds", "functional"]
-version = "0.8.3"
+version = "0.8.4"
 
 [deps]
 Base64 = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
@@ -46,7 +46,7 @@ Manifolds = "0.9"
 ManifoldsBase = "0.14, 0.15"
 NLsolve = "3, 4"
 Optim = "1"
-RecursiveArrayTools = "2"
+RecursiveArrayTools = "2, 3.3"
 Reexport = "0.2, 1.0"
 Requires = "0.5, 1"
 Rotations = "1"
@@ -61,12 +61,13 @@ ApproxManiProdGadflyExt = "Gadfly"
 [extras]
 BSON = "fbb218c0-5317-5bc6-957e-2ee96dd4b1f0"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+JSON3 = "0f8b85d8-7281-11e9-16c2-39a750bddbf1"
 Rotations = "6038ab10-8711-5258-84ad-4b1120ba62dc"
 TensorCast = "02d47bb6-7ce6-556a-be16-bb1710789e2b"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["BSON", "DataFrames", "Rotations", "TensorCast", "Test"]
+test = ["BSON", "DataFrames", "JSON3", "Rotations", "TensorCast", "Test"]
 
 [weakdeps]
 Gadfly = "c91e804a-d5a3-530f-b6f0-dfbca275c004"

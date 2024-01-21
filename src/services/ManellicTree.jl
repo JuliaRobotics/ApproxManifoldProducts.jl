@@ -1,36 +1,22 @@
 
 
 
+# function Base.getproperty(mt::ManellicTree{M,D,N},f::Symbol) where {M,D,N}
+#   if f !== :kernel
+#     getfield(mt, f)
+#   else
 
-# """
-#     $TYPEDEF
-
-# Elliptical structure for use in a (Manellic) Ball Tree.
-# """
-# struct HyperEllipse{P <:AbstractArray,D,DD}
-#   """ manifold point at which this ellipse is based """
-#   point::P
-#   """ Covariance of coords at either TBD this point or some other reference point? """
-#   coord_cov::SMatrix{D,D,Float64,DD}
+#   end
 # end
 
-# ManellicTree
+getPoints(
+  mt::ManellicTree
+) = view(mt.data, mt.permute)
 
-# Short for Manifold Ellipse Metric Tree
-# starting as a balanced tree, relax to unbalanced in future.
-struct ManellicTree{M,D<:AbstractVector,N,HL,HT}
-  manifold::M
-  data::D
-  weights::MVector{N,<:Real}
-  permute::MVector{N,Int}
-  leaf_kernels::MVector{N,HL}
-  tree_kernels::MVector{N,HT}
-  left_idx::MVector{N,Int}
-  right_idx::MVector{N,Int}
-end
-
-
-function Base.show(io::IO, mt::ManellicTree{M,D,N,HL,HT}) where {M,D,N,HL,HT}
+function Base.show(
+  io::IO, 
+  mt::ManellicTree{M,D,N,KT}
+) where {M,D,N,KT}
   printstyled(io, "ManellicTree{"; bold=true,color = :blue)
   println(io)
   printstyled(io, "  M  = ", M, color = :magenta)
@@ -39,9 +25,9 @@ function Base.show(io::IO, mt::ManellicTree{M,D,N,HL,HT}) where {M,D,N,HL,HT}
   println(io)
   printstyled(io, "  N  = ", N, color = :magenta)
   println(io)
-  printstyled(io, "  HL = ", HL, color = :magenta)
-  println(io)
-  printstyled(io, "  HT = ", HT, color = :magenta)
+  printstyled(io, "  KT = ", KT, color = :magenta)
+  # println(io)
+  # printstyled(io, "  HT = ", HT, color = :magenta)
   println(io)
   printstyled(io, "}", bold=true, color = :blue)
   println(io, "(")
@@ -109,10 +95,11 @@ function splitPointsEigen(
   r_CCp = vee.(Ref(M), Ref(p), r_XXp)
   
   D = manifold_dimension(M)
+  ndia = ( (D-1) ÷ 2 + 1 ) * D
   # FIXME, consider user provided bandwidth in estimating multisample covariance
-  cv = if 5 < len 
+  cv = if ndia < len
     SMatrix{D,D,Float64}(Manifolds.cov(M, r_PP))
-  elseif 1 < len < 5
+  elseif 1 < len <= ndia
     SMatrix{D,D,Float64}(diagm(diag(Manifolds.cov(M, r_PP))))
   else
     # TODO case with user defined bandwidth for faster tree construction
@@ -170,18 +157,23 @@ end
 
 
 _getleft(i::Integer) = 2*i
-_getright(i::Integer) = 2*1 + 1
+_getright(i::Integer) = 2*i + 1
 
 
 function buildTree_Manellic!(
-  mtree::ManellicTree,
+  mtree::ManellicTree{MT,D,N},
   index::Integer,
   low::Integer, # bottom index of segment
   high::Integer; # top index of segment;
   kernel = MvNormal,
   kernel_bw = nothing,
   leaf_size = 1
-)
+) where {MT,D,N}
+  #
+  if N <= index
+    return mtree
+  end
+
   M = mtree.manifold
   # take a slice of data
   idc = low:high
@@ -190,15 +182,6 @@ function buildTree_Manellic!(
   # split the slice of order-permuted data
   ax_CCp, mask, knl = splitPointsEigen(M, view(mtree.data, ido); kernel, kernel_bw)
 
-  # set HyperEllipse at this level in tree
-  # FIXME, replace with just the kernel choice, not hyper such and such needed?
-  N = length(mtree.tree_kernels)
-  if index < N
-    mtree.tree_kernels[index] = knl # HyperEllipse(knl.μ, knl.Σ.mat)
-  else
-    mtree.leaf_kernels[index-N+1] = knl
-  end
-
   # sort the data as 'small' and 'big' elements either side of the eigen split
   sml = view(ido, mask)
   big = view(ido, xor.(mask, true))
@@ -206,13 +189,28 @@ function buildTree_Manellic!(
   ido .= SA[sml...; big...]
 
   npts = high - low + 1
-  mid_idx = low + sum(mask)
+  mid_idx = low + sum(mask) - 1
+
+  # @info "BUILD" index low sum(mask) mid_idx high _getleft(index) _getright(index)
+
+  lft = mid_idx <= low ? low : _getleft(index)
+  rgt = high < mid_idx+1 ? high : _getright(index)
 
   if leaf_size < npts
-    # recursively call two branches of tree, left
-    buildTree_Manellic!(mtree, _getleft(index), low, mid_idx-1; kernel, kernel_bw, leaf_size)
-    # and right subtree
-    buildTree_Manellic!(mtree, _getright(index), mid_idx, high; kernel, kernel_bw, leaf_size)
+    if lft != mid_idx
+      # recursively call two branches of tree, left
+      buildTree_Manellic!(mtree, lft, low, mid_idx; kernel, kernel_bw, leaf_size)
+    end
+    if rgt != high
+      # and right subtree
+      buildTree_Manellic!(mtree, rgt, mid_idx+1, high; kernel, kernel_bw, leaf_size)
+    end
+  end
+
+  # set HyperEllipse at this level in tree
+  # FIXME, replace with just the kernel choice, not hyper such and such needed?
+  if index < N
+    mtree.tree_kernels[index] = knl # HyperEllipse(knl.μ, knl.Σ.mat)
   end
 
   return mtree
@@ -235,25 +233,33 @@ function buildTree_Manellic!(
     r_PP[1],
     CV
   ) |> typeof
+  lCV = if isnothing(kernel_bw)
+    CV
+  else
+    kernel_bw
+  end
   lknlT = kernel(
     r_PP[1],
-    if isnothing(kernel_bw)
-      CV
-    else
-      kernel_bw
-    end
+    lCV
   ) |> typeof
 
   # kernel scale
 
-  #
+  # leaf kernels
+  lkern = SizedVector{len,lknlT}(undef)
+  for i in 1:len
+    lkern[i] = kernel(r_PP[i], lCV)
+  end
+  
+  
   mtree = ManellicTree(
     M,
     r_PP,
     MVector{len,Float64}(weights),
     MVector{len,Int}(1:len),
-    MVector{len,lknlT}(undef),
-    MVector{len,tknlT}(undef),
+    lkern, # MVector{len,lknlT}(undef),
+    SizedVector{len,tknlT}(undef),
+    # SizedVector{len,tknlT}(undef),
     MVector{len,Int}(undef),
     MVector{len,Int}(undef)
   )
@@ -270,16 +276,77 @@ function buildTree_Manellic!(
 end
 
 # TODO use geometric computing for faster evaluation
+# DevNotes:
+#  - Computational Geometry
+#  - Dual tree evaluations
+#  - Fast kernels
+#  - Parallel transport shortcuts?
 function evaluate(
   mt::ManellicTree{M,D,N},
   p,
+  bw_scl::Real = 1
 ) where {M,D,N}
 
+  dim = manifold_dimension(mt.manifold)
   sumval = 0.0
+  # FIXME, brute force for loop
   for i in 1:N
-    sumval += mt.weights[i] * ker(mt.manifold, mt.leaf_kernels[i], p, 0.5)
+    ekr = mt.leaf_kernels[i]
+    nscl = 1/sqrt((2*pi)^dim * det(cov(ekr.p)))
+    oneval = mt.weights[i] * nscl * ker(mt.manifold, ekr, p, 0.5, distanceMalahanobisSq)
+    # @info "EVAL" i oneval
+    sumval += oneval
   end
   
-  
-  
+  return sumval
 end
+
+
+function evalAvgLogL(
+  mt::ManellicTree{M,D,N},
+  epts::AbstractVector,
+  bw_scl::Real = 1
+) where {M,D,N}
+  # TODO really slow brute force evaluation
+  eL = MVector{length(epts),Float64}(undef)
+  for (i,p) in enumerate(epts)
+    eL[i] = evaluate(mt, p, bw_scl)
+  end
+  # set numerical tolerance floor
+  ind = findall(isapprox.(0,eL; atol=1e-14))
+  # nominal case with usable evaluation points
+  eL[ind] .= 1.0
+  return mean(log.(eL))
+end
+# pathelogical case
+# if 
+#   return -Inf
+# end
+
+entropy(
+  mt::ManellicTree,
+  bw_scl::Real = 1,
+) = -evalAvgLogL(mt, getPoints(mt), bw_scl)
+
+leaveOneOutLogL(
+  mt::ManellicTree,
+  bw_scl::Real = 1,
+) = entropy(mt, bw_scl)
+
+
+
+
+# ## Pseudo code
+
+# X1 = fg[:x1] # Position{2}
+
+# # prob density
+# x1 = X1([12.3;0.7])
+# x1 = X1([-8.8;0.7])
+
+# X1_a = approxConvBelief(dfg, f1, :x1)
+# X1_b = approxConvBelief(dfg, f2, :x1)
+
+# _X1_ = X1_a*X1_b
+
+#

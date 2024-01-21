@@ -8,7 +8,7 @@ import TransformUtils as TUs
 import Rotations as _Rot
 
 import ManifoldsBase
-import ManifoldsBase: AbstractManifold
+import ManifoldsBase: AbstractManifold, distance
 using RecursiveArrayTools: ArrayPartition
 export ArrayPartition
 
@@ -29,10 +29,10 @@ using Distributions
 
 import Random: rand
 
-import Base: *, isapprox, convert, show
-import LinearAlgebra: rotate!
+import Base: *, isapprox, convert, show, eltype
+import LinearAlgebra: rotate!, det
 import Statistics: mean, std, cov, var
-import KernelDensityEstimate: getPoints, getBW
+import KernelDensityEstimate: getPoints, getBW, evalAvgLogL, entropy
 
 const MB = ManifoldsBase
 const CTs = CoordinateTransformations
@@ -72,6 +72,7 @@ include("API.jl")
 include("Deprecated.jl")
 
 # experimental
+include("entities/ManellicTree.jl")
 include("services/ManellicTree.jl")
 
 # weak dependencies

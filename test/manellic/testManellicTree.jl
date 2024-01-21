@@ -8,7 +8,11 @@ using Manifolds
 using Distributions
 import ApproxManifoldProducts: ManellicTree, eigenCoords, splitPointsEigen
 
+using JSON3
+
 ##
+
+DATADIR = joinpath(dirname(@__DIR__),"testdata")
 
 # test 
 function testEigenCoords(
@@ -47,6 +51,8 @@ ax_CCp, mask, knl = splitPointsEigen(M, r_CC)
 Mr = SpecialOrthogonal(2)
 @test isapprox( α, vee(Mr, Identity(Mr), log_lie(Mr, R))[1] ; atol=0.1)
 
+##
+
 # using GLMakie
 # fig = Figure()
 # ax = Axis(fig[1,1])
@@ -72,7 +78,7 @@ A__[1] = -100
 ##
 
 r_PP = r_CC # shortcut because we are in Euclidean space
-mtree = ApproxManifoldProducts.buildTree_Manellic!(M, r_PP)
+mtree = ApproxManifoldProducts.buildTree_Manellic!(M, r_PP; kernel=AMP.MvNormalKernel)
 
 
 ##
@@ -93,5 +99,71 @@ ptsr = pts[mtree.permute[51:100],:]
 # fig
 
 ##
+
+AMP.evaluate(mtree, SA[10.0;-101.0])
+
+
+##
 end
 
+
+@testset "ManellicTree construction 1D" begin
+##
+
+M = TranslationGroup(1)
+pts = [randn(1) for _ in 1:100]
+mtree = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel=AMP.MvNormalKernel)
+
+AMP.evaluate(mtree, SA[0.0;])
+
+## load know test data test
+
+json_string = read(joinpath(DATADIR,"manellic_test_data.json"), String)
+dict = JSON3.read(json_string, Dict{Symbol,Vector{Float64}})
+
+M = TranslationGroup(1)
+pts = [[v;] for v in dict[:evaltest_1_pts]]
+bw = reshape(dict[:evaltest_1_bw],1,1)
+mtree = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw=bw,kernel=AMP.MvNormalKernel)
+
+# for (i,v) in enumerate(dict[:evaltest_1_at])
+#   # @show AMP.evaluate(mtree, [v;]), dict[:evaltest_1_dens][i]
+#   @test isapprox(dict[:evaltest_1_dens][i], AMP.evaluate(mtree, [v;]))
+# end
+# isapprox(dict[:evaltest_1_dens][5], AMP.evaluate(mtree, [dict[:evaltest_1_at][5]]))
+# eval test ref Normal(0,1)
+
+np = Normal(0,1)
+h = 0.1
+xx = -5:h:5
+yy_ = pdf.(np, xx) # ref
+yy = [AMP.evaluate(mtree, [v;]) for v in xx] # test
+for (i,v) in enumerate(yy_)
+  @test isapprox(v, yy[i]; atol=0.05)
+end
+@test isapprox( 1, sum(yy_ .* h) ; atol=1e-3)
+@test isapprox( 1, sum(yy .* h) ; atol=1e-3)
+# using GLMakie
+# lines(xx, yy_, color=:red) # ref
+# lines!(xx, yy, color=:blue) # test
+
+
+##
+end
+
+@testset "Manellic basic evaluation test 1D" begin
+##
+
+M = TranslationGroup(1)
+pts = [zeros(1) for _ in 1:100]
+bw = ones(1,1)
+mtree = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw=bw, kernel=AMP.MvNormalKernel)
+
+AMP.evaluate(mtree, SA[0.0;])
+
+AMP.evalAvgLogL(mtree, [randn(1) for _ in 1:5])
+
+@show AMP.entropy(mtree)
+
+##
+end
