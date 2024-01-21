@@ -9,7 +9,14 @@
 #   end
 # end
 
-function Base.show(io::IO, mt::ManellicTree{M,D,N,KT}) where {M,D,N,KT}
+getPoints(
+  mt::ManellicTree
+) = view(mt.data, mt.permute)
+
+function Base.show(
+  io::IO, 
+  mt::ManellicTree{M,D,N,KT}
+) where {M,D,N,KT}
   printstyled(io, "ManellicTree{"; bold=true,color = :blue)
   println(io)
   printstyled(io, "  M  = ", M, color = :magenta)
@@ -277,10 +284,12 @@ end
 function evaluate(
   mt::ManellicTree{M,D,N},
   p,
+  bw_scl::Real = 1
 ) where {M,D,N}
 
   dim = manifold_dimension(mt.manifold)
   sumval = 0.0
+  # FIXME, brute force for loop
   for i in 1:N
     ekr = mt.leaf_kernels[i]
     nscl = 1/sqrt((2*pi)^dim * det(cov(ekr.p)))
@@ -295,12 +304,13 @@ end
 
 function evalAvgLogL(
   mt::ManellicTree{M,D,N},
-  epts::AbstractVector
+  epts::AbstractVector,
+  bw_scl::Real = 1
 ) where {M,D,N}
   # TODO really slow brute force evaluation
   eL = MVector{length(epts),Float64}(undef)
   for (i,p) in enumerate(epts)
-    eL[i] = evaluate(mt, p)
+    eL[i] = evaluate(mt, p, bw_scl)
   end
   # set numerical tolerance floor
   ind = findall(isapprox.(0,eL; atol=1e-14))
@@ -312,6 +322,18 @@ end
 # if 
 #   return -Inf
 # end
+
+entropy(
+  mt::ManellicTree,
+  bw_scl::Real = 1,
+) = -evalAvgLogL(mt, getPoints(mt), bw_scl)
+
+leaveOneOutLogL(
+  mt::ManellicTree,
+  bw_scl::Real = 1,
+) = entropy(mt, bw_scl)
+
+
 
 
 # ## Pseudo code
