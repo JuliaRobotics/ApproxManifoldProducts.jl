@@ -161,8 +161,9 @@ mtree = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw=bw, kernel=
 
 AMP.evaluate(mtree, SA[0.0;])
 
-
 AMP.evalAvgLogL(mtree, [randn(1) for _ in 1:5])
+
+@show AMP.entropy(mtree)
 
 ##
 end
