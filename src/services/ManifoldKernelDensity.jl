@@ -59,7 +59,8 @@ function ManifoldKernelDensity(
   partial::L=nothing,
   infoPerCoord::AbstractVector{<:Real}=ones(getNumberCoords(M, u0)),
   dims::Int=manifold_dimension(M),
-  bw::Union{<:AbstractVector{<:Real},Nothing}=nothing  
+  bw::Union{<:AbstractVector{<:Real},<:AbstractMatrix{<:Real},Nothing}=nothing,
+  belmodel::Function = (a,b,aF,dF) -> KernelDensityEstimate.kde!(a, collect(b), aF, dF) # collect(b) but error length(::Nothing)
 ) where {P,L}
   #
   # FIXME obsolete
@@ -79,7 +80,8 @@ function ManifoldKernelDensity(
     _bw[mask] .= 1.0
   end
   addopT, diffopT, _, _ = buildHybridManifoldCallbacks(manis)
-  bel = KernelDensityEstimate.kde!(arr, collect(_bw), addopT, diffopT)
+  bel = belmodel(arr,_bw,addopT,diffopT)
+  # bel = KernelDensityEstimate.kde!(arr, collect(_bw), addopT, diffopT)
   return ManifoldKernelDensity(M, bel, partial, u0, infoPerCoord)
 end
 
@@ -226,6 +228,9 @@ end
 
 
 function Base.show(io::IO, mkd::ManifoldKernelDensity{M,B,L,P}) where {M,B,L,P}
+  _round(s::AbstractArray; kw...) = round.(s[:];kw...)
+  _round(s::AbstractVector{<:AbstractMatrix}; kw...) = round.(s[1][:];kw...)
+
   printstyled(io, "ManifoldKernelDensity{", bold=true, color=:blue )
   println(io)
   printstyled(io, "    M", bold=true, color=:magenta )
@@ -248,7 +253,7 @@ function Base.show(io::IO, mkd::ManifoldKernelDensity{M,B,L,P}) where {M,B,L,P}
   println(io, "  prtl:   ", mkd._partial)
   bw = getBW(mkd.belief)[:,1]
   pvec = isPartial(mkd) ? mkd._partial : collect(1:length(bw))
-  println(io, "  bws:   ", getBandwidth(mkd, true) .|> x->round(x,digits=4))
+  println(io, "  bws:   ", getBandwidth(mkd, true) |> x->_round(x;digits=4)) # .|> x->round(x,digits=4))
   println(io, "  ipc:   ", getInfoPerCoord(mkd, true) .|> x->round(x,digits=4))
   print(io, "   mean: ")
   try

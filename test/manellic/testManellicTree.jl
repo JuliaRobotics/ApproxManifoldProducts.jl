@@ -165,5 +165,21 @@ AMP.evalAvgLogL(mtree, [randn(1) for _ in 1:5])
 
 @show AMP.entropy(mtree)
 
+# Vector bw required for backward compat with legacy belief structure
+mtreeV = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw=[1.0;], kernel=AMP.MvNormalKernel)
+
+
+bel = manikde!(
+  M,
+  pts;
+  bw,
+  belmodel = (a,b,aF,dF) -> ApproxManifoldProducts.buildTree_Manellic!(
+    M,
+    pts;
+    kernel_bw=b, 
+    kernel=AMP.MvNormalKernel
+  )
+)
+
 ##
 end
