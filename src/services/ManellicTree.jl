@@ -296,18 +296,19 @@ end
 #  - Fast kernels
 #  - Parallel transport shortcuts?
 function evaluate(
-  mt::ManellicTree{M,D,N},
+  mt::ManellicTree{M,D,N,HL},
   p,
   bw_scl::Real = 1
-) where {M,D,N}
+) where {M,D,N,HL}
 
   dim = manifold_dimension(mt.manifold)
   sumval = 0.0
   # FIXME, brute force for loop
   for i in 1:N
     ekr = mt.leaf_kernels[i]
-    nscl = 1/sqrt((2*pi)^dim * det(cov(ekr.p)))
-    oneval = mt.weights[i] * nscl * ker(mt.manifold, ekr, p, 0.5, distanceMalahanobisSq)
+    _ekr = getfield(ApproxManifoldProducts,HL.name.name)(mean(ekr.p), bw_scl*cov(ekr.p))
+    nscl = 1/sqrt((2*pi)^dim * det(cov(_ekr.p)))
+    oneval = mt.weights[i] * nscl * ker(mt.manifold, _ekr, p, 0.5, distanceMalahanobisSq)
     # @info "EVAL" i oneval
     sumval += oneval
   end
@@ -348,6 +349,9 @@ leaveOneOutLogL(
 ) = entropy(mt, bw_scl)
 
 
+(mt::ManellicTree)(
+  evalpt::AbstractArray,
+) = evaluate(mt, evalpt)
 
 
 # ## Pseudo code

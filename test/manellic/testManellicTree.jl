@@ -159,7 +159,7 @@ pts = [zeros(1) for _ in 1:100]
 bw = ones(1,1)
 mtree = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw=bw, kernel=AMP.MvNormalKernel)
 
-AMP.evaluate(mtree, SA[0.0;])
+@test isapprox( 0.4, AMP.evaluate(mtree, SA[0.0;]); atol=0.1)
 
 AMP.evalAvgLogL(mtree, [randn(1) for _ in 1:5])
 
@@ -180,6 +180,28 @@ bel = manikde!(
     kernel=AMP.MvNormalKernel
   )
 )
+
+
+@test isapprox( 0.4, bel([0.0;]); atol=0.1)
+
+##
+end
+
+
+@testset "Manellic tree bandwidth evaluation / optimization" begin
+## load know test data test
+
+json_string = read(joinpath(DATADIR,"manellic_test_data.json"), String)
+dict = JSON3.read(json_string, Dict{Symbol,Vector{Float64}})
+
+M = TranslationGroup(1)
+pts = [[v;] for v in dict[:evaltest_1_pts]]
+bw = reshape(dict[:evaltest_1_bw],1,1)
+mtree = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw=bw,kernel=AMP.MvNormalKernel)
+
+AMP.evalAvgLogL(mtree, pts)
+
+@test AMP.evalAvgLogL(mtree, pts, 1.1) < AMP.evalAvgLogL(mtree, pts, 1.0) < AMP.evalAvgLogL(mtree, pts, 0.9)
 
 ##
 end
