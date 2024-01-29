@@ -203,5 +203,7 @@ AMP.evalAvgLogL(mtree, pts)
 
 @test AMP.evalAvgLogL(mtree, pts, 1.1) < AMP.evalAvgLogL(mtree, pts, 1.0) < AMP.evalAvgLogL(mtree, pts, 0.9)
 
+# do linesearch for best selection of bw_scl
+
 ##
 end
