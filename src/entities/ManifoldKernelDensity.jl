@@ -1,4 +1,5 @@
 
+const TreeDensity = Union{<:ManellicTree, <: BallTreeDensity}
 
 """
     $TYPEDEF
@@ -12,7 +13,7 @@ Notes
 DevNotes
 - WIP AMP issue 41, use generic retractions during manifold products.
 """
-struct ManifoldKernelDensity{M <: MB.AbstractManifold, B <: BallTreeDensity, L, P <: AbstractArray}
+struct ManifoldKernelDensity{M <: MB.AbstractManifold, B <: TreeDensity, L, P <: AbstractArray}
   manifold::M
   """ legacy expects matrix of coordinates (as columns) """
   belief::B

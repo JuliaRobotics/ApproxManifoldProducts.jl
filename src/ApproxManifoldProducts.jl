@@ -48,8 +48,14 @@ include("ExportAPI.jl")
 # internal features not exported
 include("_BiMaps.jl")
 
-# AMP types and some legacy support 
+include("entities/KernelEval.jl")
+include("entities/ManellicTree.jl") # experimental
 include("entities/ManifoldKernelDensity.jl")
+
+include("CommonUtils.jl")
+include("services/ManellicTree.jl")
+
+# AMP types and some legacy support 
 include("entities/ManifoldDefinitions.jl")
 include("Legacy.jl")
 include("services/ManifoldPartials.jl")
@@ -57,7 +63,6 @@ include("Interface.jl")
 
 # regular features
 include("services/KernelEval.jl")
-include("CommonUtils.jl")
 include("services/ManifoldKernelDensity.jl")
 include("services/Euclidean.jl")
 include("services/CircularUtils.jl")
@@ -70,10 +75,6 @@ include("TrackingLabels.jl")
 include("API.jl")
 
 include("Deprecated.jl")
-
-# experimental
-include("entities/ManellicTree.jl")
-include("services/ManellicTree.jl")
 
 # weak dependencies
 include("../ext/WeakdepsPrototypes.jl")

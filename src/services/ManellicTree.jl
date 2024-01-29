@@ -9,6 +9,7 @@
 #   end
 # end
 
+
 getPoints(
   mt::ManellicTree
 ) = view(mt.data, mt.permute)
@@ -170,6 +171,12 @@ function buildTree_Manellic!(
   leaf_size = 1
 ) where {MT,D,N}
   #
+  _legacybw(s::Nothing) = s
+  _legacybw(s::AbstractMatrix) = s
+  _legacybw(s::AbstractVector) = diagm(s)
+
+  _kernel_bw = _legacybw(kernel_bw)
+
   if N <= index
     return mtree
   end
@@ -180,7 +187,7 @@ function buildTree_Manellic!(
   # according to current index permutation (i.e. sort data as you build the tree)
   ido = view(mtree.permute, idc)
   # split the slice of order-permuted data
-  ax_CCp, mask, knl = splitPointsEigen(M, view(mtree.data, ido); kernel, kernel_bw)
+  ax_CCp, mask, knl = splitPointsEigen(M, view(mtree.data, ido); kernel, kernel_bw=_kernel_bw)
 
   # sort the data as 'small' and 'big' elements either side of the eigen split
   sml = view(ido, mask)
@@ -199,11 +206,11 @@ function buildTree_Manellic!(
   if leaf_size < npts
     if lft != mid_idx
       # recursively call two branches of tree, left
-      buildTree_Manellic!(mtree, lft, low, mid_idx; kernel, kernel_bw, leaf_size)
+      buildTree_Manellic!(mtree, lft, low, mid_idx; kernel, kernel_bw=_kernel_bw, leaf_size)
     end
     if rgt != high
       # and right subtree
-      buildTree_Manellic!(mtree, rgt, mid_idx+1, high; kernel, kernel_bw, leaf_size)
+      buildTree_Manellic!(mtree, rgt, mid_idx+1, high; kernel, kernel_bw=_kernel_bw, leaf_size)
     end
   end
 
@@ -233,11 +240,18 @@ function buildTree_Manellic!(
     r_PP[1],
     CV
   ) |> typeof
-  lCV = if isnothing(kernel_bw)
-    CV
-  else
-    kernel_bw
-  end
+
+  _legacybw(s::AbstractMatrix) = s
+  _legacybw(s::AbstractVector) = diagm(s)
+  _legacybw(::Nothing) = CV
+
+  lCV = _legacybw(kernel_bw)
+  # lCV = if isnothing(kernel_bw)
+  #   CV
+  # else
+  #   kernel_bw
+  # end
+
   lknlT = kernel(
     r_PP[1],
     lCV
@@ -282,18 +296,19 @@ end
 #  - Fast kernels
 #  - Parallel transport shortcuts?
 function evaluate(
-  mt::ManellicTree{M,D,N},
+  mt::ManellicTree{M,D,N,HL},
   p,
   bw_scl::Real = 1
-) where {M,D,N}
+) where {M,D,N,HL}
 
   dim = manifold_dimension(mt.manifold)
   sumval = 0.0
   # FIXME, brute force for loop
   for i in 1:N
     ekr = mt.leaf_kernels[i]
-    nscl = 1/sqrt((2*pi)^dim * det(cov(ekr.p)))
-    oneval = mt.weights[i] * nscl * ker(mt.manifold, ekr, p, 0.5, distanceMalahanobisSq)
+    _ekr = getfield(ApproxManifoldProducts,HL.name.name)(mean(ekr.p), bw_scl*cov(ekr.p))
+    nscl = 1/sqrt((2*pi)^dim * det(cov(_ekr.p)))
+    oneval = mt.weights[i] * nscl * ker(mt.manifold, _ekr, p, 0.5, distanceMalahanobisSq)
     # @info "EVAL" i oneval
     sumval += oneval
   end
@@ -334,6 +349,9 @@ leaveOneOutLogL(
 ) = entropy(mt, bw_scl)
 
 
+(mt::ManellicTree)(
+  evalpt::AbstractArray,
+) = evaluate(mt, evalpt)
 
 
 # ## Pseudo code
