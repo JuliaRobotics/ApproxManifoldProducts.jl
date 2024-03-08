@@ -18,9 +18,9 @@ function MvNormalKernel(m::AbstractVector,c::AbstractArray)
   MvNormalKernel(;p, sqrt_iΣ)
 end
 
-Statistics.mean(m::MvNormalKernel) = m.p.μ
-Statistics.cov(m::MvNormalKernel) = m.p.Σ # note also about m.sqrt_iΣ
-
+Statistics.mean(m::MvNormalKernel) = mean(m.p) # m.p.μ
+Statistics.cov(m::MvNormalKernel) = cov(m.p) # note also about m.sqrt_iΣ
+Statistics.std(m::MvNormalKernel) = sqrt(cov(m))
 
 function distanceMalahanobisCoordinates(
   M::AbstractManifold, 

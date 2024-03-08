@@ -78,8 +78,15 @@ function eigenCoords(
 end
 
 
+"""
+    $SIGNATURES
 
-# give vector of manifold points and split along largest covariance (i.e. major direction)
+Give vector of manifold points and split along largest covariance (i.e. major direction)
+
+DeVNotes:
+- FIXME: upgrade to Manopt version 
+  - https://github.com/JuliaRobotics/ApproxManifoldProducts.jl/issues/277
+"""
 function splitPointsEigen(
   M::AbstractManifold,
   r_PP::AbstractVector{P};
@@ -204,7 +211,7 @@ function buildTree_Manellic!(
   rgt = high < mid_idx+1 ? high : _getright(index)
 
   if leaf_size < npts
-    if lft != mid_idx
+    if lft != low # mid_idx
       # recursively call two branches of tree, left
       buildTree_Manellic!(mtree, lft, low, mid_idx; kernel, kernel_bw=_kernel_bw, leaf_size)
     end
@@ -224,7 +231,15 @@ function buildTree_Manellic!(
 end
 
 
+"""
+    $SIGNATURES
 
+DevNotes:
+- Design Decision 24Q1, Manellic.MvNormalKernel bandwidth defs should ALWAYS ONLY BE covariances, because
+  - Vision state is multiple bandwidth kernels including off diagonals in both tree or leaf kernels
+  - Hybrid parametric to leafs convariance continuity
+  - https://github.com/JuliaStats/Distributions.jl/blob/a9b0e3c99c8dda367f69b2dbbdfa4530c810e3d7/src/multivariate/mvnormal.jl#L220-L224
+"""
 function buildTree_Manellic!(
   M::AbstractManifold,
   r_PP::AbstractVector{P}; # vector of points referenced to the r_frame
@@ -353,6 +368,41 @@ leaveOneOutLogL(
   evalpt::AbstractArray,
 ) = evaluate(mt, evalpt)
 
+
+"""
+    $SIGNATURES
+    
+For Manellic tree parent kernels, what is the 'smallest' and 'biggest' covariance.
+
+Notes:
+- Thought about `det` for covariance volume but long access of pancake (smaller volume) is not minimum compared to circular covariance. 
+"""
+function getBandwidthSearchBounds(
+  mtree::ManellicTree
+)
+  upper = cov(mtree.tree_kernels[1])
+
+  #FIXME isdefined does not work as expected for mtree.tree_kernels, so using length-1 for now
+  # this will break if number of points is not a power of 2. 
+  kernels_diag = map(1:length(mtree.tree_kernels)-1) do i
+    diag(cov(mtree.tree_kernels[i]))
+  end
+  lower_diag = minimum(reduce(hcat, kernels_diag), dims=2)
+
+  # floors make us feel safe, but hurt when faceplanting
+  lower_diag = maximum(
+    hcat(
+      lower_diag, 
+      1e-8*ones(length(lower_diag))
+    ), 
+    dims=2
+  )[:]
+
+  # Give back lower as diagonal only covariance matrix
+  lower = diagm(lower_diag)
+
+  return lower, upper
+end
 
 # ## Pseudo code
 

@@ -8,6 +8,8 @@ using Manifolds
 using Distributions
 import ApproxManifoldProducts: ManellicTree, eigenCoords, splitPointsEigen
 
+using Optim
+
 using JSON3
 
 ##
@@ -188,7 +190,9 @@ bel = manikde!(
 end
 
 
-@testset "Manellic tree bandwidth evaluation / optimization" begin
+#
+
+@testset "Manellic tree bandwidth evaluation" begin
 ## load know test data test
 
 json_string = read(joinpath(DATADIR,"manellic_test_data.json"), String)
@@ -203,7 +207,61 @@ AMP.evalAvgLogL(mtree, pts)
 
 @test AMP.evalAvgLogL(mtree, pts, 1.1) < AMP.evalAvgLogL(mtree, pts, 1.0) < AMP.evalAvgLogL(mtree, pts, 0.9)
 
-# do linesearch for best selection of bw_scl
 
 ##
 end
+
+
+@testset "Manellic tree bandwidth optimization 1D section search" begin
+##
+
+M = TranslationGroup(1)
+pts = [[0.;],[1.],[2.;],[3.;]]
+pts = [randn(1) for _ in 1:128]
+bw = [1.0]
+mtree = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw=bw,kernel=AMP.MvNormalKernel)
+# TODO isdefined does not work here (upstream bug somewhere)
+# @test isdefined(mtree.tree_kernels, 1)
+# @test isdefined(mtree.tree_kernels, 2)
+# @test isdefined(mtree.tree_kernels, 3)
+# @test !isdefined(mtree.tree_kernels, 4)
+
+lcov, ucov = AMP.getBandwidthSearchBounds(mtree)
+
+## ASSUMING SCALAR
+# do linesearch for best selection of bw_scl
+# MINIMIZE(entropy, mtree, p0)
+
+bw_cov = (ucov + lcov)/2
+mtree_0 = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw=bw_cov,kernel=AMP.MvNormalKernel)
+
+lower = lcov / bw_cov
+upper = ucov / bw_cov
+
+AMP.entropy(mtree_0, lower[1])
+AMP.entropy(mtree_0, upper[1])
+
+
+# https://julianlsolvers.github.io/Optim.jl/stable/#user/minimization/#minimizing-a-univariate-function-on-a-bounded-interval
+# options for kwargs...
+# iterations
+# rel_tol: The relative tolerance used for determining convergence. Defaults to sqrt(eps(T))
+# abs_tol: The absolute tolerance used for determining convergence. Defaults to eps(T)
+res = Optim.optimize(s->AMP.entropy(mtree_0, s), lower[1], upper[1], Optim.GoldenSection())
+best_cov = Optim.minimizer(res) * bw_cov
+
+@test_broken isapprox(0.36, best_cov[1]; atol=0.15)
+
+##
+end
+
+
+# TODO
+# @testset "Manellic tree bandwidth optimize n-dim RLM" begin
+# ##
+
+
+# ##
+# end
+
+#
