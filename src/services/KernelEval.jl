@@ -18,8 +18,46 @@ function MvNormalKernel(m::AbstractVector,c::AbstractArray)
   MvNormalKernel(;p, sqrt_iΣ)
 end
 
-Statistics.mean(m::MvNormalKernel) = m.p.μ
-Statistics.cov(m::MvNormalKernel) = m.p.Σ # note also about m.sqrt_iΣ
+Statistics.mean(m::MvNormalKernel) = mean(m.p) # m.p.μ
+Statistics.cov(m::MvNormalKernel) = cov(m.p) # note also about m.sqrt_iΣ
+Statistics.std(m::MvNormalKernel) = sqrt(cov(m))
+
+"""
+    $SIGNATURES
+
+Transform `T=RS` from unit covariance `D` to instance covariance `Σ = TD`.
+
+Notes:
+- Geometric interpretation of the covariance matrix, Fig. 10, https://users.cs.utah.edu/~tch/CS6640F2020/resources/A%20geometric%20interpretation%20of%20the%20covariance%20matrix.pdf
+  - Eigen decomp: `Σ^2 V = VL` => `Σ^2 = VL(V^-1) = RL(R^-1) = RSS(R^-1)` => `T=RS`
+"""
+function covTransformNormalized(Σ::AbstractMatrix)
+  F = eigen(Σ)
+  R = F.vectors
+  L = diagm(F.values)
+  S = sqrt(L)
+  return R*S
+end
+
+function Base.show(io::IO, mvk::MvNormalKernel)
+  μ = mean(mvk)
+  Σ2 = cov(mvk)
+  # Σ=sqrt(Σ2)
+  d = length(μ)
+  print(io, "MvNormalKernel(d=",d)
+  print(io,",μ=",round.(μ;digits=3))
+  print(io,",Σ^2=[",round(Σ2[1];digits=3))
+  if 1<d
+    print(io,"...")
+  end
+  # det(T-I) is a proxy through volume meaure of Transform from unit covariance matrix to this instance
+  # i.e. how large or rotated is this covariance instance
+  println(io,"]); det(T-I)=",round(det(covTransformNormalized(Σ2)-diagm(ones(d)));digits=3)) 
+    # ; det(Σ)=",round(det(Σ);digits=3), "
+  nothing
+end
+
+Base.show(io::IO, ::MIME"text/plain", mvk::MvNormalKernel) = show(io, mvk)
 
 
 function distanceMalahanobisCoordinates(
