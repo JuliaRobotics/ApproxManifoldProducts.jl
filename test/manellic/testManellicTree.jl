@@ -150,6 +150,15 @@ end
 # lines!(xx, yy, color=:blue) # test
 
 
+# check permutation
+M = TranslationGroup(1)
+pts = [[0.;],[1.],[2.;],[3.;]]
+bw = [1.0]
+mtree = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw=bw,kernel=AMP.MvNormalKernel)
+
+# TODO untested
+@test mtree.permute == [1;2;3;4]
+
 ##
 end
 
@@ -163,7 +172,7 @@ mtree = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw=bw, kernel=
 
 @test isapprox( 0.4, AMP.evaluate(mtree, SA[0.0;]); atol=0.1)
 
-AMP.evalAvgLogL(mtree, [randn(1) for _ in 1:5])
+AMP.expectedLogL(mtree, [randn(1) for _ in 1:5])
 
 @show AMP.entropy(mtree)
 
@@ -203,9 +212,37 @@ pts = [[v;] for v in dict[:evaltest_1_pts]]
 bw = reshape(dict[:evaltest_1_bw],1,1)
 mtree = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw=bw,kernel=AMP.MvNormalKernel)
 
-AMP.evalAvgLogL(mtree, pts)
+AMP.expectedLogL(mtree, pts)
 
-@test AMP.evalAvgLogL(mtree, pts, 1.1) < AMP.evalAvgLogL(mtree, pts, 1.0) < AMP.evalAvgLogL(mtree, pts, 0.9)
+@test AMP.expectedLogL(mtree, pts, 1.1) < AMP.expectedLogL(mtree, pts, 1.0) < AMP.expectedLogL(mtree, pts, 0.9)
+
+
+##
+end
+
+
+@testset "Manellic tree kernel bandwidth 1D LOO evaluation/entropy checks" begin
+##
+
+M = TranslationGroup(1)
+
+pt = [[0.0;],[1.0;],[2.0;],[3.0;]]
+_m_ = ApproxManifoldProducts.buildTree_Manellic!(M, pt; kernel_bw=[1.0;;],kernel=AMP.MvNormalKernel)
+ApproxManifoldProducts.entropy(_m_)
+
+XX = -3:0.1:6
+Y = [ApproxManifoldProducts.evaluate(_m_, [x;]) for x in XX]
+
+function cost(s)
+  mtr = ApproxManifoldProducts.buildTree_Manellic!(M, pt; kernel_bw=[s;;],kernel=AMP.MvNormalKernel)
+  # AMP.entropy(mtr)
+  AMP.expectedLogL(mtr, getPoints(mtr), 1, true)
+end
+
+# optimal is somewhere in the single digits and basic monoticity outward
+@test cost(1e-4) === -Inf
+@test cost(1e-3) < cost(1e-2) < cost(1e-1) < cost(1e-0)
+@test cost(1e2) < cost(1e1) < cost(1e0)
 
 
 ##
@@ -216,28 +253,28 @@ end
 ##
 
 M = TranslationGroup(1)
-pts = [[0.;],[1.],[2.;],[3.;]]
+# pts = [[0.;],[1.],[2.;],[3.;]]
 pts = [randn(1) for _ in 1:128]
-bw = [1.0]
-mtree = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw=bw,kernel=AMP.MvNormalKernel)
+
+# bw = [1.0]
+# mtree = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw=bw,kernel=AMP.MvNormalKernel)
 # TODO isdefined does not work here (upstream bug somewhere)
 # @test isdefined(mtree.tree_kernels, 1)
 # @test isdefined(mtree.tree_kernels, 2)
 # @test isdefined(mtree.tree_kernels, 3)
 # @test !isdefined(mtree.tree_kernels, 4)
 
-lcov, ucov = AMP.getBandwidthSearchBounds(mtree)
 
 ## ASSUMING SCALAR
 # do linesearch for best selection of bw_scl
 # MINIMIZE(entropy, mtree, p0)
 
+# FIXME use bounds
+lcov, ucov = AMP.getBandwidthSearchBounds(mtree)
 bw_cov = (ucov + lcov)/2
 mtree_0 = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw=bw_cov,kernel=AMP.MvNormalKernel)
-
 lower = lcov / bw_cov
 upper = ucov / bw_cov
-
 AMP.entropy(mtree_0, lower[1])
 AMP.entropy(mtree_0, upper[1])
 
@@ -247,14 +284,55 @@ AMP.entropy(mtree_0, upper[1])
 # iterations
 # rel_tol: The relative tolerance used for determining convergence. Defaults to sqrt(eps(T))
 # abs_tol: The absolute tolerance used for determining convergence. Defaults to eps(T)
-res = Optim.optimize(s->AMP.entropy(mtree_0, s), lower[1], upper[1], Optim.GoldenSection())
-best_cov = Optim.minimizer(res) * bw_cov
+cost(s) = begin
+  mtr = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw=[s;;],kernel=AMP.MvNormalKernel)
+  AMP.entropy(mtr)
+end
 
-@test_broken isapprox(0.36, best_cov[1]; atol=0.15)
+res = Optim.optimize(
+  cost, 
+  0.05, 0.8, Optim.GoldenSection()
+)
+best_cov = Optim.minimizer(res)
+
+@test_broken isapprox(0.38, best_cov; atol=0.15)
+
+
+# test why broken
+
+function cost(s)
+  mtr = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw=[s;;],kernel=AMP.MvNormalKernel)
+  # AMP.entropy(mtr)
+  AMP.expectedLogL(mtr, getPoints(mtr), 1, true)
+end
+
+
+XX = 0.05:0.05:0.3
+YY = cost.(XX)
+
+# should pass the optimal kbw somewhere in the given range
+@test_broken any(0 .< diff(YY))
+
 
 ##
 end
 
+
+
+##
+# using GLMakie
+
+# f = Figure()
+
+# ax = f[1, 1] = Axis(f; xscale=log10,yscale=log10)
+
+# lines!(S, -Y,  color=:blue, label="Manellic")
+
+# f[1, 2] = Legend(f, ax, "Entropy R&D", framevisible = false)
+
+# f
+
+##
 
 # TODO
 # @testset "Manellic tree bandwidth optimize n-dim RLM" begin

@@ -14,10 +14,30 @@ getPoints(
   mt::ManellicTree
 ) = view(mt.data, mt.permute)
 
+getWeights(
+  mt::ManellicTree
+) = view(mt.weights, mt.permute)
+
+uniWT(mt::ManellicTree) = 1===length(union(diff(getWeights(mt))))
+
+function uniBW(
+  mt::ManellicTree{M,D,N}
+) where{M,D,N}
+  if 1 < length(mt.leaf_kernels)
+    bw = cov(mt.leaf_kernels[1])
+    for lk in view(mt.leaf_kernels, 2:N)
+      if !isapprox(bw, cov(lk))
+        return false
+      end
+    end
+  end
+  return true
+end
+
 function Base.show(
   io::IO, 
-  mt::ManellicTree{M,D,N,KT}
-) where {M,D,N,KT}
+  mt::ManellicTree{M,D,N,TK}
+) where {M,D,N,TK}
   printstyled(io, "ManellicTree{"; bold=true,color = :blue)
   println(io)
   printstyled(io, "  M  = ", M, color = :magenta)
@@ -26,7 +46,7 @@ function Base.show(
   println(io)
   printstyled(io, "  N  = ", N, color = :magenta)
   println(io)
-  printstyled(io, "  KT = ", KT, color = :magenta)
+  printstyled(io, "  TK = ", TK, color = :magenta)
   # println(io)
   # printstyled(io, "  HT = ", HT, color = :magenta)
   println(io)
@@ -34,18 +54,54 @@ function Base.show(
   println(io, "(")
   @assert N == length(mt.data) "show(::ManellicTree,) noticed a data size issue, expecting N$(N) == length(.data)$(length(mt.data))"
   if 0 < N
-    println(io, "  .data[1:]:     ", mt.data[1], " ... ",    mt.data[end])
+    println(io, "  .data[1:]   :  ", mt.data[1], " ... ",    mt.data[end])
     println(io, "  .weights[1:]:  ", mt.weights[1], " ... ", mt.weights[end])
-    println(io, "  .permute[1:]:  ", mt.permute[1], " ... ", mt.permute[end])
-    printstyled(io, "  .tkernels[1]:  ", " __see below__"; color=:light_black)
+    printstyled(io, "     (uniwt)  :   ", uniWT(mt); color=:light_black)
     println(io)
-    println(io, "  ...,")
+    print(io, "  .permute[1:]:  ")
+    printstyled(io, mt.permute[1], " ... ", mt.permute[end]; color=:light_black)
+    println(io)
+    print(io, "  .tkernels[") # " __see below__"; color=:light_black)
+    if 0 < N
+      # printstyled(io, "  .tkernels[1] = "; color=:light_black)
+      print(io,"1]:  ")
+      printstyled(io,"::TK ";color=:magenta)
+      printstyled(io, mt.tree_kernels[1]; color=:light_black)
+      # print(io, "  ...,")
+    else
+      print(io,"]:   ")
+      printstyled(io,"::TK ";color=:magenta)
+      println(io)
+    end
+    printstyled(io, "     (depth)  :   ", floor(Int,log2(length(mt.tree_kernels))),"+1"; color=:light_black)
+    println(io)
+    printstyled(io, "     (blncd)  :   ", "true : _wip_";color=:light_black)
+    println(io)
+    print(io, "  .lkernels[")
+    if 0 < N
+      print(io,"1]:  ")
+      # printstyled(io, "  .tkernels[1] = "; color=:light_black)
+      printstyled(io, mt.leaf_kernels[1]; color=:light_black)
+      # print(io, "  ...,")
+      if 1 < N
+        printstyled(io, "         [end]:  "; color=:light_black)
+        printstyled(io, mt.leaf_kernels[end]; color=:light_black)
+      end
+    else
+      print(io,"]:   ")
+      println(io)
+    end
+    # printstyled(io, "{1..$N}"; color=:light_black)
+    # println(io)
+    uBW = uniBW(mt)
+    printstyled(io, "     (unibw)  :   ", uBW; color=:light_black)
+    println(io)
+    if uBW
+      printstyled(io, "         bw   :    ", round.(getBW(mt)[1][:]';digits=3); color=:light_black)
+      println(io)
+    end
   end
   println(io, ")")
-  if 0 < N
-    printstyled(io, "  .tkernels[1] = "; color=:light_black)
-    println(io, mt.tree_kernels[1])
-  end
   # TODO ad dmore stats: max depth, widest point, longest chain, max clique size, average nr children
 
   return nothing
@@ -197,8 +253,8 @@ function buildTree_Manellic!(
   ax_CCp, mask, knl = splitPointsEigen(M, view(mtree.data, ido); kernel, kernel_bw=_kernel_bw)
 
   # sort the data as 'small' and 'big' elements either side of the eigen split
-  sml = view(ido, mask)
-  big = view(ido, xor.(mask, true))
+  big = view(ido, mask)
+  sml = view(ido, xor.(mask, true))
   # reorder the slice portion of the permutation with new ordering
   ido .= SA[sml...; big...]
 
@@ -233,6 +289,9 @@ end
 
 """
     $SIGNATURES
+
+Notes:
+- Bandwidths for leaves (i.e. `kernel_bw`) must be passed in as covariances when `MvNormalKernel`.
 
 DevNotes:
 - Design Decision 24Q1, Manellic.MvNormalKernel bandwidth defs should ALWAYS ONLY BE covariances, because
@@ -304,64 +363,90 @@ function buildTree_Manellic!(
   )
 end
 
-# TODO use geometric computing for faster evaluation
-# DevNotes:
-#  - Computational Geometry
-#  - Dual tree evaluations
-#  - Fast kernels
-#  - Parallel transport shortcuts?
+"""
+    $SIGNATURES
+
+Evaluate the belief density for a given Manellic tree.
+
+DevNotes:
+- Computational Geometry
+  - use geometric computing for faster evaluation
+- Dual tree evaluations
+  - Holmes, M.P., Gray, A.G. and Isbell Jr, C.L., 2010. Fast kernel conditional density estimation: A dual-tree Monte Carlo approach. Computational statistics & data analysis, 54(7), pp.1707-1718.
+- Fast kernels
+- Parallel transport shortcuts?
+"""
 function evaluate(
   mt::ManellicTree{M,D,N,HL},
   p,
-  bw_scl::Real = 1
+  bw_scl::Real = 1,
+  LOO::Bool = false,
 ) where {M,D,N,HL}
+  # force function barrier, just to be sure dyndispatch is limited
+  _F() = getfield(ApproxManifoldProducts,HL.name.name)
+  _F_ = _F() 
+
+  pts = getPoints(mt)
+  w = getWeights(mt)
 
   dim = manifold_dimension(mt.manifold)
   sumval = 0.0
   # FIXME, brute force for loop
-  for i in 1:N
-    ekr = mt.leaf_kernels[i]
-    _ekr = getfield(ApproxManifoldProducts,HL.name.name)(mean(ekr.p), bw_scl*cov(ekr.p))
-    nscl = 1/sqrt((2*pi)^dim * det(cov(_ekr.p)))
-    oneval = mt.weights[i] * nscl * ker(mt.manifold, _ekr, p, 0.5, distanceMalahanobisSq)
-    # @info "EVAL" i oneval
-    sumval += oneval
+  for (i,t) in enumerate(pts)
+    if !LOO || !isapprox(p, t)
+      ekr = mt.leaf_kernels[i]
+      _ekr = _F_(mean(ekr), bw_scl*cov(ekr))
+      nscl = 1/sqrt((2*pi)^dim * det(cov(_ekr)))
+      nscl *= !LOO ? 1 : 1/(1-w[i])
+      oneval = mt.weights[i] * nscl * ker(mt.manifold, _ekr, p, 0.5, distanceMalahanobisSq)
+      # @info "EVAL" i oneval
+      sumval += oneval
+    end
   end
   
   return sumval
 end
 
 
-function evalAvgLogL(
+function expectedLogL(
   mt::ManellicTree{M,D,N},
   epts::AbstractVector,
-  bw_scl::Real = 1
+  bw_scl::Real = 1,
+  LOO::Bool = false
 ) where {M,D,N}
+  T = Float64
   # TODO really slow brute force evaluation
-  eL = MVector{length(epts),Float64}(undef)
+  eL = MVector{length(epts),T}(undef)
   for (i,p) in enumerate(epts)
-    eL[i] = evaluate(mt, p, bw_scl)
+    # LOO skip for leave-one-out
+    eL[i] = evaluate(mt, p, bw_scl, LOO)
   end
   # set numerical tolerance floor
-  ind = findall(isapprox.(0,eL; atol=1e-14))
+  zrs = findall(isapprox.(0,eL))
   # nominal case with usable evaluation points
-  eL[ind] .= 1.0
-  return mean(log.(eL))
+  eL[zrs] .= 1.0
+
+  # weight and return within numerical reach
+  w = getWeights(mt)
+  if any(0 .!= w[zrs])
+    -Inf
+  else
+    w'*(log.(eL))
+    # return mean(log.(eL))
+  end
 end
-# pathelogical case
-# if 
-#   return -Inf
-# end
+# pathelogical case return -Inf
+
 
 entropy(
   mt::ManellicTree,
   bw_scl::Real = 1,
-) = -evalAvgLogL(mt, getPoints(mt), bw_scl)
+) = -expectedLogL(mt, getPoints(mt), bw_scl, true)
 
-leaveOneOutLogL(
-  mt::ManellicTree,
-  bw_scl::Real = 1,
-) = entropy(mt, bw_scl)
+# leaveOneOutLogL(
+#   mt::ManellicTree,
+#   bw_scl::Real = 1,
+# ) = entropy(mt, bw_scl)
 
 
 (mt::ManellicTree)(
