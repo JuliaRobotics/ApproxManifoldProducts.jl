@@ -257,8 +257,8 @@ M = TranslationGroup(1)
 # pts = [[0.;],[1.],[2.;],[3.;]]
 pts = [randn(1) for _ in 1:128]
 
-# bw = [1.0]
-# mtree = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw=bw,kernel=AMP.MvNormalKernel)
+bw = [1.0]
+mtree = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw=bw,kernel=AMP.MvNormalKernel)
 # TODO isdefined does not work here (upstream bug somewhere)
 # @test isdefined(mtree.tree_kernels, 1)
 # @test isdefined(mtree.tree_kernels, 2)
