@@ -2,6 +2,7 @@
 # using Revise
 using Test
 using ApproxManifoldProducts
+using Random
 using StaticArrays
 using TensorCast
 using Manifolds
@@ -112,8 +113,85 @@ end
 @testset "ManellicTree construction 1D" begin
 ##
 
+function testMDEConstr(
+  pts::AbstractVector{<:AbstractVector{<:Real}},
+  permref = sortperm(pts, by=s->getindex(s,1));
+  lseg = 1:2,
+  rseg = 3:4
+)
+  # check permutation
+  M = TranslationGroup(1)
+  bw = [1.0]
+
+  mtree = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw=bw,kernel=AMP.MvNormalKernel)
+  @test permref == mtree.permute
+  @test isapprox( mean(M, pts), mean(mtree.tree_kernels[1]); atol=1e-10)
+  @test Set(mtree.segments[1]) == Set(union(lseg, rseg))
+  @test Set(mtree.segments[2]) == Set(mtree.permute[lseg])
+  @test Set(mtree.segments[3]) == Set(mtree.permute[rseg])
+  @test isapprox( mean(M, pts[mtree.permute[lseg]]), mean(mtree.tree_kernels[2]); atol=1e-10)
+  @test isapprox( mean(M, pts[mtree.permute[rseg]]), mean(mtree.tree_kernels[3]); atol=1e-10)
+  nothing
+end
+
+## for 4 values
+
+# manual orders
+testMDEConstr( [[0.;],[1.],[3.;],[6.;]] )
+testMDEConstr( [[0.;],[1.],[6.;],[3.;]] )
+testMDEConstr( [[0.;],[3.],[1.;],[6.;]] )
+testMDEConstr( [[1.;],[0.],[3.;],[6.;]] )
+testMDEConstr( [[1.;],[0.],[6.;],[3.;]] )
+testMDEConstr( [[1.;],[6.],[0.;],[3.;]] )
+testMDEConstr( [[6.;],[1.],[3.;],[0.;]] )
+
+testMDEConstr( [[0.9497270480266986;], [-0.5973125859935883;], [-0.6031001429225558;], [-0.3971695179687664;]] )
+
+
+# randomized orders for 4 values
+pts = [[0.;],[1.],[3.;],[6.;]]
+for i in 1:10
+  testMDEConstr( pts[shuffle(1:4)] )
+end
+
+
+## for 5 values
+
+testMDEConstr( [[0.;],[1.],[3.;],[6.;],[10.;]]; lseg=1:3, rseg=4:5)
+testMDEConstr( [[0.;],[1.],[6.;],[3.;],[10.;]]; lseg=1:3, rseg=4:5)
+
+# randomized orders for 5 values
+pts = [[0.;],[1.],[3.;],[6.;],[10.;],]
+for i in 1:10
+  testMDEConstr( pts[shuffle(1:length(pts))], lseg=1:3, rseg=4:5)
+end
+
+## for 7 values
+
+# randomized orders for 7 values
+pts = [[0.;],[1.],[3.;],[6.;],[10.;],[15.;],[21.;]]
+for i in 1:10
+  testMDEConstr( pts[shuffle(1:length(pts))]; lseg=1:4,rseg=5:7 )
+end
+
+
+#
 M = TranslationGroup(1)
-pts = [randn(1) for _ in 1:100]
+pts = [randn(1) for _ in 1:8]
+for i in 1:10
+  _pts = pts[shuffle(1:length(pts))]
+  testMDEConstr( _pts; lseg=1:4,rseg=5:8 )
+end
+
+##
+end
+
+
+@testset "ManellicTree 1D basic construction and evaluations" begin
+## 
+
+M = TranslationGroup(1)
+pts = [randn(1) for _ in 1:128]
 mtree = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel=AMP.MvNormalKernel)
 
 AMP.evaluate(mtree, SA[0.0;])
@@ -127,13 +205,6 @@ M = TranslationGroup(1)
 pts = [[v;] for v in dict[:evaltest_1_pts]]
 bw = reshape(dict[:evaltest_1_bw],1,1)
 mtree = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw=bw,kernel=AMP.MvNormalKernel)
-
-# for (i,v) in enumerate(dict[:evaltest_1_at])
-#   # @show AMP.evaluate(mtree, [v;]), dict[:evaltest_1_dens][i]
-#   @test isapprox(dict[:evaltest_1_dens][i], AMP.evaluate(mtree, [v;]))
-# end
-# isapprox(dict[:evaltest_1_dens][5], AMP.evaluate(mtree, [dict[:evaltest_1_at][5]]))
-# eval test ref Normal(0,1)
 
 np = Normal(0,1)
 h = 0.1
@@ -149,15 +220,24 @@ end
 # lines(xx, yy_, color=:red) # ref
 # lines!(xx, yy, color=:blue) # test
 
+# test sorting order of data 
+permref = sortperm(pts, by=s->getindex(s,1))
 
-# check permutation
-M = TranslationGroup(1)
-pts = [[0.;],[1.],[2.;],[3.;]]
-bw = [1.0]
-mtree = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw=bw,kernel=AMP.MvNormalKernel)
+@test 0 == sum(permref - mtree.permute)
 
-# TODO untested
-@test mtree.permute == [1;2;3;4]
+@test 0 == sum(collect(sortperm(mtree.leaf_kernels; by=s->mean(s))) - collect(1:length(mtree.leaf_kernels)))
+
+#and leaf kernel sorting
+@test norm((pts[mtree.permute] .- mean.(mtree.leaf_kernels)) .|> s->s[1]) < 1e-6
+
+
+
+# for (i,v) in enumerate(dict[:evaltest_1_at])
+#   # @show AMP.evaluate(mtree, [v;]), dict[:evaltest_1_dens][i]
+#   @test isapprox(dict[:evaltest_1_dens][i], AMP.evaluate(mtree, [v;]))
+# end
+# isapprox(dict[:evaltest_1_dens][5], AMP.evaluate(mtree, [dict[:evaltest_1_at][5]]))
+# eval test ref Normal(0,1)
 
 ##
 end
@@ -199,8 +279,6 @@ bel = manikde!(
 ##
 end
 
-
-#
 
 @testset "Manellic tree bandwidth evaluation" begin
 ## load know test data test
@@ -245,6 +323,8 @@ end
 @test cost(1e-3) < cost(1e-2) < cost(1e-1) < cost(1e-0)
 @test cost(1e2) < cost(1e1) < cost(1e0)
 
+# S = [1e-3; 1e-2; 1e-1; 1e0; 1e1; 1e2]
+# Y = cost.(S)
 
 ##
 end
@@ -254,8 +334,8 @@ end
 ##
 
 M = TranslationGroup(1)
-# pts = [[0.;],[1.],[2.;],[3.;]]
-pts = [randn(1) for _ in 1:128]
+# pts = [[0.;],[0.1],[0.2;],[0.3;]]
+pts = [1*randn(1) for _ in 1:64]
 
 bw = [1.0]
 mtree = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw=bw,kernel=AMP.MvNormalKernel)
@@ -285,55 +365,33 @@ AMP.entropy(mtree_0, upper[1])
 # iterations
 # rel_tol: The relative tolerance used for determining convergence. Defaults to sqrt(eps(T))
 # abs_tol: The absolute tolerance used for determining convergence. Defaults to eps(T)
-cost(s) = begin
-  mtr = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw=[s;;],kernel=AMP.MvNormalKernel)
+cost(_pts, σ) = begin
+  mtr = ApproxManifoldProducts.buildTree_Manellic!(M, _pts; kernel_bw=[σ;;],kernel=AMP.MvNormalKernel)
   AMP.entropy(mtr)
 end
 
+
+S = 0.005:0.05:3
+Y = S .|> s->cost(pts,s^2)
+
+# should pass the optimal kbw somewhere in the given range
+@test any(0 .< diff(Y))
+
+# and optimize
+
 res = Optim.optimize(
-  cost, 
-  0.05, 0.8, Optim.GoldenSection()
+  (s)->cost(pts,s^2), 
+  0.05, 3.0, Optim.GoldenSection()
 )
 best_cov = Optim.minimizer(res)
 
-@test_broken isapprox(0.38, best_cov; atol=0.15)
-
-
-# test why broken
-
-function cost(s)
-  mtr = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw=[s;;],kernel=AMP.MvNormalKernel)
-  # AMP.entropy(mtr)
-  AMP.expectedLogL(mtr, getPoints(mtr), 1, true)
-end
-
-
-XX = 0.05:0.05:0.3
-YY = cost.(XX)
-
-# should pass the optimal kbw somewhere in the given range
-@test_broken any(0 .< diff(YY))
+@test isapprox(0.38, best_cov; atol=0.2)
 
 
 ##
 end
 
 
-
-##
-# using GLMakie
-
-# f = Figure()
-
-# ax = f[1, 1] = Axis(f; xscale=log10,yscale=log10)
-
-# lines!(S, -Y,  color=:blue, label="Manellic")
-
-# f[1, 2] = Legend(f, ax, "Entropy R&D", framevisible = false)
-
-# f
-
-##
 
 # TODO
 # @testset "Manellic tree bandwidth optimize n-dim RLM" begin
@@ -342,5 +400,39 @@ end
 
 # ##
 # end
+
+
+
+##
+# # using GLMakie
+
+# M = TranslationGroup(1)
+
+# __pts = [1*randn(1) for _ in 1:64] 
+
+
+# ##
+
+# f = Figure()
+# ax = f[1, 1] = Axis(f; xscale=log10,yscale=log10)
+
+# ##
+
+# SFT = 0.0
+# pts = [p .+ SFT for p in __pts]
+
+# ##
+
+# S = 0.005:0.01:2
+# Y = S .|> s->cost(pts,s^2)
+
+# lines!(S, Y .+ 0.1, color=:blue, label="Manellic $SFT")
+
+# f[1, 2] = Legend(f, ax, "Entropy R&D", framevisible = false)
+# f
+
+##
+
+
 
 #

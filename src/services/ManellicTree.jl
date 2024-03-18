@@ -142,6 +142,7 @@ Give vector of manifold points and split along largest covariance (i.e. major di
 DeVNotes:
 - FIXME: upgrade to Manopt version 
   - https://github.com/JuliaRobotics/ApproxManifoldProducts.jl/issues/277
+- FIXME use manifold mean and cov calculation instead
 """
 function splitPointsEigen(
   M::AbstractManifold,
@@ -152,10 +153,11 @@ function splitPointsEigen(
   #
   len = length(r_PP)
   
+  # important, covariance is calculated around mean of points, which enables log to avoid singularities
   # do calculations around mean point on manifold, i.e. support Riemannian
   p = mean(M, r_PP)
   
-  r_XXp = log.(Ref(M), Ref(p), r_PP)
+  r_XXp = log.(Ref(M), Ref(p), r_PP) # FIXME replace with on-manifold distance
   r_CCp = vee.(Ref(M), Ref(p), r_XXp)
   
   D = manifold_dimension(M)
@@ -185,35 +187,36 @@ function splitPointsEigen(
   # this is a local test around base point p (not at global 0)
   mask = 0 .<= (ax_CCp .|> s->s[1])
 
-  # TODO ALLOW BOTH BALANCED OR UNBALANCED MASK RETRIEVAL, STARTING WITH FORCED MASK BALANCING
-  # rebalance if stochastic nearest estimates fall in wrong mask
-  function _flipmask_minormax!(
-    smlmask, 
-    bigmask, 
-    data; 
-    argminmax::Function = argmin
-  )
-    N = length(smlmask)
-    # move minimum mask points over to imask
-    for k in 1:((sum(bigmask) - sum(smlmask)) ÷ 2)
-      # keep flipping the minimum element from mask into imask set
-      # note using first coord, ie.. x-axis as the split axis: `s->s[1]`
-      mlis = (1:sum(bigmask))
-      ami = argminmax(view(data, bigmask))
-      idx = mlis[ ami ]
-      # get idx from orginal list
-      flipidx = view(1:N, bigmask)[idx]
-      data[flipidx]
-      bigmask[flipidx] = xor(bigmask[flipidx], true)
-      smlmask[flipidx] = xor(smlmask[flipidx], true)
+    # TODO ALLOW BOTH BALANCED OR UNBALANCED MASK RETRIEVAL, STARTING WITH FORCED MASK BALANCING
+    # NOTE, rebalancing reason: deadcenter of covariance is not halfway between points (unconfirmed)
+    # rebalance if stochastic nearest estimates fall in wrong mask
+    function _flipmask_minormax!(
+      smlmask, 
+      bigmask, 
+      data; 
+      argminmax::Function = argmin
+    )
+      N = length(smlmask)
+      # move minimum mask points over to imask
+      for k in 1:((sum(bigmask) - sum(smlmask)) ÷ 2)
+        # keep flipping the minimum element from mask into imask set
+        # note using first coord, ie.. x-axis as the split axis: `s->s[1]`
+        mlis = (1:sum(bigmask))
+        ami = argminmax(view(data, bigmask))
+        idx = mlis[ ami ]
+        # get idx from orginal list
+        flipidx = view(1:N, bigmask)[idx]
+        data[flipidx]
+        bigmask[flipidx] = xor(bigmask[flipidx], true)
+        smlmask[flipidx] = xor(smlmask[flipidx], true)
+      end
+      nothing
     end
-    nothing
-  end
-  
-  imask = xor.(mask,true)
-  ax_CC1 = (s->s[1]).(ax_CCp)
-  _flipmask_minormax!(imask, mask, ax_CC1; argminmax=argmin)
-  _flipmask_minormax!(mask, imask, ax_CC1; argminmax=argmax)
+    
+    imask = xor.(mask,true)
+    ax_CC1 = (s->s[1]).(ax_CCp)
+    _flipmask_minormax!(imask, mask, ax_CC1; argminmax=argmin)
+    _flipmask_minormax!(mask, imask, ax_CC1; argminmax=argmax)
 
   # return rotated coordinates and split mask
   ax_CCp, mask, kernel(p, cv)
@@ -226,9 +229,9 @@ _getright(i::Integer) = 2*i + 1
 
 function buildTree_Manellic!(
   mtree::ManellicTree{MT,D,N},
-  index::Integer,
-  low::Integer, # bottom index of segment
-  high::Integer; # top index of segment;
+  index::Integer, # tree node root=1,left=2n,right=left+1
+  low::Integer,   # bottom index of segment
+  high::Integer;  # top index of segment;
   kernel = MvNormal,
   kernel_bw = nothing,
   leaf_size = 1
@@ -251,20 +254,21 @@ function buildTree_Manellic!(
   ido = view(mtree.permute, idc)
   # split the slice of order-permuted data
   ax_CCp, mask, knl = splitPointsEigen(M, view(mtree.data, ido); kernel, kernel_bw=_kernel_bw)
+  imask = xor.(mask, true)
 
   # sort the data as 'small' and 'big' elements either side of the eigen split
   big = view(ido, mask)
-  sml = view(ido, xor.(mask, true))
-  # reorder the slice portion of the permutation with new ordering
+  sml = view(ido, imask)
+  # inplace reorder the slice portion of mtree.permute towards accending
   ido .= SA[sml...; big...]
 
   npts = high - low + 1
-  mid_idx = low + sum(mask) - 1
+  mid_idx = low + sum(imask) - 1
 
   # @info "BUILD" index low sum(mask) mid_idx high _getleft(index) _getright(index)
 
   lft = mid_idx <= low ? low : _getleft(index)
-  rgt = high < mid_idx+1 ? high : _getright(index)
+  rgt = high <= mid_idx+1 ? high : _getright(index)
 
   if leaf_size < npts
     if lft != low # mid_idx
@@ -281,6 +285,7 @@ function buildTree_Manellic!(
   # FIXME, replace with just the kernel choice, not hyper such and such needed?
   if index < N
     mtree.tree_kernels[index] = knl # HyperEllipse(knl.μ, knl.Σ.mat)
+    mtree.segments[index] = Set(ido)
   end
 
   return mtree
@@ -348,12 +353,13 @@ function buildTree_Manellic!(
     lkern, # MVector{len,lknlT}(undef),
     SizedVector{len,tknlT}(undef),
     # SizedVector{len,tknlT}(undef),
+    SizedVector{len,Set{Int}}(undef),
     MVector{len,Int}(undef),
-    MVector{len,Int}(undef)
+    MVector{len,Int}(undef),
   )
 
   #
-  return buildTree_Manellic!(
+  tosort_leaves = buildTree_Manellic!(
     mtree,
     1, # start at root
     1, # spanning all data
@@ -361,6 +367,15 @@ function buildTree_Manellic!(
     kernel,
     kernel_bw
   )
+
+  # manual reset leaves in the order discovered
+  permute!(tosort_leaves.leaf_kernels, tosort_leaves.permute)
+    # dupl = deepcopy(tosort_leaves.leaf_kernels)
+    # for (k,i) in enumerate(tosort_leaves.permute)
+    #   tosort_leaves[i] = dupl.leaf_kernels[k]
+    # end
+
+  return tosort_leaves
 end
 
 """
