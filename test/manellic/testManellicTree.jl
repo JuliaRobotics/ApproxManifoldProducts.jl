@@ -434,5 +434,13 @@ end
 ##
 
 
+@testset "Product of two Manellic Beliefs, Sequential Gibbs" begin
+##
+
+@warn "Work in progress"
+
+
+##
+end
 
 #
