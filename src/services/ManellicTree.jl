@@ -520,13 +520,56 @@ end
 ## WIP Sequential Gibbs Product development
 
 
+"""
+    $SIGNATURES
+
+Return new kernel as product of incoming kernels (e.g. `MvNormalKernel`).
+
+Notes
+- Standard product of Gaussians, mu and Sigma, with on-manifold considerations.
+"""
+function calcProductGaussians(
+  M::Manifold,
+  comps::AbstractVector{<:MvNormalKernel},
+)
+  #
+  d = manifold_dimension(M)
+
+  # TODO avoid recomputing covariance matrix inverses all the time
+  _Sigma2 = zeros(d,d)
+  _Sig2mu = zeros(d)
+  for c in comps
+    concentration = inv(cov(c))
+    _Sigma2 += concentration
+    _Sig2mu += concentration * mean(c)
+  end
+
+  Sigma2 = inv(_Sigma2)
+  mu = Sigma2 * _Sig2mu  
+
+  return MvNormalKernel(mu, Sigma2)
+end
 
 
 
 
+function calcProductSeqGibbs(
+  proposals::AbstractVector,
+)
+  #
+
+  
+
+  # select a label from each proposal density
+
+  # calc product of Gaussians from currently selected LOO-proposals
+
+  # update label-distribution of out-proposal from product of selected LOO-proposal components
+
+  # 
 
 
-
+end
 
 
 

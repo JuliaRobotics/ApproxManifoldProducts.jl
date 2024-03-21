@@ -434,8 +434,40 @@ end
 ##
 
 
+@testset "Test utility functions for Gaussian products" begin
+##
+
+g1 = ApproxManifoldProducts.MvNormalKernel([-1.0;],[4.0;;])
+g2 = ApproxManifoldProducts.MvNormalKernel([1.0;],[4.0;;])
+
+g = ApproxManifoldProducts.calcProductGaussians([g1; g2])
+@test isapprox( [0.0;], mean(g); atol=1e-6)
+@test isapprox( [1/sqrt(2);;], cov(g); atol=1e-6)
+
+g1 = ApproxManifoldProducts.MvNormalKernel([-1.0;],[4.0;;])
+g2 = ApproxManifoldProducts.MvNormalKernel([1.0;],[9.0;;])
+
+g = ApproxManifoldProducts.calcProductGaussians([g1; g2])
+@test isapprox( [-5/13;], mean(g); atol=1e-6)
+@test isapprox( [sqrt(13/36);;], cov(g); atol=1e-6)
+
+##
+end
+
+
 @testset "Product of two Manellic Beliefs, Sequential Gibbs" begin
 ##
+
+M = TranslationGroup(1)
+
+pts = [[0.0;],[1.0;],[3.0;],[6.0;]]
+p1 = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw=[1.0;;], kernel=ApproxManifoldProducts.MvNormalKernel)
+
+pts = [[1.5;],[2.5;],[4.5;],[7.5;]]
+p2 = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw=[1.0;;, kernel=ApproxManifoldProducts.MvNormalKernel])
+
+
+p = ApproxManifoldProducts.calcProductSeqGibbs([p1; p2])
 
 @warn "Work in progress"
 
