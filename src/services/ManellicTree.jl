@@ -517,4 +517,17 @@ end
 
 # _X1_ = X1_a*X1_b
 
-#
+## WIP Sequential Gibbs Product development
+
+
+
+
+
+
+
+
+
+
+
+
+##
