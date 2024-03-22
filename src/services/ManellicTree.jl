@@ -529,7 +529,7 @@ Notes
 - Standard product of Gaussians, mu and Sigma, with on-manifold considerations.
 """
 function calcProductGaussians(
-  M::Manifold,
+  M::AbstractManifold,
   comps::AbstractVector{<:MvNormalKernel},
 )
   #
