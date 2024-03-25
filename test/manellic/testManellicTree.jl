@@ -457,7 +457,7 @@ g = ApproxManifoldProducts.calcProductGaussians(M, [g1; g2])
 end
 
 
-@testset "Product of two Manellic Beliefs, Sequential Gibbs" begin
+@testset "Product of two Manellic beliefs, Sequential Gibbs" begin
 ##
 
 M = TranslationGroup(1)
@@ -478,8 +478,7 @@ kernel_bw = mean(cov.(post))
 
 mtr = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw, kernel=ApproxManifoldProducts.MvNormalKernel)
 
-@warn "Work in progress"
-
+@test isapprox( 0, mean(mtr.tree_kernels[1]); atol=0.75)
 
 ##
 end
@@ -493,6 +492,12 @@ end
 # XX = [[s;] for s in -4:0.1:4]
 # YY = ApproxManifoldProducts.evaluate.(Ref(mtr), XX)
 
-# lines((s->s[1]).(XX),YY)
+# lines((s->s[1]).(XX),YY, color=:magenta)
+
+# YY = ApproxManifoldProducts.evaluate.(Ref(p1), XX)
+# lines!((s->s[1]).(XX),YY, color=:blue)
+# YY = ApproxManifoldProducts.evaluate.(Ref(p2), XX)
+# lines!((s->s[1]).(XX),YY, color=:red)
+
 
 #
