@@ -18,6 +18,19 @@ getWeights(
   mt::ManellicTree
 ) = view(mt.weights, mt.permute)
 
+
+"""
+    $SIGNATURES
+
+Return leaf kernel associated with input data element `i` (i.e. `permuted=true`).
+Else when set to `permuted=false` return the sorted leaf_kernel `i` (different from unsorted input data number).
+"""
+getKernel(
+  mt::ManellicTree,
+  i::Int,
+  permuted::Bool = true
+) = mt.leaf_kernels[mt.permute[i]]
+
 uniWT(mt::ManellicTree) = 1===length(union(diff(getWeights(mt))))
 
 function uniBW(
@@ -108,6 +121,26 @@ function Base.show(
 end
 
 Base.show(io::IO, ::MIME"text/plain", mt::ManellicTree) = show(io, mt)
+
+
+# case for identical types not requiring any conversions
+Base.convert(
+  ::Type{MvNormalKernel{P,T,M,iM}},
+  src::MvNormalKernel{P,T,M,iM},
+) where {P,T,M,iM} = src
+
+function Base.convert(
+  ::Type{MvNormalKernel{P,T,M,iM}},
+  src::MvNormalKernel,
+) where {P,T,M,iM}
+  #
+  _matType(::Type{Distributions.PDMats.PDMat{_F,_M}}) where {_F,_M} = _M
+  μ = P(src.μ)
+  p = MvNormal(_matType(M)(cov(src.p)))
+  sqrt_iΣ = iM(src.sqrt_iΣ)
+  MvNormalKernel{P,T,M,iM}(μ, p, sqrt_iΣ)
+end
+
 
 
 # covariance
@@ -284,7 +317,8 @@ function buildTree_Manellic!(
   # set HyperEllipse at this level in tree
   # FIXME, replace with just the kernel choice, not hyper such and such needed?
   if index < N
-    mtree.tree_kernels[index] = knl # HyperEllipse(knl.μ, knl.Σ.mat)
+    _knl = convert(eltype(mtree.tree_kernels), knl)
+    mtree.tree_kernels[index] = _knl # HyperEllipse(knl.μ, knl.Σ.mat)
     mtree.segments[index] = Set(ido)
   end
 
@@ -394,7 +428,7 @@ DevNotes:
 function evaluate(
   mt::ManellicTree{M,D,N,HL},
   p,
-  bw_scl::Real = 1,
+  # bw_scl::Real = 1,
   LOO::Bool = false,
 ) where {M,D,N,HL}
   # force function barrier, just to be sure dyndispatch is limited
@@ -404,17 +438,15 @@ function evaluate(
   pts = getPoints(mt)
   w = getWeights(mt)
 
-  dim = manifold_dimension(mt.manifold)
   sumval = 0.0
   # FIXME, brute force for loop
   for (i,t) in enumerate(pts)
-    if !LOO || !isapprox(p, t)
+    if !LOO || !isapprox(p, t) # FIXME change isapprox to on-manifold version
+      # FIXME, is this assuming length(pts) and length(mt.leaf_kernels) are the same?
       ekr = mt.leaf_kernels[i]
-      _ekr = _F_(mean(ekr), bw_scl*cov(ekr))
-      nscl = 1/sqrt((2*pi)^dim * det(cov(_ekr)))
-      nscl *= !LOO ? 1 : 1/(1-w[i])
-      oneval = mt.weights[i] * nscl * ker(mt.manifold, _ekr, p, 0.5, distanceMalahanobisSq)
-      # @info "EVAL" i oneval
+      # TODO remember special handling for partials in the future
+      oneval = mt.weights[i] * evaluate(mt.manifold, ekr, p) 
+      oneval *= !LOO ? 1 : 1/(1-w[i])
       sumval += oneval
     end
   end
@@ -426,7 +458,7 @@ end
 function expectedLogL(
   mt::ManellicTree{M,D,N},
   epts::AbstractVector,
-  bw_scl::Real = 1,
+  # bw_scl::Real = 1,
   LOO::Bool = false
 ) where {M,D,N}
   T = Float64
@@ -434,7 +466,7 @@ function expectedLogL(
   eL = MVector{length(epts),T}(undef)
   for (i,p) in enumerate(epts)
     # LOO skip for leave-one-out
-    eL[i] = evaluate(mt, p, bw_scl, LOO)
+    eL[i] = evaluate(mt, p, LOO)
   end
   # set numerical tolerance floor
   zrs = findall(isapprox.(0,eL))
@@ -455,8 +487,7 @@ end
 
 entropy(
   mt::ManellicTree,
-  bw_scl::Real = 1,
-) = -expectedLogL(mt, getPoints(mt), bw_scl, true)
+) = -expectedLogL(mt, getPoints(mt), true)
 
 # leaveOneOutLogL(
 #   mt::ManellicTree,
@@ -517,4 +548,105 @@ end
 
 # _X1_ = X1_a*X1_b
 
-#
+## WIP Sequential Gibbs Product development
+
+
+
+function sampleProductSeqGibbsLabel(
+  M::AbstractManifold,
+  proposals::AbstractVector,
+  treeLevel::Int = 1, # reserved for future use
+  MC = 3,
+)
+  #
+  # how many incoming proposals
+  d = length(proposals)
+
+  # # how many points per proposal
+  Ns = proposals .|> getPoints .|> length
+
+  # TODO upgrade to multiscale
+  # start with random selection of labels
+  best_labels = [rand(1:n) for n in Ns]
+  
+  # pick the next leave-out proposal
+  for _ in MC, O in 1:d
+    # select a label from the not-selected proposal densities
+    sublabels = Tuple{Int,Int}[]
+    for s in setdiff(1:d, O)
+      slbl = best_labels[s]
+      push!(sublabels, (s,slbl))
+    end
+    # prop = proposals[s]
+
+    # TODO upgrade to map and tuples
+    components = map(sl->getKernel(proposals[sl[1]], sl[2], true), sublabels)
+    
+    # calc product of Gaussians from currently selected LOO-proposals
+    newO = calcProductGaussians(M, [components...])
+    
+    # evaluate new sampling weights of points in out component
+    evat = getPoints(proposals[O]) # FIXME how should partials be handled here?
+    smw = zeros(length(evat))
+    # FIXME, use multipoint evaluation such as NN (not just one point at a time)
+    for (i,ev) in enumerate(evat)
+      smw[i] = evaluate(M, newO, ev)
+      # δc = distanceMalahanobisCoordinates(M,newO,ev)
+    end
+    
+    smw ./= sum(smw)
+
+    # smw = evaluate(newO, )
+    p = Categorical(smw)
+    
+    # update label-distribution of out-proposal from product of selected LOO-proposal components
+    best_labels[O] = rand(p)
+  end
+
+  #
+  
+  return best_labels
+end
+
+
+function sampleProductSeqGibbsLabels(
+  M::AbstractManifold,
+  proposals::AbstractVector,
+  treeLevel::Int = 1, # reserved for future use
+  MC = 3,
+  N::Int = round(Int, mean(length.(getPoints.(proposals))))
+)
+  #
+  d = length(proposals)
+  posterior_labels = Vector{NTuple{d,Int}}(undef,N)
+
+  for i in 1:N
+    posterior_labels[i] = tuple(sampleProductSeqGibbsLabel(M,proposals,treeLevel,MC)...)
+  end
+
+  posterior_labels
+end
+
+
+function calcProductKernelLabels(
+  M::AbstractManifold,
+  proposals::AbstractVector,
+  lbls::AbstractVector{<:NTuple}
+)
+  #
+
+  post = []
+
+  for lbs in lbls
+    props = MvNormalKernel[]
+    for (i,lb) in enumerate(lbs)
+      # selection of labels was done against sorted list of particles, hence false
+      push!(props, getKernel(proposals[i],lb,false)) 
+    end
+    push!(post,calcProductGaussians(M,props))
+  end
+
+  return post
+end
+
+##

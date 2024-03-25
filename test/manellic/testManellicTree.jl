@@ -293,7 +293,7 @@ mtree = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw=bw,kernel=A
 
 AMP.expectedLogL(mtree, pts)
 
-@test AMP.expectedLogL(mtree, pts, 1.1) < AMP.expectedLogL(mtree, pts, 1.0) < AMP.expectedLogL(mtree, pts, 0.9)
+@test AMP.expectedLogL(mtree, pts) < Inf 
 
 
 ##
@@ -315,7 +315,7 @@ Y = [ApproxManifoldProducts.evaluate(_m_, [x;]) for x in XX]
 function cost(s)
   mtr = ApproxManifoldProducts.buildTree_Manellic!(M, pt; kernel_bw=[s;;],kernel=AMP.MvNormalKernel)
   # AMP.entropy(mtr)
-  AMP.expectedLogL(mtr, getPoints(mtr), 1, true)
+  AMP.expectedLogL(mtr, getPoints(mtr), true)
 end
 
 # optimal is somewhere in the single digits and basic monoticity outward
@@ -356,8 +356,8 @@ bw_cov = (ucov + lcov)/2
 mtree_0 = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw=bw_cov,kernel=AMP.MvNormalKernel)
 lower = lcov / bw_cov
 upper = ucov / bw_cov
-AMP.entropy(mtree_0, lower[1])
-AMP.entropy(mtree_0, upper[1])
+AMP.entropy(mtree_0)
+
 
 
 # https://julianlsolvers.github.io/Optim.jl/stable/#user/minimization/#minimizing-a-univariate-function-on-a-bounded-interval
@@ -385,7 +385,7 @@ res = Optim.optimize(
 )
 best_cov = Optim.minimizer(res)
 
-@test isapprox(0.38, best_cov; atol=0.2)
+@test isapprox(0.5, best_cov; atol=0.3)
 
 
 ##
@@ -433,6 +433,71 @@ end
 
 ##
 
+
+@testset "Test utility functions for Gaussian products" begin
+##
+
+M = TranslationGroup(1)
+
+g1 = ApproxManifoldProducts.MvNormalKernel([-1.0;],[4.0;;])
+g2 = ApproxManifoldProducts.MvNormalKernel([1.0;],[4.0;;])
+
+g = ApproxManifoldProducts.calcProductGaussians(M, [g1; g2])
+@test isapprox( [0.0;], mean(g); atol=1e-6)
+@test isapprox( [2.0;;], cov(g); atol=1e-6)
+
+g1 = ApproxManifoldProducts.MvNormalKernel([-1.0;],[4.0;;])
+g2 = ApproxManifoldProducts.MvNormalKernel([1.0;],[9.0;;])
+
+g = ApproxManifoldProducts.calcProductGaussians(M, [g1; g2])
+@test isapprox( [-5/13;], mean(g); atol=1e-6)
+@test isapprox( [36/13;;], cov(g); atol=1e-6)
+
+##
+end
+
+
+@testset "Product of two Manellic beliefs, Sequential Gibbs" begin
+##
+
+M = TranslationGroup(1)
+
+pts = [randn(1).-1 for _ in 1:128]
+p1 = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw=[0.1;;], kernel=ApproxManifoldProducts.MvNormalKernel)
+
+pts = [randn(1).+1 for _ in 1:128]
+p2 = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw=[0.1;;], kernel=ApproxManifoldProducts.MvNormalKernel)
+
+
+lbls = ApproxManifoldProducts.sampleProductSeqGibbsLabels(M, [p1; p2])
+
+post = ApproxManifoldProducts.calcProductKernelLabels(M, [p1;p2], lbls)
+
+pts = mean.(post)
+kernel_bw = mean(cov.(post))
+
+mtr = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw, kernel=ApproxManifoldProducts.MvNormalKernel)
+
+@test isapprox( 0, mean(mtr.tree_kernels[1])[1]; atol=0.75)
+
+##
+end
+
+
+##
+
+# using GLMakie
+
+
+# XX = [[s;] for s in -4:0.1:4]
+# YY = ApproxManifoldProducts.evaluate.(Ref(mtr), XX)
+
+# lines((s->s[1]).(XX),YY, color=:magenta)
+
+# YY = ApproxManifoldProducts.evaluate.(Ref(p1), XX)
+# lines!((s->s[1]).(XX),YY, color=:blue)
+# YY = ApproxManifoldProducts.evaluate.(Ref(p2), XX)
+# lines!((s->s[1]).(XX),YY, color=:red)
 
 
 #

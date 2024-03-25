@@ -117,12 +117,13 @@ Notes
 - https://ccrma.stanford.edu/~jos/sasp/Product_Two_Gaussian_PDFs.html
 - Pennec, X. Intrinsic Statistics on Riemannian Manifolds: Basic Tools for Geometric Measurements, HAL Archive, 2011, Inria, France.
 """
-function calcProductGaussians(M::AbstractManifold, 
-                              μ_::Union{<:AbstractVector{P},<:NTuple{N,P}}, # point type commonly known as P 
-                              Σ_::Union{Nothing,<:AbstractVector{S},<:NTuple{N,S}};
-                                dim::Integer=manifold_dimension(M),
-                              Λ_ = inv.(Σ_),
-                              ) where {N,P,S<:AbstractMatrix{<:Real}}
+function calcProductGaussians(
+  M::AbstractManifold, 
+  μ_::Union{<:AbstractVector{P},<:NTuple{N,P}}, # point type commonly known as P 
+  Σ_::Union{Nothing,<:AbstractVector{S},<:NTuple{N,S}};
+  dim::Integer=manifold_dimension(M),
+  Λ_ = inv.(Σ_),
+) where {N,P,S<:AbstractMatrix{<:Real}}
   #
   # calc sum of covariances  
   Λ = zeros(MMatrix{dim,dim})
@@ -148,20 +149,52 @@ end
 
 # additional support case where covariances are passed as diagonal-only vectors 
 # still pass nothing, to avoid stack overflow.  Only Λ_ is needed further
-calcProductGaussians( M::AbstractManifold, 
-                      μ_::Union{<:AbstractVector{P},<:NTuple{N,P}},
-                      Σ_::Union{<:AbstractVector{S},<:NTuple{N,S}};
-                        dim::Integer=manifold_dimension(M),
-                      Λ_ = map(s->diagm( 1.0 ./ s), Σ_),
-                      ) where {N,P,S<:AbstractVector} = calcProductGaussians(M, μ_, nothing; dim=dim, Λ_=Λ_ )
+calcProductGaussians( 
+  M::AbstractManifold, 
+  μ_::Union{<:AbstractVector{P},<:NTuple{N,P}},
+  Σ_::Union{<:AbstractVector{S},<:NTuple{N,S}};
+  dim::Integer=manifold_dimension(M),
+  Λ_ = map(s->diagm( 1.0 ./ s), Σ_),
+) where {N,P,S<:AbstractVector} = calcProductGaussians(M, μ_, nothing; dim, Λ_=Λ_ )
 #
 
-calcProductGaussians( M::AbstractManifold, 
-                      μ_::Union{<:AbstractVector{P},<:NTuple{N,P}};
-                        dim::Integer=manifold_dimension(M),
-                      Λ_ = diagm.( (1.0 ./ μ_) ),
-                      ) where {N,P} = calcProductGaussians(M, μ_, nothing; dim=dim, Λ_=Λ_ )
-#
+calcProductGaussians( 
+  M::AbstractManifold, 
+  μ_::Union{<:AbstractVector{P},<:NTuple{N,P}};
+  dim::Integer=manifold_dimension(M),
+  Λ_ = diagm.( (1.0 ./ μ_) ),
+) where {N,P} = calcProductGaussians(M, μ_, nothing; dim, Λ_=Λ_ )
+
+
+
+function calcProductGaussians(
+  M::AbstractManifold,
+  comps::AbstractVector{<:MvNormalKernel},
+)
+  #
+  μ_ = mean.(comps)
+  Σ_ = cov.(comps)
+
+  _μ, _Σ = calcProductGaussians(M, μ_, Σ_)
+
+  return MvNormalKernel(_μ, _Σ)
+  # d = manifold_dimension(M)
+  # # TODO avoid recomputing covariance matrix inverses all the time
+  # _Sigma2 = zeros(d,d)
+  # _Sig2mu = zeros(d)
+  # for c in comps
+  #   concentration = inv(cov(c))
+  #   _Sigma2 += concentration
+  #   _Sig2mu += concentration * mean(c)
+  # end
+
+  # Sigma2 = inv(_Sigma2)
+  # mu = Sigma2 * _Sig2mu  
+
+  # return MvNormalKernel(mu, Sigma2)
+end
+
+
 
 
 function _update!(dst::MN, src::MN) where {MN <: ManifoldKernelDensity}

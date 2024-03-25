@@ -7,20 +7,33 @@ function projectSymPosDef(c::AbstractMatrix)
   issymmetric(_c) ? _c : project(SymmetricPositiveDefinite(s[1]),_c,_c)
 end
 
-
+# FIXME, REMOVE TYPE DISPLACEMENT
 Base.eltype(mt::MvNormalKernel) = eltype(mt.p)
 
-function MvNormalKernel(m::AbstractVector,c::AbstractArray)
-  _c = projectSymPosDef(c)
-  p=MvNormal(m,_c)
+function MvNormalKernel(μ::AbstractVector,Σ::AbstractArray)
+  _c = projectSymPosDef(Σ)
+  p=MvNormal(_c)
   # NOTE, TBD, why not sqrt(inv(p.Σ)), this had an issue seemingly internal to PDMat.chol which breaks an already forced SymPD matrix to again be not SymPD???
   sqrt_iΣ = sqrt(inv(_c)) 
-  MvNormalKernel(;p, sqrt_iΣ)
+  MvNormalKernel(;μ, p, sqrt_iΣ)
 end
 
-Statistics.mean(m::MvNormalKernel) = mean(m.p) # m.p.μ
+Statistics.mean(m::MvNormalKernel) = m.μ # mean(m.p) # m.p.μ
 Statistics.cov(m::MvNormalKernel) = cov(m.p) # note also about m.sqrt_iΣ
 Statistics.std(m::MvNormalKernel) = sqrt(cov(m))
+
+
+function evaluate(
+  M::AbstractManifold,
+  ekr::MvNormalKernel,
+  p
+)
+  #
+  dim = manifold_dimension(M)
+  nscl = 1/sqrt((2*pi)^dim * det(cov(ekr)))
+  return nscl * ker(M, ekr, p, 0.5, distanceMalahanobisSq)
+end
+
 
 """
     $SIGNATURES
