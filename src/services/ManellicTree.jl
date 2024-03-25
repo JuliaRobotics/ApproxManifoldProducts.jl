@@ -552,7 +552,7 @@ end
 
 
 
-function calcProductSeqGibbs(
+function sampleProductSeqGibbsLabel(
   M::AbstractManifold,
   proposals::AbstractVector,
   treeLevel::Int = 1, # reserved for future use
@@ -593,8 +593,9 @@ function calcProductSeqGibbs(
       # δc = distanceMalahanobisCoordinates(M,newO,ev)
     end
     
+    smw ./= sum(smw)
+
     # smw = evaluate(newO, )
-    normalize!(smw)
     p = Categorical(smw)
     
     # update label-distribution of out-proposal from product of selected LOO-proposal components
@@ -607,5 +608,43 @@ function calcProductSeqGibbs(
 end
 
 
+function sampleProductSeqGibbsLabels(
+  M::AbstractManifold,
+  proposals::AbstractVector,
+  treeLevel::Int = 1, # reserved for future use
+  MC = 3,
+  N::Int = round(Int, mean(length.(getPoints.(proposals))))
+)
+  #
+  d = length(proposals)
+  posterior_labels = Vector{NTuple{d,Int}}(undef,N)
+
+  for i in 1:N
+    posterior_labels[i] = tuple(sampleProductSeqGibbsLabel(M,proposals,treeLevel,MC)...)
+  end
+
+  posterior_labels
+end
+
+
+function calcProductKernelLabels(
+  M::AbstractManifold,
+  proposals::AbstractVector,
+  lbls::AbstractVector{<:NTuple}
+)
+  #
+
+  post = []
+
+  for lbs in lbls
+    props = MvNormalKernel[]
+    for (i,lb) in enumerate(lbs)
+      push!(props, getKernel(proposals[i],lb)) 
+    end
+    push!(post,calcProductGaussians(M,props))
+  end
+
+  return post
+end
 
 ##

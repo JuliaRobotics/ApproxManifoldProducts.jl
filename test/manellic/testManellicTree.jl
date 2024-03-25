@@ -462,19 +462,37 @@ end
 
 M = TranslationGroup(1)
 
-pts = [[0.0;],[1.0;],[3.0;],[6.0;]]
-p1 = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw=[1.0;;], kernel=ApproxManifoldProducts.MvNormalKernel)
+pts = [randn(1).-1 for _ in 1:128]
+p1 = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw=[0.1;;], kernel=ApproxManifoldProducts.MvNormalKernel)
 
-pts = [[1.5;],[2.5;],[4.5;],[7.5;]]
-p2 = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw=[1.0;;], kernel=ApproxManifoldProducts.MvNormalKernel)
+pts = [randn(1).+1 for _ in 1:128]
+p2 = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw=[0.1;;], kernel=ApproxManifoldProducts.MvNormalKernel)
 
 
-# lbls = ApproxManifoldProducts.calcProductSeqGibbs(M, [p1; p2])
+lbls = ApproxManifoldProducts.sampleProductSeqGibbsLabels(M, [p1; p2])
+
+post = ApproxManifoldProducts.calcProductKernelLabels(M, [p1;p2], lbls)
+
+pts = mean.(post)
+kernel_bw = mean(cov.(post))
+
+mtr = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw, kernel=ApproxManifoldProducts.MvNormalKernel)
 
 @warn "Work in progress"
 
 
 ##
 end
+
+
+##
+
+# using GLMakie
+
+
+# XX = [[s;] for s in -4:0.1:4]
+# YY = ApproxManifoldProducts.evaluate.(Ref(mtr), XX)
+
+# lines((s->s[1]).(XX),YY)
 
 #
