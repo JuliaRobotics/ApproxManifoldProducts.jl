@@ -565,7 +565,8 @@ function sampleProductSeqGibbsLabel(
   # # how many points per proposal
   Ns = proposals .|> getPoints .|> length
 
-  # # start with random selection of labels
+  # TODO upgrade to multiscale
+  # start with random selection of labels
   best_labels = [rand(1:n) for n in Ns]
   
   # pick the next leave-out proposal
@@ -639,7 +640,8 @@ function calcProductKernelLabels(
   for lbs in lbls
     props = MvNormalKernel[]
     for (i,lb) in enumerate(lbs)
-      push!(props, getKernel(proposals[i],lb)) 
+      # selection of labels was done against sorted list of particles, hence false
+      push!(props, getKernel(proposals[i],lb,false)) 
     end
     push!(post,calcProductGaussians(M,props))
   end
