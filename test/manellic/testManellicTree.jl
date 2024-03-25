@@ -478,7 +478,7 @@ kernel_bw = mean(cov.(post))
 
 mtr = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw, kernel=ApproxManifoldProducts.MvNormalKernel)
 
-@test isapprox( 0, mean(mtr.tree_kernels[1]); atol=0.75)
+@test isapprox( 0, mean(mtr.tree_kernels[1])[1]; atol=0.75)
 
 ##
 end
