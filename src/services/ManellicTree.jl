@@ -138,7 +138,7 @@ function Base.convert(
   μ = P(src.μ)
   p = MvNormal(_matType(M)(cov(src.p)))
   sqrt_iΣ = iM(src.sqrt_iΣ)
-  MvNormalKernel{P,T,M,iM}(μ, p, sqrt_iΣ)
+  MvNormalKernel{P,T,M,iM}(μ, p, sqrt_iΣ, src.weight)
 end
 
 
@@ -179,8 +179,9 @@ DeVNotes:
 """
 function splitPointsEigen(
   M::AbstractManifold,
-  r_PP::AbstractVector{P};
-  kernel = MvNormal,
+  r_PP::AbstractVector{P},
+  weights::AbstractVector{<:Real} = ones(length(r_PP)); # FIXME, make static vector unless large
+  kernel = MvNormalKernel,
   kernel_bw = nothing,
 ) where {P <: AbstractArray}
   #
@@ -251,8 +252,10 @@ function splitPointsEigen(
     _flipmask_minormax!(imask, mask, ax_CC1; argminmax=argmin)
     _flipmask_minormax!(mask, imask, ax_CC1; argminmax=argmax)
 
+  weight = sum(weights)
+
   # return rotated coordinates and split mask
-  ax_CCp, mask, kernel(p, cv)
+  ax_CCp, mask, kernel(p, cv, weight)
 end
 
 
@@ -286,7 +289,7 @@ function buildTree_Manellic!(
   # according to current index permutation (i.e. sort data as you build the tree)
   ido = view(mtree.permute, idc)
   # split the slice of order-permuted data
-  ax_CCp, mask, knl = splitPointsEigen(M, view(mtree.data, ido); kernel, kernel_bw=_kernel_bw)
+  ax_CCp, mask, knl = splitPointsEigen(M, view(mtree.data, ido), view(mtree.weights, ido); kernel, kernel_bw=_kernel_bw)
   imask = xor.(mask, true)
 
   # sort the data as 'small' and 'big' elements either side of the eigen split
@@ -586,6 +589,7 @@ function sampleProductSeqGibbsLabel(
     newO = calcProductGaussians(M, [components...])
     
     # evaluate new sampling weights of points in out component
+    # NOTE getPoints returns the sorted (permuted) list of data
     evat = getPoints(proposals[O]) # FIXME how should partials be handled here?
     smw = zeros(length(evat))
     # FIXME, use multipoint evaluation such as NN (not just one point at a time)
@@ -638,6 +642,7 @@ function calcProductKernelLabels(
   post = []
 
   for lbs in lbls
+    # FIXME different tree or leaf kernels would need different lists
     props = MvNormalKernel[]
     for (i,lb) in enumerate(lbs)
       # selection of labels was done against sorted list of particles, hence false

@@ -10,12 +10,16 @@ end
 # FIXME, REMOVE TYPE DISPLACEMENT
 Base.eltype(mt::MvNormalKernel) = eltype(mt.p)
 
-function MvNormalKernel(μ::AbstractVector,Σ::AbstractArray)
+function MvNormalKernel(
+  μ::AbstractVector,
+  Σ::AbstractArray,
+  weight::Real=1.0
+)
   _c = projectSymPosDef(Σ)
   p=MvNormal(_c)
   # NOTE, TBD, why not sqrt(inv(p.Σ)), this had an issue seemingly internal to PDMat.chol which breaks an already forced SymPD matrix to again be not SymPD???
   sqrt_iΣ = sqrt(inv(_c)) 
-  MvNormalKernel(;μ, p, sqrt_iΣ)
+  MvNormalKernel(;μ, p, sqrt_iΣ, weight=float(weight))
 end
 
 Statistics.mean(m::MvNormalKernel) = m.μ # mean(m.p) # m.p.μ
