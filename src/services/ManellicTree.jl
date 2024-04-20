@@ -672,10 +672,10 @@ function sampleProductSeqGibbsLabel(
     latest_labels[O] = rand(p)
   end
 
-  # recursively sample a layer deeper for each selected label, or fix that sample if that label is a leaf kernel
-  for (i,l) in enumerate(latest_labels)
+  # # recursively sample a layer deeper for each selected label, or fix that sample if that label is a leaf kernel
+  # for (i,l) in enumerate(latest_labels)
 
-  end
+  # end
 
   #
   return latest_labels
