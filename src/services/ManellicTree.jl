@@ -685,7 +685,6 @@ end
 function sampleProductSeqGibbsLabels(
   M::AbstractManifold,
   proposals::AbstractVector,
-  treeLevel::Int = 1, # reserved for future use
   MC = 3,
   N::Int = round(Int, mean(length.(getPoints.(proposals))))
 )
@@ -694,7 +693,7 @@ function sampleProductSeqGibbsLabels(
   posterior_labels = Vector{NTuple{d,Int}}(undef,N)
 
   for i in 1:N
-    posterior_labels[i] = tuple(sampleProductSeqGibbsLabel(M,proposals,treeLevel,MC)...)
+    posterior_labels[i] = tuple(sampleProductSeqGibbsLabel(M,proposals,MC)...)
   end
 
   posterior_labels

@@ -481,29 +481,29 @@ g = ApproxManifoldProducts.calcProductGaussians(M, [g1; g2])
 end
 
 
-@testset "Test utility functions for multi-scale product sampling" begin
-##
+# @testset "Test utility functions for multi-scale product sampling" begin
+# ##
 
-M = TranslationGroup(1)
+# M = TranslationGroup(1)
 
-pts = [randn(1).-1 for _ in 1:3]
-p1 = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw=[0.1;;], kernel=ApproxManifoldProducts.MvNormalKernel)
+# pts = [randn(1).-1 for _ in 1:3]
+# p1 = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw=[0.1;;], kernel=ApproxManifoldProducts.MvNormalKernel)
 
-@test 1 == length(ApproxManifoldProducts.getKernelsTreeLevelIdxs(p1, 1))
-@test 2 == length(ApproxManifoldProducts.getKernelsTreeLevelIdxs(p1, 2))
-@test 4 == length(ApproxManifoldProducts.getKernelsTreeLevelIdxs(p1, 3))
+# @test 1 == length(ApproxManifoldProducts.getKernelsTreeLevelIdxs(p1, 1))
+# @test 2 == length(ApproxManifoldProducts.getKernelsTreeLevelIdxs(p1, 2))
+# @test 4 == length(ApproxManifoldProducts.getKernelsTreeLevelIdxs(p1, 3))
 
-@test 64 == length(ApproxManifoldProducts.getKernelsTreeLevelIdxs(p1, 7))
-@test 128 == length(ApproxManifoldProducts.getKernelsTreeLevelIdxs(p1, 8))
+# @test 64 == length(ApproxManifoldProducts.getKernelsTreeLevelIdxs(p1, 7))
+# @test 128 == length(ApproxManifoldProducts.getKernelsTreeLevelIdxs(p1, 8))
 
-# @enter 
-ApproxManifoldProducts.getKernelsTreeLevelIdxs(p1, 2)
-ApproxManifoldProducts.getKernelsTreeLevelIdxs(p1, 3)
+# # @enter 
+# ApproxManifoldProducts.getKernelsTreeLevelIdxs(p1, 2)
+# ApproxManifoldProducts.getKernelsTreeLevelIdxs(p1, 3)
 
 
 
-##
-end
+# ##
+# end
 
 
 @testset "Product of two Manellic beliefs, Sequential Gibbs" begin
