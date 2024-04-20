@@ -19,17 +19,28 @@ getWeights(
 ) = view(mt.weights, mt.permute)
 
 
+# either leaf or tree kernel, if larger than N
+leftIndex(
+  ::ManellicTree, 
+  krnIdx::Int=1
+) = 2*krnIdx
+rightIndex(
+  ::ManellicTree, 
+  krnIdx::Int
+) = 2*krnIdx+1
+
+
 """
     $SIGNATURES
 
 Return leaf kernel associated with input data element `i` (i.e. `permuted=true`).
 Else when set to `permuted=false` return the sorted leaf_kernel `i` (different from unsorted input data number).
 """
-getKernel(
+getKernelLeaf(
   mt::ManellicTree,
   i::Int,
   permuted::Bool = true
-) = mt.leaf_kernels[mt.permute[i]]
+) = mt.leaf_kernels[permuted ? mt.permute[i] : i]
 
 uniWT(mt::ManellicTree) = 1===length(union(diff(getWeights(mt))))
 
@@ -322,6 +333,7 @@ function buildTree_Manellic!(
   if index < N
     _knl = convert(eltype(mtree.tree_kernels), knl)
     mtree.tree_kernels[index] = _knl # HyperEllipse(knl.μ, knl.Σ.mat)
+    push!(mtree._workaround_isdef_treekernel, index)
     mtree.segments[index] = Set(ido)
   end
 
@@ -393,6 +405,7 @@ function buildTree_Manellic!(
     SizedVector{len,Set{Int}}(undef),
     MVector{len,Int}(undef),
     MVector{len,Int}(undef),
+    Set{Int}()
   )
 
   #
@@ -554,36 +567,88 @@ end
 ## WIP Sequential Gibbs Product development
 
 
+getKernelLeafAsTreeKer(mtr::ManellicTree{M,D,N,HL,HT}, idx::Int, permuted::Bool=true) where {M,D,N,HL,HT} = convert(HT,getKernelLeaf(mtr, idx % N, permuted))
+
+function getKernelTree(
+  mtr::ManellicTree{M,D,N}, 
+  currIdx::Int, 
+) where {M,D,N}
+  # must return sorted given name signature "Tree"
+  permuted = true
+  
+  if currIdx < N
+    return mtr.tree_kernels[currIdx]
+  else
+    return getKernelLeafAsTreeKer(mtr, currIdx, permuted)
+  end
+end
+
+
+# function getKernelsTreeLevelIdxs(
+#   mtr::ManellicTree{M,D,N},
+#   level::Int,
+#   currIdx::Int = 1
+# ) where {M,D,N}
+
+#   # go to children if idx level too high
+#   _idxlevel(idx) = floor(Int,log2(idx)) + 1
+#   _exists(_i) = _i < N ? (_i in mtr._workaround_isdef_treekernel) : true # N from numPoints anyway # isdefined(mtr.leaf_kernels,_i)
+
+#   #traverse tree
+#   if level == _idxlevel(currIdx) && _exists(currIdx)
+#     return Int[currIdx;]
+#   end
+
+#   @warn "getKernelsTreeLevelIdxs still has corner case issues when tree_kernel[N]" maxlog=10
+
+#   # explore left and right
+#   return vcat(
+#     getKernelsTreeLevelIdxs(mtr,level,_getleft(currIdx)),
+#     getKernelsTreeLevelIdxs(mtr,level,_getright(currIdx))
+#   )
+# end
+
+# function getKernelsTreeLevel(
+#   mtr::ManellicTree{M,D,N},
+#   level::Int
+# ) where {M,D,N}
+#   # kernels of that level
+#   levelIdxs = getKernelsTreeLevelIdxs(mtr,level)
+#   getKernelTree.(Ref(mtr),levelIdxs)
+# end
+
+
 
 function sampleProductSeqGibbsLabel(
   M::AbstractManifold,
   proposals::AbstractVector,
-  treeLevel::Int = 1, # reserved for future use
   MC = 3,
 )
   #
   # how many incoming proposals
   d = length(proposals)
 
-  # # how many points per proposal
+  ## TODO sample at multiscale levels on the tree, starting at treeLevel=1
+
+  # how many points per proposal at this depth level of the belief tree
   Ns = proposals .|> getPoints .|> length
 
   # TODO upgrade to multiscale
   # start with random selection of labels
-  best_labels = [rand(1:n) for n in Ns]
+  latest_labels = [rand(1:n) for n in Ns]
   
   # pick the next leave-out proposal
   for _ in MC, O in 1:d
     # select a label from the not-selected proposal densities
     sublabels = Tuple{Int,Int}[]
     for s in setdiff(1:d, O)
-      slbl = best_labels[s]
+      slbl = latest_labels[s]
       push!(sublabels, (s,slbl))
     end
     # prop = proposals[s]
 
     # TODO upgrade to map and tuples
-    components = map(sl->getKernel(proposals[sl[1]], sl[2], true), sublabels)
+    components = map(sl->getKernelLeaf(proposals[sl[1]], sl[2], true), sublabels)
     
     # calc product of Gaussians from currently selected LOO-proposals
     newO = calcProductGaussians(M, [components...])
@@ -604,12 +669,16 @@ function sampleProductSeqGibbsLabel(
     p = Categorical(smw)
     
     # update label-distribution of out-proposal from product of selected LOO-proposal components
-    best_labels[O] = rand(p)
+    latest_labels[O] = rand(p)
+  end
+
+  # recursively sample a layer deeper for each selected label, or fix that sample if that label is a leaf kernel
+  for (i,l) in enumerate(latest_labels)
+
   end
 
   #
-  
-  return best_labels
+  return latest_labels
 end
 
 
@@ -646,7 +715,7 @@ function calcProductKernelLabels(
     props = MvNormalKernel[]
     for (i,lb) in enumerate(lbs)
       # selection of labels was done against sorted list of particles, hence false
-      push!(props, getKernel(proposals[i],lb,false)) 
+      push!(props, getKernelLeaf(proposals[i],lb,false)) 
     end
     push!(post,calcProductGaussians(M,props))
   end

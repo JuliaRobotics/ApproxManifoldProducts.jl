@@ -113,6 +113,29 @@ end
 @testset "ManellicTree construction 1D" begin
 ##
 
+M = TranslationGroup(1)
+# already sorted list
+pts = [[1.],[2.],[4.],[7.],[11.],[16.],[22.]]
+bw = [1.0]
+mtree = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw=bw,kernel=AMP.MvNormalKernel)
+
+@test  7 == length( intersect( mtree.segments[1], Set(1:7)) )
+@test  4 == length( intersect( mtree.segments[2], Set(1:4)) )
+@test  3 == length( intersect( mtree.segments[3], Set(5:7)) )
+@test  2 == length( intersect( mtree.segments[4], Set(1:2)) )
+@test  2 == length( intersect( mtree.segments[5], Set(3:4)) )
+@test  2 == length( intersect( mtree.segments[6], Set(5:6)) )
+
+@test isapprox( mean(M,pts), mean(mtree.tree_kernels[1]); atol=1e-6)
+@test isapprox( mean(M,pts[1:4]), mean(mtree.tree_kernels[2]); atol=1e-6)
+@test isapprox( mean(M,pts[5:7]), mean(mtree.tree_kernels[3]); atol=1e-6)
+@test isapprox( mean(M,pts[1:2]), mean(mtree.tree_kernels[4]); atol=1e-6)
+@test isapprox( mean(M,pts[3:4]), mean(mtree.tree_kernels[5]); atol=1e-6)
+@test isapprox( mean(M,pts[5:6]), mean(mtree.tree_kernels[6]); atol=1e-6)
+
+
+## additional test datasets
+
 function testMDEConstr(
   pts::AbstractVector{<:AbstractVector{<:Real}},
   permref = sortperm(pts, by=s->getindex(s,1));
@@ -182,6 +205,7 @@ for i in 1:10
   _pts = pts[shuffle(1:length(pts))]
   testMDEConstr( _pts; lseg=1:4,rseg=5:8 )
 end
+
 
 ##
 end
@@ -457,6 +481,31 @@ g = ApproxManifoldProducts.calcProductGaussians(M, [g1; g2])
 end
 
 
+@testset "Test utility functions for multi-scale product sampling" begin
+##
+
+M = TranslationGroup(1)
+
+pts = [randn(1).-1 for _ in 1:3]
+p1 = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw=[0.1;;], kernel=ApproxManifoldProducts.MvNormalKernel)
+
+@test 1 == length(ApproxManifoldProducts.getKernelsTreeLevelIdxs(p1, 1))
+@test 2 == length(ApproxManifoldProducts.getKernelsTreeLevelIdxs(p1, 2))
+@test 4 == length(ApproxManifoldProducts.getKernelsTreeLevelIdxs(p1, 3))
+
+@test 64 == length(ApproxManifoldProducts.getKernelsTreeLevelIdxs(p1, 7))
+@test 128 == length(ApproxManifoldProducts.getKernelsTreeLevelIdxs(p1, 8))
+
+# @enter 
+ApproxManifoldProducts.getKernelsTreeLevelIdxs(p1, 2)
+ApproxManifoldProducts.getKernelsTreeLevelIdxs(p1, 3)
+
+
+
+##
+end
+
+
 @testset "Product of two Manellic beliefs, Sequential Gibbs" begin
 ##
 
@@ -468,6 +517,7 @@ p1 = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw=[0.1;;], kerne
 pts = [randn(1).+1 for _ in 1:128]
 p2 = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw=[0.1;;], kernel=ApproxManifoldProducts.MvNormalKernel)
 
+##
 
 lbls = ApproxManifoldProducts.sampleProductSeqGibbsLabels(M, [p1; p2])
 
@@ -479,6 +529,7 @@ kernel_bw = mean(cov.(post))
 mtr = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw, kernel=ApproxManifoldProducts.MvNormalKernel)
 
 @test isapprox( 0, mean(mtr.tree_kernels[1])[1]; atol=0.75)
+
 
 ##
 end
