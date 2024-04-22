@@ -567,15 +567,35 @@ end
 ## WIP Sequential Gibbs Product development
 
 
-getKernelLeafAsTreeKer(mtr::ManellicTree{M,D,N,HL,HT}, idx::Int, permuted::Bool=true) where {M,D,N,HL,HT} = convert(HT,getKernelLeaf(mtr, idx % N, permuted))
+"""
+    $SIGNATURES
 
+Return leaf kernels as tree kernel types, using regular `[1..N]` indexing].
+
+Notes:
+- use `permute=true` (default) for sorted index retrieval.
+"""
+getKernelLeafAsTreeKer(
+  mtr::ManellicTree{M,D,N,HL,HT}, 
+  idx::Int, 
+  permuted::Bool=true
+) where {M,D,N,HL,HT} = convert(HT,getKernelLeaf(mtr, (idx-1) % N + 1, permuted))
+
+"""
+    $SIGNATURES
+
+Return kernel from tree by binary tree index, and convert leaf kernels to tree kernel types if necessary.
+
+See also: [`getKernelLeafAsTreeKer`](@ref)
+"""
 function getKernelTree(
   mtr::ManellicTree{M,D,N}, 
   currIdx::Int, 
-) where {M,D,N}
   # must return sorted given name signature "Tree"
   permuted = true
-  
+) where {M,D,N}
+  #
+  # BinaryTree (BT) index goes from root=1 to largest leaf 2*N
   if currIdx < N
     return mtr.tree_kernels[currIdx]
   else
@@ -619,47 +639,52 @@ end
 
 
 
-function sampleProductSeqGibbsLabel(
+function sampleProductSeqGibbsBTLabel(
   M::AbstractManifold,
   proposals::AbstractVector,
   MC = 3,
+  label_sets=[
+    [
+      (length(getPoints(prop))+1):(2*length(getPoints(prop)));
+    ] for prop in proposals
+  ]
 )
   #
   # how many incoming proposals
   d = length(proposals)
-
-  ## TODO sample at multiscale levels on the tree, starting at treeLevel=1
+  
+  ## TODO sample at multiscale levels on the tree
+  # start with random selection of labels
+  latest_labels = Int[]
+  for lbst in label_sets
+    @show push!(latest_labels, rand(lbst))
+  end
+  #[rand(1:length(getPoints(prop))) for prop in proposals]
 
   # how many points per proposal at this depth level of the belief tree
-  Ns = proposals .|> getPoints .|> length
-
-  # TODO upgrade to multiscale
-  # start with random selection of labels
-  latest_labels = [rand(1:n) for n in Ns]
   
   # pick the next leave-out proposal
   for _ in MC, O in 1:d
-    # select a label from the not-selected proposal densities
+    # select a density label from the other proposals
     sublabels = Tuple{Int,Int}[]
     for s in setdiff(1:d, O)
-      slbl = latest_labels[s]
-      push!(sublabels, (s,slbl))
+      # tuple of which leave-one-out-proposal and its new latest label selection
+      push!(sublabels, (s, latest_labels[s]))
     end
-    # prop = proposals[s]
 
-    # TODO upgrade to map and tuples
-    components = map(sl->getKernelLeaf(proposals[sl[1]], sl[2], true), sublabels)
+    # TODO upgrade to tuples
+    components = map(sl->getKernelTree(proposals[sl[1]], sl[2], true), sublabels)
     
     # calc product of Gaussians from currently selected LOO-proposals
     newO = calcProductGaussians(M, [components...])
     
     # evaluate new sampling weights of points in out component
     # NOTE getPoints returns the sorted (permuted) list of data
-    evat = getPoints(proposals[O]) # FIXME how should partials be handled here?
+    evat = getPoints(proposals[O]) # FIXME how should partials be handled here? 
     smw = zeros(length(evat))
     # FIXME, use multipoint evaluation such as NN (not just one point at a time)
     for (i,ev) in enumerate(evat)
-      smw[i] = evaluate(M, newO, ev)
+      smw[i] = evaluate(M, newO, ev) # FIXME and weights
       # δc = distanceMalahanobisCoordinates(M,newO,ev)
     end
     
@@ -669,7 +694,7 @@ function sampleProductSeqGibbsLabel(
     p = Categorical(smw)
     
     # update label-distribution of out-proposal from product of selected LOO-proposal components
-    latest_labels[O] = rand(p)
+    latest_labels[O] = label_sets[O][rand(p)]
   end
 
   # # recursively sample a layer deeper for each selected label, or fix that sample if that label is a leaf kernel
@@ -682,7 +707,7 @@ function sampleProductSeqGibbsLabel(
 end
 
 
-function sampleProductSeqGibbsLabels(
+function sampleProductSeqGibbsBTLabels(
   M::AbstractManifold,
   proposals::AbstractVector,
   MC = 3,
@@ -693,28 +718,28 @@ function sampleProductSeqGibbsLabels(
   posterior_labels = Vector{NTuple{d,Int}}(undef,N)
 
   for i in 1:N
-    posterior_labels[i] = tuple(sampleProductSeqGibbsLabel(M,proposals,MC)...)
+    posterior_labels[i] = tuple(sampleProductSeqGibbsBTLabel(M,proposals,MC)...)
   end
 
   posterior_labels
 end
 
 
-function calcProductKernelLabels(
+function calcProductKernelBTLabels(
   M::AbstractManifold,
   proposals::AbstractVector,
-  lbls::AbstractVector{<:NTuple}
+  bt_lbls::AbstractVector{<:NTuple}
 )
   #
 
   post = []
 
-  for lbs in lbls
+  for lbs in bt_lbls
     # FIXME different tree or leaf kernels would need different lists
     props = MvNormalKernel[]
     for (i,lb) in enumerate(lbs)
       # selection of labels was done against sorted list of particles, hence false
-      push!(props, getKernelLeaf(proposals[i],lb,false)) 
+      push!(props, getKernelTree(proposals[i],lb,false)) 
     end
     push!(post,calcProductGaussians(M,props))
   end
