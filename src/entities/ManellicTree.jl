@@ -31,5 +31,6 @@ struct ManellicTree{M,D<:AbstractVector,N,HL,HT}
 
   # workaround to overcome bug for StaticArrays `isdefined() != false` issue
   _workaround_isdef_treekernel::Set{Int}
+  _workaround_isdef_leafkernel::Set{Int}
 end
 
