@@ -29,7 +29,7 @@ using Distributions
 
 import Random: rand
 
-import Base: *, isapprox, convert, show, eltype
+import Base: *, isapprox, convert, show, eltype, length
 import LinearAlgebra: rotate!, det
 import Statistics: mean, std, cov, var, entropy
 import KernelDensityEstimate: getPoints, getBW, evalAvgLogL, entropy, evaluate

@@ -9,6 +9,8 @@
 #   end
 # end
 
+Base.length(::ManellicTree{M,D,N}) where {M,D,N} = N
+
 
 getPoints(
   mt::ManellicTree
@@ -19,15 +21,20 @@ getWeights(
 ) = view(mt.weights, mt.permute)
 
 
+# _getleft(i::Integer, N) = 2*i + (2*i < N ? 0 : 1)
+# _getright(i::Integer, N) = _getleft(i,N) + 1
+
+
 # either leaf or tree kernel, if larger than N
 leftIndex(
-  ::ManellicTree, 
+  mt::ManellicTree, 
   krnIdx::Int=1
-) = 2*krnIdx
+) = 2*krnIdx + (2*krnIdx < length(mt) ? 0 : 1)
+
 rightIndex(
-  ::ManellicTree, 
+  mt::ManellicTree, 
   krnIdx::Int
-) = 2*krnIdx+1
+) = leftIndex(mt,krnIdx) + 1
 
 
 """
@@ -100,9 +107,9 @@ function isLeaf_BTLabel(
   mt::ManellicTree{M,D,N},
   idx::Int
 ) where {M,D,N}
-  if exists_BTLabel(mt, _getleft(idx))
+  if exists_BTLabel(mt, leftIndex(mt,idx))
     return false
-  elseif exists_BTLabel(mt, _getright(idx))
+  elseif exists_BTLabel(mt, rightIndex(mt,idx))
     # TODO likely not needed to check for right child existence
     return false
   else
@@ -222,9 +229,6 @@ function Base.convert(
   MvNormalKernel{P,T,M,iM}(μ, p, sqrt_iΣ, src.weight)
 end
 
-
-_getleft(i::Integer) = 2*i
-_getright(i::Integer) = 2*i + 1
 
 
 
@@ -361,6 +365,7 @@ function buildTree_Manellic!(
 
   _kernel_bw = _legacybw(kernel_bw)
 
+  # terminate recursive tree build when all necessary tree kernels have been built
   if N <= index
     return mtree
   end
@@ -385,8 +390,8 @@ function buildTree_Manellic!(
 
   # @info "BUILD" index low sum(mask) mid_idx high _getleft(index) _getright(index)
 
-  lft = mid_idx <= low ? low : _getleft(index)
-  rgt = high <= mid_idx+1 ? high : _getright(index)
+  lft = mid_idx <= low ? low : leftIndex(mtree, index)
+  rgt = high <= mid_idx+1 ? high : rightIndex(mtree, index)
 
   if leaf_size < npts
     if lft != low # mid_idx
@@ -599,6 +604,7 @@ function evaluateDensityAtPoints(
   # vector for storing resulting weights
   smw = zeros(length(eval_at_points))
   for (i,ev) in enumerate(eval_at_points)
+    # single kernel evaluation
     smw[i] = evaluate(M, density, ev) 
     # δc = distanceMalahanobisCoordinates(M,tmp_product,ev)
   end
@@ -662,12 +668,12 @@ function calcProductKernelBTLabels(
   proposals::AbstractVector,
   labels_sampled,
   LOOidx::Union{Int, Nothing} = nothing,
-  GibbsSeq = 1:length(proposals);
+  gibbsSeq = 1:length(proposals);
   permute::Bool = true # true because signature is BTLabels
 )
   # select a density label from the other proposals
   prop_and_label = Tuple{Int,Int}[]
-  for s in setdiff(GibbsSeq, isnothing(LOOidx) ? Int[] : Int[LOOidx;])
+  for s in setdiff(gibbsSeq, isnothing(LOOidx) ? Int[] : Int[LOOidx;])
     # tuple of which leave-one-out-proposal and its new latest label selection
     push!(prop_and_label, (s, labels_sampled[s]))
   end
@@ -698,7 +704,7 @@ end
 
 function generateLabelPoolRecursive(
   proposals::AbstractVector,
-  labels_sampled::AbstractVector{<:Integer},
+  labels_sampled::AbstractVector{<:Integer}
 )
   # NOTE at top of tree, selections will be [1,1]
   child_label_pools = Vector{Vector{Int}}()
@@ -711,12 +717,12 @@ function generateLabelPoolRecursive(
   for (o,idx) in enumerate(labels_sampled)
     isleaf = true
     # add interval of left and right children for next scale label sampling
-    if exists_BTLabel(proposals[o], _getleft(idx))
-      push!(child_label_pools[o], _getleft(idx))
+    if exists_BTLabel(proposals[o], leftIndex(proposals[o], idx))
+      push!(child_label_pools[o], leftIndex(proposals[o], idx))
       isleaf = false
     end
-    if exists_BTLabel(proposals[o], _getright(idx))
-      push!(child_label_pools[o], _getright(idx))
+    if exists_BTLabel(proposals[o], rightIndex(proposals[o], idx))
+      push!(child_label_pools[o], rightIndex(proposals[o], idx))
       isleaf = false
     end
     all_leaves &= isleaf
@@ -749,16 +755,16 @@ function sampleProductSeqGibbsBTLabel(
   #
   # how many incoming proposals
   d = length(proposals)
-  GibbsSeq = 1:d
+  gibbsSeq = 1:d
 
   # pick the next leave-out proposal
-  for _ in 1:MC, O in GibbsSeq
+  for _ in 1:MC, O in gibbsSeq
     # on first pass labels_sampled come from parent-recursive as part of multi-scale (i.e. pre-homotopy) operations
     # calc product of Gaussians from currently selected \LOO-proposals
-    tmp_product = calcProductKernelBTLabels(M, proposals, labels_sampled, O, GibbsSeq; permute=true)
+    tmp_product = calcProductKernelBTLabels(M, proposals, labels_sampled, O, gibbsSeq; permute=false)
 
     # evaluate new weights for set of points from LOO proposal means
-    eval_at_points = [mean(getKernelTree(proposals[O], i, true)) for i in label_pools[O]]
+    eval_at_points = [mean(getKernelTree(proposals[O], i, false)) for i in label_pools[O]]
     smw = evaluateDensityAtPoints(M, tmp_product, eval_at_points, true) # TBD: smw = evaluate(tmp_product, )
 
     # update label-distribution of out-proposal from product of selected LOO-proposal components
@@ -768,6 +774,8 @@ function sampleProductSeqGibbsBTLabel(
   
   # construct new label pool for children in multiscale
   child_label_pools, all_leaves = generateLabelPoolRecursive(proposals, labels_sampled)
+
+  # @info "WHY STOP" child_label_pools all_leaves
 
   # recursively call sampling down the multiscale tree ("pyramid") -- aka homotopy
   # limit recursion to MAX_RECURSE_DEPTH

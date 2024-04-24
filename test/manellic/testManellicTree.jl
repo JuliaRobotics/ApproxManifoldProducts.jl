@@ -510,12 +510,12 @@ end
 ##
 
 M = TranslationGroup(1)
-N = 4
+N = 64
 
-pts1 = [randn(1).-2 for _ in 1:N]
+pts1 = [randn(1).-1 for _ in 1:N]
 p1 = ApproxManifoldProducts.buildTree_Manellic!(M, pts1; kernel_bw=[0.1;;], kernel=ApproxManifoldProducts.MvNormalKernel)
 
-pts2 = [randn(1).+2 for _ in 1:N]
+pts2 = [randn(1).+1 for _ in 1:N]
 p2 = ApproxManifoldProducts.buildTree_Manellic!(M, pts2; kernel_bw=[0.1;;], kernel=ApproxManifoldProducts.MvNormalKernel)
 
 ##
@@ -524,29 +524,31 @@ p2 = ApproxManifoldProducts.buildTree_Manellic!(M, pts2; kernel_bw=[0.1;;], kern
 
 ##
 
-# leaves only
-label_sets = [
+# leaves only in binary tree indexing
+bt_label_sets = [
   [(N+1):(2*N);], # use leaf BT labels from p1 
   [(N+1):(2*N);], # use leaf BT labels from p2
 ]
 
 # leaves only version
-lbls = ApproxManifoldProducts.sampleProductSeqGibbsBTLabels(M, [p1; p2], 3, N, label_sets)
+lbls = ApproxManifoldProducts.sampleProductSeqGibbsBTLabels(M, [p1; p2], 3, N, bt_label_sets)
 
-post = ApproxManifoldProducts.calcProductKernelsBTLabels(M, [p1;p2], lbls) # ?? was permute=false?
+post = ApproxManifoldProducts.calcProductKernelsBTLabels(M, [p1;p2], lbls, false) # ?? was permute=false?
 
 pts = mean.(post)
 kernel_bw = mean(cov.(post))
 
 mtr = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw, kernel=ApproxManifoldProducts.MvNormalKernel)
 
-@error "DEV SKIP OF TEST, MUST RESTORE"
-# @test isapprox( 0, mean(ApproxManifoldProducts.getKernelTree(mtr,1))[1]; atol=0.75)
+
+@test isapprox( 0, mean(ApproxManifoldProducts.getKernelTree(mtr,1))[1]; atol=0.75)
 
 
 # @info "multi-scale sample test" 
 
 # lbls = ApproxManifoldProducts.sampleProductSeqGibbsBTLabels(M, [p1; p2])
+
+# @enter ApproxManifoldProducts.sampleProductSeqGibbsBTLabels(M, [p1; p2])
 
 
 ##
