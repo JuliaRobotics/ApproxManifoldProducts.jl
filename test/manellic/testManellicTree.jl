@@ -528,7 +528,7 @@ label_sets = [
 
 lbls = ApproxManifoldProducts.sampleProductSeqGibbsBTLabels(M, [p1; p2], 3, N, label_sets)
 
-post = ApproxManifoldProducts.calcProductKernelBTLabels(M, [p1;p2], lbls)
+post = ApproxManifoldProducts.calcProductKernelsBTLabels(M, [p1;p2], lbls) # ?? was permute=false?
 
 pts = mean.(post)
 kernel_bw = mean(cov.(post))

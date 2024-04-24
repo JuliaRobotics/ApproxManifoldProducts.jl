@@ -669,6 +669,57 @@ end
 """
     $SIGNATURES
 
+Calculate one product of proposal kernels, as defined  BTLabels.
+"""
+function calcProductKernelBTLabels(
+  M::AbstractManifold,
+  proposals::AbstractVector,
+  labels_sampled,
+  LOOidx::Union{Int, Nothing} = nothing,
+  GibbsSeq = 1:length(proposals);
+  permute::Bool = true # true because signature is BTLabels
+)
+  # select a density label from the other proposals
+  prop_and_label = Tuple{Int,Int}[]
+  for s in setdiff(GibbsSeq, isnothing(LOOidx) ? Int[] : Int[LOOidx;])
+    # tuple of which leave-one-out-proposal and its new latest label selection
+    push!(prop_and_label, (s, labels_sampled[s]))
+  end
+  # @info "HERE" prop_and_label
+  components = map(pr_lb->getKernelTree(proposals[pr_lb[1]], pr_lb[2], permute), prop_and_label)
+  # TODO upgrade to tuples
+  return calcProductGaussians(M, [components...])
+end
+
+
+function calcProductKernelsBTLabels(
+  M::AbstractManifold,
+  proposals::AbstractVector,
+  N_lbl_sets::AbstractVector{<:NTuple},
+  permute::Bool = true # true because signature is BTLabels
+)
+  #
+
+  post = Vector{eltype(proposals)}(undef, length(N_lbl_sets))
+
+  for (i,lbs) in enumerate(N_lbl_sets)
+    post[i] = calcProductKernelBTLabels(M, proposals, lbs; permute)
+    # # FIXME type-stability, recommend map and tuples
+    # props = MvNormalKernel[]
+    # for (i,lb) in enumerate(lbs)
+    #   # selection of labels was done against sorted list of particles, hence false
+    #   push!(props, getKernelTree(proposals[i],lb,permute)) 
+    # end
+    # push!(post, calcProductGaussians(M,props))
+  end
+
+  return post
+end
+
+
+"""
+    $SIGNATURES
+
 Notes:
 - To force sequential Gibbs on leaves only, use:
   `label_pools = [[(length(getPoints(prop))+1):(2*length(getPoints(prop)));] for prop in proposals]`
@@ -676,94 +727,68 @@ Notes:
 function sampleProductSeqGibbsBTLabel(
   M::AbstractManifold,
   proposals::AbstractVector,
-  MC = 3,
+  MC = 3, # NOTE, NO LESS THAN 2 TO ENSURE MULTISCALE WORKS RIGHT
   # pool of sampleable labels
   label_pools::Vector{Vector{Int}}= [[1:1;] for _ in proposals], # [[(length(getPoints(prop))+1):(2*length(getPoints(prop)));] for prop in proposals]
+  labels_sampled::Vector{Int} = ones(Int, length(proposals));
+  # multiscale_parents = nothing;
+  MAX_RECURSE_DEPTH::Int = 100, # 2^100 is so deep
 )
   #
   # how many incoming proposals
   d = length(proposals)
-  LOOseq = 1:d
-  
-  # start with random selection of labels
-  labels_sampled::Vector{Int} = [rand(lbst) for lbst in label_pools]
-  ## TODO sample at multiscale levels on the tree
-  
+  GibbsSeq = 1:d
 
-  # how many points per proposal at this depth level of the belief tree
-  
   # pick the next leave-out proposal
-  for _ in MC, O in 1:d
-    # select a density label from the other proposals
-    sublabels = Tuple{Int,Int}[]
-    for s in setdiff(LOOseq, O)
-      # tuple of which leave-one-out-proposal and its new latest label selection
-      push!(sublabels, (s, labels_sampled[s]))
-    end
+  for _ in 1:MC, O in GibbsSeq
+    # on first pass labels_sampled come from parent-recursive as part of multi-scale (i.e. pre-homotopy) operations
     
-    # calc product of Gaussians from currently selected LOO-proposals
-    # TODO upgrade to tuples
-    components = map(sl->getKernelTree(proposals[sl[1]], sl[2], true), sublabels)
-    tmp_product = calcProductGaussians(M, [components...])
+    # @info "DO PROD" mc O labels_sampled
+
+    # calc product of Gaussians from currently selected \LOO-proposals
+    tmp_product = calcProductKernelBTLabels(M, proposals, labels_sampled, O, GibbsSeq; permute=true)
+
     # evaluate new weights for set of points from LOO proposal means
+    # @info "LBPOOL" O label_pools[O]
     eval_at_points = [mean(getKernelTree(proposals[O], i, true)) for i in label_pools[O]]
-    smw = evaluateDensityAtPoints(M, tmp_product, eval_at_points, true)
-        # # evaluate new sampling weights of points in out component
-        # # NOTE getPoints returns the sorted (permuted) list of data
-        # # FIXME how should partials be handled here? 
-        # evat = [mean(getKernelTree(proposals[O], i)) for i in label_pools[O]]
-        #   # FIXME should only retrieve the mean locations for current label_pools
-        #   # evat = getPoints(proposals[O]) 
-        # smw = zeros(length(evat))
-        # # FIXME, use multipoint evaluation such as NN (not just one point at a time)
-        # for (i,ev) in enumerate(evat)
-        #   # TODO should evat points be of equal weights?  If multiscale sampling goes down unbalanced trees?
-        #   smw[i] = evaluate(M, tmp_product, ev) 
-        #   # δc = distanceMalahanobisCoordinates(M,tmp_product,ev)
-        # end
-        
-        # smw ./= sum(smw)
-    
-    # smw = evaluate(tmp_product, )
-    p = Categorical(smw)
-    
+    smw = evaluateDensityAtPoints(M, tmp_product, eval_at_points, true) # TBD: smw = evaluate(tmp_product, )
     # update label-distribution of out-proposal from product of selected LOO-proposal components
+    p = Categorical(smw)    
     labels_sampled[O] = label_pools[O][rand(p)]
   end
   
+  # construct new label pool for children in multiscale
   # NOTE at top of tree, selections will be [1,1]
-  
+  child_label_pools = Vector{Vector{Int}}()
+
   # Are all selected labels leaves?
   all_leaves = true
-  down_label_pool = Vector{Vector{Int}}()
   for _ in 1:d
-    push!(down_label_pool, Vector{Int}())
-  end
-  
-  # TODO to achieve downstep, sample children of one proposal using full labels_sampled product  
-  
-  
-  # TODO add max decend depth as keyword arg
+    push!(child_label_pools, Vector{Int}())
+  end  
   for (o,idx) in enumerate(labels_sampled)
     isleaf = true
     # add interval of left and right children for next scale label sampling
     if exists_BTLabel(proposals[o], _getleft(idx))
-      push!(down_label_pool[o], _getleft(idx))
+      push!(child_label_pools[o], _getleft(idx))
       isleaf = false
     end
     if exists_BTLabel(proposals[o], _getright(idx))
-      push!(down_label_pool[o], _getright(idx))
+      push!(child_label_pools[o], _getright(idx))
       isleaf = false
     end
     all_leaves &= isleaf
     if isleaf
-      push!(down_label_pool[o], idx)
+      push!(child_label_pools[o], idx)
     end
   end
-  if !all_leaves
-    @info "Recurse down manellic tree for multiscale product"    
-    # recursively call sampling down the multiscale tree ("pyramid") -- aka homotopy
-    labels_sampled = sampleProductSeqGibbsBTLabel(M, proposals, MC, down_label_pool)
+
+  # recursively call sampling down the multiscale tree ("pyramid") -- aka homotopy
+  # limit recursion to MAX_RECURSE_DEPTH
+  if 0<MAX_RECURSE_DEPTH && !all_leaves
+    @info "Recurse down manellic tree for multiscale product"
+    labels_sampled_copy = deepcopy(labels_sampled)
+    labels_sampled = sampleProductSeqGibbsBTLabel(M, proposals, MC, child_label_pools, labels_sampled_copy; MAX_RECURSE_DEPTH=MAX_RECURSE_DEPTH-1) # , tmp_products
   end
 
   #
@@ -775,7 +800,7 @@ function sampleProductSeqGibbsBTLabels(
   M::AbstractManifold,
   proposals::AbstractVector,
   MC = 3,
-  N::Int = round(Int, mean(length.(getPoints.(proposals)))),
+  N::Int = round(Int, mean(length.(getPoints.(proposals)))), # FIXME use getLength or length of proposal (not getPoints)
   label_pools=[[1:1;] for _ in proposals]
 )
   #
@@ -790,26 +815,7 @@ function sampleProductSeqGibbsBTLabels(
 end
 
 
-function calcProductKernelBTLabels(
-  M::AbstractManifold,
-  proposals::AbstractVector,
-  bt_lbls::AbstractVector{<:NTuple}
-)
-  #
 
-  post = []
 
-  for lbs in bt_lbls
-    # FIXME different tree or leaf kernels would need different lists
-    props = MvNormalKernel[]
-    for (i,lb) in enumerate(lbs)
-      # selection of labels was done against sorted list of particles, hence false
-      push!(props, getKernelTree(proposals[i],lb,false)) 
-    end
-    push!(post,calcProductGaussians(M,props))
-  end
-
-  return post
-end
 
 ##
