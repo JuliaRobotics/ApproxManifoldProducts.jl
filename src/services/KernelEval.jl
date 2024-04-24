@@ -7,7 +7,7 @@ function projectSymPosDef(c::AbstractMatrix)
   issymmetric(_c) ? _c : project(SymmetricPositiveDefinite(s[1]),_c,_c)
 end
 
-# FIXME, REMOVE TYPE DISPLACEMENT
+# FIXME ON FIRE, REMOVE TYPE DISPLACEMENT
 Base.eltype(mt::MvNormalKernel) = eltype(mt.p)
 
 function MvNormalKernel(

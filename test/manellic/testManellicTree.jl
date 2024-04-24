@@ -510,25 +510,83 @@ end
 ##
 
 M = TranslationGroup(1)
+N = 64
 
-pts = [randn(1).-1 for _ in 1:128]
-p1 = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw=[0.1;;], kernel=ApproxManifoldProducts.MvNormalKernel)
+pts1 = [randn(1).-1 for _ in 1:N]
+p1 = ApproxManifoldProducts.buildTree_Manellic!(M, pts1; kernel_bw=[0.1;;], kernel=ApproxManifoldProducts.MvNormalKernel)
 
-pts = [randn(1).+1 for _ in 1:128]
-p2 = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw=[0.1;;], kernel=ApproxManifoldProducts.MvNormalKernel)
+pts2 = [randn(1).+1 for _ in 1:N]
+p2 = ApproxManifoldProducts.buildTree_Manellic!(M, pts2; kernel_bw=[0.1;;], kernel=ApproxManifoldProducts.MvNormalKernel)
 
 ##
 
-lbls = ApproxManifoldProducts.sampleProductSeqGibbsLabels(M, [p1; p2])
+# tree kernel indices
+@test 2 == ApproxManifoldProducts.leftIndex(p1, 1)
+@test 3 == ApproxManifoldProducts.rightIndex(p1, 1)
+# leaf kernel indices
+@test N+1 == ApproxManifoldProducts.leftIndex(p1, floor(Int,N/2))
+@test N+2 == ApproxManifoldProducts.rightIndex(p1, floor(Int,N/2))
 
-post = ApproxManifoldProducts.calcProductKernelLabels(M, [p1;p2], lbls)
+@test ApproxManifoldProducts.exists_BTLabel(p1, floor(Int,N/2))
+@test ApproxManifoldProducts.exists_BTLabel(p1, ApproxManifoldProducts.leftIndex(p1, floor(Int,N/2)))
+@test !ApproxManifoldProducts.exists_BTLabel(p1, 2*N+1)
+
+
+##
+
+# leaves only in binary tree indexing
+bt_label_pool = [
+  [(N+1):(2*N);], # use leaf BT labels from p1 
+  [(N+1):(2*N);], # use leaf BT labels from p2
+]
+
+# leaves only version
+@info "Leaves only label sampling version (Gibbs)" 
+
+ApproxManifoldProducts.sampleProductSeqGibbsBTLabel(M, [p1; p2], 3, bt_label_pool)
+
+lbls = ApproxManifoldProducts.sampleProductSeqGibbsBTLabels(M, [p1; p2], 3, N, bt_label_pool)
+post = ApproxManifoldProducts.calcProductKernelsBTLabels(M, [p1;p2], lbls, false) # ?? was permute=false?
 
 pts = mean.(post)
 kernel_bw = mean(cov.(post))
-
 mtr = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw, kernel=ApproxManifoldProducts.MvNormalKernel)
 
-@test isapprox( 0, mean(mtr.tree_kernels[1])[1]; atol=0.75)
+@test isapprox( 0, mean(ApproxManifoldProducts.getKernelTree(mtr,1))[1]; atol=0.75)
+
+
+
+
+@info "Multi-scale label sampling version (Gibbs)" 
+
+# test label pool creation
+child_label_pools, all_leaves = ApproxManifoldProducts.generateLabelPoolRecursive([p1;p2], [1; 1])
+@test !all_leaves
+@test [2; 3] == child_label_pools[1]
+@test [2; 3] == child_label_pools[2]
+
+child_label_pools, all_leaves = ApproxManifoldProducts.generateLabelPoolRecursive([p1;p2], [floor(Int,N/2); 2*N])
+@test !all_leaves
+@test [N+1; N+2] == child_label_pools[1]
+@test [2*N;] == child_label_pools[2]
+
+child_label_pools, all_leaves = ApproxManifoldProducts.generateLabelPoolRecursive([p1;p2], [N+1; 2*N])
+@test all_leaves
+@test [N+1;] == child_label_pools[1]
+@test [2*N;] == child_label_pools[2]
+
+
+# test sampling
+ApproxManifoldProducts.sampleProductSeqGibbsBTLabel(M, [p1; p2])
+
+lbls = ApproxManifoldProducts.sampleProductSeqGibbsBTLabels(M, [p1; p2])
+post = ApproxManifoldProducts.calcProductKernelsBTLabels(M, [p1;p2], lbls, false) # ?? was permute=false?
+
+pts = mean.(post)
+kernel_bw = mean(cov.(post))
+mtr = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw, kernel=ApproxManifoldProducts.MvNormalKernel)
+
+@test isapprox( 0, mean(ApproxManifoldProducts.getKernelTree(mtr,1))[1]; atol=0.75)
 
 
 ##

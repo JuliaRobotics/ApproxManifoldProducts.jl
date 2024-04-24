@@ -116,6 +116,10 @@ Notes
 - calc lambdas first and use to calculate mean product second.
 - https://ccrma.stanford.edu/~jos/sasp/Product_Two_Gaussian_PDFs.html
 - Pennec, X. Intrinsic Statistics on Riemannian Manifolds: Basic Tools for Geometric Measurements, HAL Archive, 2011, Inria, France.
+
+DevNotes:
+- FIXME is parallel transport needed as products involve covariances from different tangent spaces?
+- TODO avoid recomputing covariance matrix inverses all the time
 """
 function calcProductGaussians(
   M::AbstractManifold, 
@@ -166,7 +170,14 @@ calcProductGaussians(
 ) where {N,P} = calcProductGaussians(M, μ_, nothing; dim, Λ_=Λ_ )
 
 
+"""
+    $SIGNATURES
 
+EXPERIMENTAL: On-manifold product of Gaussians.
+
+DevNotes
+- FIXME is parallel transport needed when multiplying with covariances from difffent tangent spaces?
+"""
 function calcProductGaussians(
   M::AbstractManifold,
   comps::AbstractVector{<:MvNormalKernel},
@@ -175,23 +186,11 @@ function calcProductGaussians(
   μ_ = mean.(comps)
   Σ_ = cov.(comps)
 
+  # FIXME is parallel transport needed here for covariances from different tangent spaces?
+
   _μ, _Σ = calcProductGaussians(M, μ_, Σ_)
 
   return MvNormalKernel(_μ, _Σ)
-  # d = manifold_dimension(M)
-  # # TODO avoid recomputing covariance matrix inverses all the time
-  # _Sigma2 = zeros(d,d)
-  # _Sig2mu = zeros(d)
-  # for c in comps
-  #   concentration = inv(cov(c))
-  #   _Sigma2 += concentration
-  #   _Sig2mu += concentration * mean(c)
-  # end
-
-  # Sigma2 = inv(_Sigma2)
-  # mu = Sigma2 * _Sig2mu  
-
-  # return MvNormalKernel(mu, Sigma2)
 end
 
 
