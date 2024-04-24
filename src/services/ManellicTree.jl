@@ -62,7 +62,7 @@ Notes:
 getKernelLeafAsTreeKer(
   mtr::ManellicTree{M,D,N,HL,HT}, 
   idx::Int, 
-  permuted::Bool=true
+  permuted::Bool=false
 ) where {M,D,N,HL,HT} = convert(HT,getKernelLeaf(mtr, (idx-1) % N + 1, permuted))
 
 """
@@ -73,17 +73,41 @@ Return kernel from tree by binary tree index, and convert leaf kernels to tree k
 See also: [`getKernelLeafAsTreeKer`](@ref)
 """
 function getKernelTree(
-  mtr::ManellicTree{M,D,N}, 
+  mtr::ManellicTree{M,D,N,HL,HT}, 
   currIdx::Int, 
   # must return sorted given name signature "Tree"
-  permuted = true
-) where {M,D,N}
+  permuted = false,
+  cov_continuation::Bool = false,
+) where {M,D,N,HL,HT}
   #
+
+
   # BinaryTree (BT) index goes from root=1 to largest leaf 2*N
   if currIdx < N
-    return mtr.tree_kernels[currIdx]
+    # cov_continuation correction so that we may build trees with sensible convariance to bandwidth transition from root to leaf
+    raw_ker = mtr.tree_kernels[currIdx]
+    if cov_continuation
+      # depth of this index
+      ances_depth = log2(currIdx)
+      # how many leaf offsp
+      offsp_depth = log2(length(mtr.segments[currIdx]))
+      # get approx continuous depth fraction of this index, where +1 is own depth
+      λ = (ances_depth + 1) / (ances_depth + offsp_depth + 1)
+      # mean bandwidth of all leaf children
+      leafIdxs = mtr.segments[currIdx] .|> s->findfirst(==(s),mtr.permute)
+      leafIdxs .+= N
+      bws = [cov(getKernelTree(mtr,lidx,false)) for lidx in leafIdxs]
+      mean_bw = mean(bws)
+      # corrected cov varies from root (only Monte Carlo cov est) to leaves (only selected bandwdith)
+      nC = (1-λ)*cov(raw_ker) + λ*mean_bw
+      # return a new kernel with cov_continuation, of tree kernel type
+      kernelType = getfield(ApproxManifoldProducts,HT.name.name)
+      kernelType(mean(raw_ker), nC, mtr.weights[currIdx])
+    else
+      raw_ker
+    end
   else
-    return getKernelLeafAsTreeKer(mtr, currIdx, permuted)
+    getKernelLeafAsTreeKer(mtr, currIdx, permuted)
   end
 end
 
@@ -351,7 +375,7 @@ end
 
 function buildTree_Manellic!(
   mtree::ManellicTree{MT,D,N},
-  index::Integer, # tree node root=1,left=2n,right=left+1
+  index::Integer, # tree node root=1,left=2n+corr,right=left+1
   low::Integer,   # bottom index of segment
   high::Integer;  # top index of segment;
   kernel = MvNormal,
@@ -404,11 +428,10 @@ function buildTree_Manellic!(
     end
   end
 
-  # set HyperEllipse at this level in tree
-  # FIXME, replace with just the kernel choice, not hyper such and such needed?
   if index < N
     _knl = convert(eltype(mtree.tree_kernels), knl)
-    mtree.tree_kernels[index] = _knl # HyperEllipse(knl.μ, knl.Σ.mat)
+    # FIXME use consolidate getKernelTree instead
+    mtree.tree_kernels[index] = _knl 
     push!(mtree._workaround_isdef_treekernel, index)
     mtree.segments[index] = Set(ido)
   end
@@ -677,8 +700,10 @@ function calcProductKernelBTLabels(
     # tuple of which leave-one-out-proposal and its new latest label selection
     push!(prop_and_label, (s, labels_sampled[s]))
   end
-  # @info "HERE" prop_and_label
-  components = map(pr_lb->getKernelTree(proposals[pr_lb[1]], pr_lb[2], permute), prop_and_label)
+  # get raw kernels from tree, also as tree_kernel type
+  # NOTE DO COVARIANCE CONTINUATION CORRECTION FOR DEPTH OF TREE KERNELS
+  components = map(pr_lb->getKernelTree(proposals[pr_lb[1]], pr_lb[2], permute, true), prop_and_label)
+
   # TODO upgrade to tuples
   return calcProductGaussians(M, [components...])
 end
@@ -703,7 +728,7 @@ end
 
 
 function generateLabelPoolRecursive(
-  proposals::AbstractVector,
+  proposals::AbstractVector{<:ManellicTree},
   labels_sampled::AbstractVector{<:Integer}
 )
   # NOTE at top of tree, selections will be [1,1]
@@ -744,7 +769,7 @@ Notes:
 """
 function sampleProductSeqGibbsBTLabel(
   M::AbstractManifold,
-  proposals::AbstractVector,
+  proposals::AbstractVector{<:ManellicTree},
   MC = 3, # NOTE, NO LESS THAN 2 TO ENSURE MULTISCALE WORKS RIGHT
   # pool of sampleable labels
   label_pools::Vector{Vector{Int}}= [[1:1;] for _ in proposals], # [[(length(getPoints(prop))+1):(2*length(getPoints(prop)));] for prop in proposals]
@@ -780,9 +805,19 @@ function sampleProductSeqGibbsBTLabel(
   # recursively call sampling down the multiscale tree ("pyramid") -- aka homotopy
   # limit recursion to MAX_RECURSE_DEPTH
   if 0<MAX_RECURSE_DEPTH && !all_leaves
-    @info "Recurse down manellic tree for multiscale product"
+    # @info "Recurse down manellic tree for multiscale product"
     labels_sampled_copy = deepcopy(labels_sampled)
-    labels_sampled = sampleProductSeqGibbsBTLabel(M, proposals, MC, child_label_pools, labels_sampled_copy; MAX_RECURSE_DEPTH=MAX_RECURSE_DEPTH-1) # , tmp_products
+    labels_sampled = sampleProductSeqGibbsBTLabel(
+      M, 
+      proposals, 
+      MC, 
+      child_label_pools, 
+      labels_sampled_copy; 
+      MAX_RECURSE_DEPTH=MAX_RECURSE_DEPTH-1
+    )
+
+    # TODO, [circa 2006, Rudoy & Wolfe] detailed balance by rejecting a multiscale decent given simulated or parallel tempering
+    # recursive call of sampleProductSeqGibbsBTLabel but with same parameters as this function invokation, aka reject of decend
   end
 
   #

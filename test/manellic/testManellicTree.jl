@@ -531,22 +531,20 @@ bt_label_sets = [
 ]
 
 # leaves only version
+@info "Leaves only label sampling version (Gibbs)" 
 lbls = ApproxManifoldProducts.sampleProductSeqGibbsBTLabels(M, [p1; p2], 3, N, bt_label_sets)
-
 post = ApproxManifoldProducts.calcProductKernelsBTLabels(M, [p1;p2], lbls, false) # ?? was permute=false?
 
 pts = mean.(post)
 kernel_bw = mean(cov.(post))
-
 mtr = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw, kernel=ApproxManifoldProducts.MvNormalKernel)
 
 
 @test isapprox( 0, mean(ApproxManifoldProducts.getKernelTree(mtr,1))[1]; atol=0.75)
 
 
-# @info "multi-scale sample test" 
-
-# lbls = ApproxManifoldProducts.sampleProductSeqGibbsBTLabels(M, [p1; p2])
+@info "Multi-scale label sampling version (Gibbs)" 
+lbls = ApproxManifoldProducts.sampleProductSeqGibbsBTLabels(M, [p1; p2])
 
 # @enter ApproxManifoldProducts.sampleProductSeqGibbsBTLabels(M, [p1; p2])
 
