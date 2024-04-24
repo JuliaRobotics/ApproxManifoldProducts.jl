@@ -42,6 +42,75 @@ getKernelLeaf(
   permuted::Bool = true
 ) = mt.leaf_kernels[permuted ? mt.permute[i] : i]
 
+
+
+"""
+    $SIGNATURES
+
+Return leaf kernels as tree kernel types, using regular `[1..N]` indexing].
+
+Notes:
+- use `permute=true` (default) for sorted index retrieval.
+"""
+getKernelLeafAsTreeKer(
+  mtr::ManellicTree{M,D,N,HL,HT}, 
+  idx::Int, 
+  permuted::Bool=true
+) where {M,D,N,HL,HT} = convert(HT,getKernelLeaf(mtr, (idx-1) % N + 1, permuted))
+
+"""
+    $SIGNATURES
+
+Return kernel from tree by binary tree index, and convert leaf kernels to tree kernel types if necessary.
+
+See also: [`getKernelLeafAsTreeKer`](@ref)
+"""
+function getKernelTree(
+  mtr::ManellicTree{M,D,N}, 
+  currIdx::Int, 
+  # must return sorted given name signature "Tree"
+  permuted = true
+) where {M,D,N}
+  #
+  # BinaryTree (BT) index goes from root=1 to largest leaf 2*N
+  if currIdx < N
+    return mtr.tree_kernels[currIdx]
+  else
+    return getKernelLeafAsTreeKer(mtr, currIdx, permuted)
+  end
+end
+
+
+function exists_BTLabel(
+  mt::ManellicTree{M,D,N},
+  idx::Int
+) where {M,D,N}
+  # check for existence in tree or leaves
+  eset = if idx < N 
+    mt._workaround_isdef_treekernel
+  else
+    mt._workaround_isdef_leafkernel
+  end
+
+  # return existence
+  return idx in eset
+end
+
+function isLeaf_BTLabel(
+  mt::ManellicTree{M,D,N},
+  idx::Int
+) where {M,D,N}
+  if exists_BTLabel(mt, _getleft(idx))
+    return false
+  elseif exists_BTLabel(mt, _getright(idx))
+    # TODO likely not needed to check for right child existence
+    return false
+  else
+    return true
+  end
+end
+
+
 uniWT(mt::ManellicTree) = 1===length(union(diff(getWeights(mt))))
 
 function uniBW(
@@ -57,6 +126,7 @@ function uniBW(
   end
   return true
 end
+
 
 function Base.show(
   io::IO, 
@@ -151,6 +221,10 @@ function Base.convert(
   sqrt_iΣ = iM(src.sqrt_iΣ)
   MvNormalKernel{P,T,M,iM}(μ, p, sqrt_iΣ, src.weight)
 end
+
+
+_getleft(i::Integer) = 2*i
+_getright(i::Integer) = 2*i + 1
 
 
 
@@ -270,9 +344,6 @@ function splitPointsEigen(
 end
 
 
-_getleft(i::Integer) = 2*i
-_getright(i::Integer) = 2*i + 1
-
 
 function buildTree_Manellic!(
   mtree::ManellicTree{MT,D,N},
@@ -358,7 +429,7 @@ function buildTree_Manellic!(
   r_PP::AbstractVector{P}; # vector of points referenced to the r_frame
   len = length(r_PP),
   weights::AbstractVector{<:Real} = ones(len).*(1/len),
-  kernel = MvNormal,
+  kernel = MvNormalKernel,
   kernel_bw = nothing, # TODO
 ) where {P <: AbstractArray}
   #
@@ -374,11 +445,6 @@ function buildTree_Manellic!(
   _legacybw(::Nothing) = CV
 
   lCV = _legacybw(kernel_bw)
-  # lCV = if isnothing(kernel_bw)
-  #   CV
-  # else
-  #   kernel_bw
-  # end
 
   lknlT = kernel(
     r_PP[1],
@@ -394,7 +460,6 @@ function buildTree_Manellic!(
     lkern[i] = kernel(r_PP[i], lCV)
     push!(_workaround_isdef_leafkernel, i)
   end
-  
   
   mtree = ManellicTree(
     M,
@@ -431,6 +496,44 @@ function buildTree_Manellic!(
   return tosort_leaves
 end
 
+
+"""
+    $SIGNATURES
+    
+For Manellic tree parent kernels, what is the 'smallest' and 'biggest' covariance.
+
+Notes:
+- Thought about `det` for covariance volume but long access of pancake (smaller volume) is not minimum compared to circular covariance. 
+"""
+function getBandwidthSearchBounds(
+  mtree::ManellicTree
+)
+  upper = cov(mtree.tree_kernels[1])
+
+  #FIXME isdefined does not work as expected for mtree.tree_kernels, so using length-1 for now
+  # this will break if number of points is not a power of 2. 
+  kernels_diag = map(1:length(mtree.tree_kernels)-1) do i
+    # FIXME use cosnolidated getKernelTree instead
+    diag(cov(mtree.tree_kernels[i]))
+  end
+  lower_diag = minimum(reduce(hcat, kernels_diag), dims=2)
+
+  # floors make us feel safe, but hurt when faceplanting
+  lower_diag = maximum(
+    hcat(
+      lower_diag, 
+      1e-8*ones(length(lower_diag))
+    ), 
+    dims=2
+  )[:]
+
+  # Give back lower as diagonal only covariance matrix
+  lower = diagm(lower_diag)
+
+  return lower, upper
+end
+
+
 """
     $SIGNATURES
 
@@ -459,8 +562,10 @@ function evaluate(
   sumval = 0.0
   # FIXME, brute force for loop
   for (i,t) in enumerate(pts)
-    if !LOO || !isapprox(pt, t) # FIXME change isapprox to on-manifold version
+    # FIXME change isapprox to on-manifold version
+    if !LOO || !isapprox(pt, t) 
       # FIXME, is this assuming length(pts) and length(mt.leaf_kernels) are the same?
+      # FIXME use consolidated getKernelLeaf instead
       ekr = mt.leaf_kernels[i]
       # TODO remember special handling for partials in the future
       oneval = mt.weights[i] * evaluate(mt.manifold, ekr, pt) 
@@ -471,6 +576,41 @@ function evaluate(
   
   return sumval
 end
+
+
+"""
+    $SIGNATURES
+
+Return vector of weights of evaluated proposal label points against density.
+
+DevNotes:
+- TODO should evat points be of equal weights?  If multiscale sampling goes down unbalanced trees?
+- FIXME how should partials be handled here? 
+- FIXME, use multipoint evaluation such as NN (not just one point at a time)
+"""
+function evaluateDensityAtPoints(
+  M::AbstractManifold,
+  density,
+  eval_at_points,
+  normalize::Bool = true
+)
+  # evaluate new sampling weights of points in out component
+  
+  # vector for storing resulting weights
+  smw = zeros(length(eval_at_points))
+  for (i,ev) in enumerate(eval_at_points)
+    smw[i] = evaluate(M, density, ev) 
+    # δc = distanceMalahanobisCoordinates(M,tmp_product,ev)
+  end
+  
+  if normalize
+    smw ./= sum(smw)
+  end
+
+  # return weights
+  return smw
+end
+
 
 
 function expectedLogL(
@@ -496,174 +636,20 @@ function expectedLogL(
     -Inf
   else
     w'*(log.(eL))
-    # return mean(log.(eL))
+    # return mean(log.(eL)) #?
   end
 end
-# pathelogical case return -Inf
 
 
 entropy(
   mt::ManellicTree,
 ) = -expectedLogL(mt, getPoints(mt), true)
 
-# leaveOneOutLogL(
-#   mt::ManellicTree,
-#   bw_scl::Real = 1,
-# ) = entropy(mt, bw_scl)
-
 
 (mt::ManellicTree)(
   evalpt::AbstractArray,
 ) = evaluate(mt, evalpt)
 
-
-"""
-    $SIGNATURES
-    
-For Manellic tree parent kernels, what is the 'smallest' and 'biggest' covariance.
-
-Notes:
-- Thought about `det` for covariance volume but long access of pancake (smaller volume) is not minimum compared to circular covariance. 
-"""
-function getBandwidthSearchBounds(
-  mtree::ManellicTree
-)
-  upper = cov(mtree.tree_kernels[1])
-
-  #FIXME isdefined does not work as expected for mtree.tree_kernels, so using length-1 for now
-  # this will break if number of points is not a power of 2. 
-  kernels_diag = map(1:length(mtree.tree_kernels)-1) do i
-    diag(cov(mtree.tree_kernels[i]))
-  end
-  lower_diag = minimum(reduce(hcat, kernels_diag), dims=2)
-
-  # floors make us feel safe, but hurt when faceplanting
-  lower_diag = maximum(
-    hcat(
-      lower_diag, 
-      1e-8*ones(length(lower_diag))
-    ), 
-    dims=2
-  )[:]
-
-  # Give back lower as diagonal only covariance matrix
-  lower = diagm(lower_diag)
-
-  return lower, upper
-end
-
-# ## Pseudo code
-
-# X1 = fg[:x1] # Position{2}
-
-# # prob density
-# x1 = X1([12.3;0.7])
-# x1 = X1([-8.8;0.7])
-
-# X1_a = approxConvBelief(dfg, f1, :x1)
-# X1_b = approxConvBelief(dfg, f2, :x1)
-
-# _X1_ = X1_a*X1_b
-
-## WIP Sequential Gibbs Product development
-
-
-"""
-    $SIGNATURES
-
-Return leaf kernels as tree kernel types, using regular `[1..N]` indexing].
-
-Notes:
-- use `permute=true` (default) for sorted index retrieval.
-"""
-getKernelLeafAsTreeKer(
-  mtr::ManellicTree{M,D,N,HL,HT}, 
-  idx::Int, 
-  permuted::Bool=true
-) where {M,D,N,HL,HT} = convert(HT,getKernelLeaf(mtr, (idx-1) % N + 1, permuted))
-
-"""
-    $SIGNATURES
-
-Return kernel from tree by binary tree index, and convert leaf kernels to tree kernel types if necessary.
-
-See also: [`getKernelLeafAsTreeKer`](@ref)
-"""
-function getKernelTree(
-  mtr::ManellicTree{M,D,N}, 
-  currIdx::Int, 
-  # must return sorted given name signature "Tree"
-  permuted = true
-) where {M,D,N}
-  #
-  # BinaryTree (BT) index goes from root=1 to largest leaf 2*N
-  if currIdx < N
-    return mtr.tree_kernels[currIdx]
-  else
-    return getKernelLeafAsTreeKer(mtr, currIdx, permuted)
-  end
-end
-
-
-
-function exists_BTLabel(
-  mt::ManellicTree{M,D,N},
-  idx::Int
-) where {M,D,N}
-  # check for existence in tree or leaves
-  eset = if idx < N 
-    mt._workaround_isdef_treekernel
-  else
-    mt._workaround_isdef_leafkernel
-  end
-
-  # return existence
-  return idx in eset
-end
-
-function isLeaf_BTLabel(
-  mt::ManellicTree{M,D,N},
-  idx::Int
-) where {M,D,N}
-  if exists_BTLabel(mt, _getleft(idx))
-    return false
-  elseif exists_BTLabel(mt, _getright(idx))
-    # TODO likely not needed to check for right child existence
-    return false
-  else
-    return true
-  end
-end
-
-"""
-    $SIGNATURES
-
-Return vector of weights of evaluated proposal label points against density.
-"""# FIXME how should partials be handled here? 
-function evaluateDensityAtPoints(
-  M::AbstractManifold,
-  density,
-  eval_at_points,
-  normalize::Bool = true
-)
-  # evaluate new sampling weights of points in out component
-  
-  # vector for storing resulting weights
-  smw = zeros(length(eval_at_points))
-  # FIXME, use multipoint evaluation such as NN (not just one point at a time)
-  for (i,ev) in enumerate(eval_at_points)
-    # TODO should evat points be of equal weights?  If multiscale sampling goes down unbalanced trees?
-    smw[i] = evaluate(M, density, ev) 
-    # δc = distanceMalahanobisCoordinates(M,tmp_product,ev)
-  end
-  
-  if normalize
-    smw ./= sum(smw)
-  end
-
-  # return weights
-  return smw
-end
 
 
 """
@@ -699,21 +685,47 @@ function calcProductKernelsBTLabels(
   permute::Bool = true # true because signature is BTLabels
 )
   #
-
-  post = Vector{eltype(proposals)}(undef, length(N_lbl_sets))
+  T = typeof(getKernelTree(proposals[1],1))
+  post = Vector{T}(undef, length(N_lbl_sets))
 
   for (i,lbs) in enumerate(N_lbl_sets)
     post[i] = calcProductKernelBTLabels(M, proposals, lbs; permute)
-    # # FIXME type-stability, recommend map and tuples
-    # props = MvNormalKernel[]
-    # for (i,lb) in enumerate(lbs)
-    #   # selection of labels was done against sorted list of particles, hence false
-    #   push!(props, getKernelTree(proposals[i],lb,permute)) 
-    # end
-    # push!(post, calcProductGaussians(M,props))
   end
 
   return post
+end
+
+
+function generateLabelPoolRecursive(
+  proposals::AbstractVector,
+  labels_sampled::AbstractVector{<:Integer},
+)
+  # NOTE at top of tree, selections will be [1,1]
+  child_label_pools = Vector{Vector{Int}}()
+
+  # Are all selected labels leaves?
+  all_leaves = true
+  for _ in 1:length(proposals)
+    push!(child_label_pools, Vector{Int}())
+  end  
+  for (o,idx) in enumerate(labels_sampled)
+    isleaf = true
+    # add interval of left and right children for next scale label sampling
+    if exists_BTLabel(proposals[o], _getleft(idx))
+      push!(child_label_pools[o], _getleft(idx))
+      isleaf = false
+    end
+    if exists_BTLabel(proposals[o], _getright(idx))
+      push!(child_label_pools[o], _getright(idx))
+      isleaf = false
+    end
+    all_leaves &= isleaf
+    if isleaf
+      push!(child_label_pools[o], idx)
+    end
+  end
+
+  return child_label_pools, all_leaves
 end
 
 
@@ -742,46 +754,20 @@ function sampleProductSeqGibbsBTLabel(
   # pick the next leave-out proposal
   for _ in 1:MC, O in GibbsSeq
     # on first pass labels_sampled come from parent-recursive as part of multi-scale (i.e. pre-homotopy) operations
-    
-    # @info "DO PROD" mc O labels_sampled
-
     # calc product of Gaussians from currently selected \LOO-proposals
     tmp_product = calcProductKernelBTLabels(M, proposals, labels_sampled, O, GibbsSeq; permute=true)
 
     # evaluate new weights for set of points from LOO proposal means
-    # @info "LBPOOL" O label_pools[O]
     eval_at_points = [mean(getKernelTree(proposals[O], i, true)) for i in label_pools[O]]
     smw = evaluateDensityAtPoints(M, tmp_product, eval_at_points, true) # TBD: smw = evaluate(tmp_product, )
+
     # update label-distribution of out-proposal from product of selected LOO-proposal components
     p = Categorical(smw)    
     labels_sampled[O] = label_pools[O][rand(p)]
   end
   
   # construct new label pool for children in multiscale
-  # NOTE at top of tree, selections will be [1,1]
-  child_label_pools = Vector{Vector{Int}}()
-
-  # Are all selected labels leaves?
-  all_leaves = true
-  for _ in 1:d
-    push!(child_label_pools, Vector{Int}())
-  end  
-  for (o,idx) in enumerate(labels_sampled)
-    isleaf = true
-    # add interval of left and right children for next scale label sampling
-    if exists_BTLabel(proposals[o], _getleft(idx))
-      push!(child_label_pools[o], _getleft(idx))
-      isleaf = false
-    end
-    if exists_BTLabel(proposals[o], _getright(idx))
-      push!(child_label_pools[o], _getright(idx))
-      isleaf = false
-    end
-    all_leaves &= isleaf
-    if isleaf
-      push!(child_label_pools[o], idx)
-    end
-  end
+  child_label_pools, all_leaves = generateLabelPoolRecursive(proposals, labels_sampled)
 
   # recursively call sampling down the multiscale tree ("pyramid") -- aka homotopy
   # limit recursion to MAX_RECURSE_DEPTH
