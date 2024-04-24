@@ -88,15 +88,16 @@ function getKernelTree(
     raw_ker = mtr.tree_kernels[currIdx]
     if cov_continuation
       # depth of this index
-      ances_depth = log2(currIdx)
+      ances_depth = floor(Int, log2(currIdx))
       # how many leaf offsp
       offsp_depth = log2(length(mtr.segments[currIdx]))
-      # get approx continuous depth fraction of this index, where +1 is own depth
-      λ = (ances_depth + 1) / (ances_depth + offsp_depth + 1)
+      # get approx continuous depth fraction of this index
+      λ = (ances_depth) / (ances_depth + offsp_depth)
       # mean bandwidth of all leaf children
       leafIdxs = mtr.segments[currIdx] .|> s->findfirst(==(s),mtr.permute)
       leafIdxs .+= N
       bws = [cov(getKernelTree(mtr,lidx,false)) for lidx in leafIdxs]
+      # FIXME is a parallel transport needed between different kernel covariances that each exist in different tangent spaces
       mean_bw = mean(bws)
       # corrected cov varies from root (only Monte Carlo cov est) to leaves (only selected bandwdith)
       nC = (1-λ)*cov(raw_ker) + λ*mean_bw
@@ -455,8 +456,8 @@ DevNotes:
 function buildTree_Manellic!(
   M::AbstractManifold,
   r_PP::AbstractVector{P}; # vector of points referenced to the r_frame
-  len = length(r_PP),
-  weights::AbstractVector{<:Real} = ones(len).*(1/len),
+  N = length(r_PP),
+  weights::AbstractVector{<:Real} = ones(N).*(1/N),
   kernel = MvNormalKernel,
   kernel_bw = nothing, # TODO
 ) where {P <: AbstractArray}
@@ -482,24 +483,24 @@ function buildTree_Manellic!(
   # kernel scale
 
   # leaf kernels
-  lkern = SizedVector{len,lknlT}(undef)
+  lkern = SizedVector{N,lknlT}(undef)
   _workaround_isdef_leafkernel = Set{Int}()
-  for i in 1:len
+  for i in 1:N
     lkern[i] = kernel(r_PP[i], lCV)
-    push!(_workaround_isdef_leafkernel, i)
+    push!(_workaround_isdef_leafkernel, i + N)
   end
   
   mtree = ManellicTree(
     M,
     r_PP,
-    MVector{len,Float64}(weights),
-    MVector{len,Int}(1:len),
-    lkern, # MVector{len,lknlT}(undef),
-    SizedVector{len,tknlT}(undef),
-    # SizedVector{len,tknlT}(undef),
-    SizedVector{len,Set{Int}}(undef),
-    MVector{len,Int}(undef),
-    MVector{len,Int}(undef),
+    MVector{N,Float64}(weights),
+    MVector{N,Int}(1:N),
+    lkern, # MVector{N,lknlT}(undef),
+    SizedVector{N,tknlT}(undef),
+    # SizedVector{N,tknlT}(undef),
+    SizedVector{N,Set{Int}}(undef),
+    MVector{N,Int}(undef),
+    MVector{N,Int}(undef),
     Set{Int}(),
     _workaround_isdef_leafkernel
   )
@@ -509,7 +510,7 @@ function buildTree_Manellic!(
     mtree,
     1, # start at root
     1, # spanning all data
-    len; # to end of data
+    N; # to end of data
     kernel,
     kernel_bw
   )
@@ -764,18 +765,19 @@ end
     $SIGNATURES
 
 Notes:
+- Advise, 2<=MC to ensure multiscale works during decent transitions (TBD obsolete requirement)
 - To force sequential Gibbs on leaves only, use:
   `label_pools = [[(length(getPoints(prop))+1):(2*length(getPoints(prop)));] for prop in proposals]`
 """
 function sampleProductSeqGibbsBTLabel(
   M::AbstractManifold,
   proposals::AbstractVector{<:ManellicTree},
-  MC = 3, # NOTE, NO LESS THAN 2 TO ENSURE MULTISCALE WORKS RIGHT
+  MC = 3,
   # pool of sampleable labels
-  label_pools::Vector{Vector{Int}}= [[1:1;] for _ in proposals], # [[(length(getPoints(prop))+1):(2*length(getPoints(prop)));] for prop in proposals]
+  label_pools::Vector{Vector{Int}}= [[1:1;] for _ in proposals],
   labels_sampled::Vector{Int} = ones(Int, length(proposals));
   # multiscale_parents = nothing;
-  MAX_RECURSE_DEPTH::Int = 100, # 2^100 is so deep
+  MAX_RECURSE_DEPTH::Int = 24, # 2^24 is so deep
 )
   #
   # how many incoming proposals
@@ -816,8 +818,8 @@ function sampleProductSeqGibbsBTLabel(
       MAX_RECURSE_DEPTH=MAX_RECURSE_DEPTH-1
     )
 
-    # TODO, [circa 2006, Rudoy & Wolfe] detailed balance by rejecting a multiscale decent given simulated or parallel tempering
-    # recursive call of sampleProductSeqGibbsBTLabel but with same parameters as this function invokation, aka reject of decend
+    # TODO, [circa 2006, Rudoy & Wolfe] detailed balance (Hastings) by rejecting a multiscale decent given simulated or parallel tempering
+    # recursive call of sampleProductSeqGibbsBTLabel but with same parameters as this function invokation, aka reject the decend
   end
 
   #
