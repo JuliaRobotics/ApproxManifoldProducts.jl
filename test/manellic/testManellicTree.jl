@@ -266,6 +266,160 @@ permref = sortperm(pts, by=s->getindex(s,1))
 ##
 end
 
+"Test evaluate MvNormalKernel"
+
+M = TranslationGroup(1)
+ker = AMP.MvNormalKernel([0.0], [0.5;;])
+@test isapprox(
+  AMP.evaluate(M, ker, [0.1]),
+  pdf(MvNormal(mean(ker), cov(ker)), [0.1])
+)
+
+
+function pdf_wrapped_normal(μ, σ, θ; nwrap=1000) 
+  s = 0.0
+  for k = -nwrap:nwrap
+    s += exp(-(θ - μ + 2pi*k)^2 / (2*σ^2))
+  end
+  return 1/(σ*sqrt(2pi)) * s
+end 
+
+M = RealCircleGroup()
+ker = AMP.MvNormalKernel([0.0], [0.1;;])
+@test isapprox(
+  AMP.evaluate(M, ker, [0.1]),
+  pdf_wrapped_normal(mean(ker)[], sqrt(cov(ker))[], 0.1)
+)
+
+ker = AMP.MvNormalKernel([0], [2.0;;])
+@test isapprox(
+  AMP.evaluate(M, ker, [0.]),
+  AMP.evaluate(M, ker, [2pi])
+)
+#TODO wrapped normal distributions broken
+@test_broken isapprox(
+  pdf_wrapped_normal(mean(ker)[], sqrt(cov(ker))[], pi),
+  AMP.evaluate(M, ker, [pi])
+)
+@test_broken isapprox(
+  pdf_wrapped_normal(mean(ker)[], sqrt(cov(ker))[], 0),
+  AMP.evaluate(M, ker, [0.])
+)
+
+
+M = SpecialEuclidean(2)
+ϵ = identity_element(M)
+Xc = [10, 20, 0.1]
+p = exp(M, ϵ, hat(M, ϵ, Xc))
+ker = AMP.MvNormalKernel(p, diagm([0.5, 2.0, 0.1].^2))
+@test isapprox(
+  AMP.evaluate(M, ker, p),
+  pdf(MvNormal(Xc, cov(ker)), Xc)
+)
+
+Xc = [10, 22, -0.1]
+q = exp(M, ϵ, hat(M, ϵ, Xc))
+
+pdf(MvNormal(cov(ker)), [0,0,0])
+AMP.evaluate(M, ker, p)
+
+
+AMP.evaluate(M, ker, q)
+# 0.006545478063636599
+
+X = log(M, mean(ker), q) 
+Xc_e = vee(M, ϵ, X)
+pdf(MvNormal(cov(ker)), Xc_e)
+# 0.05211875018288499
+# ^ "global" vs "local" v
+X = log(M, ϵ, Manifolds.compose(M, inv(M, p), q))
+Xc_e = vee(M, ϵ, X)
+pdf(MvNormal(cov(ker)), Xc_e)
+# 0.0483649046065308
+
+# @testset "ManellicTree SE2 basic construction and evaluations" begin
+## 
+using Manifolds
+using ApproxManifoldProducts
+using ApproxManifoldProducts.Distributions
+using LinearAlgebra
+
+M = TranslationGroup(1)
+ϵ = identity_element(M)
+dis = MvNormal([3.0], diagm([1.0].^2)) 
+Cpts = [rand(dis) for _ in 1:128]
+pts = map(c->exp(M, ϵ, hat(M, ϵ, c)), Cpts)
+mtree = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw = [0.2;;],  kernel=AMP.MvNormalKernel)
+
+##
+p = exp(M, ϵ, hat(M, ϵ, [3.0]))
+y_amp = AMP.evaluate(mtree, p)
+
+y_pdf = pdf(dis, [3.0])
+
+ps = [[p] for p = -0:0.01:6]
+ys_amp = map(p->AMP.evaluate(mtree, exp(M, ϵ, hat(M, ϵ, p))), ps)
+ys_pdf = pdf(dis, ps)
+
+lines(first.(ps), ys_pdf)
+lines!(first.(ps), ys_amp)
+
+lines!(first.(ps), ys_pdf)
+
+lines(first.(ps), ys_amp)
+
+#TODO is this supposed to be equal?
+@test_broken isapprox(y_amp, y_pdf; atol=0.1)
+
+##
+
+
+
+
+M = SpecialOrthogonal(2)
+ϵ = identity_element(M)
+dis = MvNormal([0.0], diagm([0.1].^2)) 
+Cpts = [rand(dis) for _ in 1:128]
+pts = map(c->exp(M, ϵ, hat(M, ϵ, c)), Cpts)
+mtree = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw = [0.005;;], kernel=AMP.MvNormalKernel)
+
+##
+p = exp(M, ϵ, hat(M, ϵ, [0.1]))
+y_amp = AMP.evaluate(mtree, p)
+
+y_pdf = pdf(dis, [0.1])
+
+#FIXME
+@test_broken isapprox(y_amp, y_pdf; atol=0.1)
+
+ps = [[p] for p = -0.3:0.01:0.3]
+ys_amp = map(p->AMP.evaluate(mtree, exp(M, ϵ, hat(M, ϵ, p))), ps)
+ys_pdf = pdf(dis, ps)
+
+lines(first.(ps), ys_pdf)
+lines!(first.(ps), ys_amp)
+
+
+
+
+M = SpecialEuclidean(2)
+ϵ = identity_element(M)
+dis = MvNormal([10,20,0.1], diagm([0.5,2.0,0.1].^2)) 
+Cpts = [rand(dis) for _ in 1:128]
+pts = map(c->exp(M, ϵ, hat(M, ϵ, c)), Cpts)
+mtree = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw = diagm([0.05,0.2,0.01]), kernel=AMP.MvNormalKernel)
+
+##
+p = exp(M, ϵ, hat(M, ϵ, [10, 20, 0.1]))
+y_amp = AMP.evaluate(mtree, p)
+y_pdf = pdf(dis, [10,20,0.1])
+#FIXME
+@test_broken isapprox(y_amp, y_pdf; atol=0.1)
+
+
+##
+end
+
 @testset "Manellic basic evaluation test 1D" begin
 ##
 
@@ -274,7 +428,7 @@ pts = [zeros(1) for _ in 1:100]
 bw = ones(1,1)
 mtree = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw=bw, kernel=AMP.MvNormalKernel)
 
-@test isapprox( 0.4, AMP.evaluate(mtree, SA[0.0;]); atol=0.1)
+@test isapprox( pdf(Normal(0,1), 0), AMP.evaluate(mtree, SA[0.0;]))
 
 @error "expectedLogL for different number of test points not working yet."
 # AMP.expectedLogL(mtree, [randn(1) for _ in 1:5])
