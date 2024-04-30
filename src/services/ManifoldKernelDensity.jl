@@ -101,6 +101,52 @@ manikde!(
 
 #
 
+function manikde!_manellic(
+  M::AbstractManifold,
+  pts::AbstractVector;
+  bw=ones(manifold_dimension(M),1),
+)
+  #
+
+  mtree = ApproxManifoldProducts.buildTree_Manellic!(
+    M,
+    pts;
+    kernel_bw=bw, 
+    kernel=AMP.MvNormalKernel
+  )
+  
+  # Cost function to optimize
+  _cost(_pts, σ) = begin
+    # FIXME avoid rebuilding tree at each optim iteration!!!
+    mtr = buildTree_Manellic!(M, _pts; kernel_bw=reshape([σ;],manifold_dimension(M),1), kernel=MvNormalKernel)
+    entropy(mtr)
+  end
+  
+  # optimize for best LOOCV bandwidth
+  # FIXME switch to RLM (or other Manopt) techinque instead 
+  # set lower and upper bounds for Golden section optimization
+  lcov, ucov = getBandwidthSearchBounds(mtree)
+  res = Optim.optimize(
+    (s)->_cost(pts,s^2), 
+    lcov[1], ucov[1], Optim.GoldenSection()
+  )
+  best_cov = [Optim.minimizer(res);;]
+
+  # return tree with correct bandwidth
+  # TODO avoid tree rebuild somehow
+  manikde!(
+    M,
+    pts;
+    bw=best_cov,
+    belmodel = (a,b,aF,dF) -> ApproxManifoldProducts.buildTree_Manellic!(
+      M,
+      pts;
+      kernel_bw=b, 
+      kernel=AMP.MvNormalKernel
+    )
+  )
+end
+
 
 ## ==========================================================================================
 ## a few utilities

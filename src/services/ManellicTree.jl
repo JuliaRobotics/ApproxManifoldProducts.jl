@@ -98,7 +98,7 @@ function getKernelTree(
       leafIdxs .+= N
       bws = [cov(getKernelTree(mtr,lidx,false)) for lidx in leafIdxs]
       # FIXME is a parallel transport needed between different kernel covariances that each exist in different tangent spaces
-      mean_bw = mean(bws)
+      mean_bw = mean(bws) # FIXME upgrade to on-manifold mean
       # corrected cov varies from root (only Monte Carlo cov est) to leaves (only selected bandwdith)
       nC = (1-λ)*cov(raw_ker) + λ*mean_bw
       # return a new kernel with cov_continuation, of tree kernel type
@@ -573,6 +573,7 @@ DevNotes:
   - use geometric computing for faster evaluation
 - Dual tree evaluations
   - Holmes, M.P., Gray, A.G. and Isbell Jr, C.L., 2010. Fast kernel conditional density estimation: A dual-tree Monte Carlo approach. Computational statistics & data analysis, 54(7), pp.1707-1718.
+  - Curtin, R., March, W., Ram, P., Anderson, D., Gray, A. and Isbell, C., 2013, May. Tree-independent dual-tree algorithms. In International Conference on Machine Learning (pp. 1435-1443). PMLR.
 - Fast kernels
 - Parallel transport shortcuts?
 """
@@ -768,6 +769,8 @@ Notes:
 - Advise, 2<=MC to ensure multiscale works during decent transitions (TBD obsolete requirement)
 - To force sequential Gibbs on leaves only, use:
   `label_pools = [[(length(getPoints(prop))+1):(2*length(getPoints(prop)));] for prop in proposals]`
+- Taken from: Sudderth, E.B., Ihler, A.T., Isard, M., Freeman, W.T. and Willsky, A.S., 2010. 
+  Nonparametric belief propagation. Communications of the ACM, 53(10), pp.95-103.
 """
 function sampleProductSeqGibbsBTLabel(
   M::AbstractManifold,
@@ -801,8 +804,6 @@ function sampleProductSeqGibbsBTLabel(
   
   # construct new label pool for children in multiscale
   child_label_pools, all_leaves = generateLabelPoolRecursive(proposals, labels_sampled)
-
-  # @info "WHY STOP" child_label_pools all_leaves
 
   # recursively call sampling down the multiscale tree ("pyramid") -- aka homotopy
   # limit recursion to MAX_RECURSE_DEPTH
