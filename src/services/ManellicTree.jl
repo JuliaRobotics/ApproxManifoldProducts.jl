@@ -497,7 +497,6 @@ function buildTree_Manellic!(
     MVector{N,Int}(1:N),
     lkern, # MVector{N,lknlT}(undef),
     SizedVector{N,tknlT}(undef),
-    # SizedVector{N,tknlT}(undef),
     SizedVector{N,Set{Int}}(undef),
     MVector{N,Int}(undef),
     MVector{N,Int}(undef),
@@ -523,6 +522,36 @@ function buildTree_Manellic!(
     # end
 
   return tosort_leaves
+end
+
+
+function updateBandwidths(
+  mtr::ManellicTree{M,D,N,HL},
+  bws
+) where {M,D,N,HL}
+  #
+  _getBW(s::Float64,::Int) = [s;;]
+  _getBW(s::AbstractVector{<:Real},::Int) = s
+  _getBW(s::AbstractMatrix{<:Real},::Int) = s
+  _getBW(s::AbstractVector{<:AbstractArray},_i::Int) = s[_i]
+
+  _leaf_kernels = SizedVector{N,HL}(undef)
+  for (i,lk) in enumerate(mtr.leaf_kernels)
+    _leaf_kernels[i] = updateKernelBW(lk,_getBW(bws,i))
+  end
+  ManellicTree(
+    mtr.manifold,
+    mtr.data,
+    mtr.weights,
+    mtr.permute,
+    _leaf_kernels,
+    mtr.tree_kernels,
+    mtr.segments,
+    mtr.left_idx,
+    mtr.right_idx,
+    mtr._workaround_isdef_treekernel,
+    mtr._workaround_isdef_leafkernel,
+  )
 end
 
 
@@ -582,9 +611,9 @@ function evaluate(
   pt,
   LOO::Bool = false,
 ) where {M,D,N,HL}
-  # force function barrier, just to be sure dyndispatch is limited
-  _F() = getfield(ApproxManifoldProducts,HL.name.name)
-  _F_ = _F() 
+  # # force function barrier, just to be sure dyndispatch is limited
+  # _F() = getfield(ApproxManifoldProducts,HL.name.name)
+  # _F_ = _F() 
 
   pts = getPoints(mt)
   w = getWeights(mt)
