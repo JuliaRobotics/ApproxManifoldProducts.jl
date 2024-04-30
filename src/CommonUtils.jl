@@ -123,10 +123,10 @@ DevNotes:
 """
 function calcProductGaussians(
   M::AbstractManifold, 
-  μ_::Union{<:AbstractVector{P},<:NTuple{N,P}}, # point type commonly known as P 
+  μ_::Union{<:AbstractVector{P},<:NTuple{N,P}}, # point type commonly known as P (actually on-manifold)
   Σ_::Union{Nothing,<:AbstractVector{S},<:NTuple{N,S}};
   dim::Integer=manifold_dimension(M),
-  Λ_ = inv.(Σ_),
+  Λ_ = inv.(Σ_), # TODO these probably need to be transported to common tangent space `u0` -- FYI @Affie 24Q2
 ) where {N,P,S<:AbstractMatrix{<:Real}}
   #
   # calc sum of covariances  
@@ -176,15 +176,17 @@ calcProductGaussians(
 EXPERIMENTAL: On-manifold product of Gaussians.
 
 DevNotes
+- CHECK make sure this product is properly on manifold, Manifolds.jl likely already has solutions:
+  - https://juliamanifolds.github.io/Manifolds.jl/stable/features/distributions.html
 - FIXME is parallel transport needed when multiplying with covariances from difffent tangent spaces?
 """
 function calcProductGaussians(
   M::AbstractManifold,
   comps::AbstractVector{<:MvNormalKernel},
 )
-  #
-  μ_ = mean.(comps)
-  Σ_ = cov.(comps)
+  # CHECK this should be on-manifold for points
+  μ_ = mean.(comps) # This is a ArrayPartition which IS DEFINITELY ON MANIFOLD (we dispatch on mean)
+  Σ_ = cov.(comps)  # on tangent
 
   # FIXME is parallel transport needed here for covariances from different tangent spaces?
 

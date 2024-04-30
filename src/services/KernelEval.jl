@@ -30,7 +30,7 @@ Statistics.std(m::MvNormalKernel) = sqrt(cov(m))
 function evaluate(
   M::AbstractManifold,
   ekr::MvNormalKernel,
-  p
+  p # on manifold point
 )
   #
   dim = manifold_dimension(M)

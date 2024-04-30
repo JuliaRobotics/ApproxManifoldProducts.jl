@@ -418,12 +418,18 @@ end
 
 
 # TODO
-# @testset "Manellic tree bandwidth optimize n-dim RLM" begin
-# ##
+@testset "Manellic tree all up construction with bandwith optimization" begin
+##
 
 
-# ##
-# end
+M = TranslationGroup(1)
+# pts = [[0.;],[0.1],[0.2;],[0.3;]]
+pts = [1*randn(1) for _ in 1:64]
+
+mkd = ApproxManifoldProducts.manikde!_manellic(M,pts)
+
+##
+end
 
 
 
