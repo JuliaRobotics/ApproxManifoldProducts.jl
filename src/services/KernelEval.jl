@@ -7,9 +7,6 @@ function projectSymPosDef(c::AbstractMatrix)
   issymmetric(_c) ? _c : project(SymmetricPositiveDefinite(s[1]),_c,_c)
 end
 
-# FIXME ON FIRE, REMOVE TYPE DISPLACEMENT
-Base.eltype(mt::MvNormalKernel) = eltype(mt.p)
-
 function MvNormalKernel(
   μ::AbstractVector,
   Σ::AbstractArray,
@@ -26,6 +23,7 @@ Statistics.mean(m::MvNormalKernel) = m.μ # mean(m.p) # m.p.μ
 Statistics.cov(m::MvNormalKernel) = cov(m.p) # note also about m.sqrt_iΣ
 Statistics.std(m::MvNormalKernel) = sqrt(cov(m))
 
+updateKernelBW(k::MvNormalKernel,_bw) = (p=MvNormal(_bw); MvNormalKernel(;μ=k.μ,p,weight=k.weight))
 
 function evaluate(
   M::AbstractManifold,

@@ -70,16 +70,18 @@ function ManifoldKernelDensity(
     arr[:,j] = vee(M, ϵ, log(M, ϵ, vecP[j]))
   end
 
-  manis = convert(Tuple, M)
-  # find or have the bandwidth
-  _bw = bw === nothing ? getKDEManifoldBandwidths(arr, manis ) : bw
+    # FIXME ON FIRE REMOVE LEGACY
+    manis = convert(Tuple, M)
+    # find or have the bandwidth
+    _bw = isnothing(bw) ? getKDEManifoldBandwidths(arr, manis ) : bw
   # NOTE workaround for partials and user did not specify a bw
-  if bw === nothing && partial !== nothing
+  if isnothing(bw) && !isnothing(partial)
     mask = ones(Int, length(_bw)) .== 1
     mask[partial] .= false
     _bw[mask] .= 1.0
   end
-  addopT, diffopT, _, _ = buildHybridManifoldCallbacks(manis)
+    # FIXME ON FIRE REMOVE LEGACY
+    addopT, diffopT, _, _ = buildHybridManifoldCallbacks(manis)
   bel = belmodel(arr,_bw,addopT,diffopT)
   # bel = KernelDensityEstimate.kde!(arr, collect(_bw), addopT, diffopT)
   return ManifoldKernelDensity(M, bel, partial, u0, infoPerCoord)
@@ -101,6 +103,7 @@ manikde!(
 
 #
 
+
 function manikde!_manellic(
   M::AbstractManifold,
   pts::AbstractVector;
@@ -118,7 +121,7 @@ function manikde!_manellic(
   # Cost function to optimize
   _cost(_pts, σ) = begin
     # FIXME avoid rebuilding tree at each optim iteration!!!
-    mtr = buildTree_Manellic!(M, _pts; kernel_bw=reshape([σ;],manifold_dimension(M),1), kernel=MvNormalKernel)
+    mtr = buildTree_Manellic!(M, _pts; kernel_bw=reshape(σ,manifold_dimension(M),1), kernel=MvNormalKernel)
     entropy(mtr)
   end
   
@@ -127,25 +130,20 @@ function manikde!_manellic(
   # set lower and upper bounds for Golden section optimization
   lcov, ucov = getBandwidthSearchBounds(mtree)
   res = Optim.optimize(
-    (s)->_cost(pts,s^2), 
+    (s)->_cost(pts,[s^2;]), 
     lcov[1], ucov[1], Optim.GoldenSection()
   )
-  best_cov = [Optim.minimizer(res);;]
-
+  best_cov = [Optim.minimizer(res);]
+  
+  # reuse (heavy lift parts of) earlier tree build
   # return tree with correct bandwidth
-  # TODO avoid tree rebuild somehow
   manikde!(
     M,
     pts;
-    bw=best_cov,
-    belmodel = (a,b,aF,dF) -> ApproxManifoldProducts.buildTree_Manellic!(
-      M,
-      pts;
-      kernel_bw=b, 
-      kernel=AMP.MvNormalKernel
-    )
+    belmodel = (ignore...) -> updateBandwidths(mtree, best_cov)
   )
 end
+
 
 
 ## ==========================================================================================
@@ -305,7 +303,7 @@ function Base.show(io::IO, mkd::ManifoldKernelDensity{M,B,L,P}) where {M,B,L,P}
   try
     # mn = mean(mkd.manifold, getPoints(mkd, false))
     mn = mean(mkd)
-    if mn isa ProductRepr
+    if mn isa ProductRepr # TODO UPDATE to ArrayPartition only, discontinued use of ProductRepr long ago.
       println(io)
       for prt in mn.parts
         println(io, "         ", round.(prt,digits=4))

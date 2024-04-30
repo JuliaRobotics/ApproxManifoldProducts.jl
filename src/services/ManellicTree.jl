@@ -413,8 +413,6 @@ function buildTree_Manellic!(
   npts = high - low + 1
   mid_idx = low + sum(imask) - 1
 
-  # @info "BUILD" index low sum(mask) mid_idx high _getleft(index) _getright(index)
-
   lft = mid_idx <= low ? low : leftIndex(mtree, index)
   rgt = high <= mid_idx+1 ? high : rightIndex(mtree, index)
 
@@ -431,7 +429,7 @@ function buildTree_Manellic!(
 
   if index < N
     _knl = convert(eltype(mtree.tree_kernels), knl)
-    # FIXME use consolidate getKernelTree instead
+    # set tree kernel
     mtree.tree_kernels[index] = _knl 
     push!(mtree._workaround_isdef_treekernel, index)
     mtree.segments[index] = Set(ido)
@@ -495,14 +493,11 @@ function buildTree_Manellic!(
     r_PP,
     MVector{N,Float64}(weights),
     MVector{N,Int}(1:N),
-    lkern, # MVector{N,lknlT}(undef),
+    lkern,
     SizedVector{N,tknlT}(undef),
-    # SizedVector{N,tknlT}(undef),
     SizedVector{N,Set{Int}}(undef),
-    MVector{N,Int}(undef),
-    MVector{N,Int}(undef),
+    _workaround_isdef_leafkernel,
     Set{Int}(),
-    _workaround_isdef_leafkernel
   )
 
   #
@@ -517,12 +512,36 @@ function buildTree_Manellic!(
 
   # manual reset leaves in the order discovered
   permute!(tosort_leaves.leaf_kernels, tosort_leaves.permute)
-    # dupl = deepcopy(tosort_leaves.leaf_kernels)
-    # for (k,i) in enumerate(tosort_leaves.permute)
-    #   tosort_leaves[i] = dupl.leaf_kernels[k]
-    # end
 
   return tosort_leaves
+end
+
+
+function updateBandwidths(
+  mtr::ManellicTree{M,D,N,HL},
+  bws
+) where {M,D,N,HL}
+  #
+  _getBW(s::Float64,::Int) = [s;;]
+  _getBW(s::AbstractVector{<:Real},::Int) = s
+  _getBW(s::AbstractMatrix{<:Real},::Int) = s
+  _getBW(s::AbstractVector{<:AbstractArray},_i::Int) = s[_i]
+
+  _leaf_kernels = SizedVector{N,HL}(undef)
+  for (i,lk) in enumerate(mtr.leaf_kernels)
+    _leaf_kernels[i] = updateKernelBW(lk,_getBW(bws,i))
+  end
+  ManellicTree(
+    mtr.manifold,
+    mtr.data,
+    mtr.weights,
+    mtr.permute,
+    _leaf_kernels,
+    mtr.tree_kernels,
+    mtr.segments,
+    mtr._workaround_isdef_leafkernel,
+    mtr._workaround_isdef_treekernel,
+  )
 end
 
 
@@ -582,9 +601,9 @@ function evaluate(
   pt,
   LOO::Bool = false,
 ) where {M,D,N,HL}
-  # force function barrier, just to be sure dyndispatch is limited
-  _F() = getfield(ApproxManifoldProducts,HL.name.name)
-  _F_ = _F() 
+  # # force function barrier, just to be sure dyndispatch is limited
+  # _F() = getfield(ApproxManifoldProducts,HL.name.name)
+  # _F_ = _F() 
 
   pts = getPoints(mt)
   w = getWeights(mt)
