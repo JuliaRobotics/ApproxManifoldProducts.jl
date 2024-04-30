@@ -413,8 +413,6 @@ function buildTree_Manellic!(
   npts = high - low + 1
   mid_idx = low + sum(imask) - 1
 
-  # @info "BUILD" index low sum(mask) mid_idx high _getleft(index) _getright(index)
-
   lft = mid_idx <= low ? low : leftIndex(mtree, index)
   rgt = high <= mid_idx+1 ? high : rightIndex(mtree, index)
 
@@ -431,7 +429,7 @@ function buildTree_Manellic!(
 
   if index < N
     _knl = convert(eltype(mtree.tree_kernels), knl)
-    # FIXME use consolidate getKernelTree instead
+    # set tree kernel
     mtree.tree_kernels[index] = _knl 
     push!(mtree._workaround_isdef_treekernel, index)
     mtree.segments[index] = Set(ido)
@@ -495,13 +493,11 @@ function buildTree_Manellic!(
     r_PP,
     MVector{N,Float64}(weights),
     MVector{N,Int}(1:N),
-    lkern, # MVector{N,lknlT}(undef),
+    lkern,
     SizedVector{N,tknlT}(undef),
     SizedVector{N,Set{Int}}(undef),
-    MVector{N,Int}(undef),
-    MVector{N,Int}(undef),
+    _workaround_isdef_leafkernel,
     Set{Int}(),
-    _workaround_isdef_leafkernel
   )
 
   #
@@ -516,10 +512,6 @@ function buildTree_Manellic!(
 
   # manual reset leaves in the order discovered
   permute!(tosort_leaves.leaf_kernels, tosort_leaves.permute)
-    # dupl = deepcopy(tosort_leaves.leaf_kernels)
-    # for (k,i) in enumerate(tosort_leaves.permute)
-    #   tosort_leaves[i] = dupl.leaf_kernels[k]
-    # end
 
   return tosort_leaves
 end
@@ -547,10 +539,8 @@ function updateBandwidths(
     _leaf_kernels,
     mtr.tree_kernels,
     mtr.segments,
-    mtr.left_idx,
-    mtr.right_idx,
-    mtr._workaround_isdef_treekernel,
     mtr._workaround_isdef_leafkernel,
+    mtr._workaround_isdef_treekernel,
   )
 end
 
