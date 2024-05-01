@@ -341,7 +341,7 @@ malad2 = AMP.distanceMalahanobisSq(M,ker,q)
   atol=1e-10
 )
 
-rbfd = AMP.ker(M, ker, p, 0.5, AMP.distanceMalahanobisSq)
+rbfd = AMP.ker(M, ker, q, 0.5, AMP.distanceMalahanobisSq)
 @test isapprox(
   exp(-0.5*delta_t'*inv(kercov)*delta_t),
   rbfd;
