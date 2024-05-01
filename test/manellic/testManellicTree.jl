@@ -325,25 +325,27 @@ pdf(MvNormal(cov(ker)), [0,0,0])
 AMP.evaluate(M, ker, p)
 
 
-# think this direct coordinate diff test should work
 delta_c = AMP.distanceMalahanobisCoordinates(M, ker, q)
-delta_t = [10, 20, 0.1] - [10, 22, -0.1]
+X = log(M, ϵ, Manifolds.compose(M, inv(M, p), q))
+Xc_e = vee(M, ϵ, X)
+malad_t = Xc_e'*inv(kercov)*Xc_e
+# delta_t = [10, 20, 0.1] - [10, 22, -0.1] 
 @test isapprox(
-  delta_t'*inv(kercov)*delta_t,
+  malad_t,
   delta_c'*delta_c;
   atol=1e-10
 )
 
 malad2 = AMP.distanceMalahanobisSq(M,ker,q)
 @test isapprox(
-  delta_t'*inv(kercov)*delta_t,
+  malad_t,
   malad2;
   atol=1e-10
 )
 
 rbfd = AMP.ker(M, ker, q, 0.5, AMP.distanceMalahanobisSq)
 @test isapprox(
-  exp(-0.5*delta_t'*inv(kercov)*delta_t),
+  exp(-0.5*malad_t),
   rbfd;
   atol=1e-10
 )
