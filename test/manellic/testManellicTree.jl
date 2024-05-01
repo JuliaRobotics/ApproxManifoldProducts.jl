@@ -334,6 +334,13 @@ delta_t = [10, 20, 0.1] - [10, 22, -0.1]
   atol=1e-10
 )
 
+malad2 = AMP.distanceMalahanobisSq(M,ker,q)
+@test isapprox(
+  delta_t'*inv(kercov)*delta_t,
+  malad2;
+  atol=1e-10
+)
+
 AMP.evaluate(M, ker, q)
 # 0.006545478063636599
 
