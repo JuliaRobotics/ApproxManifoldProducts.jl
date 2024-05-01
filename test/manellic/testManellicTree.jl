@@ -311,7 +311,8 @@ M = SpecialEuclidean(2)
 ϵ = identity_element(M)
 Xc = [10, 20, 0.1]
 p = exp(M, ϵ, hat(M, ϵ, Xc))
-ker = AMP.MvNormalKernel(p, diagm([0.5, 2.0, 0.1].^2))
+kercov = diagm([0.5, 2.0, 0.1].^2)
+ker = AMP.MvNormalKernel(p, kercov)
 @test isapprox(
   AMP.evaluate(M, ker, p),
   pdf(MvNormal(Xc, cov(ker)), Xc)
@@ -323,6 +324,15 @@ q = exp(M, ϵ, hat(M, ϵ, Xc))
 pdf(MvNormal(cov(ker)), [0,0,0])
 AMP.evaluate(M, ker, p)
 
+
+# think this direct coordinate diff test should work
+delta_c = AMP.distanceMalahanobisCoordinates(M, ker, q)
+delta_t = [10, 20, 0.1] - [10, 22, -0.1]
+@test isapprox(
+  delta_t'*inv(kercov)*delta_t,
+  delta_c'*delta_c;
+  atol=1e-10
+)
 
 AMP.evaluate(M, ker, q)
 # 0.006545478063636599
