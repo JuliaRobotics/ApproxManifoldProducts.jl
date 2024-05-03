@@ -3,6 +3,7 @@
 using Test
 using ApproxManifoldProducts
 using Random
+using LinearAlgebra
 using StaticArrays
 using TensorCast
 using Manifolds
@@ -266,7 +267,11 @@ permref = sortperm(pts, by=s->getindex(s,1))
 ##
 end
 
-"Test evaluate MvNormalKernel"
+## ========================================================================================
+## ========================================================================================
+## ========================================================================================
+
+# @testset "Test evaluate MvNormalKernel" begin
 
 M = TranslationGroup(1)
 ker = AMP.MvNormalKernel([0.0], [0.5;;])
@@ -276,6 +281,7 @@ ker = AMP.MvNormalKernel([0.0], [0.5;;])
 )
 
 
+# Test wrapped cicular distribution 
 function pdf_wrapped_normal(μ, σ, θ; nwrap=1000) 
   s = 0.0
   for k = -nwrap:nwrap
@@ -306,7 +312,7 @@ ker = AMP.MvNormalKernel([0], [2.0;;])
   AMP.evaluate(M, ker, [0.])
 )
 
-
+##
 M = SpecialEuclidean(2)
 ϵ = identity_element(M)
 Xc = [10, 20, 0.1]
@@ -321,40 +327,19 @@ ker = AMP.MvNormalKernel(p, kercov)
 Xc = [10, 22, -0.1]
 q = exp(M, ϵ, hat(M, ϵ, Xc))
 
-pdf(MvNormal(cov(ker)), [0,0,0])
-AMP.evaluate(M, ker, p)
-
-
-AMP.evaluate(M, ker, q)
-# 0.006545478063636599
-
-X = log(M, mean(ker), q) 
-Xc_e = vee(M, ϵ, X)
-pdf(MvNormal(cov(ker)), Xc_e)
-# 0.05211875018288499
-# ^ "global" vs "local" v
-X = log(M, ϵ, Manifolds.compose(M, inv(M, p), q))
-Xc_e = vee(M, ϵ, X)
-pdf(MvNormal(cov(ker)), Xc_e)
-# 0.0483649046065308
-
-
-##
-M = TranslationGroup(2)
-ϵ = identity_element(M)
-Xc = [10, 20]
-p = exp(M, ϵ, hat(M, ϵ, Xc))
-ker = AMP.MvNormalKernel(p, diagm([0.5, 2.0].^2))
 @test isapprox(
-  AMP.evaluate(M, ker, p),
-  pdf(MvNormal(Xc, cov(ker)), Xc)
+  pdf(MvNormal(cov(ker)), [0,0,0]),
+  AMP.evaluate(M, ker, p)
 )
 
-Xc = [10, 22]
-q = exp(M, ϵ, hat(M, ϵ, Xc))
+X = log(M, ϵ, Manifolds.compose(M, inv(M, p), q))
+Xc_e = vee(M, ϵ, X)
+pdf_local_coords = pdf(MvNormal(cov(ker)), Xc_e)
 
-pdf(MvNormal(cov(ker)), [0,0])
-AMP.evaluate(M, ker, p)
+@test isapprox(
+  pdf_local_coords,
+  AMP.evaluate(M, ker, q),
+)
 
 delta_c = AMP.distanceMalahanobisCoordinates(M, ker, q)
 X = log(M, ϵ, Manifolds.compose(M, inv(M, p), q))
@@ -381,25 +366,18 @@ rbfd = AMP.ker(M, ker, q, 0.5, AMP.distanceMalahanobisSq)
   atol=1e-10
 )
 
-AMP.evaluate(M, ker, q)
-# 0.006545478063636599
 
+# NOTE 'global' distribution would have been 
 X = log(M, mean(ker), q) 
 Xc_e = vee(M, ϵ, X)
-pdf(MvNormal(cov(ker)), Xc_e)
-# 0.05211875018288499
-# ^ "global" vs "local" v
-X = log(M, ϵ, Manifolds.compose(M, inv(M, p), q))
-Xc_e = vee(M, ϵ, X)
-pdf(MvNormal(cov(ker)), Xc_e)
-# 0.0483649046065308
+pdf_global_coords = pdf(MvNormal(cov(ker)), Xc_e)
+
+
+
 
 # @testset "ManellicTree SE2 basic construction and evaluations" begin
 ## 
-using Manifolds
-using ApproxManifoldProducts
-using ApproxManifoldProducts.Distributions
-using LinearAlgebra
+
 
 M = TranslationGroup(1)
 ϵ = identity_element(M)
@@ -414,6 +392,9 @@ y_amp = AMP.evaluate(mtree, p)
 
 y_pdf = pdf(dis, [3.0])
 
+@test isapprox(y_amp, y_pdf; atol=0.1)
+
+
 ps = [[p] for p = -0:0.01:6]
 ys_amp = map(p->AMP.evaluate(mtree, exp(M, ϵ, hat(M, ϵ, p))), ps)
 ys_pdf = pdf(dis, ps)
@@ -422,15 +403,9 @@ lines(first.(ps), ys_pdf)
 lines!(first.(ps), ys_amp)
 
 lines!(first.(ps), ys_pdf)
-
 lines(first.(ps), ys_amp)
 
-#TODO is this supposed to be equal?
-@test_broken isapprox(y_amp, y_pdf; atol=0.1)
-
 ##
-
-
 
 
 M = SpecialOrthogonal(2)
@@ -446,8 +421,7 @@ y_amp = AMP.evaluate(mtree, p)
 
 y_pdf = pdf(dis, [0.1])
 
-#FIXME
-@test_broken isapprox(y_amp, y_pdf; atol=0.1)
+@test isapprox(y_amp, y_pdf; atol=0.1)
 
 ps = [[p] for p = -0.3:0.01:0.3]
 ys_amp = map(p->AMP.evaluate(mtree, exp(M, ϵ, hat(M, ϵ, p))), ps)
@@ -475,9 +449,6 @@ y_pdf = pdf(dis, [10,20,0.1])
 
 
 ##
-end
-
-
 
 M = SpecialEuclidean(2)
 ϵ = identity_element(M)
@@ -553,8 +524,6 @@ lines(θs, pdf_ps[30,60,:])
 lines!(θs, amp_ps[30,60,:])
 
 
-
-
 lines(xs, pdf_pqs[:,60,30])
 lines!(xs, amp_pqs[:,60,30])
 
@@ -611,7 +580,11 @@ pdf(MvNormal(cov(ker)), Xc_e)
 # 0.0483649046065308
 
 
+end
 
+## ========================================================================================
+## ========================================================================================
+## ========================================================================================
 
 
 @testset "Manellic basic evaluation test 1D" begin
