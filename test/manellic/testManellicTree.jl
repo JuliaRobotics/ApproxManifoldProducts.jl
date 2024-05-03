@@ -337,6 +337,40 @@ Xc_e = vee(M, ϵ, X)
 pdf(MvNormal(cov(ker)), Xc_e)
 # 0.0483649046065308
 
+
+##
+M = TranslationGroup(2)
+ϵ = identity_element(M)
+Xc = [10, 20]
+p = exp(M, ϵ, hat(M, ϵ, Xc))
+ker = AMP.MvNormalKernel(p, diagm([0.5, 2.0].^2))
+@test isapprox(
+  AMP.evaluate(M, ker, p),
+  pdf(MvNormal(Xc, cov(ker)), Xc)
+)
+
+Xc = [10, 22]
+q = exp(M, ϵ, hat(M, ϵ, Xc))
+
+pdf(MvNormal(cov(ker)), [0,0])
+AMP.evaluate(M, ker, p)
+
+
+AMP.evaluate(M, ker, q)
+# 0.006545478063636599
+
+X = log(M, mean(ker), q) 
+Xc_e = vee(M, ϵ, X)
+pdf(MvNormal(cov(ker)), Xc_e)
+# 0.05211875018288499
+# ^ "global" vs "local" v
+X = log(M, ϵ, Manifolds.compose(M, inv(M, p), q))
+Xc_e = vee(M, ϵ, X)
+pdf(MvNormal(cov(ker)), Xc_e)
+# 0.0483649046065308
+
+
+
 # @testset "ManellicTree SE2 basic construction and evaluations" begin
 ## 
 using Manifolds
@@ -419,6 +453,143 @@ y_pdf = pdf(dis, [10,20,0.1])
 
 ##
 end
+
+
+
+M = SpecialEuclidean(2)
+ϵ = identity_element(M)
+
+Xc_p = [10, 20, 0.1]
+p = exp(M, ϵ, hat(M, ϵ, Xc_p))
+kerp = AMP.MvNormalKernel(p, diagm([0.5, 2.0, 0.1].^2))
+
+
+Xc_q = [10, 22, -0.1]
+q = exp(M, ϵ, hat(M, ϵ, Xc_q))
+kerq = AMP.MvNormalKernel(q, diagm([1.0, 1.0, 0.1].^2))
+
+
+kerpq = calcProductGaussians(M, [kerp, kerq])
+
+# brute force way
+xs = 7:0.1:13
+ys = 15:0.1:27
+θs = -0.3:0.01:0.3
+
+grid_points = map(Iterators.product(xs, ys, θs)) do (x,y,θ)
+    exp(M, ϵ, hat(M, ϵ, SVector(x,y,θ)))
+end
+
+use_global_coords = false
+pdf_ps = map(grid_points) do gp
+  if use_global_coords
+    X = log(M, p, gp) 
+    Xc_e = vee(M, ϵ, X)
+    pdf(MvNormal(cov(kerp)), Xc_e)
+  else
+    X = log(M, ϵ, Manifolds.compose(M, inv(M, p), gp))
+    Xc_e = vee(M, ϵ, X)
+    pdf(MvNormal(cov(kerp)), Xc_e)
+  end
+end
+
+pdf_qs = map(grid_points) do gp
+  if use_global_coords
+    X = log(M, q, gp) 
+    Xc_e = vee(M, ϵ, X)
+    pdf(MvNormal(cov(kerq)), Xc_e)
+  else
+    X = log(M, ϵ, Manifolds.compose(M, inv(M, q), gp))
+    Xc_e = vee(M, ϵ, X)
+    pdf(MvNormal(cov(kerq)), Xc_e)
+  end
+end
+
+pdf_pqs = pdf_ps .* pdf_qs
+# pdf_pqs ./= sum(pdf_pqs) * 0.01
+pdf_pqs .*= 15.9672
+
+amp_ps = map(grid_points) do gp
+  AMP.evaluate(M, kerp, gp)
+end
+amp_qs = map(grid_points) do gp
+  AMP.evaluate(M, kerq, gp)
+end
+
+amp_pqs = map(grid_points) do gp
+  AMP.evaluate(M, kerpq, gp)
+end
+
+lines(xs, pdf_ps[:,60,30])
+lines!(xs, amp_ps[:,60,30])
+
+lines(ys, pdf_ps[30,:,30])
+lines!(ys, amp_ps[30,:,30])
+
+lines(θs, pdf_ps[30,60,:])
+lines!(θs, amp_ps[30,60,:])
+
+
+
+
+lines(xs, pdf_pqs[:,60,30])
+lines!(xs, amp_pqs[:,60,30])
+
+lines(ys, pdf_pqs[30,:,30])
+lines!(ys, amp_pqs[30,:,30])
+
+lines(θs, pdf_pqs[30,60,:])
+lines!(θs, amp_pqs[30,60,:])
+
+contour(xs, ys, pdf_pqs[:,:,30])
+contour!(xs, ys, amp_pqs[:,:,30])
+
+
+pdf_p = pdf(Normal(10, 0.5), xs)
+pdf_q = pdf(Normal(10, 1.0), xs)
+pdf_pq = (pdf_p .* pdf_q)
+pdf_pq ./= sum(pdf_pq) * 0.01 
+
+lines(xs, pdf_p)
+lines!(xs, pdf_q)
+lines!(xs, pdf_pq)
+
+pdf_p = pdf(Normal(20, 2.0), ys)
+pdf_q = pdf(Normal(22, 1.0), ys)
+pdf_pq = (pdf_p .* pdf_q)
+pdf_pq ./= sum(pdf_pq) * 0.01 
+
+lines(ys, pdf_p)
+lines!(ys, pdf_q)
+lines!(ys, pdf_pq)
+
+#
+pdf_p = pdf(Normal(0.1, 0.1), θs)
+pdf_q = pdf(Normal(-0.1, 0.1), θs)
+pdf_pq = (pdf_p .* pdf_q)
+pdf_pq ./= sum(pdf_pq) * 0.01 
+
+lines(θs, pdf_p)
+lines!(θs, pdf_q)
+lines!(θs, pdf_pq)
+
+
+## ========================================================================================
+
+
+X = log(M, mean(ker), q) 
+Xc_e = vee(M, ϵ, X)
+pdf(MvNormal(cov(ker)), Xc_e)
+# 0.05211875018288499
+# ^ "global" vs "local" v
+X = log(M, ϵ, Manifolds.compose(M, inv(M, p), q))
+Xc_e = vee(M, ϵ, X)
+pdf(MvNormal(cov(ker)), Xc_e)
+# 0.0483649046065308
+
+
+
+
 
 @testset "Manellic basic evaluation test 1D" begin
 ##
