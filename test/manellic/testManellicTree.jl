@@ -311,7 +311,8 @@ M = SpecialEuclidean(2)
 ϵ = identity_element(M)
 Xc = [10, 20, 0.1]
 p = exp(M, ϵ, hat(M, ϵ, Xc))
-ker = AMP.MvNormalKernel(p, diagm([0.5, 2.0, 0.1].^2))
+kercov = diagm([0.5, 2.0, 0.1].^2)
+ker = AMP.MvNormalKernel(p, kercov)
 @test isapprox(
   AMP.evaluate(M, ker, p),
   pdf(MvNormal(Xc, cov(ker)), Xc)
@@ -355,6 +356,30 @@ q = exp(M, ϵ, hat(M, ϵ, Xc))
 pdf(MvNormal(cov(ker)), [0,0])
 AMP.evaluate(M, ker, p)
 
+delta_c = AMP.distanceMalahanobisCoordinates(M, ker, q)
+X = log(M, ϵ, Manifolds.compose(M, inv(M, p), q))
+Xc_e = vee(M, ϵ, X)
+malad_t = Xc_e'*inv(kercov)*Xc_e
+# delta_t = [10, 20, 0.1] - [10, 22, -0.1] 
+@test isapprox(
+  malad_t,
+  delta_c'*delta_c;
+  atol=1e-10
+)
+
+malad2 = AMP.distanceMalahanobisSq(M,ker,q)
+@test isapprox(
+  malad_t,
+  malad2;
+  atol=1e-10
+)
+
+rbfd = AMP.ker(M, ker, q, 0.5, AMP.distanceMalahanobisSq)
+@test isapprox(
+  exp(-0.5*malad_t),
+  rbfd;
+  atol=1e-10
+)
 
 AMP.evaluate(M, ker, q)
 # 0.006545478063636599
@@ -368,8 +393,6 @@ X = log(M, ϵ, Manifolds.compose(M, inv(M, p), q))
 Xc_e = vee(M, ϵ, X)
 pdf(MvNormal(cov(ker)), Xc_e)
 # 0.0483649046065308
-
-
 
 # @testset "ManellicTree SE2 basic construction and evaluations" begin
 ## 

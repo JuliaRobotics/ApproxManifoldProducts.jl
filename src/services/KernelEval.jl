@@ -98,10 +98,11 @@ function distanceMalahanobisSq(
   basis=DefaultOrthogonalBasis()
 )
   δc = distanceMalahanobisCoordinates(M,K,q,basis)
-  p = mean(K)
-  ϵ = identity_element(M, q)
-  X = get_vector(M, ϵ, δc, basis)
-  return inner(M, p, X, X)
+  # p = mean(K)
+  # ϵ = identity_element(M, q)
+  # X = get_vector(M, ϵ, δc, basis)
+  # return inner(M, p, X, X)
+  return δc'*δc
 end
 
 
