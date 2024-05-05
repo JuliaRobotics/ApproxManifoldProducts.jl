@@ -389,17 +389,15 @@ y_pdf = pdf(dis, [3.0])
 
 @test isapprox(y_amp, y_pdf; atol=0.1)
 
-if false
-ps = [[p] for p = -0:0.01:6]
-ys_amp = map(p->AMP.evaluate(mtree, exp(M, ϵ, hat(M, ϵ, p))), ps)
-ys_pdf = pdf(dis, ps)
+# ps = [[p] for p = -0:0.01:6]
+# ys_amp = map(p->AMP.evaluate(mtree, exp(M, ϵ, hat(M, ϵ, p))), ps)
+# ys_pdf = pdf(dis, ps)
 
-lines(first.(ps), ys_pdf)
-lines!(first.(ps), ys_amp)
+# lines(first.(ps), ys_pdf)
+# lines!(first.(ps), ys_amp)
 
-lines!(first.(ps), ys_pdf)
-lines(first.(ps), ys_amp)
-end
+# lines!(first.(ps), ys_pdf)
+# lines(first.(ps), ys_amp)
 ##
 
 M = SpecialOrthogonal(2)
@@ -421,10 +419,8 @@ ps = [[p] for p = -0.3:0.01:0.3]
 ys_amp = map(p->AMP.evaluate(mtree, exp(M, ϵ, hat(M, ϵ, p))), ps)
 ys_pdf = pdf(dis, ps)
 
-if false
-lines(first.(ps), ys_pdf)
-lines!(first.(ps), ys_amp)
-end
+# lines(first.(ps), ys_pdf)
+# lines!(first.(ps), ys_amp)
 
 
 M = SpecialEuclidean(2)
@@ -521,65 +517,59 @@ normalized_compare_test = isapprox.(normalize(amp_pqs), normalize(amp_bf_pqs); a
 #TODO should this be local or global coords?
 @test_broken findmax(pdf_pqs[:,60,30])[2] == findmax(amp_pqs[:,60,30])[2]
 
-if false
 # these are all correct
-lines(xs, pdf_ps[:,60,30])
-lines!(xs, amp_ps[:,60,30])
+# lines(xs, pdf_ps[:,60,30])
+# lines!(xs, amp_ps[:,60,30])
 
-lines(ys, pdf_ps[30,:,30])
-lines!(ys, amp_ps[30,:,30])
+# lines(ys, pdf_ps[30,:,30])
+# lines!(ys, amp_ps[30,:,30])
 
-lines(θs, pdf_ps[30,60,:])
-lines!(θs, amp_ps[30,60,:])
-end
+# lines(θs, pdf_ps[30,60,:])
+# lines!(θs, amp_ps[30,60,:])
 
-if false
 #these are different for "local" vs "global"
-lines(xs, normalize(pdf_pqs[:,60,30]))
-lines!(xs, normalize(amp_pqs[:,60,30]))
-lines!(xs, normalize(amp_bf_pqs[:,60,30]))
+# lines(xs, normalize(pdf_pqs[:,60,30]))
+# lines!(xs, normalize(amp_pqs[:,60,30]))
+# lines!(xs, normalize(amp_bf_pqs[:,60,30]))
 
-lines(ys, normalize(pdf_pqs[30,:,30]))
-lines!(ys, normalize(amp_pqs[30,:,30]))
+# lines(ys, normalize(pdf_pqs[30,:,30]))
+# lines!(ys, normalize(amp_pqs[30,:,30]))
 
-lines(θs, normalize(pdf_pqs[30,60,:]))
-lines!(θs, normalize(amp_pqs[30,60,:]))
+# lines(θs, normalize(pdf_pqs[30,60,:]))
+# lines!(θs, normalize(amp_pqs[30,60,:]))
 
-contour(xs, ys, pdf_pqs[:,:,30]; color = :blue)
-contour!(xs, ys, amp_pqs[:,:,30]; color = :red)
-contour!(xs, ys, amp_bf_pqs[:,:,30]; color = :green)
-end
+# contour(xs, ys, pdf_pqs[:,:,30]; color = :blue)
+# contour!(xs, ys, amp_pqs[:,:,30]; color = :red)
+# contour!(xs, ys, amp_bf_pqs[:,:,30]; color = :green)
 
-if false
 #just some exploration
-pdf_p = pdf(Normal(10, 0.5), xs)
-pdf_q = pdf(Normal(10, 1.0), xs)
-pdf_pq = (pdf_p .* pdf_q)
-pdf_pq ./= sum(pdf_pq) * 0.01 
+# pdf_p = pdf(Normal(10, 0.5), xs)
+# pdf_q = pdf(Normal(10, 1.0), xs)
+# pdf_pq = (pdf_p .* pdf_q)
+# pdf_pq ./= sum(pdf_pq) * 0.01 
 
-lines(xs, pdf_p)
-lines!(xs, pdf_q)
-lines!(xs, pdf_pq)
+# lines(xs, pdf_p)
+# lines!(xs, pdf_q)
+# lines!(xs, pdf_pq)
 
-pdf_p = pdf(Normal(20, 2.0), ys)
-pdf_q = pdf(Normal(22, 1.0), ys)
-pdf_pq = (pdf_p .* pdf_q)
-pdf_pq ./= sum(pdf_pq) * 0.01 
+# pdf_p = pdf(Normal(20, 2.0), ys)
+# pdf_q = pdf(Normal(22, 1.0), ys)
+# pdf_pq = (pdf_p .* pdf_q)
+# pdf_pq ./= sum(pdf_pq) * 0.01 
 
-lines(ys, pdf_p)
-lines!(ys, pdf_q)
-lines!(ys, pdf_pq)
+# lines(ys, pdf_p)
+# lines!(ys, pdf_q)
+# lines!(ys, pdf_pq)
 
-#
-pdf_p = pdf(Normal(0.1, 0.1), θs)
-pdf_q = pdf(Normal(-0.1, 0.1), θs)
-pdf_pq = (pdf_p .* pdf_q)
-pdf_pq ./= sum(pdf_pq) * 0.01 
+# pdf_p = pdf(Normal(0.1, 0.1), θs)
+# pdf_q = pdf(Normal(-0.1, 0.1), θs)
+# pdf_pq = (pdf_p .* pdf_q)
+# pdf_pq ./= sum(pdf_pq) * 0.01 
 
-lines(θs, pdf_p)
-lines!(θs, pdf_q)
-lines!(θs, pdf_pq)
-end
+# lines(θs, pdf_p)
+# lines!(θs, pdf_q)
+# lines!(θs, pdf_pq)
+
 
 end
 
