@@ -4,11 +4,12 @@ function projectSymPosDef(c::AbstractMatrix)
   s = size(c)
   # pretty fast to make or remake isbitstype form matrix
   _c = SMatrix{s...}(c)
+  #TODO likely not intended project here: see AMP#283
   issymmetric(_c) ? _c : project(SymmetricPositiveDefinite(s[1]),_c,_c)
 end
 
 function MvNormalKernel(
-  μ::AbstractVector,
+  μ::AbstractArray,
   Σ::AbstractArray,
   weight::Real=1.0
 )
@@ -58,7 +59,7 @@ function Base.show(io::IO, mvk::MvNormalKernel)
   μ = mean(mvk)
   Σ2 = cov(mvk)
   # Σ=sqrt(Σ2)
-  d = length(μ)
+  d = size(Σ2,1)
   print(io, "MvNormalKernel(d=",d)
   print(io,",μ=",round.(μ;digits=3))
   print(io,",Σ^2=[",round(Σ2[1];digits=3))
@@ -97,10 +98,11 @@ function distanceMalahanobisSq(
   basis=DefaultOrthogonalBasis()
 )
   δc = distanceMalahanobisCoordinates(M,K,q,basis)
-  p = mean(K)
-  ϵ = identity_element(M, q)
-  X = get_vector(M, ϵ, δc, basis)
-  return inner(M, p, X, X)
+  # p = mean(K)
+  # ϵ = identity_element(M, q)
+  # X = get_vector(M, ϵ, δc, basis)
+  # return inner(M, p, X, X)
+  return δc'*δc
 end
 
 
