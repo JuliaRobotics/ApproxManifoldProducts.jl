@@ -629,6 +629,22 @@ AMP.expectedLogL(mtree, pts)
 
 @test AMP.expectedLogL(mtree, pts) < Inf 
 
+# to enable faster bandwidth selection/optimization
+ekr = ApproxManifoldProducts.getKernelLeaf(mtree,1,false)
+ekr_ = ApproxManifoldProducts.updateKernelBW(ekr,SA[1.0;;])
+
+@test typeof(ekr) == typeof(ekr_)
+
+# confirm that updating the bandwidths works properly
+Σ = [0.1+0.5*rand();;]
+
+mtr = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw=Σ,kernel=AMP.MvNormalKernel)
+mtr_ = ApproxManifoldProducts.updateBandwidths(mtree, Σ)
+
+# 
+@test isapprox( mtr([0.0]), mtr_([0.0]); atol=1e-10)
+@test isapprox( ApproxManifoldProducts.entropy(mtr), ApproxManifoldProducts.entropy(mtr_); atol=1e-10)
+
 
 ##
 end
@@ -711,8 +727,7 @@ Y = S .|> s->cost(pts,s^2)
 # should pass the optimal kbw somewhere in the given range
 @test any(0 .< diff(Y))
 
-# and optimize
-
+# and optimize with rebuild tree cost
 res = Optim.optimize(
   (s)->cost(pts,s^2), 
   0.05, 3.0, Optim.GoldenSection()
@@ -720,6 +735,38 @@ res = Optim.optimize(
 best_cov = Optim.minimizer(res)
 
 @test isapprox(0.5, best_cov; atol=0.3)
+bcov_ = deepcopy(best_cov)
+
+## Test more efficient updateKernelBW version
+
+cost2(σ) = begin
+  mtr = ApproxManifoldProducts.updateBandwidths(mtree_0, [σ;;])
+  AMP.entropy(mtr)
+end
+
+# and optimize with "update" kernel bandwith cost
+res = Optim.optimize(
+  (s)->cost2(s^2), 
+  0.05, 3.0, Optim.GoldenSection()
+)
+@show best_cov = Optim.minimizer(res)
+
+@test isapprox(bcov_, best_cov; atol=1e-3)
+
+# mask bandwith by passing in an alternative
+
+cost3(σ) = begin
+  AMP.entropy(mtree_0, [σ;;])
+end
+
+# and optimize with "update" kernel bandwith cost
+res = Optim.optimize(
+  (s)->cost3(s^2), 
+  0.05, 3.0, Optim.GoldenSection()
+)
+@show best_cov = Optim.minimizer(res)
+
+@test isapprox(bcov_, best_cov; atol=1e-3)
 
 
 ##
@@ -734,9 +781,24 @@ end
 
 M = TranslationGroup(1)
 # pts = [[0.;],[0.1],[0.2;],[0.3;]]
-pts = [1*randn(1) for _ in 1:64]
+pts = [1*randn(1) for _ in 1:128]
 
 mkd = ApproxManifoldProducts.manikde!_manellic(M,pts)
+
+best_cov = cov(ApproxManifoldProducts.getKernelLeaf(mkd.belief,1))[1] |> sqrt
+@show best_cov
+
+@test isapprox(0.5, best_cov; atol=0.3)
+
+# remember broken code in get w bounds
+
+try
+  pts = [1*randn(1) for _ in 1:100]
+  mkd = ApproxManifoldProducts.manikde!_manellic(M,pts)
+catch
+  @test_broken false
+end
+
 
 ##
 end

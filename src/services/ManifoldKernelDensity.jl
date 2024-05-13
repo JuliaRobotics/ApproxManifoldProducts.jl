@@ -120,9 +120,9 @@ function manikde!_manellic(
   
   # Cost function to optimize
   _cost(_pts, σ) = begin
-    # FIXME avoid rebuilding tree at each optim iteration!!!
-    mtr = buildTree_Manellic!(M, _pts; kernel_bw=reshape(σ,manifold_dimension(M),1), kernel=MvNormalKernel)
-    entropy(mtr)
+    # avoid rebuilding tree at each optim iteration!!!
+      # mtr = buildTree_Manellic!(M, _pts; kernel_bw=reshape(σ,manifold_dimension(M),1), kernel=MvNormalKernel)
+    entropy(mtree,reshape(σ,manifold_dimension(M),1))
   end
   
   # optimize for best LOOCV bandwidth
@@ -133,7 +133,7 @@ function manikde!_manellic(
     (s)->_cost(pts,[s^2;]), 
     lcov[1], ucov[1], Optim.GoldenSection()
   )
-  best_cov = [Optim.minimizer(res);]
+  best_cov = [Optim.minimizer(res);;]
   
   # reuse (heavy lift parts of) earlier tree build
   # return tree with correct bandwidth

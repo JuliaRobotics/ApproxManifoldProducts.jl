@@ -9,7 +9,7 @@ abstract type AbstractKernel end
   p::MvNormal{T,M}
   # TDB might already be covered in p.Σ.chol but having issues with SymPD (not particular to this AMP repo)
   """ Manually maintained square root concentration matrix for faster compute, TODO likely duplicate of existing Distrubtions.jl functionality. """
-  sqrt_iΣ::iM = sqrt(inv(p.Σ))
+  sqrt_iΣ::iM = sqrt(inv(cov(p)))
   """ Nonparametric weight value """
   weight::Float64 = 1.0
 end

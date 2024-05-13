@@ -199,7 +199,7 @@ function Base.show(
       printstyled(io,"::TK ";color=:magenta)
       println(io)
     end
-    printstyled(io, "     (depth)  :   ", floor(Int,log2(length(mt.tree_kernels))),"+1"; color=:light_black)
+    printstyled(io, "     (depth)  :   1+", floor(Int,log2(length(mt.tree_kernels))); color=:light_black)
     println(io)
     printstyled(io, "     (blncd)  :   ", "true : _wip_";color=:light_black)
     println(io)
@@ -600,6 +600,7 @@ function evaluate(
   mt::ManellicTree{M,D,N,HL},
   pt,
   LOO::Bool = false,
+  force_kbw = nothing
 ) where {M,D,N,HL}
   # # force function barrier, just to be sure dyndispatch is limited
   # _F() = getfield(ApproxManifoldProducts,HL.name.name)
@@ -616,8 +617,10 @@ function evaluate(
       # FIXME, is this assuming length(pts) and length(mt.leaf_kernels) are the same?
       # FIXME use consolidated getKernelLeaf instead
       ekr = mt.leaf_kernels[i]
+      ekr = updateKernelBW(ekr, force_kbw)
       # TODO remember special handling for partials in the future
       oneval = mt.weights[i] * evaluate(mt.manifold, ekr, pt) 
+      # leave one out requires kernel weighting to removal of leave out weight
       oneval *= !LOO ? 1 : 1/(1-w[i])
       sumval += oneval
     end
@@ -645,6 +648,7 @@ function evaluateDensityAtPoints(
 )
   # evaluate new sampling weights of points in out component
   
+  # TODO use agnostic-Dual tree or MonteCarloDualTree evaluation
   # vector for storing resulting weights
   smw = zeros(length(eval_at_points))
   for (i,ev) in enumerate(eval_at_points)
@@ -666,14 +670,15 @@ end
 function expectedLogL(
   mt::ManellicTree{M,D,N},
   epts::AbstractVector,
-  LOO::Bool = false
+  LOO::Bool = false,
+  force_kbw = nothing
 ) where {M,D,N}
   T = Float64
-  # TODO really slow brute force evaluation
+  # TODO really slow brute force evaluation, use agnostic-DualTree or MonteCarloDualTree
   eL = MVector{length(epts),T}(undef)
   for (i,p) in enumerate(epts)
     # LOO skip for leave-one-out
-    eL[i] = evaluate(mt, p, LOO)
+    eL[i] = evaluate(mt, p, LOO, force_kbw)
   end
   # set numerical tolerance floor
   zrs = findall(isapprox.(0,eL))
@@ -693,7 +698,8 @@ end
 
 entropy(
   mt::ManellicTree,
-) = -expectedLogL(mt, getPoints(mt), true)
+  force_kbw = nothing
+) = -expectedLogL(mt, getPoints(mt), true, force_kbw)
 
 
 (mt::ManellicTree)(
