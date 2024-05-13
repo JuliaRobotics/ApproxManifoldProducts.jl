@@ -24,12 +24,22 @@ Statistics.mean(m::MvNormalKernel) = m.μ # mean(m.p) # m.p.μ
 Statistics.cov(m::MvNormalKernel) = cov(m.p) # note also about m.sqrt_iΣ
 Statistics.std(m::MvNormalKernel) = sqrt(cov(m))
 
-updateKernelBW(k::MvNormalKernel,_bw) = (p=MvNormal(_bw); MvNormalKernel(;μ=k.μ,p,weight=k.weight))
+function updateKernelBW(
+  k::MvNormalKernel,
+  _bw,
+  isq_bw = inv(sqrt(_bw))
+)
+  p=MvNormal(_bw)
+  sqrt_iΣ = typeof(k.sqrt_iΣ)(isq_bw)
+  return MvNormalKernel(;μ=k.μ,p,sqrt_iΣ,weight=k.weight)
+end
+updateKernelBW(ekr::MvNormalKernel, ::Nothing) = ekr # avoid ifs for noops
+
 
 function evaluate(
   M::AbstractManifold,
   ekr::MvNormalKernel,
-  p # on manifold point
+  p, # on manifold point
 )
   #
   dim = manifold_dimension(M)
@@ -98,10 +108,7 @@ function distanceMalahanobisSq(
   basis=DefaultOrthogonalBasis()
 )
   δc = distanceMalahanobisCoordinates(M,K,q,basis)
-  # p = mean(K)
-  # ϵ = identity_element(M, q)
-  # X = get_vector(M, ϵ, δc, basis)
-  # return inner(M, p, X, X)
+  # return inner(M, p, X, X) # did not work as inner gave almost 2x the answer?
   return δc'*δc
 end
 
@@ -114,7 +121,6 @@ function _distance(
     p=MvNormal(_p,SVector(ntuple((s)->1,manifold_dimension(M))...))
   ),
   distFnc::Function=distanceMalahanobisSq, 
-  # distFnc::Function=distanceMalahanobisSq,
 )
   distFnc(M, kernel(p), q)
 end
