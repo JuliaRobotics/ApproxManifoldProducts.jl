@@ -107,7 +107,7 @@ manikde!(
 function manikde!_manellic(
   M::AbstractManifold,
   pts::AbstractVector;
-  bw=ones(manifold_dimension(M),1),
+  bw=diagm(ones(manifold_dimension(M))),
 )
   #
 
@@ -120,7 +120,9 @@ function manikde!_manellic(
   
   # Cost function to optimize
   # avoid rebuilding tree at each optim iteration!!!
-  _cost(σ) = entropy(mtree,diagm(σ.^2)) # reshape(σ,manifold_dimension(M),1))
+  _cost(σ::Real) = entropy(mtree,[σ^2;;]) # reshape(σ,manifold_dimension(M),1))
+  _cost(σ::AbstractVector) = entropy(mtree,diagm(σ.^2)) # reshape(σ,manifold_dimension(M),1))
+  _cost(σ::AbstractMatrix) = entropy(mtree,σ.^2) # reshape(σ,manifold_dimension(M),1))
   
   # optimize for best LOOCV bandwidth
   # FIXME switch to RLM (or other Manopt) techinque instead 
@@ -135,7 +137,7 @@ function manikde!_manellic(
   else
     res = Optim.optimize(
       _cost, 
-      bw, 
+      diag(bw), # FIXME Optim API issue, if using bw::matrix then steps not PDMat (NelderMead) 
       Optim.NelderMead()
     )
     diagm(Optim.minimizer(res))
