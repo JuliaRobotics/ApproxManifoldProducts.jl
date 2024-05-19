@@ -7,6 +7,7 @@ using LinearAlgebra
 using StaticArrays
 using TensorCast
 using Manifolds
+import Rotations as Rot_
 using Distributions
 import ApproxManifoldProducts: ManellicTree, eigenCoords, splitPointsEigen
 
@@ -807,7 +808,7 @@ end
 end
 
 
-@testset "Multidimensional LOOCV bandwidth optimization" begin
+@testset "Multidimensional LOOCV bandwidth optimization, TranslationGroup(2)" begin
 ##
 
 M = TranslationGroup(2)
@@ -841,6 +842,44 @@ mkd = ApproxManifoldProducts.manikde!_manellic(M,pts)
 
 ##
 end
+
+
+
+@testset "Multidimensional LOOCV bandwidth optimization, SpecialEuclidean(2)" begin
+##
+
+M = SpecialEuclidean(2)
+pts = [ArrayPartition(randn(2),Rot_.RotMatrix{2}(0.1*randn()).mat) for _ in 1:64]
+
+bw = [1.0; 1.0; 0.3]
+mtree = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw=bw,kernel=AMP.MvNormalKernel)
+
+cost4(σ) = begin
+  AMP.entropy(mtree, diagm(σ.^2))
+end
+
+# and optimize with "update" kernel bandwith cost
+@time res = Optim.optimize(
+  cost4, 
+  bw, 
+  Optim.Newton()
+);
+
+@test res.ls_success
+
+@show best_cov = Optim.minimizer(res)
+
+@test isapprox([0.5; 0.5; 0.06], best_cov; atol=0.3)
+
+
+mkd = ApproxManifoldProducts.manikde!_manellic(M,pts)
+
+@test isapprox([0.5 0 0; 0 0.5 0; 0 0 0.06], getBW(mkd)[1]; atol=0.3)
+
+
+##
+end
+
 
 
 ##
