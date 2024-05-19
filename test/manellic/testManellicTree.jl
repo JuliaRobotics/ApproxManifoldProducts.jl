@@ -836,6 +836,12 @@ end
 
 @test isapprox([0.5; 0.5], best_cov; atol=0.3)
 
+
+mkd = ApproxManifoldProducts.manikde!_manellic(M,pts)
+
+@test isapprox(best_cov, getBW(mkd); atol=1e-4)
+
+
 ##
 end
 
