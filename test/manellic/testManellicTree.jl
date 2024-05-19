@@ -732,6 +732,7 @@ res = Optim.optimize(
   (s)->cost(pts,s^2), 
   0.05, 3.0, Optim.GoldenSection()
 )
+
 best_cov = Optim.minimizer(res)
 
 @test isapprox(0.5, best_cov; atol=0.3)
@@ -749,6 +750,7 @@ res = Optim.optimize(
   (s)->cost2(s^2), 
   0.05, 3.0, Optim.GoldenSection()
 )
+
 @show best_cov = Optim.minimizer(res)
 
 @test isapprox(bcov_, best_cov; atol=1e-3)
@@ -764,7 +766,8 @@ res = Optim.optimize(
   (s)->cost3(s^2), 
   0.05, 3.0, Optim.GoldenSection()
 )
-@show best_cov = Optim.minimizer(res)
+
+best_cov = Optim.minimizer(res)
 
 @test isapprox(bcov_, best_cov; atol=1e-3)
 
@@ -803,6 +806,41 @@ end
 ##
 end
 
+
+@testset "Multidimensional LOOCV bandwidth optimization" begin
+##
+
+M = TranslationGroup(2)
+pts = [1*randn(2) for _ in 1:64]
+
+bw = [1.0; 1.0]
+mtree = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw=bw,kernel=AMP.MvNormalKernel)
+
+cost4(σ) = begin
+  AMP.entropy(mtree, diagm(σ.^2))
+end
+
+# and optimize with "update" kernel bandwith cost
+@time res = Optim.optimize(
+  cost4, 
+  bw, 
+  Optim.NelderMead()
+);
+
+@test res.ls_success
+
+@show best_cov = Optim.minimizer(res)
+
+@test isapprox([0.5; 0.5], best_cov; atol=0.3)
+
+
+mkd = ApproxManifoldProducts.manikde!_manellic(M,pts)
+
+@test isapprox([0.5 0; 0 0.5], getBW(mkd)[1]; atol=0.3)
+
+
+##
+end
 
 
 ##
