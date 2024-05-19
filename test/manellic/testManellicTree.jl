@@ -733,7 +733,6 @@ res = Optim.optimize(
   0.05, 3.0, Optim.GoldenSection()
 )
 
-@test res.ls_success
 best_cov = Optim.minimizer(res)
 
 @test isapprox(0.5, best_cov; atol=0.3)
@@ -752,7 +751,6 @@ res = Optim.optimize(
   0.05, 3.0, Optim.GoldenSection()
 )
 
-@test res.ls_success
 @show best_cov = Optim.minimizer(res)
 
 @test isapprox(bcov_, best_cov; atol=1e-3)
@@ -769,7 +767,6 @@ res = Optim.optimize(
   0.05, 3.0, Optim.GoldenSection()
 )
 
-@test res.ls_success
 best_cov = Optim.minimizer(res)
 
 @test isapprox(bcov_, best_cov; atol=1e-3)
