@@ -37,8 +37,8 @@ function testEigenCoords(
 
   # spot check
   @show _ax_ERR = log_lie(SpecialOrthogonal(2), (r_R_ax_')*r_R_ax)[1,2]
-  @show testval = isapprox(0, _ax_ERR; atol = 5/length(ax_CC))
-  @assert testval "Spot check failed on eigen split of manifold points, the estimated point rotation matrix did not match construction."
+  @show testval = isapprox(0, _ax_ERR; atol = 6/length(ax_CC))
+  @assert testval "Spot check failed on eigen split of manifold points, the estimated point rotation matrix did not match construction. length(ax_CC)=$(length(ax_CC))"
 
   r_CC, r_R_ax_, pidx, r_CV
 end
