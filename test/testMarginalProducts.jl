@@ -47,8 +47,8 @@ P12 = manifoldProduct([P1;P2], recordLabels=true, selectedLabels=sl, addEntropy=
 # @test isapprox( mean(P12)[1], 0, atol=1 )
 # @test isapprox( mean(P12)[2], 0, atol=1 )
 
-(x->println()).(1:5)
-@show sl;
+
+# @show sl;
 
 P12
 
@@ -99,7 +99,7 @@ P12_ = manifoldProduct([P1;P2_], recordLabels=true, selectedLabels=sl, addEntrop
 @test isapprox( mean(P12_)[1], 0, atol=1 )
 @test isapprox( mean(P12_)[2], 0, atol=1 )
 
-(x->println()).(1:5)
+
 # @show sl
 
 P12_
@@ -156,7 +156,7 @@ P123_ = manifoldProduct([P1;P2_;P3_], recordLabels=true, selectedLabels=sl, addE
 @test isapprox( mean(P123_)[1], 0, atol=1 )
 @test isapprox( mean(P123_)[2], 0, atol=1 )
 
-(x->println()).(1:5)
+
 # @show sl
 
 P123_
@@ -207,7 +207,7 @@ P = manifoldProduct([P2;P1;P3], recordLabels=true, selectedLabels=sl, addEntropy
 
 @test !isPartial(P)
 
-(x->println()).(1:5)
+
 # @show sl;
 P
 
@@ -267,7 +267,7 @@ P_ = manifoldProduct([P1;P3], recordLabels=true, selectedLabels=sl, addEntropy=f
 
 @test !isPartial(P_)
 
-(x->println()).(1:5)
+
 # @show sl
 
 ##
@@ -329,7 +329,7 @@ P45__ = manifoldProduct([P4;P4_;P5;P5_], recordLabels=true, selectedLabels=sl, a
 
 @test !isPartial(P45__)
 
-(x->println()).(1:5)
+
 # @show sl;
 
 P45__
@@ -393,7 +393,7 @@ P = manifoldProduct([P2;P1;P3], recordLabels=true, selectedLabels=sl, addEntropy
 
 @test !isPartial(P)
 
-(x->println()).(1:5)
+
 # @show sl;
 P
 
@@ -456,7 +456,7 @@ P = manifoldProduct([P1;P2;P3], recordLabels=true, selectedLabels=sl, addEntropy
 
 @test !isPartial(P)
 
-(x->println()).(1:5)
+
 # @show sl;
 P
 
@@ -517,7 +517,7 @@ P = manifoldProduct([P1;P3], recordLabels=true, selectedLabels=sl, addEntropy=fa
 @test isPartial(P)
 @test P._partial == [1;3]
 
-(x->println()).(1:5)
+
 # @show sl;
 P
 
