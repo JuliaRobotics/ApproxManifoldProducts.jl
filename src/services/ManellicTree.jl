@@ -516,6 +516,66 @@ function buildTree_Manellic!(
   return tosort_leaves
 end
 
+function buildTree_Manellic!(
+  M::AbstractManifold,
+  r_ker::AbstractVector{KL}; # vector of points referenced to the r_frame
+  N = length(r_ker),
+  weights::AbstractVector{<:Real} = ones(N).*(1/N),
+  kernel = KL,
+  kernel_bw = nothing, # TODO
+) where {KL <: MvNormalKernel}
+  #
+  _μT() = typeof(r_ker[1].μ)
+  D = manifold_dimension(M)
+  CV = SMatrix{D,D,Float64,D*D}(collect(cov(r_ker[1]))) 
+  KLT = getfield(ApproxManifoldProducts,kernel.name.name)
+  KT = KLT(
+    r_ker[1].μ,
+    CV
+  ) |> typeof
+
+  r_PP = SizedVector{N,_μT()}(undef)
+  
+  # leaf kernels
+  lkern = SizedVector{N,KL}(undef)
+  _workaround_isdef_leafkernel = Set{Int}()
+  for i in 1:N
+    r_PP[i] = r_ker[i].μ
+    lkern[i] = if isnothing(kernel_bw)
+      r_ker[i]
+    else
+      updateKernelBW(r_ker[i], kernel_bw) # TODO handle vector of kernel_bws
+    end
+    push!(_workaround_isdef_leafkernel, i + N)
+  end
+  
+  mtree = ManellicTree(
+    M,
+    r_PP,
+    MVector{N,Float64}(weights),
+    MVector{N,Int}(1:N),
+    lkern,
+    SizedVector{N,KT}(undef),
+    SizedVector{N,Set{Int}}(undef),
+    _workaround_isdef_leafkernel,
+    Set{Int}(),
+  )
+
+  #
+  tosort_leaves = buildTree_Manellic!(
+    mtree,
+    1, # start at root
+    1, # spanning all data
+    N; # to end of data
+    kernel=KLT,
+    kernel_bw
+  )
+
+  # manual reset leaves in the order discovered
+  permute!(tosort_leaves.leaf_kernels, tosort_leaves.permute)
+
+  return tosort_leaves
+end
 
 function updateBandwidths(
   mtr::ManellicTree{M,D,N,HL},
@@ -719,7 +779,8 @@ function calcProductKernelBTLabels(
   labels_sampled,
   LOOidx::Union{Int, Nothing} = nothing,
   gibbsSeq = 1:length(proposals);
-  permute::Bool = true # true because signature is BTLabels
+  permute::Bool = true, # true because signature is BTLabels
+  weight::Real = 1.0
 )
   # select a density label from the other proposals
   prop_and_label = Tuple{Int,Int}[]
@@ -732,7 +793,7 @@ function calcProductKernelBTLabels(
   components = map(pr_lb->getKernelTree(proposals[pr_lb[1]], pr_lb[2], permute, true), prop_and_label)
 
   # TODO upgrade to tuples
-  return calcProductGaussians(M, [components...])
+  return calcProductGaussians(M, [components...]; weight)
 end
 
 
@@ -740,14 +801,16 @@ function calcProductKernelsBTLabels(
   M::AbstractManifold,
   proposals::AbstractVector,
   N_lbl_sets::AbstractVector{<:NTuple},
-  permute::Bool = true # true because signature is BTLabels
+  permute::Bool = true; # true because signature is BTLabels
+  weights = 1/length(N_lbl_sets) .* ones(length(N_lbl_sets))
 )
   #
   T = typeof(getKernelTree(proposals[1],1))
-  post = Vector{T}(undef, length(N_lbl_sets))
+  N = length(N_lbl_sets)
+  post = Vector{T}(undef, N)
 
   for (i,lbs) in enumerate(N_lbl_sets)
-    post[i] = calcProductKernelBTLabels(M, proposals, lbs; permute)
+    post[i] = calcProductKernelBTLabels(M, proposals, lbs; permute, weight=weights[i])
   end
 
   return post
@@ -852,12 +915,14 @@ function sampleProductSeqGibbsBTLabel(
   return labels_sampled
 end
 
+Base.length(mkd::ManifoldKernelDensity) = length(mkd.belief)
+
 
 function sampleProductSeqGibbsBTLabels(
   M::AbstractManifold,
   proposals::AbstractVector,
   MC = 3,
-  N::Int = round(Int, mean(length.(getPoints.(proposals)))), # FIXME use getLength or length of proposal (not getPoints)
+  N::Int = round(Int, mean(length.(proposals))), # FIXME use getLength or length of proposal (not getPoints)
   label_pools=[[1:1;] for _ in proposals]
 )
   #

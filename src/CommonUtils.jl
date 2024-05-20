@@ -127,6 +127,7 @@ function calcProductGaussians(
   Σ_::Union{Nothing,<:AbstractVector{S},<:NTuple{N,S}};
   dim::Integer=manifold_dimension(M),
   Λ_ = inv.(Σ_), # TODO these probably need to be transported to common tangent space `u0` -- FYI @Affie 24Q2
+  weight::Real = 1.0
 ) where {N,P,S<:AbstractMatrix{<:Real}}
   #
   # calc sum of covariances  
@@ -159,6 +160,7 @@ calcProductGaussians(
   Σ_::Union{<:AbstractVector{S},<:NTuple{N,S}};
   dim::Integer=manifold_dimension(M),
   Λ_ = map(s->diagm( 1.0 ./ s), Σ_),
+  weight::Real = 1.0
 ) where {N,P,S<:AbstractVector} = calcProductGaussians(M, μ_, nothing; dim, Λ_=Λ_ )
 #
 
@@ -167,6 +169,7 @@ calcProductGaussians(
   μ_::Union{<:AbstractVector{P},<:NTuple{N,P}};
   dim::Integer=manifold_dimension(M),
   Λ_ = diagm.( (1.0 ./ μ_) ),
+  weight::Real = 1.0,
 ) where {N,P} = calcProductGaussians(M, μ_, nothing; dim, Λ_=Λ_ )
 
 
@@ -182,7 +185,8 @@ DevNotes
 """
 function calcProductGaussians(
   M::AbstractManifold,
-  comps::AbstractVector{<:MvNormalKernel},
+  comps::AbstractVector{<:MvNormalKernel};
+  weight::Real = 1.0
 )
   # CHECK this should be on-manifold for points
   μ_ = mean.(comps) # This is a ArrayPartition which IS DEFINITELY ON MANIFOLD (we dispatch on mean)
@@ -192,7 +196,7 @@ function calcProductGaussians(
 
   _μ, _Σ = calcProductGaussians(M, μ_, Σ_)
 
-  return MvNormalKernel(_μ, _Σ)
+  return MvNormalKernel(_μ, _Σ, weight)
 end
 
 
