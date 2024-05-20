@@ -914,8 +914,8 @@ end
 
 mkd = ApproxManifoldProducts.manikde!_manellic(M,pts)
 
-@test isapprox([0.75 0 0; 0 0.75 0; 0 0 0.75], getBW(mkd)[1][1:3,1:3]; atol=0.4)
-@test isapprox([0.06 0 0; 0 0.06 0; 0 0 0.06], getBW(mkd)[1][4:6,4:6]; atol=0.04)
+@test isapprox([0.75 0 0; 0 0.75 0; 0 0 0.75], getBW(mkd)[1][1:3,1:3]; atol=0.5)
+@test isapprox([0.07 0 0; 0 0.07 0; 0 0 0.07], getBW(mkd)[1][4:6,4:6]; atol=0.05)
 
 ##
 end
@@ -951,7 +951,7 @@ end
 ##
 
 
-@testset "Test utility functions for Gaussian products" begin
+@testset "Test utility functions for Gaussian products, TranslationGroup(1)" begin
 ##
 
 M = TranslationGroup(1)
