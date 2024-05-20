@@ -248,7 +248,7 @@ function Base.convert(
 ) where {P,T,M,iM}
   #
   _matType(::Type{Distributions.PDMats.PDMat{_F,_M}}) where {_F,_M} = _M
-  μ = P(src.μ)
+  μ = convert(P,src.μ) # P(src.μ)
   p = MvNormal(_matType(M)(cov(src.p)))
   sqrt_iΣ = iM(src.sqrt_iΣ)
   MvNormalKernel{P,T,M,iM}(μ, p, sqrt_iΣ, src.weight)

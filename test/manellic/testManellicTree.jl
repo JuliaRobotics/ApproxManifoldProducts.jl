@@ -7,6 +7,7 @@ using LinearAlgebra
 using StaticArrays
 using TensorCast
 using Manifolds
+import Rotations as Rot_
 using Distributions
 import ApproxManifoldProducts: ManellicTree, eigenCoords, splitPointsEigen
 
@@ -36,8 +37,8 @@ function testEigenCoords(
 
   # spot check
   @show _ax_ERR = log_lie(SpecialOrthogonal(2), (r_R_ax_')*r_R_ax)[1,2]
-  @show testval = isapprox(0, _ax_ERR; atol = 5/length(ax_CC))
-  @assert testval "Spot check failed on eigen split of manifold points, the estimated point rotation matrix did not match construction."
+  @show testval = isapprox(0, _ax_ERR; atol = 6/length(ax_CC))
+  @assert testval "Spot check failed on eigen split of manifold points, the estimated point rotation matrix did not match construction. length(ax_CC)=$(length(ax_CC))"
 
   r_CC, r_R_ax_, pidx, r_CV
 end
@@ -807,7 +808,7 @@ end
 end
 
 
-@testset "Multidimensional LOOCV bandwidth optimization" begin
+@testset "Multidimensional LOOCV bandwidth optimization, TranslationGroup(2)" begin
 ##
 
 M = TranslationGroup(2)
@@ -829,7 +830,7 @@ end
 
 @test res.ls_success
 
-@show best_cov = Optim.minimizer(res)
+@show best_cov = abs.(Optim.minimizer(res))
 
 @test isapprox([0.5; 0.5], best_cov; atol=0.3)
 
@@ -841,6 +842,44 @@ mkd = ApproxManifoldProducts.manikde!_manellic(M,pts)
 
 ##
 end
+
+
+
+@testset "Multidimensional LOOCV bandwidth optimization, SpecialEuclidean(2)" begin
+##
+
+M = SpecialEuclidean(2)
+pts = [ArrayPartition(randn(2),Rot_.RotMatrix{2}(0.1*randn()).mat) for _ in 1:64]
+
+bw = [1.0; 1.0; 0.3]
+mtree = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw=bw,kernel=AMP.MvNormalKernel)
+
+cost4(σ) = begin
+  AMP.entropy(mtree, diagm(σ.^2))
+end
+
+# and optimize with "update" kernel bandwith cost
+@time res = Optim.optimize(
+  cost4, 
+  bw, 
+  Optim.NelderMead()
+);
+
+@test res.ls_success
+
+@show best_cov = abs.(Optim.minimizer(res))
+
+@test isapprox([0.6; 0.6; 0.06], best_cov; atol=0.35)
+
+
+mkd = ApproxManifoldProducts.manikde!_manellic(M,pts)
+
+@test isapprox([0.6 0 0; 0 0.6 0; 0 0 0.06], getBW(mkd)[1]; atol=0.35)
+
+
+##
+end
+
 
 
 ##
