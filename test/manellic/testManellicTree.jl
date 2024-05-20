@@ -875,7 +875,7 @@ end
 
 mkd = ApproxManifoldProducts.manikde!_manellic(M,pts)
 
-@test isapprox([0.6 0 0; 0 0.6 0; 0 0 0.06], getBW(mkd)[1][1:2,1:2]; atol=0.35)
+@test isapprox([0.6 0; 0 0.6], getBW(mkd)[1][1:2,1:2]; atol=0.35)
 @test isapprox(0.06, getBW(mkd)[1][3,3]; atol=0.04)
 
 
