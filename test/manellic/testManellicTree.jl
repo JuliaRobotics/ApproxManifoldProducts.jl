@@ -830,7 +830,7 @@ end
 
 @test res.ls_success
 
-@show best_cov = Optim.minimizer(res)
+@show best_cov = abs.(Optim.minimizer(res))
 
 @test isapprox([0.5; 0.5], best_cov; atol=0.3)
 
@@ -862,12 +862,12 @@ end
 @time res = Optim.optimize(
   cost4, 
   bw, 
-  Optim.Newton()
+  Optim.NelderMead()
 );
 
 @test res.ls_success
 
-@show best_cov = Optim.minimizer(res)
+@show best_cov = abs.(Optim.minimizer(res))
 
 @test isapprox([0.5; 0.5; 0.06], best_cov; atol=0.3)
 

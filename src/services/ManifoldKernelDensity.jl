@@ -108,6 +108,7 @@ function manikde!_manellic(
   M::AbstractManifold,
   pts::AbstractVector;
   bw=diagm(ones(manifold_dimension(M))),
+  algo = Optim.NelderMead()
 )
   #
 
@@ -138,9 +139,9 @@ function manikde!_manellic(
     res = Optim.optimize(
       _cost, 
       diag(bw), # FIXME Optim API issue, if using bw::matrix then steps not PDMat (NelderMead) 
-      Optim.NelderMead()
+      algo
     )
-    diagm(Optim.minimizer(res))
+    diagm(abs.(Optim.minimizer(res)))
   end
   
   # reuse (heavy lift parts of) earlier tree build
