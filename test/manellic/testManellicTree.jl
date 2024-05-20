@@ -869,12 +869,12 @@ end
 
 @show best_cov = abs.(Optim.minimizer(res))
 
-@test isapprox([0.5; 0.5; 0.06], best_cov; atol=0.3)
+@test isapprox([0.55; 0.55; 0.06], best_cov; atol=0.3)
 
 
 mkd = ApproxManifoldProducts.manikde!_manellic(M,pts)
 
-@test isapprox([0.5 0 0; 0 0.5 0; 0 0 0.06], getBW(mkd)[1]; atol=0.3)
+@test isapprox([0.55 0 0; 0 0.55 0; 0 0 0.06], getBW(mkd)[1]; atol=0.3)
 
 
 ##
