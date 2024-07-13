@@ -104,6 +104,8 @@ end
 # end
 
 
+
+
 """
     $SIGNATURES
 
@@ -132,8 +134,11 @@ function calcProductGaussians(
   #
   # calc sum of covariances  
   Λ = zeros(MMatrix{dim,dim})
+  # FIXME first transport (push forward) covariances to common coordinates
+  # see [Ge, van Goor, Mahony, 2024]
   Λ .= sum(Λ_)
   
+  # naive mean
   # Tangent space reference around the evenly weighted mean of incoming points
   u0 = mean(M, μ_)
 
@@ -144,7 +149,7 @@ function calcProductGaussians(
     Δuvee = vee(M, u0, log(M, u0, u))
     ΛΔμ += s*Δuvee
   end
-
+  Λ
   # calculate the delta mean
   Δμ = Λ \ ΛΔμ
 
@@ -179,8 +184,9 @@ calcProductGaussians(
 EXPERIMENTAL: On-manifold product of Gaussians.
 
 DevNotes
-- CHECK make sure this product is properly on manifold, Manifolds.jl likely already has solutions:
-  - https://juliamanifolds.github.io/Manifolds.jl/stable/features/distributions.html
+- FIXME do product of concentrated Gaussians on Lie group (approximation):
+  - See Section 3.2 and 4 of [Ge, van Goor, Mahony: A Geometric Perspective on using Gaussian Distributions on Lie Groups, 2024].
+  - Also see upstream utils, https://juliamanifolds.github.io/Manifolds.jl/stable/features/distributions.html
 - FIXME is parallel transport needed when multiplying with covariances from difffent tangent spaces?
 """
 function calcProductGaussians(

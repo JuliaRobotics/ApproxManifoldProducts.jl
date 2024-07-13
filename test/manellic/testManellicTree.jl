@@ -310,9 +310,9 @@ ker = AMP.MvNormalKernel([0], [2.0;;])
 
 ##
 M = SpecialEuclidean(2)
-ϵ = identity_element(M)
+ε = identity_element(M)
 Xc = [10, 20, 0.1]
-p = exp(M, ϵ, hat(M, ϵ, Xc))
+p = exp(M, ε, hat(M, ε, Xc))
 kercov = diagm([0.5, 2.0, 0.1].^2)
 ker = AMP.MvNormalKernel(p, kercov)
 @test isapprox(
@@ -321,15 +321,15 @@ ker = AMP.MvNormalKernel(p, kercov)
 )
 
 Xc = [10, 22, -0.1]
-q = exp(M, ϵ, hat(M, ϵ, Xc))
+q = exp(M, ε, hat(M, ε, Xc))
 
 @test isapprox(
   pdf(MvNormal(cov(ker)), [0,0,0]),
   AMP.evaluate(M, ker, p)
 )
 
-X = log(M, ϵ, Manifolds.compose(M, inv(M, p), q))
-Xc_e = vee(M, ϵ, X)
+X = log(M, ε, Manifolds.compose(M, inv(M, p), q))
+Xc_e = vee(M, ε, X)
 pdf_local_coords = pdf(MvNormal(cov(ker)), Xc_e)
 
 @test isapprox(
@@ -338,8 +338,8 @@ pdf_local_coords = pdf(MvNormal(cov(ker)), Xc_e)
 )
 
 delta_c = AMP.distanceMalahanobisCoordinates(M, ker, q)
-X = log(M, ϵ, Manifolds.compose(M, inv(M, p), q))
-Xc_e = vee(M, ϵ, X)
+X = log(M, ε, Manifolds.compose(M, inv(M, p), q))
+Xc_e = vee(M, ε, X)
 malad_t = Xc_e'*inv(kercov)*Xc_e
 # delta_t = [10, 20, 0.1] - [10, 22, -0.1] 
 @test isapprox(
@@ -365,7 +365,7 @@ rbfd = AMP.ker(M, ker, q, 0.5, AMP.distanceMalahanobisSq)
 
 # NOTE 'global' distribution would have been 
 X = log(M, mean(ker), q) 
-Xc_e = vee(M, ϵ, X)
+Xc_e = vee(M, ε, X)
 pdf_global_coords = pdf(MvNormal(cov(ker)), Xc_e)
 
 
@@ -376,14 +376,14 @@ end
 
 
 M = TranslationGroup(1)
-ϵ = identity_element(M)
+ε = identity_element(M)
 dis = MvNormal([3.0], diagm([1.0].^2)) 
 Cpts = [rand(dis) for _ in 1:128]
-pts = map(c->exp(M, ϵ, hat(M, ϵ, c)), Cpts)
+pts = map(c->exp(M, ε, hat(M, ε, c)), Cpts)
 mtree = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw = [0.2;;],  kernel=AMP.MvNormalKernel)
 
 ##
-p = exp(M, ϵ, hat(M, ϵ, [3.0]))
+p = exp(M, ε, hat(M, ε, [3.0]))
 y_amp = AMP.evaluate(mtree, p)
 
 y_pdf = pdf(dis, [3.0])
@@ -391,7 +391,7 @@ y_pdf = pdf(dis, [3.0])
 @test isapprox(y_amp, y_pdf; atol=0.1)
 
 # ps = [[p] for p = -0:0.01:6]
-# ys_amp = map(p->AMP.evaluate(mtree, exp(M, ϵ, hat(M, ϵ, p))), ps)
+# ys_amp = map(p->AMP.evaluate(mtree, exp(M, ε, hat(M, ε, p))), ps)
 # ys_pdf = pdf(dis, ps)
 
 # lines(first.(ps), ys_pdf)
@@ -402,14 +402,14 @@ y_pdf = pdf(dis, [3.0])
 ##
 
 M = SpecialOrthogonal(2)
-ϵ = identity_element(M)
+ε = identity_element(M)
 dis = MvNormal([0.0], diagm([0.1].^2)) 
 Cpts = [rand(dis) for _ in 1:128]
-pts = map(c->exp(M, ϵ, hat(M, ϵ, c)), Cpts)
+pts = map(c->exp(M, ε, hat(M, ε, c)), Cpts)
 mtree = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw = [0.005;;], kernel=AMP.MvNormalKernel)
 
 ##
-p = exp(M, ϵ, hat(M, ϵ, [0.1]))
+p = exp(M, ε, hat(M, ε, [0.1]))
 y_amp = AMP.evaluate(mtree, p)
 
 y_pdf = pdf(dis, [0.1])
@@ -417,7 +417,7 @@ y_pdf = pdf(dis, [0.1])
 @test isapprox(y_amp, y_pdf; atol=0.5)
 
 ps = [[p] for p = -0.3:0.01:0.3]
-ys_amp = map(p->AMP.evaluate(mtree, exp(M, ϵ, hat(M, ϵ, p))), ps)
+ys_amp = map(p->AMP.evaluate(mtree, exp(M, ε, hat(M, ε, p))), ps)
 ys_pdf = pdf(dis, ps)
 
 # lines(first.(ps), ys_pdf)
@@ -425,14 +425,14 @@ ys_pdf = pdf(dis, ps)
 
 
 M = SpecialEuclidean(2)
-ϵ = identity_element(M)
+ε = identity_element(M)
 dis = MvNormal([10,20,0.1], diagm([0.5,2.0,0.1].^2)) 
 Cpts = [rand(dis) for _ in 1:128]
-pts = map(c->exp(M, ϵ, hat(M, ϵ, c)), Cpts)
+pts = map(c->exp(M, ε, hat(M, ε, c)), Cpts)
 mtree = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw = diagm([0.05,0.2,0.01]), kernel=AMP.MvNormalKernel)
 
 ##
-p = exp(M, ϵ, hat(M, ϵ, [10, 20, 0.1]))
+p = exp(M, ε, hat(M, ε, [10, 20, 0.1]))
 y_amp = AMP.evaluate(mtree, p)
 y_pdf = pdf(dis, [10,20,0.1])
 # check kde eval is within 20% of true value
@@ -447,17 +447,17 @@ end
 
 
 ## ========================================================================================
-@testset "Test Product the brute force way" begin
+@testset "Test Product the brute force way, SpecialEuclidean(2)" begin
 
 M = SpecialEuclidean(2)
-ϵ = identity_element(M)
+ε = identity_element(M)
 
 Xc_p = [10, 20, 0.1]
-p = exp(M, ϵ, hat(M, ϵ, Xc_p))
+p = exp(M, ε, hat(M, ε, Xc_p))
 kerp = AMP.MvNormalKernel(p, diagm([0.5, 2.0, 0.1].^2))
 
 Xc_q = [10, 22, -0.1]
-q = exp(M, ϵ, hat(M, ϵ, Xc_q))
+q = exp(M, ε, hat(M, ε, Xc_q))
 kerq = AMP.MvNormalKernel(q, diagm([1.0, 1.0, 0.1].^2))
 
 kerpq = calcProductGaussians(M, [kerp, kerq])
@@ -468,7 +468,7 @@ ys = 15:0.1:27
 θs = -0.3:0.01:0.3
 
 grid_points = map(Iterators.product(xs, ys, θs)) do (x,y,θ)
-    exp(M, ϵ, hat(M, ϵ, SVector(x,y,θ)))
+    exp(M, ε, hat(M, ε, SVector(x,y,θ)))
 end
 
 # use_global_coords = true
@@ -477,11 +477,11 @@ use_global_coords = false
 pdf_ps = map(grid_points) do gp
   if use_global_coords
     X = log(M, p, gp) 
-    Xc_e = vee(M, ϵ, X)
+    Xc_e = vee(M, ε, X)
     pdf(MvNormal(cov(kerp)), Xc_e)
   else
-    X = log(M, ϵ, Manifolds.compose(M, inv(M, p), gp))
-    Xc_e = vee(M, ϵ, X)
+    X = log(M, ε, Manifolds.compose(M, inv(M, p), gp))
+    Xc_e = vee(M, ε, X)
     pdf(MvNormal(cov(kerp)), Xc_e)
   end
 end
@@ -489,11 +489,11 @@ end
 pdf_qs = map(grid_points) do gp
   if use_global_coords
     X = log(M, q, gp) 
-    Xc_e = vee(M, ϵ, X)
+    Xc_e = vee(M, ε, X)
     pdf(MvNormal(cov(kerq)), Xc_e)
   else
-    X = log(M, ϵ, Manifolds.compose(M, inv(M, q), gp))
-    Xc_e = vee(M, ϵ, X)
+    X = log(M, ε, Manifolds.compose(M, inv(M, q), gp))
+    Xc_e = vee(M, ε, X)
     pdf(MvNormal(cov(kerq)), Xc_e)
   end
 end
@@ -576,10 +576,71 @@ normalized_compare_test = isapprox.(normalize(amp_pqs), normalize(amp_bf_pqs); a
 # lines!(θs, pdf_q)
 # lines!(θs, pdf_pq)
 
-
+##
 end
 
-## ========================================================================================
+
+@testset "Rotated covariance product major axis checks, TranslationGroup(2)" begin
+##
+
+M = TranslationGroup(2)
+ε = identity_element(M)
+
+Xc_p = [0, 0.0]
+p = exp(M, ε, hat(M, ε, Xc_p))
+kerp = AMP.MvNormalKernel(p, diagm([2.0, 1.0].^2))
+
+Xc_q = [0, 0.0]
+# rotate by 60 deg
+R = Rot_.RotMatrix{2}(pi/3).mat
+Σ = R * diagm([2.0, 1.0].^2) * R'
+q = exp(M, ε, hat(M, ε, Xc_q))
+kerq = AMP.MvNormalKernel(q, Σ)
+
+kerpq = calcProductGaussians(M, [kerp, kerq])
+
+evv = eigen(cov(kerpq))
+maj_idx = sortperm(evv.values)[end]
+
+# check that the major axis is halfway between 0 and 60deg -- i.e. 30 deg
+maj_ang = (angle(Complex(evv.vectors[:,maj_idx]...)) + 2pi) % pi
+@test isapprox(pi/180*30, maj_ang; atol = 1e-8)
+
+##
+end
+
+
+@testset "Rotated covariance product major axis checks, SpecialEuclidean(2)" begin
+##
+
+M = SpecialEuclidean(2)
+ε = identity_element(M)
+
+Xc_p = [0, 0, 0.0]
+p = exp(M, ε, hat(M, ε, Xc_p))
+kerp = AMP.MvNormalKernel(p, diagm([2.0, 1.0, 0.1].^2))
+
+# referenced to "global frame"
+# rotate by 60 deg
+Xc_q = [0, 0, pi/3]
+q = exp(M, ε, hat(M, ε, Xc_q))
+kerq = AMP.MvNormalKernel(q, diagm([2.0, 1.0, 0.1].^2))
+
+kerpq = calcProductGaussians(M, [kerp, kerq])
+
+evv = eigen(cov(kerpq))
+maj_idx = sortperm(evv.values)[end]
+
+# check that the major axis is halfway between 0 and 60deg -- i.e. 30 deg
+maj_ang = (angle(Complex(evv.vectors[:,maj_idx]...)) + 2pi) % pi
+@test isapprox(pi/180*30, maj_ang; atol = 1e-8)
+
+
+
+##
+end
+
+
 
 
 @testset "Manellic basic evaluation test 1D" begin

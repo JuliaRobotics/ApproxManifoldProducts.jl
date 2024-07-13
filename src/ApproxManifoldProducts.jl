@@ -5,6 +5,7 @@ using Reexport
 using Random
 
 import TransformUtils as TUs
+import TransformUtils: skew
 import Rotations as _Rot
 
 import ManifoldsBase
@@ -52,6 +53,7 @@ include("entities/KernelEval.jl")
 include("entities/ManellicTree.jl") # experimental
 include("entities/ManifoldKernelDensity.jl")
 
+include("services/ManifoldsOverloads.jl")
 include("CommonUtils.jl")
 include("services/ManellicTree.jl")
 
