@@ -632,9 +632,13 @@ evv = eigen(cov(kerpq))
 maj_idx = sortperm(evv.values)[end]
 
 # check that the major axis is halfway between 0 and 60deg -- i.e. 30 deg
-maj_ang = (angle(Complex(evv.vectors[:,maj_idx]...)) + 2pi) % pi
-@test isapprox(pi/180*30, maj_ang; atol = 1e-8)
+@show mean(kerpq)
 
+@test isapprox(
+  pi/6,
+  Rot_.RotMatrix(SMatrix{2,2,Float64}(mean(kerpq).x[2])) |> Rot_.rotation_angle;
+  atol=1e-8
+)
 
 
 ##
