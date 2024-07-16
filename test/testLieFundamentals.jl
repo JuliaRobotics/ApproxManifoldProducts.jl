@@ -15,17 +15,56 @@ using LinearAlgebra
 # @test det(Jl) == det(Jr) == 2*(1-cos||x||)/(||x||^2)
 
 
+@testset "SO(2) Vector transport (w curvature) via Jacobians and Lie adjoints" begin
+##
+
+M = SpecialOrthogonal(2)
+p = Identity(M)
+Xc = 0.5*randn(1)
+X = hat(M, p, Xc)   # random algebra element
+d̂ = 0.5*randn(1) 
+d = hat(M, p, d̂)    # direction in algebra
+
+
+ApproxManifoldProducts.ad_lie(M, X)
+# @test isapprox(
+#   ApproxManifoldProducts.ad_lie(M, X),
+#   ApproxManifoldProducts.ad(M, X)
+# )
+
+# ptcMat = ApproxManifoldProducts.parallel_transport_curvature_2nd_lie(M, d)
+
+@error "Missing SO(2) vector transport numerical verify tests"
+# # # @test isapprox(Jl*inv(Jr), R) == [Ad(R)]
+# # Jr = ptcMat
+# # Jl = ptcMat'
+# # @test isapprox(
+# #   Jl*inv(Jr),
+# #   ApproxManifoldProducts.Ad(M,exp_lie(M,d));
+# #   atol=1e-5
+# # )
+
+
+##
+end
+
+
 @testset "SO(3) Vector transport (w curvature) via Jacobians and Lie adjoints" begin 
 ##
 
 M = SpecialOrthogonal(3)
 p = Identity(M)
 Xc = [1.,0,0]
-X = hat(M, p, Xc)       # random algebra element
+X = hat(M, p, Xc)   # random algebra element
 d̂ = [0,0,1.]
-d = hat(M, p, d̂) # direction in algebra
+d = hat(M, p, d̂)    # direction in algebra
 
 ## piggy back utility tests used in construction of transports
+
+@test isapprox(
+  ApproxManifoldProducts.ad_lie(M, X),
+  ApproxManifoldProducts.ad(M, X)
+)
 
 # Ad_vee and ad_vee are matrices which use multiplication to operate Ad and ad respectively
 # @test Ad_vee(exp_G(-0.5*coord_u)) == exp(-0.5*ad_vee(coord_u))
@@ -37,8 +76,8 @@ d = hat(M, p, d̂) # direction in algebra
 ## parallel transport without curvature correction
 
 Y = parallel_transport_direction(M, p, X, d) # compare to Lie ad and Ad and P, bottom [Mahony 2024 p3]
-Jl_trv_P = ApproxManifoldProducts.parallel_transport_direction_lie(M, d)
-Yc_ = Jl_trv_P * Xc
+ptcMat_ = ApproxManifoldProducts.parallel_transport_direction_lie(M, d)
+Yc_ = ptcMat_ * Xc
 Y_ = hat(M, p, Yc_)
 
 @test isapprox(
@@ -51,8 +90,8 @@ Y_ = hat(M, p, Yc_)
 )
 
 # @test isapprox(Jl*inv(Jr), R) == [Ad(R)]
-Jr = Jl_trv_P
-Jl = Jl_trv_P'
+Jr = ptcMat_
+Jl = ptcMat_'
 @test isapprox(
   Jl*inv(Jr),
   ApproxManifoldProducts.Ad(M,exp_lie(M,d));
@@ -74,16 +113,16 @@ Jl = Jl_trv_P'
 
 # compute transported coordinates (with Mahony 2nd order curvature correction)
 # is this also a push-forward
-Jl_trv = ApproxManifoldProducts.Jl_trivialized(M, d)
-_Y_ = Jl_trv*Xc
-# _Y_ = Jl_trivialized(M, d, Xc)
+ptcMat = ApproxManifoldProducts.parallel_transport_curvature_2nd_lie(M, d)
+_Y_ = ptcMat*Xc
+# _Y_ = parallel_transport_curvature_2nd_lie(M, d, Xc)
 
 # Approx check for approx curvature correctin _Y_ vs. transport in direction (wo curvature corr) Y
 @test isapprox(_Y_, vee(M, p, Y); atol=1e-1)
 
 # @test isapprox(Jl*inv(Jr), R) == [Ad(R)]
-Jr = Jl_trv
-Jl = Jl_trv'
+Jr = ptcMat
+Jl = ptcMat'
 @test isapprox(
   Jl*inv(Jr),
   ApproxManifoldProducts.Ad(M,exp_lie(M,d));
@@ -131,6 +170,38 @@ Jl = Jl_trv'
 end
 
 
+@testset "SE(2) Vector transport (w curvature) via Jacobians and Lie adjoints" begin
+##
+
+M = SpecialEuclidean(2)
+p = Identity(M)
+Xc = 0.5*randn(3)
+X = hat(M, p, Xc)   # random algebra element
+d̂ = 0.5*randn(3) 
+d = hat(M, p, d̂)    # direction in algebra
+
+@test isapprox(
+  ApproxManifoldProducts.ad_lie(M, X),
+  ApproxManifoldProducts.ad(M, X)
+)
+
+ptcMat = ApproxManifoldProducts.parallel_transport_curvature_2nd_lie(M, d)
+
+@error "Missing SE(2) vector transport numerical verify tests"
+# # @test isapprox(Jl*inv(Jr), R) == [Ad(R)]
+# Jr = ptcMat
+# Jl = ptcMat'
+# @test isapprox(
+#   Jl*inv(Jr),
+#   ApproxManifoldProducts.Ad(M,exp_lie(M,d));
+#   atol=1e-5
+# )
+
+
+##
+end
+
+
 @testset "SE(3) Vector transport (w curvature) via Jacobians and Lie adjoints" begin
 ##
 
@@ -142,12 +213,17 @@ X = hat(M, p, Xc)   # random algebra element
 d̂ = 0.5*randn(6) 
 d = hat(M, p, d̂)    # direction in algebra
 
-Jl_trv = ApproxManifoldProducts.Jl_trivialized(M, d)
+@test isapprox(
+  ApproxManifoldProducts.ad_lie(M, X),
+  ApproxManifoldProducts.ad(M, X)
+)
+
+ptcMat = ApproxManifoldProducts.parallel_transport_curvature_2nd_lie(M, d)
 
 @error "Missing SE(3) vector transport numerical verify tests"
 # # @test isapprox(Jl*inv(Jr), R) == [Ad(R)]
-# Jr = Jl_trv
-# Jl = Jl_trv'
+# Jr = ptcMat
+# Jl = ptcMat'
 # @test isapprox(
 #   Jl*inv(Jr),
 #   ApproxManifoldProducts.Ad(M,exp_lie(M,d));

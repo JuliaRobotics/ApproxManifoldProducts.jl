@@ -14,7 +14,7 @@ using Random
 import Random: rand
 
 using Statistics
-import Statistics: mean, std, cov, var, entropy
+import Statistics: mean, std, cov, var # , entropy? 24Q3, # JL v1.11-rc1, Statistics v1.11.1.
 
 import Rotations as _Rot
 using CoordinateTransformations
