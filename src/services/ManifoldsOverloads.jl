@@ -2,13 +2,70 @@
 const _UPSTREAM_MANIFOLDS_ADJOINT_ACTION = false
 
 # local union definition during development -- TODO consolidate upstream
-LieGroupManifoldsPirate = Union{typeof(SpecialOrthogonal(2)), typeof(SpecialOrthogonal(3)), typeof(SpecialEuclidean(2)), typeof(SpecialEuclidean(3))}
+LieGroupManifoldsPirate = Union{
+  typeof(SpecialOrthogonal(2)), 
+  typeof(SpecialOrthogonal(3)), 
+  typeof(SpecialEuclidean(2)), 
+  typeof(SpecialEuclidean(3))
+}
+
+## ===================================== BASIS PIRATES =====================================
+
+# Sidenote on why lowercase tangent vector `d` (as driven by Manifolds.jl)
+# ```
+# so(2)
+# X = Xc*e1 = Xc*î
+# î = ∂/∂α = [0 -1; 0 1] # orthogonal basis
+# ```
+
+get_basis_affine(
+  ::TranslationGroup{Manifolds.TypeParameter{Tuple{N}}, ℝ}
+) where N = map(
+  i->SVector{N,Float64}( ntuple(s->float(s==i),N) ),
+  1:N
+)
+
+get_basis_affine(
+  ::typeof(SpecialOrthogonal(2))
+) = tuple(
+  SA[0 -1; 1 0.0],
+)
+
+get_basis_affine(
+  ::typeof(SpecialOrthogonal(3))
+) = tuple(
+  SA[0 -0 0; 0 0 -1; -0 1 0.0],
+  SA[0 -0 1; 0 0 -0; -1 0 0.0],
+  SA[0 -1 0; 1 0 -0; -0 0 0.0],
+)
+
+get_basis_affine(
+  ::typeof(SpecialEuclidean(2))
+) = tuple(
+  SA[0 -0 1; 0 0 0; 0 0 0.0],
+  SA[0 -0 0; 0 0 1; 0 0 0.0],
+  SA[0 -1 0; 1 0 0; 0 0 0.0],
+)
+
+get_basis_affine(
+  ::typeof(SpecialEuclidean(3))
+) = tuple(
+  SA[0 -0 0 1; 0 0 -0 0; -0 0 0 0; 0 0 0 0.0],
+  SA[0 -0 0 0; 0 0 -0 1; -0 0 0 0; 0 0 0 0.0],
+  SA[0 -0 0 0; 0 0 -0 0; -0 0 0 1; 0 0 0 0.0],
+  SA[0 -0 0 0; 0 0 -1 0; -0 1 0 0; 0 0 0 0.0],
+  SA[0 -0 1 0; 0 0 -0 0; -1 0 0 0; 0 0 0 0.0],
+  SA[0 -1 0 0; 1 0 -0 0; -0 0 0 0; 0 0 0 0.0],
+)
+
 
 ## ================================ GENERIC IMPLEMENTATIONS ================================
 
 
 function TUs.skew(v::SVector{3,T}) where T<:Real
+  # coordinates are the co-tangent elements
   x,y,z = v[1], v[2], v[3]
+  # sum with default basis to form a tangent vector in the algebra
   return SMatrix{3,3,T}(
     +0,  
     z, 
@@ -24,23 +81,28 @@ end
 
 
 # right Jacobian (Lie Group, originally from ?)
-function Jr(M::Manifolds.GroupManifold, X; order=5)
+function Jr(
+  M::Manifolds.GroupManifold, 
+  X; 
+  order=5
+)
   adx = ad(M, X)
   mapreduce(+, 0:order) do i
       (-adx)^i / factorial(i + 1)
   end
 end
 
-# "The left trivialized Jacobian is referred to as the right Jacobian in much of the key literature." [Ge, van Goor, Mahony, 2024]
-# argument d is a Lie algebra element giving the direction of transport 
-function Jl_trivialized(
-  M::Manifolds.GroupManifold, 
-  d
-)
-  adM = ad(M,d)
-  ead = exp(-adM)
-  adM \ (LinearAlgebra.I - ead)
-end
+# # "The left trivialized Jacobian is referred to as the right Jacobian in much of the key literature." [Ge, van Goor, Mahony, 2024]
+# # argument d is a Lie algebra element giving the direction of transport 
+# function Jr_alt(
+#   M::Manifolds.GroupManifold, 
+#   d
+# )
+#   adM = ad(M,d)
+#   ead = exp(-adM)
+#   TODO confirm left or right inverse here? 
+#   adM \ (LinearAlgebra.I - ead)
+# end
 
 
 """
@@ -54,16 +116,10 @@ Inputs:
 - X is a tangent vector which is to be transported
 - d is a tangent vector from a starting point in the direction and distance to transport 
 
-Sidenote on why lowercase tangent vector `d` (as driven by Manifolds.jl)
-```
-so(2)
-X = Xc*e1 = Xc*î
-î = ∂/∂x = [0 -1; 0 1] # orthogonal basis
-```
 Notes
 - Default is transport without curvature estimate provided by upstream Manifolds.jl 
 
-See also: [`Jl_trivialized'](@ref), [`Jr`](@ref), `Manifolds.parallel_transport_direction`, `Manifolds.parallel_transport_to`, `Manifolds.parallel_transport_along`
+See also: [`parallel_transport_curvature_2nd_lie'](@ref), [`Jr`](@ref), `Manifolds.parallel_transport_direction`, `Manifolds.parallel_transport_to`, `Manifolds.parallel_transport_along`
 """
 parallel_transport_best(
   M::AbstractManifold,
@@ -77,12 +133,42 @@ parallel_transport_best(
 ## ================================= Lie (a/A)djoints =================================
 ## ---------------------------------- Almost generic ----------------------------------
 
+
+_makeaffine(::AbstractManifold, X) = X
+_makeaffine(M::Union{typeof(SpecialEuclidean(2)),typeof(SpecialEuclidean(3))}, X::ArrayPartition) = screw_matrix(M,X)
+
 # assumes inputs are Lie algebra tangent vectors represented in matrix form
 ad(
   M::LieGroupManifoldsPirate, 
-  A::AbstractMatrix, 
-  B::AbstractMatrix
-) = Manifolds.lie_bracket(M, A, B)
+  X::AbstractMatrix, 
+  d::AbstractMatrix
+) = Manifolds.lie_bracket(M, X, d)
+
+"""
+    $SIGNATURES
+
+Construct generic adjoint matrix for Lie group manifolds.
+Input `X` is a tangent vector of the Lie algebra of group manifold `M`.
+
+Notes
+- This implementation uses the Lie bracket over affine (or screw) matrices.
+  - Ref [Chirikjian 2012, Vol.2, pg.30, eq.10.59b]
+"""
+function ad_lie(
+  M::LieGroupManifoldsPirate,
+  X::AbstractArray,
+) 
+  #
+  ε = identity_element(M, X)
+  Es = get_basis_affine(M)
+  Xa = _makeaffine(M,X)
+  hcat(
+    map(
+      (e)->vee(M, ε, Manifolds.lie_bracket(M, Xa, e)), # Lie bracket here is also the adjoint action for M
+      Es
+    )...
+  )
+end
 
 
 Ad(
@@ -123,9 +209,46 @@ end
 # this produces the transportMatrix P_u^vee, per [Mahony, 2024]
 # d is a Lie algebra element giving the direction of transport 
 parallel_transport_direction_lie(
-  M::typeof(SpecialOrthogonal(3)),
+  M::LieGroupManifoldsPirate,
   d::AbstractMatrix
 ) = exp(ad(M, -0.5*d))
+
+
+# Matrix form parallel transport with curvature correction (2nd order) 
+# Jl_trv: the left trivialized Jacobian [Mahony, 2024, Theorem 4.3]
+# Direction d is a Lie algebra element (tangent vector) providing direction of transport 
+function parallel_transport_curvature_2nd_lie(
+  M::LieGroupManifoldsPirate, 
+  d
+)
+  # Lie algebra adjoint matrix
+  adx = ad(M, -0.5*d)
+  # parallel_transport_direction_lie (without curvature)
+  P = exp(adx)
+  # include 2nd order curvature correction
+  return P*(LinearAlgebra.I + 1/24*adx^2)
+end
+
+# d: Lie algebra for the direction of transport
+# Xc are coordinates to be transported
+parallel_transport_curvature_2nd_lie(
+  M::LieGroupManifoldsPirate, 
+  d::AbstractMatrix, 
+  Xc::AbstractVector
+) = parallel_transport_curvature_2nd_lie(M, d)*Xc
+
+
+function parallel_transport_direction_lie(
+  M::LieGroupManifoldsPirate, 
+  d::AbstractMatrix, 
+  X
+)
+  hat(
+    M, 
+    Identity(M), 
+    parallel_transport_direction_lie(M, d) * vee(M, Identity(M), X)
+  )
+end
 
 
 # transport with 2nd order curvature approximation
@@ -135,7 +258,7 @@ parallel_transport_along_2nd(
   p,
   X::AbstractMatrix,
   d::AbstractMatrix
-) = Jl_trivialized(M, d) * vee(M,p,X)
+) = parallel_transport_curvature_2nd_lie(M, d) * vee(M,p,X)
 
 
 parallel_transport_best(
@@ -143,7 +266,10 @@ parallel_transport_best(
   p,
   X::AbstractMatrix,
   d::AbstractMatrix
-) = parallel_transport_along_2nd(M,p,X,d)
+) = parallel_transport_along_2nd(M,p,X,d) # TODO default to Manifolds.parallel_transport_along, WIP
+
+
+
 
 ## ----------------------------- SpecialOrthogonal(3) -----------------------------
 
@@ -164,42 +290,6 @@ Ad(
 ## For SO(3) Jr and Jl + inv closed forms, see [Chirikjian 2012, Vol2, Vol2 p.40] !!!
 
 
-# Matrix form parallel transport with curvature correction (2nd order) 
-# left trivialized Jacobian [Mahony, 2024, Theorem 4.3]
-# U is direction in which to transport (w/ 2nd order along curvature correction), 
-# Direction d is a Lie algebra element (tangent vector) providing direction of transport 
-function Jl_trivialized(
-  M::typeof(SpecialOrthogonal(3)), 
-  d
-)
-  aduv = ad(M, -0.5*d)
-  P = exp(aduv)
-  return P*(LinearAlgebra.I + 1/24*aduv^2)
-end
-
-# d: Lie algebra for the direction of transport
-# Xc are coordinates to be transported
-Jl_trivialized(
-  M::typeof(SpecialOrthogonal(3)), 
-  d::AbstractMatrix, 
-  Xc::AbstractVector
-) = Jl_trivialized(M, d)*Xc
-
-
-
-function parallel_transport_direction_lie(
-  M::typeof(SpecialOrthogonal(3)), 
-  d::AbstractMatrix, 
-  X
-)
-  hat(
-    M, 
-    Identity(M), 
-    parallel_transport_direction_lie(M, d) * vee(M, Identity(M), X)
-  )
-end
-
-
 
 ## ----------------------------- SpecialEuclidean(.) -----------------------------
 
@@ -208,7 +298,7 @@ end
 # d is a Lie algebra element (tangent vector) providing the direction of transport
 # X is the tangent vector to be transported 
 function ad(
-  M::Union{typeof(SpecialEuclidean(2)), typeof(SpecialEuclidean(3))}, 
+  M::typeof(SpecialEuclidean(3)), 
   d::ArrayPartition, 
   X::ArrayPartition
 )
@@ -232,7 +322,7 @@ function ad(
   ::typeof(SpecialEuclidean(2)), 
   d::ArrayPartition, 
 )
-  Vx = SA[d.x[2]; -d.x[1]]
+  Vx = SA[d.x[1][2]; -d.x[1][1]]
   Ω = d.x[2]
   vcat(
     hcat(Ω, Vx),
