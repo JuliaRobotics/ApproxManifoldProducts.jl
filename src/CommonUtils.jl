@@ -103,8 +103,33 @@ end
 #   return var(mkd.manifold, getPoints(mkd); kwargs...)
 # end
 
+_makevec(w::AbstractVector) = w
+_makevec(w::Tuple) = [w...]
 
 
+function calcProductGaussians_flat(
+  M::AbstractManifold, 
+  μ_::Union{<:AbstractVector{P},<:NTuple{N,P}}, # point type commonly known as P (actually on-manifold)
+  Σ_::Union{<:AbstractVector{S},<:NTuple{N,S}};
+  μ0 = mean(M, _makevec(μ_)), # Tangent space reference around the evenly weighted mean of incoming points
+  Λ_ = inv.(Σ_),    # TODO these probably need to be transported to common tangent space `μ0` -- FYI @Affie 24Q2
+  weight::Real = 1.0,
+  do_transport_correction::Bool = true
+) where {N,P<:AbstractArray,S<:AbstractMatrix{<:Real}}
+  # calc sum of covariances  
+  Λ = +(Λ_...)
+  
+  # calc the covariance weighted delta means of incoming points and covariances
+  ΛΔμc = mapreduce(+, zip(Λ_, μ_)) do (s,u)
+    Δuvee = vee(M, μ0, log(M, μ0, u))
+    s*Δuvee
+  end
+
+  # calculate the delta mean
+  Δμc = Λ \ ΛΔμc
+
+  return Δμc, inv(Λ)
+end
 
 """
     $SIGNATURES
@@ -126,35 +151,38 @@ DevNotes:
 function calcProductGaussians(
   M::AbstractManifold, 
   μ_::Union{<:AbstractVector{P},<:NTuple{N,P}}, # point type commonly known as P (actually on-manifold)
-  Σ_::Union{Nothing,<:AbstractVector{S},<:NTuple{N,S}};
-  dim::Integer=manifold_dimension(M),
-  Λ_ = inv.(Σ_), # TODO these probably need to be transported to common tangent space `u0` -- FYI @Affie 24Q2
-  weight::Real = 1.0
-) where {N,P,S<:AbstractMatrix{<:Real}}
-  #
-  # calc sum of covariances  
-  Λ = zeros(MMatrix{dim,dim})
+  Σ_::Union{<:AbstractVector{S},<:NTuple{N,S}};
+  μ0 = mean(M, _makevec(μ_)), # Tangent space reference around the evenly weighted mean of incoming points
+  Λ_ = inv.(Σ_),    # TODO these probably need to be transported to common tangent space `μ0` -- FYI @Affie 24Q2
+  weight::Real = 1.0,
+  do_transport_correction::Bool = true
+) where {N,P<:AbstractArray,S<:AbstractMatrix{<:Real}}
+  # step 1, basic/naive Gaussian product (ignoring disjointed covariance coordinates) 
+  Δμn, Σn = calcProductGaussians_flat(M, μ_, Σ_; μ0, Λ_, weight)
+  Δμ = exp(M, μ0, hat(M, μ0, Δμn))
+
+  # for development and testing cases return without doing transport
+  do_transport_correction ? nothing : (return Δμ, Σn)
+  
   # FIXME first transport (push forward) covariances to common coordinates
   # see [Ge, van Goor, Mahony, 2024]
-  Λ .= sum(Λ_)
+  iΔμ = inv(M, Δμ)
+  μi = map(u->vee(M,μ0,log(M,μ0,compose(M,iΔμ,u))), μ_)
+  Ji = ApproxManifoldProducts.parallel_transport_curvature_2nd_lie.(Ref(M), μi)
+  iJi = inv(Ji)
+  Σi_hat = map(S->iJi*S*(iJi'), Σ_)
   
-  # naive mean
-  # Tangent space reference around the evenly weighted mean of incoming points
-  u0 = mean(M, μ_)
-
-  # calc the covariance weighted delta means of incoming points and covariances
-  ΛΔμ = zeros(MVector{dim})
-  for (s,u) in zip(Λ_, μ_)
-    # require vee as per Pennec, Caesar Ref [3.6]
-    Δuvee = vee(M, u0, log(M, u0, u))
-    ΛΔμ += s*Δuvee
-  end
-  Λ
-  # calculate the delta mean
-  Δμ = Λ \ ΛΔμ
-
+  # Reset step to absorb extended μ+ coordinates into kernel on-manifold μ 
+  # consider using Δμ in place of μ0
+  Δμplusc, Σdiam = calcProductGaussians_flat(M, μi, Σi_hat; μ0, weight)
+  Δμplus = exp(M, μ0, hat(M, μ0, Δμplusc))
+  μ_plus = compose(M,Δμ,Δμplus)
+  Jμ = ApproxManifoldProducts.parallel_transport_curvature_2nd_lie(M, Δμplus)
+  # iJμ = inv(Jμ)
+  Σ_plus = Jμ*Σdiam*(Jμ')
+  
   # return new mean and covariance
-  return exp(M, u0, hat(M, u0, Δμ)), inv(Λ) 
+  return μ_plus, Σ_plus 
 end
 
 # additional support case where covariances are passed as diagonal-only vectors 
@@ -165,17 +193,18 @@ calcProductGaussians(
   Σ_::Union{<:AbstractVector{S},<:NTuple{N,S}};
   dim::Integer=manifold_dimension(M),
   Λ_ = map(s->diagm( 1.0 ./ s), Σ_),
-  weight::Real = 1.0
-) where {N,P,S<:AbstractVector} = calcProductGaussians(M, μ_, nothing; dim, Λ_=Λ_ )
+  weight::Real = 1.0,
+  do_transport_correction::Bool = true
+) where {N,P,S<:AbstractVector} = calcProductGaussians(M, μ_, nothing; dim, Λ_, do_transport_correction )
 #
 
-calcProductGaussians( 
-  M::AbstractManifold, 
-  μ_::Union{<:AbstractVector{P},<:NTuple{N,P}};
-  dim::Integer=manifold_dimension(M),
-  Λ_ = diagm.( (1.0 ./ μ_) ),
-  weight::Real = 1.0,
-) where {N,P} = calcProductGaussians(M, μ_, nothing; dim, Λ_=Λ_ )
+# # FIXME, review `./μ_`, what is this?  nan risk?
+# calcProductGaussians( 
+#   M::AbstractManifold, 
+#   μ_::Union{<:AbstractVector{P},<:NTuple{N,P}};
+#   Λ_ = diagm.( (1.0 ./ μ_) ),
+#   weight::Real = 1.0,
+# ) where {N,P} = calcProductGaussians(M, μ_, nothing; Λ_ )
 
 
 """
@@ -191,17 +220,23 @@ DevNotes
 """
 function calcProductGaussians(
   M::AbstractManifold,
-  comps::AbstractVector{<:MvNormalKernel};
-  weight::Real = 1.0
-)
+  kernels::Union{<:AbstractVector{K},NTuple{N,K}};
+  μ0 = nothing,
+  weight::Real = 1.0,
+  do_transport_correction::Bool = true
+) where {N,K <: MvNormalKernel}
   # CHECK this should be on-manifold for points
-  μ_ = mean.(comps) # This is a ArrayPartition which IS DEFINITELY ON MANIFOLD (we dispatch on mean)
-  Σ_ = cov.(comps)  # on tangent
-
+  μ_ = mean.(kernels) # This is a ArrayPartition which IS DEFINITELY ON MANIFOLD (we dispatch on mean)
+  Σ_ = cov.(kernels)  # on tangent
+  
   # FIXME is parallel transport needed here for covariances from different tangent spaces?
-
-  _μ, _Σ = calcProductGaussians(M, μ_, Σ_)
-
+  
+  _μ, _Σ = if isnothing(μ0)
+    calcProductGaussians(M, μ_, Σ_; do_transport_correction)
+  else
+    calcProductGaussians(M, μ_, Σ_; μ0, do_transport_correction)
+  end
+  
   return MvNormalKernel(_μ, _Σ, weight)
 end
 
