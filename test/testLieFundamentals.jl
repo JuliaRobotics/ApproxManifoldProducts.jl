@@ -283,7 +283,8 @@ end
 p̂ = calcProductGaussians(
   M,
   (p1,p2);
-  μ0 = ε
+  μ0 = ε,
+  do_transport_correction = false
 )
 
 @test isapprox(
@@ -295,7 +296,8 @@ p̂ = calcProductGaussians(
 p̂ = calcProductGaussians(
   M,
   (p1,p2);
-  # μ0 = ε
+  # μ0 = ε,
+  do_transport_correction = false
 )
 @test isapprox(
   μn,
@@ -305,6 +307,12 @@ p̂ = calcProductGaussians(
 
 ##
 
+p̂ = calcProductGaussians(
+  M,
+  (p1,p2);
+  # μ0 = ε,
+  do_transport_correction = true
+)
 
 
 ##
