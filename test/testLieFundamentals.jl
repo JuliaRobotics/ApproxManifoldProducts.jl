@@ -314,6 +314,19 @@ p̂ = calcProductGaussians(
   do_transport_correction = true
 )
 
+@test isapprox(
+  [0;0;0.0], 
+  mean(p̂.p);
+  atol=1e-10
+)
+
+@test isapprox(
+  μn,
+  vee(M, ε, log(M, ε, mean(p̂)));
+  atol=1e-1 # NOTE looser bound for even-mean-mean case vs naive-identity-mean case
+)
+
+
 
 ##
 end
