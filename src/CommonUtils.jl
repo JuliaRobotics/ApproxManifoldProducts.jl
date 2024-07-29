@@ -112,7 +112,7 @@ function calcProductGaussians_flat(
   μ_::Union{<:AbstractVector{P},<:NTuple{N,P}}, # point type commonly known as P (actually on-manifold)
   Σ_::Union{<:AbstractVector{S},<:NTuple{N,S}};
   μ0 = mean(M, _makevec(μ_)), # Tangent space reference around the evenly weighted mean of incoming points
-  Λ_ = inv.(Σ_),    # TODO these probably need to be transported to common tangent space `μ0` -- FYI @Affie 24Q2
+  Λ_ = inv.(Σ_),
   weight::Real = 1.0,
   do_transport_correction::Bool = true
 ) where {N,P<:AbstractArray,S<:AbstractMatrix{<:Real}}
