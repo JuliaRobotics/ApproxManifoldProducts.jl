@@ -326,9 +326,7 @@ p̂ = calcProductGaussians(
   atol=1e-1 # NOTE looser bound for even-mean-mean case vs naive-identity-mean case
 )
 
-cov(p̂)
 
-p
 
 ##
 end
