@@ -153,7 +153,7 @@ function calcProductGaussians(
   μ_::Union{<:AbstractVector{P},<:NTuple{N,P}}, # point type commonly known as P (actually on-manifold)
   Σ_::Union{<:AbstractVector{S},<:NTuple{N,S}};
   μ0 = mean(M, _makevec(μ_)), # Tangent space reference around the evenly weighted mean of incoming points
-  Λ_ = inv.(Σ_),    # TODO these probably need to be transported to common tangent space `μ0` -- FYI @Affie 24Q2
+  Λ_ = inv.(Σ_),
   weight::Real = 1.0,
   do_transport_correction::Bool = true
 ) where {N,P<:AbstractArray,S<:AbstractMatrix{<:Real}}
@@ -164,7 +164,7 @@ function calcProductGaussians(
   # for development and testing cases return without doing transport
   do_transport_correction ? nothing : (return Δμ, Σn)
   
-  # FIXME first transport (push forward) covariances to common coordinates
+  # first transport (push forward) covariances to common coordinates
   # see [Ge, van Goor, Mahony, 2024]
   iΔμ = inv(M, Δμ)
   μi_ = map(u->Manifolds.compose(M,iΔμ,u), μ_)
@@ -181,7 +181,6 @@ function calcProductGaussians(
   Δμplus = exp(M, μ0, Δμplus_̂ )
   μ_plus = Manifolds.compose(M,Δμ,Δμplus)
   Jμ = ApproxManifoldProducts.parallel_transport_curvature_2nd_lie(M, Δμplus_̂ )
-  # iJμ = inv(Jμ)
   Σ_plus = Jμ*Σdiam*(Jμ')
   
   # return new mean and covariance
@@ -201,13 +200,6 @@ calcProductGaussians(
 ) where {N,P,S<:AbstractVector} = calcProductGaussians(M, μ_, nothing; dim, Λ_, do_transport_correction )
 #
 
-# # FIXME, review `./μ_`, what is this?  nan risk?
-# calcProductGaussians( 
-#   M::AbstractManifold, 
-#   μ_::Union{<:AbstractVector{P},<:NTuple{N,P}};
-#   Λ_ = diagm.( (1.0 ./ μ_) ),
-#   weight::Real = 1.0,
-# ) where {N,P} = calcProductGaussians(M, μ_, nothing; Λ_ )
 
 
 """
@@ -232,8 +224,7 @@ function calcProductGaussians(
   μ_ = mean.(kernels) # This is a ArrayPartition which IS DEFINITELY ON MANIFOLD (we dispatch on mean)
   Σ_ = cov.(kernels)  # on tangent
   
-  # FIXME is parallel transport needed here for covariances from different tangent spaces?
-  
+  # parallel transport needed for covariances from different tangent spaces
   _μ, _Σ = if isnothing(μ0)
     calcProductGaussians(M, μ_, Σ_; do_transport_correction)
   else
