@@ -167,15 +167,16 @@ function calcProductGaussians(
   # FIXME first transport (push forward) covariances to common coordinates
   # see [Ge, van Goor, Mahony, 2024]
   iΔμ = inv(M, Δμ)
-  μi_̂  = map(u->log(M,μ0,Manifolds.compose(M,iΔμ,u)), μ_)
-  μi = map(u->vee(M,μ0,u), μi_̂ )
-  Ji = ApproxManifoldProducts.parallel_transport_curvature_2nd_lie.(Ref(M), μi)
-  iJi = inv(Ji)
-  Σi_hat = map(S->iJi*S*(iJi'), Σ_)
+  μi_ = map(u->Manifolds.compose(M,iΔμ,u), μ_)
+  μi_̂  = map(u->log(M,μ0,u), μi_)
+  # μi = map(u->vee(M,μ0,u), μi_̂ )
+  Ji = ApproxManifoldProducts.parallel_transport_curvature_2nd_lie.(Ref(M), μi_̂ )
+  iJi = inv.(Ji)
+  Σi_hat = map((J,S)->J*S*(J'), iJi, Σ_)
   
   # Reset step to absorb extended μ+ coordinates into kernel on-manifold μ 
   # consider using Δμ in place of μ0
-  Δμplusc, Σdiam = calcProductGaussians_flat(M, μi, Σi_hat; μ0, weight)
+  Δμplusc, Σdiam = ApproxManifoldProducts.calcProductGaussians_flat(M, μi_, Σi_hat; μ0, weight)
   Δμplus_̂  = hat(M, μ0, Δμplusc)
   Δμplus = exp(M, μ0, Δμplus_̂ )
   μ_plus = Manifolds.compose(M,Δμ,Δμplus)
