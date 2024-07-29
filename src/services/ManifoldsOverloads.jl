@@ -3,6 +3,12 @@ const _UPSTREAM_MANIFOLDS_ADJOINT_ACTION = false
 
 # local union definition during development -- TODO consolidate upstream
 LieGroupManifoldsPirate = Union{
+  typeof(TranslationGroup(1)), 
+  typeof(TranslationGroup(2)), 
+  typeof(TranslationGroup(3)), 
+  typeof(TranslationGroup(4)),
+  typeof(TranslationGroup(5)),
+  typeof(TranslationGroup(6)),
   typeof(SpecialOrthogonal(2)), 
   typeof(SpecialOrthogonal(3)), 
   typeof(SpecialEuclidean(2)), 
@@ -169,6 +175,13 @@ function ad_lie(
     )...
   )
 end
+
+# basic fallback
+# X is tangent vector (Lie algebra element)
+ad(
+  M::LieGroupManifoldsPirate,
+  X
+) = ad_lie(M,X)
 
 
 Ad(

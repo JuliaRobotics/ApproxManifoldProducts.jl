@@ -2,7 +2,9 @@
 using Test
 using Manifolds
 using ApproxManifoldProducts
+using StaticArrays
 using LinearAlgebra
+using Distributions
 
 
 ##
@@ -27,10 +29,10 @@ d = hat(M, p, d̂)    # direction in algebra
 
 
 ApproxManifoldProducts.ad_lie(M, X)
-# @test isapprox(
-#   ApproxManifoldProducts.ad_lie(M, X),
-#   ApproxManifoldProducts.ad(M, X)
-# )
+@test isapprox(
+  ApproxManifoldProducts.ad_lie(M, X),
+  ApproxManifoldProducts.ad(M, X)
+)
 
 # ptcMat = ApproxManifoldProducts.parallel_transport_curvature_2nd_lie(M, d)
 
@@ -233,5 +235,91 @@ ptcMat = ApproxManifoldProducts.parallel_transport_curvature_2nd_lie(M, d)
 
 ##
 end
+
+
+@testset "(Lie Group) on-manifold Gaussian product SO(3), [Ge, van Goor, Mahony, 2024]" begin
+##
+
+γ = 1
+ξ = 1
+
+M = SpecialOrthogonal(3)
+ε = Identity(M)
+
+X1c = γ/sqrt(3) .* SA[1; 1; -1.0]
+X1 = hat(M, ε, X1c)   # random algebra element
+w_R1 = exp(M, ε, X1)
+Σ1 = ξ .* SA[1 0 0; 0 0.75 0; 0 0 0.5]
+
+X2c = γ/sqrt(2) .* SA[1; -1; 0.0]
+X2 = hat(M, ε, X2c)
+w_R2 = exp(M, ε, X2)
+Σ2 = ξ .* SA[0.5 0 0; 0 1 0; 0 0 0.75]
+
+#
+
+p1 = ApproxManifoldProducts.MvNormalKernel(;
+  μ = w_R1,
+  p = MvNormal(SA[0; 0; 0.0], Σ1)
+)
+
+p2 = ApproxManifoldProducts.MvNormalKernel(;
+  μ = w_R2,
+  p = MvNormal(SA[0; 0; 0.0], Σ2)
+)
+
+
+# Naive product (standard linear product of Gaussians) -- reference implementation around group identity
+Xcs = (X1c,X2c)
+_Σs = map(s->inv(cov(s)), (p1,p2))
+_Σn = +(_Σs...)
+_Σnμn = mapreduce(+, zip(_Σs, Xcs)) do (s,c)
+  s*c
+end
+μn = _Σn\_Σnμn
+Σn = inv(_Σn)
+
+# verify calcProductGaussians utility function
+p̂ = calcProductGaussians(
+  M,
+  (p1,p2);
+  μ0 = ε,
+  do_transport_correction = false
+)
+
+@test isapprox(
+  μn,
+  vee(M, ε, log(M, ε, mean(p̂)))
+)
+
+# approx match for even-mean-mean rather than naive-identity-mean
+p̂ = calcProductGaussians(
+  M,
+  (p1,p2);
+  # μ0 = ε,
+  do_transport_correction = false
+)
+@test isapprox(
+  μn,
+  vee(M, ε, log(M, ε, mean(p̂)));
+  atol=1e-1 # NOTE looser bound for even-mean-mean case vs naive-identity-mean case
+)
+
+##
+
+p̂ = calcProductGaussians(
+  M,
+  (p1,p2);
+  # μ0 = ε,
+  do_transport_correction = true
+)
+
+
+##
+end
+
+
+
+
 
 #
