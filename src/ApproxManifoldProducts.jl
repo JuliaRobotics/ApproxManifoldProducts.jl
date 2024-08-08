@@ -1,38 +1,44 @@
 module ApproxManifoldProducts
 
-using Reexport
-@reexport using KernelDensityEstimate
+import Base: *, isapprox, convert, show, eltype, length
+
+using Logging
+using StaticArrays
+using LinearAlgebra
+import LinearAlgebra: rotate!, det
+
+using TensorCast
+using DocStringExtensions
+using Distributions
 using Random
+import Random: rand
 
-import TransformUtils as TUs
+using Statistics
+import Statistics: mean, std, cov, var # , entropy? 24Q3, # JL v1.11-rc1, Statistics v1.11.1.
+
 import Rotations as _Rot
+using CoordinateTransformations
 
-import ManifoldsBase
-import ManifoldsBase: AbstractManifold, distance
 using RecursiveArrayTools: ArrayPartition
 export ArrayPartition
 
+import ManifoldsBase
+import ManifoldsBase: AbstractManifold, distance
 using Manifolds
-
-using DocStringExtensions
 
 using NLsolve
 import Optim
-using CoordinateTransformations
+
+import TransformUtils as TUs
+import TransformUtils: skew
+
+using Reexport
+@reexport using KernelDensityEstimate
+import KernelDensityEstimate: getPoints, getBW, evalAvgLogL, entropy, evaluate
+
+
+# FIXME ON FIRE OBSOLETE REMOVE
 using Requires
-using LinearAlgebra
-using TensorCast
-using StaticArrays
-using Logging
-using Statistics
-using Distributions
-
-import Random: rand
-
-import Base: *, isapprox, convert, show, eltype
-import LinearAlgebra: rotate!, det
-import Statistics: mean, std, cov, var
-import KernelDensityEstimate: getPoints, getBW, evalAvgLogL, entropy
 
 const MB = ManifoldsBase
 const CTs = CoordinateTransformations
@@ -48,8 +54,15 @@ include("ExportAPI.jl")
 # internal features not exported
 include("_BiMaps.jl")
 
-# AMP types and some legacy support 
+include("entities/KernelEval.jl")
+include("entities/ManellicTree.jl") # experimental
 include("entities/ManifoldKernelDensity.jl")
+
+include("services/ManifoldsOverloads.jl")
+include("CommonUtils.jl")
+include("services/ManellicTree.jl")
+
+# AMP types and some legacy support 
 include("entities/ManifoldDefinitions.jl")
 include("Legacy.jl")
 include("services/ManifoldPartials.jl")
@@ -57,7 +70,6 @@ include("Interface.jl")
 
 # regular features
 include("services/KernelEval.jl")
-include("CommonUtils.jl")
 include("services/ManifoldKernelDensity.jl")
 include("services/Euclidean.jl")
 include("services/CircularUtils.jl")
@@ -70,10 +82,6 @@ include("TrackingLabels.jl")
 include("API.jl")
 
 include("Deprecated.jl")
-
-# experimental
-include("entities/ManellicTree.jl")
-include("services/ManellicTree.jl")
 
 # weak dependencies
 include("../ext/WeakdepsPrototypes.jl")

@@ -1,7 +1,7 @@
 name = "ApproxManifoldProducts"
 uuid = "9bbbb610-88a1-53cd-9763-118ce10c1f89"
 keywords = ["MM-iSAMv2", "SLAM", "inference", "sum-product", "belief-propagation", "nonparametric", "manifolds", "functional"]
-version = "0.8.4"
+version = "0.8.5"
 
 [deps]
 Base64 = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
@@ -51,8 +51,9 @@ Reexport = "0.2, 1.0"
 Requires = "0.5, 1"
 Rotations = "1"
 StaticArrays = "0.15, 1"
+Statistics = "1"
 TensorCast = "0.2, 0.3, 0.4"
-TransformUtils = "0.2.10"
+TransformUtils = "0.2.17"
 julia = "1.9"
 
 [extensions]

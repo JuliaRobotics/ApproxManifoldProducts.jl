@@ -59,7 +59,8 @@ function ManifoldKernelDensity(
   partial::L=nothing,
   infoPerCoord::AbstractVector{<:Real}=ones(getNumberCoords(M, u0)),
   dims::Int=manifold_dimension(M),
-  bw::Union{<:AbstractVector{<:Real},Nothing}=nothing  
+  bw::Union{<:AbstractVector{<:Real},<:AbstractMatrix{<:Real},Nothing}=nothing,
+  belmodel::Function = (a,b,aF,dF) -> KernelDensityEstimate.kde!(a, collect(b), aF, dF) # collect(b) but error length(::Nothing)
 ) where {P,L}
   #
   # FIXME obsolete
@@ -69,17 +70,20 @@ function ManifoldKernelDensity(
     arr[:,j] = vee(M, ϵ, log(M, ϵ, vecP[j]))
   end
 
-  manis = convert(Tuple, M)
-  # find or have the bandwidth
-  _bw = bw === nothing ? getKDEManifoldBandwidths(arr, manis ) : bw
+    # FIXME ON FIRE REMOVE LEGACY
+    manis = convert(Tuple, M)
+    # find or have the bandwidth
+    _bw = isnothing(bw) ? getKDEManifoldBandwidths(arr, manis ) : bw
   # NOTE workaround for partials and user did not specify a bw
-  if bw === nothing && partial !== nothing
+  if isnothing(bw) && !isnothing(partial)
     mask = ones(Int, length(_bw)) .== 1
     mask[partial] .= false
     _bw[mask] .= 1.0
   end
-  addopT, diffopT, _, _ = buildHybridManifoldCallbacks(manis)
-  bel = KernelDensityEstimate.kde!(arr, collect(_bw), addopT, diffopT)
+    # FIXME ON FIRE REMOVE LEGACY
+    addopT, diffopT, _, _ = buildHybridManifoldCallbacks(manis)
+  bel = belmodel(arr,_bw,addopT,diffopT)
+  # bel = KernelDensityEstimate.kde!(arr, collect(_bw), addopT, diffopT)
   return ManifoldKernelDensity(M, bel, partial, u0, infoPerCoord)
 end
 
@@ -98,6 +102,57 @@ manikde!(
 )
 
 #
+
+
+function manikde!_manellic(
+  M::AbstractManifold,
+  pts::AbstractVector;
+  bw=diagm(ones(manifold_dimension(M))),
+  algo = Optim.NelderMead()
+)
+  #
+
+  mtree = ApproxManifoldProducts.buildTree_Manellic!(
+    M,
+    pts;
+    kernel_bw=bw, 
+    kernel=AMP.MvNormalKernel
+  )
+  
+  # Cost function to optimize
+  # avoid rebuilding tree at each optim iteration!!!
+  _cost(σ::Real) = entropy(mtree,[σ^2;;]) # reshape(σ,manifold_dimension(M),1))
+  _cost(σ::AbstractVector) = entropy(mtree,diagm(σ.^2)) # reshape(σ,manifold_dimension(M),1))
+  _cost(σ::AbstractMatrix) = entropy(mtree,σ.^2) # reshape(σ,manifold_dimension(M),1))
+  
+  # optimize for best LOOCV bandwidth
+  # FIXME switch to RLM (or other Manopt) techinque instead 
+  # set lower and upper bounds for Golden section optimization
+  best_cov = if 1 === manifold_dimension(M)
+    lcov, ucov = getBandwidthSearchBounds(mtree)
+    res = Optim.optimize(
+      (s)->_cost([s;]), 
+      lcov[1], ucov[1], Optim.GoldenSection()
+    )
+    [Optim.minimizer(res);;]
+  else
+    res = Optim.optimize(
+      _cost, 
+      diag(bw), # FIXME Optim API issue, if using bw::matrix then steps not PDMat (NelderMead) 
+      algo
+    )
+    diagm(abs.(Optim.minimizer(res)))
+  end
+  
+  # reuse (heavy lift parts of) earlier tree build
+  # return tree with correct bandwidth
+  manikde!(
+    M,
+    pts;
+    belmodel = (ignore...) -> updateBandwidths(mtree, best_cov)
+  )
+end
+
 
 
 ## ==========================================================================================
@@ -226,6 +281,9 @@ end
 
 
 function Base.show(io::IO, mkd::ManifoldKernelDensity{M,B,L,P}) where {M,B,L,P}
+  _round(s::AbstractArray; kw...) = round.(s[:];kw...)
+  _round(s::AbstractVector{<:AbstractMatrix}; kw...) = round.(s[1][:];kw...)
+
   printstyled(io, "ManifoldKernelDensity{", bold=true, color=:blue )
   println(io)
   printstyled(io, "    M", bold=true, color=:magenta )
@@ -248,13 +306,13 @@ function Base.show(io::IO, mkd::ManifoldKernelDensity{M,B,L,P}) where {M,B,L,P}
   println(io, "  prtl:   ", mkd._partial)
   bw = getBW(mkd.belief)[:,1]
   pvec = isPartial(mkd) ? mkd._partial : collect(1:length(bw))
-  println(io, "  bws:   ", getBandwidth(mkd, true) .|> x->round(x,digits=4))
+  println(io, "  bws:   ", getBandwidth(mkd, true) |> x->_round(x;digits=4)) # .|> x->round(x,digits=4))
   println(io, "  ipc:   ", getInfoPerCoord(mkd, true) .|> x->round(x,digits=4))
   print(io, "   mean: ")
   try
     # mn = mean(mkd.manifold, getPoints(mkd, false))
     mn = mean(mkd)
-    if mn isa ProductRepr
+    if mn isa ProductRepr # TODO UPDATE to ArrayPartition only, discontinued use of ProductRepr long ago.
       println(io)
       for prt in mn.parts
         println(io, "         ", round.(prt,digits=4))

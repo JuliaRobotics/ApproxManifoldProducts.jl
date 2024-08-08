@@ -117,6 +117,11 @@ import KernelDensityEstimate: Ndim, Npts, getWeights, marginal
 import KernelDensityEstimate: getKDERange, getKDEMax, getKDEMean, getKDEfit
 import KernelDensityEstimate: sample, rand, resample, kld, minkld
 
+Npts(::ManellicTree{M,D,N}) where {M,D,N} = N
+Ndim(mt::ManellicTree) = manifold_dimension(mt.manifold)
+getBW(mker::MvNormalKernel) = cov(mker) |> collect
+getBW(mt::ManellicTree) = getBW.(mt.leaf_kernels)
+
 
 Ndim(x::ManifoldKernelDensity, w...;kw...) = Ndim(x.belief,w...;kw...)
 Npts(x::ManifoldKernelDensity, w...;kw...) = Npts(x.belief,w...;kw...)

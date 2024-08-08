@@ -30,21 +30,24 @@ plot( x=getPoints(pq)[1,:], y=getPoints(pq)[2,:], Geom.histogram2d )
 # TODO, convenient plotting (work in progress...)
 ```
 """
-function manifoldProduct( ff::AbstractVector{<:ManifoldKernelDensity},
-                          mani::M=ff[1].manifold;
-                          makeCopy::Bool=false,
-                          Niter::Integer=1,
-                          # partialDimsWorkaround=1:MB.manifold_dimension(mani),
-                          ndims::Integer=maximum([0;Ndim.(ff)]),
-                          N::Integer = maximum([0;Npts.(ff)]),
-                          u0 = getPoints(ff[1], false)[1],
-                          oldPoints::AbstractVector{P}= [identity_element(mani, u0) for i in 1:N],
-                          addEntropy::Bool=true,
-                          recordLabels::Bool=false,
-                          selectedLabels::Vector{Vector{Int}}=Vector{Vector{Int}}(),
-                          _randU=Vector{Float64}(),
-                          _randN=Vector{Float64}(),
-                          logger=ConsoleLogger()  ) where {M <: MB.AbstractManifold, P}
+function manifoldProduct(
+  ff::AbstractVector{<:ManifoldKernelDensity},
+  mani::M=ff[1].manifold;
+  makeCopy::Bool=false,
+  Niter::Integer=1,
+  # partialDimsWorkaround=1:MB.manifold_dimension(mani),
+  ndims::Integer=maximum([0;Ndim.(ff)]),
+  N::Integer = maximum([0;Npts.(ff)]),
+  u0 = getPoints(ff[1], false)[1],
+  oldPoints::AbstractVector{P}= [identity_element(mani, u0) for i in 1:N],
+  addEntropy::Bool=true,
+  recordLabels::Bool=false,
+  selectedLabels::Vector{Vector{Int}}=Vector{Vector{Int}}(),
+  _randU=Vector{Float64}(),
+  _randN=Vector{Float64}(),
+  logger=ConsoleLogger(),
+  bws = 0 == length(ff) ? [1.0;] : ones(ndims),
+) where {M <: MB.AbstractManifold, P}
   #
   # check quick exit
   if  1 == length(ff)
@@ -66,7 +69,6 @@ function manifoldProduct( ff::AbstractVector{<:ManifoldKernelDensity},
   glbs = KDE.makeEmptyGbGlb();
   glbs.recordChoosen = recordLabels
   
-  bws = 0 == length(ff) ? [1.0;] : ones(ndims)
   # MAKE SURE inplace ends up as matrix of coordinates from incoming ::Vector{P}
   oldpts = _pointsToMatrixCoords(mani, oldPoints)
   # FIXME currently assumes oldPoints are in coordinates...
