@@ -10,7 +10,7 @@ import Rotations as _Rot
 @testset "test Manifolds.jl conventions" begin
 ##
 
-M = SpecialEuclidean(2)
+M = SpecialEuclidean(2; vectors=HybridTangentRepresentation())
 e0 = identity_element(M)
 
 # body to body next

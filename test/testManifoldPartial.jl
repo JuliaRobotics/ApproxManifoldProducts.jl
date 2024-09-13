@@ -57,13 +57,13 @@ M = Manifolds.Rotations(2)
 end
 
 
-@testset "test getManifoldPartial on SpecialEuclidean(2)" begin
+@testset "test getManifoldPartial on SpecialEuclidean(2; vectors=HybridTangentRepresentation())" begin
 
 ##
 
-M = SpecialEuclidean(2)
+M = SpecialEuclidean(2; vectors=HybridTangentRepresentation())
 
-@test getManifoldPartial(M, [1;2;3])[1] == SpecialEuclidean(2)
+@test getManifoldPartial(M, [1;2;3])[1] == SpecialEuclidean(2; vectors=HybridTangentRepresentation())
 
 @test getManifoldPartial(M, [1;])[1] == TranslationGroup(1)
 @test getManifoldPartial(M, [2;])[1] == TranslationGroup(1)
@@ -76,7 +76,7 @@ M = SpecialEuclidean(2)
 
 repr = ArrayPartition([0.0; 0], [1 0; 0 1.0])
 
-@test getManifoldPartial(M, [1;2;3], repr)[1] == SpecialEuclidean(2)
+@test getManifoldPartial(M, [1;2;3], repr)[1] == SpecialEuclidean(2; vectors=HybridTangentRepresentation())
 @test getManifoldPartial(M, [1;2;3], repr)[2] == repr
 
 @test getManifoldPartial(M, [1;], repr)[1] == TranslationGroup(1)
@@ -117,7 +117,7 @@ end
 ##
 
 N = 100
-M = SpecialEuclidean(2)
+M = SpecialEuclidean(2; vectors=HybridTangentRepresentation())
 u0 = ArrayPartition([0.0; 0], [1 0; 0 1.0])
 
 pts = [exp(M, u0, hat(M, u0, [10 .+ randn(2);randn()])) for i in 1:N]
