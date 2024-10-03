@@ -3,7 +3,7 @@
 
 using StaticArrays, Manifolds, NearestNeighbors, Distances
 
-M = SpecialEuclidean(2)
+M = SpecialEuclidean(2; vectors=HybridTangentRepresentation())
 N = 100
 # convert point to coordinates
 function coords(p)
@@ -166,7 +166,7 @@ distance(mr.manifold, SVector(1,2),SVector(2,3))
 ##
 
 
-M_se2 = SpecialEuclidean(2)
+M_se2 = SpecialEuclidean(2; vectors=HybridTangentRepresentation())
 
 
 sI = SMatrix{3,3,Float64}(diagm(ones(3)))

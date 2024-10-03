@@ -11,8 +11,8 @@ LieGroupManifoldsPirate = Union{
   typeof(TranslationGroup(6)),
   typeof(SpecialOrthogonal(2)), 
   typeof(SpecialOrthogonal(3)), 
-  typeof(SpecialEuclidean(2)), 
-  typeof(SpecialEuclidean(3))
+  typeof(SpecialEuclidean(2; vectors=HybridTangentRepresentation())), 
+  typeof(SpecialEuclidean(3; vectors=HybridTangentRepresentation()))
 }
 
 ## ===================================== BASIS PIRATES =====================================
@@ -46,7 +46,7 @@ get_basis_affine(
 )
 
 get_basis_affine(
-  ::typeof(SpecialEuclidean(2))
+  ::typeof(SpecialEuclidean(2; vectors=HybridTangentRepresentation()))
 ) = tuple(
   SA[0 -0 1; 0 0 0; 0 0 0.0],
   SA[0 -0 0; 0 0 1; 0 0 0.0],
@@ -54,7 +54,7 @@ get_basis_affine(
 )
 
 get_basis_affine(
-  ::typeof(SpecialEuclidean(3))
+  ::typeof(SpecialEuclidean(3; vectors=HybridTangentRepresentation()))
 ) = tuple(
   SA[0 -0 0 1; 0 0 -0 0; -0 0 0 0; 0 0 0 0.0],
   SA[0 -0 0 0; 0 0 -0 1; -0 0 0 0; 0 0 0 0.0],
@@ -141,7 +141,7 @@ parallel_transport_best(
 
 
 _makeaffine(::AbstractManifold, X) = X
-_makeaffine(M::Union{typeof(SpecialEuclidean(2)),typeof(SpecialEuclidean(3))}, X::ArrayPartition) = screw_matrix(M,X)
+_makeaffine(M::Union{typeof(SpecialEuclidean(2; vectors=HybridTangentRepresentation())),typeof(SpecialEuclidean(3; vectors=HybridTangentRepresentation()))}, X::ArrayPartition) = screw_matrix(M,X)
 
 # assumes inputs are Lie algebra tangent vectors represented in matrix form
 ad(
@@ -197,7 +197,7 @@ end
 
 
 function Ad(
-  M::Union{typeof(SpecialEuclidean(2)), typeof(SpecialEuclidean(3))}, 
+  M::Union{typeof(SpecialEuclidean(2; vectors=HybridTangentRepresentation())), typeof(SpecialEuclidean(3; vectors=HybridTangentRepresentation()))}, 
   p, 
   X::ArrayPartition;
   use_upstream::Bool = _UPSTREAM_MANIFOLDS_ADJOINT_ACTION # explict to support R&D
@@ -311,7 +311,7 @@ Ad(
 # d is a Lie algebra element (tangent vector) providing the direction of transport
 # X is the tangent vector to be transported 
 function ad(
-  M::typeof(SpecialEuclidean(3)), 
+  M::typeof(SpecialEuclidean(3; vectors=HybridTangentRepresentation())), 
   d::ArrayPartition, 
   X::ArrayPartition
 )
@@ -332,7 +332,7 @@ end
 
 
 function ad(
-  ::typeof(SpecialEuclidean(2)), 
+  ::typeof(SpecialEuclidean(2; vectors=HybridTangentRepresentation())), 
   d::ArrayPartition, 
 )
   Vx = SA[d.x[1][2]; -d.x[1][1]]
@@ -344,7 +344,7 @@ function ad(
 end
 
 function ad(
-  ::typeof(SpecialEuclidean(3)), 
+  ::typeof(SpecialEuclidean(3; vectors=HybridTangentRepresentation())), 
   d::ArrayPartition, 
 )
   Vx = skew(d.x[1])
@@ -357,7 +357,7 @@ end
 
 
 function Ad(
-  ::typeof(SpecialEuclidean(2)), 
+  ::typeof(SpecialEuclidean(2; vectors=HybridTangentRepresentation())), 
   p
 )
   t = p.x[1]
@@ -369,7 +369,7 @@ function Ad(
 end
 
 function Ad(
-  ::typeof(SpecialEuclidean(3)), 
+  ::typeof(SpecialEuclidean(3; vectors=HybridTangentRepresentation())), 
   p
 )
   t = p.x[1]

@@ -37,8 +37,8 @@ const Euclid3 = TranslationGroup(3)
 const Euclid4 = TranslationGroup(4)
 
 # TODO if not easy simplification exists, then just deprecate this
-const SE2_Manifold = SpecialEuclidean(2)
-const SE3_Manifold = SpecialEuclidean(3)
+const SE2_Manifold = SpecialEuclidean(2; vectors=HybridTangentRepresentation())
+const SE3_Manifold = SpecialEuclidean(3; vectors=HybridTangentRepresentation())
 
 
 
