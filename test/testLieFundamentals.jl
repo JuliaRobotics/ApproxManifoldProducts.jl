@@ -175,7 +175,7 @@ end
 @testset "SE(2) Vector transport (w curvature) via Jacobians and Lie adjoints" begin
 ##
 
-M = SpecialEuclidean(2)
+M = SpecialEuclidean(2; vectors=HybridTangentRepresentation())
 p = Identity(M)
 Xc = 0.5*randn(3)
 X = hat(M, p, Xc)   # random algebra element
@@ -208,7 +208,7 @@ end
 ##
 
 
-M = SpecialEuclidean(3)
+M = SpecialEuclidean(3; vectors=HybridTangentRepresentation())
 p = Identity(M)
 Xc = 0.5*randn(6)
 X = hat(M, p, Xc)   # random algebra element

@@ -126,7 +126,7 @@ using Manifolds
 using ApproxManifoldProducts
 
 # a familiar manifold of translation and rotation in 2D
-M = SpecialEuclidean(2)
+M = SpecialEuclidean(2; vectors=HybridTangentRepresentation())
 
 
 # make a new partial of only the translation components

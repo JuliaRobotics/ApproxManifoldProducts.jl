@@ -309,7 +309,7 @@ ker = AMP.MvNormalKernel([0], [2.0;;])
 )
 
 ##
-M = SpecialEuclidean(2)
+M = SpecialEuclidean(2; vectors=HybridTangentRepresentation())
 ε = identity_element(M)
 Xc = [10, 20, 0.1]
 p = exp(M, ε, hat(M, ε, Xc))
@@ -424,7 +424,7 @@ ys_pdf = pdf(dis, ps)
 # lines!(first.(ps), ys_amp)
 
 
-M = SpecialEuclidean(2)
+M = SpecialEuclidean(2; vectors=HybridTangentRepresentation())
 ε = identity_element(M)
 dis = MvNormal([10,20,0.1], diagm([0.5,2.0,0.1].^2)) 
 Cpts = [rand(dis) for _ in 1:128]
@@ -447,9 +447,9 @@ end
 
 
 ## ========================================================================================
-@testset "Test Product the brute force way, SpecialEuclidean(2)" begin
+@testset "Test Product the brute force way, SpecialEuclidean(2; vectors=HybridTangentRepresentation())" begin
 
-M = SpecialEuclidean(2)
+M = SpecialEuclidean(2; vectors=HybridTangentRepresentation())
 ε = identity_element(M)
 
 Xc_p = [10, 20, 0.1]
@@ -610,10 +610,10 @@ maj_ang = (angle(Complex(evv.vectors[:,maj_idx]...)) + 2pi) % pi
 end
 
 
-@testset "Rotated covariance product major axis checks, SpecialEuclidean(2)" begin
+@testset "Rotated covariance product major axis checks, SpecialEuclidean(2; vectors=HybridTangentRepresentation())" begin
 ##
 
-M = SpecialEuclidean(2)
+M = SpecialEuclidean(2; vectors=HybridTangentRepresentation())
 ε = identity_element(M)
 
 Xc_p = [0, 0, 0.0]
@@ -915,10 +915,10 @@ end
 
 
 
-@testset "Multidimensional LOOCV bandwidth optimization, SpecialEuclidean(2)" begin
+@testset "Multidimensional LOOCV bandwidth optimization, SpecialEuclidean(2; vectors=HybridTangentRepresentation())" begin
 ##
 
-M = SpecialEuclidean(2)
+M = SpecialEuclidean(2; vectors=HybridTangentRepresentation())
 pts = [ArrayPartition(randn(2),Rot_.RotMatrix{2}(0.1*randn()).mat) for _ in 1:64]
 
 bw = [1.0; 1.0; 0.3]
@@ -954,10 +954,10 @@ end
 
 
 
-@testset "Multidimensional LOOCV bandwidth optimization, SpecialEuclidean(3)" begin
+@testset "Multidimensional LOOCV bandwidth optimization, SpecialEuclidean(3; vectors=HybridTangentRepresentation())" begin
 ##
 
-M = SpecialEuclidean(3)
+M = SpecialEuclidean(3; vectors=HybridTangentRepresentation())
 pts = [ArrayPartition(SA[randn(3)...;],SMatrix{3,3,Float64}(collect(Rot_.RotXYZ(0.1*randn(3)...)))) for _ in 1:64]
 
 bw = SA[1.0; 1.0; 1.0; 0.3; 0.3; 0.3]
