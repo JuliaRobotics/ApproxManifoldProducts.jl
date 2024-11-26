@@ -197,7 +197,12 @@ calcProductGaussians(
   Λ_ = map(s->diagm( 1.0 ./ s), Σ_),
   weight::Real = 1.0,
   do_transport_correction::Bool = true
-) where {N,P,S<:AbstractVector} = calcProductGaussians(M, μ_, nothing; dim, Λ_, do_transport_correction )
+) where {N,P,S<:AbstractVector} = calcProductGaussians(
+  M, 
+  [MvNormalKernel(p,C) for (p,C) in zip(μ_,Σ_)]; 
+  # dim, 
+  do_transport_correction
+) # , Λ_
 #
 
 

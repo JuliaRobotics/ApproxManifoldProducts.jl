@@ -10,9 +10,12 @@ end
 
 function MvNormalKernel(
   μ::AbstractArray,
-  Σ::AbstractArray,
+  σ::AbstractArray,
   weight::Real=1.0
 )
+  c_(s::AbstractMatrix) = s
+  c_(s::AbstractVector) = diagm(s)
+  Σ = c_(σ)
   _c = projectSymPosDef(Σ)
   p=MvNormal(_c)
   # NOTE, TBD, why not sqrt(inv(p.Σ)), this had an issue seemingly internal to PDMat.chol which breaks an already forced SymPD matrix to again be not SymPD???
