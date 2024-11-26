@@ -14,7 +14,8 @@ M = TranslationGroup(2)
 u = [[1;1.0], [0.0;0]]
 c = [([1.0;1]), ([1.0;1])]
 
-u_, C_ = calcProductGaussians(M, u, c)
+uC = calcProductGaussians(M, u, c)
+u_, C_ = mean(uC), cov(uC)
 @test isapprox( u_, [0.5, 0.5])
 @test isapprox( C_, [0.5 0.0; 0.0 0.5])
 
@@ -63,9 +64,9 @@ for sidx in 1:N
   u1 = pts1[sl[sidx][1]]
   u2 = pts2[sl[sidx][2]]
 
-  u12, = calcProductGaussians(M, [u1,u2], [bw1,bw2]);
+  u12 = calcProductGaussians(M, [u1,u2], [bw1,bw2]);
 
-  @test isapprox( u12, getPoints(P12)[sidx] )
+  @test isapprox( mean(u12), getPoints(P12)[sidx] )
 
 end
 
@@ -114,9 +115,9 @@ for sidx in 1:N
   u1 = pts1[sl[sidx][1]]
   u2 = pts2[sl[sidx][2]]
 
-  u12, = calcProductGaussians(M, [u1,u2], [bw1,bw2]);
+  u12 = calcProductGaussians(M, [u1,u2], [bw1,bw2]);
 
-  @test isapprox( u12[1], getPoints(P12_)[sidx][1] , atol=0.1)
+  @test isapprox( mean(u12)[1], getPoints(P12_)[sidx][1] , atol=0.1)
   @test isapprox( pts1[sl[sidx][1]][2], getPoints(P12_)[sidx][2] )
 
 end
@@ -173,9 +174,9 @@ for sidx in 1:N
   u2 = pts2[sl[sidx][2]]
   u3 = pts3[sl[sidx][3]]
 
-  u123, = calcProductGaussians(M, [u1,u2,u3], [bw1,bw2,bw3]);
+  u123 = calcProductGaussians(M, [u1,u2,u3], [bw1,bw2,bw3]);
 
-  @test isapprox( u123[1], getPoints(P123_)[sidx][1] , atol=0.1)
+  @test isapprox( mean(u123)[1], getPoints(P123_)[sidx][1] , atol=0.1)
   @test isapprox( pts1[sl[sidx][1]][2], getPoints(P123_)[sidx][2] )
 
 end
@@ -233,11 +234,11 @@ for sidx in 1:N
   u1 = pts1[sl[sidx][2]]
   u3 = pts3[sl[sidx][3]]
 
-  u12, = calcProductGaussians(M, [u1,u2], [bw1,bw2]);
-  u23, = calcProductGaussians(M, [u2,u3], [bw2,bw3]);
+  u12 = calcProductGaussians(M, [u1,u2], [bw1,bw2]);
+  u23 = calcProductGaussians(M, [u2,u3], [bw2,bw3]);
 
-  @test isapprox( u12[1], getPoints(P)[sidx][1])
-  @test isapprox( u23[2], getPoints(P)[sidx][2])
+  @test isapprox( mean(u12)[1], getPoints(P)[sidx][1])
+  @test isapprox( mean(u23)[2], getPoints(P)[sidx][2])
 
 end
 
@@ -353,12 +354,12 @@ for sidx in 1:N
   u3 = pts5[ sl[sidx][3]]
   u4 = pts5_[sl[sidx][4]]
 
-  u12, = calcProductGaussians(M, [u1,u2], [bw1,bw2]);
-  u34, = calcProductGaussians(M, [u3,u4], [bw3,bw4]);
+  u12 = calcProductGaussians(M, [u1,u2], [bw1,bw2]);
+  u34 = calcProductGaussians(M, [u3,u4], [bw3,bw4]);
 
   # @info "DEBU" string(u1) string(u2) string(u3) string(u4) u12[1], u34[2]
-  @test isapprox( u12[1], getPoints(P45__)[sidx][1])
-  @test isapprox( u34[2], getPoints(P45__)[sidx][2])
+  @test isapprox( mean(u12)[1], getPoints(P45__)[sidx][1])
+  @test isapprox( mean(u34)[2], getPoints(P45__)[sidx][2])
 
 end
 
@@ -419,12 +420,12 @@ for sidx in 1:N
   u1 = pts1[sl[sidx][2]]
   u3 = pts3[sl[sidx][3]]
 
-  u12, = calcProductGaussians(M, [u1,u2], [bw1,bw2]);
-  u23, = calcProductGaussians(M, [u2,u3], [bw2,bw3]);
+  u12 = calcProductGaussians(M, [u1,u2], [bw1,bw2]);
+  u23 = calcProductGaussians(M, [u2,u3], [bw2,bw3]);
 
-  @test isapprox( u12[1], getPoints(P)[sidx][1])
-  @test isapprox(  u2[2], getPoints(P)[sidx][2] )
-  @test isapprox( u23[3], getPoints(P)[sidx][3])
+  @test isapprox( mean(u12)[1], getPoints(P)[sidx][1])
+  @test isapprox(        u2[2], getPoints(P)[sidx][2])
+  @test isapprox( mean(u23)[3], getPoints(P)[sidx][3])
 
 end
 
@@ -481,12 +482,12 @@ for sidx in 1:N
   u2 = pts2[sl[sidx][2]]
   u3 = pts3[sl[sidx][3]]
 
-  u12, = calcProductGaussians(M, [u1,u2], [bw1,bw2]);
-  u23, = calcProductGaussians(M, [u2,u3], [bw2,bw3]);
+  u12 = calcProductGaussians(M, [u1,u2], [bw1,bw2]);
+  u23 = calcProductGaussians(M, [u2,u3], [bw2,bw3]);
 
-  @test isapprox( u12[1], getPoints(P)[sidx][1])
+  @test isapprox( mean(u12)[1], getPoints(P)[sidx][1])
   @test isapprox(  u2[2], getPoints(P)[sidx][2])
-  @test isapprox( u23[3], getPoints(P)[sidx][3])
+  @test isapprox( mean(u23)[3], getPoints(P)[sidx][3])
 
 end
 
