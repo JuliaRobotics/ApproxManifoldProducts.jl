@@ -11,7 +11,7 @@ using TensorCast
 
 ##
 
-M = SpecialEuclidean(2)
+M = SpecialEuclidean(2; vectors=HybridTangentRepresentation())
 N = 100
 u0 = ArrayPartition([0;0.0],[1 0; 0 1.0])
 ϵ = identity_element(M, u0)
