@@ -7,7 +7,14 @@ using LinearAlgebra
 using Distributions
 
 
-##
+## FIXME add these test below
+
+# δ_J_τ = Jr(M, X) #  jacobian(δjk=exp(X) wrt X=τ) = right jacobian
+# jacobian(Δik = Δij ∘ δjk) wrt Δij = inv(Ad(δjk))
+
+
+
+
 
 
 # [Chirikjian 2012, Vol2, Vol2 p.40], specifically for SO(3)
@@ -28,10 +35,18 @@ d̂ = 0.5*randn(1)
 d = hat(M, p, d̂)    # direction in algebra
 
 
-ApproxManifoldProducts.ad_lie(M, X)
 @test isapprox(
   ApproxManifoldProducts.ad_lie(M, X),
   ApproxManifoldProducts.ad(M, X)
+)
+
+ad_mat = ApproxManifoldProducts.ad_lie(M, X)
+
+@test size(ad_mat) == (1,1)
+
+@test isapprox(
+  0.0,
+  ad_mat[1,1],
 )
 
 # ptcMat = ApproxManifoldProducts.parallel_transport_curvature_2nd_lie(M, d)
@@ -71,8 +86,8 @@ d = hat(M, p, d̂)    # direction in algebra
 # Ad_vee and ad_vee are matrices which use multiplication to operate Ad and ad respectively
 # @test Ad_vee(exp_G(-0.5*coord_u)) == exp(-0.5*ad_vee(coord_u))
 @test isapprox(
-  ApproxManifoldProducts.Ad(M, exp_lie(M,-0.5*X)),
-  exp(-0.5*ApproxManifoldProducts.ad(M, X))
+  ApproxManifoldProducts.Ad(M, exp_lie(M,-0.5*X)),  # from Manifolds.jl
+  exp(-0.5*ApproxManifoldProducts.ad(M, X))         # rom Chirikjian
 )
 
 ## parallel transport without curvature correction
@@ -187,6 +202,12 @@ d = hat(M, p, d̂)    # direction in algebra
   ApproxManifoldProducts.ad(M, X)
 )
 
+@test isapprox(
+  ApproxManifoldProducts.Ad(M, exp_lie(M,-0.5*X)),  # from Manifolds.jl
+  exp(-0.5*ApproxManifoldProducts.ad(M, X))         # from Chirikjian
+)
+
+
 ptcMat = ApproxManifoldProducts.parallel_transport_curvature_2nd_lie(M, d)
 
 @error "Missing SE(2) vector transport numerical verify tests"
@@ -198,6 +219,7 @@ ptcMat = ApproxManifoldProducts.parallel_transport_curvature_2nd_lie(M, d)
 #   ApproxManifoldProducts.Ad(M,exp_lie(M,d));
 #   atol=1e-5
 # )
+
 
 
 ##
@@ -331,6 +353,58 @@ p̂ = calcProductGaussians(
 ##
 end
 
+
+
+
+# SE(2)
+
+
+p1 = ArrayPartition([0;0.], [1 0; 0 1.])
+Σ = [2 0 0; 0 1 0; 0 0 0.1];
+
+sigma_points = [
+  [2;0;0];
+  [-2;0;0];
+  [0;-1;0];
+  [0;1;0];
+  [0;0;-0.1];
+  [0;0;0.1];
+]
+
+# once rotated we could use
+
+
+
+
+
+
+
+
+p1 = ArrayPartition([0;0.], [1 0; 0 1.])
+Σ = [4 0 0; 0 1 0; 0 0 0.1];
+
+# global frame
+Σs = [2.5 1.5 0; 1.5 2.5 0; 0 0 0.1];
+
+# body frame
+sigma_points = [
+  [2;0;0];
+  [-2;0;0];
+  [0;-1;0];
+  [0;1;0];
+  [0;0;-0.1];
+  [0;0;0.1];
+]
+
+# difference between log and log_lie when expanding at identity????????
+
+M = SpecialEuclidean(2)
+ε = Identity(M)
+
+p = rand(M)
+
+log(M, ε, p)
+log_lie(M, p)
 
 
 

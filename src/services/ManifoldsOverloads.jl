@@ -159,6 +159,7 @@ Input `X` is a tangent vector of the Lie algebra of group manifold `M`.
 Notes
 - This implementation uses the Lie bracket over affine (or screw) matrices.
   - Ref [Chirikjian 2012, Vol.2, pg.30, eq.10.59b]
+- Two parameters means this function builds a matrix that can be used to do the action.
 """
 function ad_lie(
   M::LieGroupManifoldsPirate,
