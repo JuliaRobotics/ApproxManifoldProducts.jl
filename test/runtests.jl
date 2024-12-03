@@ -19,7 +19,11 @@ include("testSymmetry.jl")
 include("testUpdateMKD.jl")
 include("testMKDStats.jl")
 
-# new dev
-include("manellic/testManellicTree.jl")
+# Manellic tree, (on-Manifold Ellipse Ball Tree)
+include("manellic/testManifoldTreeConstr.jl")
+include("manellic/testTreeEvaluation.jl")
+include("manellic/testTreeEntropyBandwidth.jl")
+include("manellic/testMultiscaleLabelSampling.jl")
+include("manellic/testTreeKernelProducts.jl")
 
 #
