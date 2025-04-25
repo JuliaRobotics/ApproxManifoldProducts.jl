@@ -72,7 +72,7 @@ mtree = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw=bw,kernel=A
 
 # FIXME use bounds
 lcov, ucov = AMP.getBandwidthSearchBounds(mtree)
-bw_cov = (ucov + lcov)/2
+bw_cov = (ucov.mat + lcov)/2
 mtree_0 = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw=bw_cov,kernel=AMP.MvNormalKernel)
 lower = lcov / bw_cov
 upper = ucov / bw_cov
@@ -197,7 +197,7 @@ end
   Optim.NelderMead()
 );
 
-@test res.ls_success
+@test res.stopped_by.g_converged
 
 @show best_cov = abs.(Optim.minimizer(res))
 
@@ -234,7 +234,7 @@ end
   Optim.NelderMead()
 );
 
-@test res.ls_success
+@test res.stopped_by.g_converged
 
 @show best_cov = abs.(Optim.minimizer(res))
 
@@ -273,7 +273,7 @@ end
   Optim.NelderMead()
 );
 
-@test res.ls_success
+@test res.stopped_by.g_converged
 
 @show best_cov = abs.(Optim.minimizer(res))
 

@@ -98,9 +98,9 @@ function getKernelTree(
       leafIdxs .+= N
       bws = [cov(getKernelTree(mtr,lidx,false)) for lidx in leafIdxs]
       # FIXME is a parallel transport needed between different kernel covariances that each exist in different tangent spaces
-      mean_bw = mean(bws) # FIXME upgrade to on-manifold mean
+      mean_bw = Matrix(mean(bws)) # FIXME upgrade to on-manifold mean
       # corrected cov varies from root (only Monte Carlo cov est) to leaves (only selected bandwdith)
-      nC = (1-λ)*cov(raw_ker) + λ*mean_bw
+      nC = (1-λ)*(s->s.mat)(cov(raw_ker)) + λ*mean_bw
       # return a new kernel with cov_continuation, of tree kernel type
       kernelType = getfield(ApproxManifoldProducts,HT.name.name)
       kernelType(mean(raw_ker), nC, mtr.weights[currIdx])
