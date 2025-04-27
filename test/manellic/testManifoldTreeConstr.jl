@@ -3,11 +3,13 @@
 using Test
 using ApproxManifoldProducts
 using Random
+import Statistics
 using LinearAlgebra
 using StaticArrays
 using TensorCast
-using Manifolds
+import Manifolds as MF
 import Rotations as Rot_
+import LieGroups as LGr
 using Distributions
 import ApproxManifoldProducts: ManellicTree, eigenCoords, splitPointsEigen
 
@@ -24,7 +26,7 @@ function testEigenCoords(
   r_C = pi/3,
   ax_CC = [SA[5*randn();randn()] for _ in 1:100],
 )
-  M = TranslationGroup(2)
+  M = MF.TranslationGroup(2)
   _R(α, s=exp(-α*im)) = real(s)*SA[1 0; 0 1] + imag(s)*SA[0 1; -1 0]
   # _R(α) = SA[cos(α) sin(α); -sin(α) cos(α)]
   r_R_ax = _R(r_C)
@@ -32,11 +34,11 @@ function testEigenCoords(
   r_CC = map(ax_CC) do ax_C
     r_R_ax*ax_C + SA[10;-100]
   end
-  r_CV = Manifolds.cov(M, r_CC)
+  r_CV = Statistics.cov(M, r_CC)
   r_R_ax_, L, pidx = ApproxManifoldProducts.eigenCoords(r_CV)
 
   # spot check
-  @show _ax_ERR = log_lie(SpecialOrthogonal(2), (r_R_ax_')*r_R_ax)[1,2]
+  @show _ax_ERR = MF.log_lie(MF.SpecialOrthogonal(2), (r_R_ax_')*r_R_ax)[1,2]
   @show testval = isapprox(0, _ax_ERR; atol = 8/length(ax_CC))
   @assert testval "Spot check failed on eigen split of manifold points, the estimated point rotation matrix did not match construction. length(ax_CC)=$(length(ax_CC))"
 
@@ -47,14 +49,14 @@ end
 @testset "test ManellicTree construction" begin
 ##
 
-M = TranslationGroup(2)
+M = MF.TranslationGroup(2)
 α = pi/3
 r_CC, R, pidx, r_CV = testEigenCoords(α);
 ax_CCp, mask, knl = splitPointsEigen(M, r_CC)
 @test sum(mask) == (length(r_CC) ÷ 2)
 @test knl isa ApproxManifoldProducts.MvNormalKernel
-Mr = SpecialOrthogonal(2)
-@test isapprox( α, vee(Mr, Identity(Mr), log_lie(Mr, R))[1] ; atol=0.1)
+Mr = MF.SpecialOrthogonal(2)
+@test isapprox( α, MF.vee(Mr, MF.Identity(Mr), MF.log_lie(Mr, R))[1] ; atol=0.1)
 
 ##
 
@@ -115,7 +117,7 @@ end
 @testset "ManellicTree construction 1D" begin
 ##
 
-M = TranslationGroup(1)
+M = MF.TranslationGroup(1)
 # already sorted list
 pts = [[1.],[2.],[4.],[7.],[11.],[16.],[22.]]
 bw = [1.0]
@@ -145,7 +147,7 @@ function testMDEConstr(
   rseg = 3:4
 )
   # check permutation
-  M = TranslationGroup(1)
+  M = MF.TranslationGroup(1)
   bw = [1.0]
 
   mtree = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw=bw,kernel=AMP.MvNormalKernel)
@@ -201,7 +203,7 @@ end
 
 
 #
-M = TranslationGroup(1)
+M = MF.TranslationGroup(1)
 pts = [randn(1) for _ in 1:8]
 for i in 1:10
   _pts = pts[shuffle(1:length(pts))]
@@ -216,7 +218,7 @@ end
 @testset "ManellicTree 1D basic construction and evaluations" begin
 ## 
 
-M = TranslationGroup(1)
+M = MF.TranslationGroup(1)
 pts = [randn(1) for _ in 1:128]
 mtree = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel=AMP.MvNormalKernel)
 
@@ -227,7 +229,7 @@ AMP.evaluate(mtree, SA[0.0;])
 json_string = read(joinpath(DATADIR,"manellic_test_data.json"), String)
 dict = JSON3.read(json_string, Dict{Symbol,Vector{Float64}})
 
-M = TranslationGroup(1)
+M = MF.TranslationGroup(1)
 pts = [[v;] for v in dict[:evaltest_1_pts]]
 bw = reshape(dict[:evaltest_1_bw],1,1)
 mtree = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw=bw,kernel=AMP.MvNormalKernel)
@@ -270,7 +272,7 @@ end
 @testset "Test evaluate MvNormalKernel" begin
 ##
 
-M = TranslationGroup(1)
+M = MF.TranslationGroup(1)
 ker = AMP.MvNormalKernel([0.0], [0.5;;])
 @test isapprox(
   AMP.evaluate(M, ker, [0.1]),
@@ -376,7 +378,7 @@ end
 ## 
 
 
-M = TranslationGroup(1)
+M = MF.TranslationGroup(1)
 ε = identity_element(M)
 dis = MvNormal([3.0], diagm([1.0].^2)) 
 Cpts = [rand(dis) for _ in 1:128]
