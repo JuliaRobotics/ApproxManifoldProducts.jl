@@ -16,6 +16,7 @@ jobs:
       matrix:
         version:
           - '1.11'
+          - '~1.12.0-0'
           - 'nightly'
         os:
           - ubuntu-latest
@@ -41,7 +42,13 @@ jobs:
       - run: |
           git config --global user.name Tester
           git config --global user.email te@st.er
+      - name: Setup SKIP_SLOW_JL12
+        if: startsWith(matrix.version, '~1.12.0-0')
+        run: |
+          echo 'SKIP_SLOW_JL12="true"' >> $GITHUB_ENV
       - uses: julia-actions/julia-runtest@latest
+        env:
+          SKIP_SLOW_JL12: ${{ env.SKIP_SLOW_JL12 }}
         continue-on-error: ${{ matrix.version == 'nightly' }}
       - uses: julia-actions/julia-processcoverage@v1
       - uses: codecov/codecov-action@v1

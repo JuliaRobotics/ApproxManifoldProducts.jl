@@ -24,6 +24,9 @@ include("manellic/testManifoldTreeConstr.jl")
 include("manellic/testTreeEvaluation.jl")
 include("manellic/testTreeEntropyBandwidth.jl")
 include("manellic/testMultiscaleLabelSampling.jl")
+
+if (get(ENV, "SKIP_SLOW_JL12", "false") == "false")
 include("manellic/testTreeKernelProducts.jl")
+end
 
 #
