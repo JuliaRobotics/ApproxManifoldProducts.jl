@@ -177,7 +177,7 @@ end
 end
 
 
-if (get(ENV, "SKIP_SLOW_JL12", "false") == "false")
+# if !(v"1.11" < VERSION < v"1.12.0-beta99")
 
 @testset "Multidimensional LOOCV bandwidth optimization, TranslationGroup(2)" begin
 ##
@@ -215,6 +215,7 @@ mkd = ApproxManifoldProducts.manikde!_manellic(M,pts)
 end
 
 
+if !(v"1.11" < VERSION < v"1.12.0-beta99")
 
 @testset "Multidimensional LOOCV bandwidth optimization, SpecialEuclidean(2; vectors=HybridTangentRepresentation())" begin
 ##

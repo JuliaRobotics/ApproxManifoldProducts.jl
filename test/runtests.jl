@@ -25,7 +25,7 @@ include("manellic/testTreeEvaluation.jl")
 include("manellic/testTreeEntropyBandwidth.jl")
 include("manellic/testMultiscaleLabelSampling.jl")
 
-if (get(ENV, "SKIP_SLOW_JL12", "false") == "false")
+if !(v"1.11" < VERSION < v"1.12.0-beta99")
 include("manellic/testTreeKernelProducts.jl")
 end
 
