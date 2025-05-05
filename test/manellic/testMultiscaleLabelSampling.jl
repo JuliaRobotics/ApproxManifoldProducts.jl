@@ -6,7 +6,8 @@ using Random
 using LinearAlgebra
 using StaticArrays
 using TensorCast
-using Manifolds
+import Manifolds as MF
+import LieGroups as LGr
 import Rotations as Rot_
 using Distributions
 import ApproxManifoldProducts: ManellicTree, eigenCoords, splitPointsEigen
@@ -23,7 +24,7 @@ using JSON3
 @testset "Product of two Manellic beliefs, Sequential Gibbs, TranslationGroup(1)" begin
 ##
 
-M = TranslationGroup(1)
+M = MF.TranslationGroup(1)
 N = 64
 
 pts1 = [randn(1).-1 for _ in 1:N]
@@ -127,7 +128,7 @@ end
 @testset "Multi-scale label sampling version (Gibbs), TranslationGroup(2)" begin
 ##
 
-M = TranslationGroup(2)
+M = MF.TranslationGroup(2)
 N = 64
 
 pts1 = [1*randn(2) for _ in 1:N]

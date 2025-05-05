@@ -24,6 +24,9 @@ include("manellic/testManifoldTreeConstr.jl")
 include("manellic/testTreeEvaluation.jl")
 include("manellic/testTreeEntropyBandwidth.jl")
 include("manellic/testMultiscaleLabelSampling.jl")
+
+if !(v"1.11" < VERSION < v"1.12.0-beta99")
 include("manellic/testTreeKernelProducts.jl")
+end
 
 #
