@@ -13,7 +13,7 @@ Notes
 DevNotes
 - WIP AMP issue 41, use generic retractions during manifold products.
 """
-struct ManifoldKernelDensity{M <: MB.AbstractManifold, B <: TreeDensity, L, P <: AbstractArray}
+struct ManifoldKernelDensity{M <: MB.AbstractManifold, B <: TreeDensity, L, P}
   manifold::M
   """ legacy expects matrix of coordinates (as columns) """
   belief::B

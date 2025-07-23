@@ -13,6 +13,7 @@ DocStringExtensions = "ffbed154-4ef7-542d-bbb7-c09d3a79fcae"
 KernelDensityEstimate = "2472808a-b354-52ea-a80e-1658a3c6056d"
 LibGit2 = "76f85450-5226-5b5a-8eaa-529ad045b433"
 Libdl = "8f399da3-3557-5675-b5ff-fb832c97cbdb"
+LieGroups = "6774de46-80ba-43f8-ba42-e41071ccfc5f"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Logging = "56ddb016-857b-54e1-b83d-db4d58db5568"
 Manifolds = "1cead3c2-87b3-11e9-0ccd-23c62b72b94e"
@@ -36,12 +37,19 @@ TransformUtils = "9b8138ad-1b09-5408-aa39-e87ed6d21b63"
 UUIDs = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
 Unicode = "4ec0a83e-493e-50e2-b9ac-8f72acf5a8f5"
 
+[weakdeps]
+Gadfly = "c91e804a-d5a3-530f-b6f0-dfbca275c004"
+
+[extensions]
+ApproxManiProdGadflyExt = "Gadfly"
+
 [compat]
 Colors = "0.12, 0.13"
 CoordinateTransformations = "0.5, 0.6"
 Distributions = "0.25"
 DocStringExtensions = "0.7, 0.8, 0.9"
 KernelDensityEstimate = "0.5.10"
+LieGroups = "0.1.2"
 Manifolds = "0.10"
 ManifoldsBase = "0.15, 1"
 NLsolve = "3, 4"
@@ -56,9 +64,6 @@ TensorCast = "0.2, 0.3, 0.4"
 TransformUtils = "0.2.17"
 julia = "1.10"
 
-[extensions]
-ApproxManiProdGadflyExt = "Gadfly"
-
 [extras]
 BSON = "fbb218c0-5317-5bc6-957e-2ee96dd4b1f0"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
@@ -70,6 +75,3 @@ Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
 test = ["BSON", "DataFrames", "JSON3", "LieGroups", "Rotations", "TensorCast", "Test"]
-
-[weakdeps]
-Gadfly = "c91e804a-d5a3-530f-b6f0-dfbca275c004"

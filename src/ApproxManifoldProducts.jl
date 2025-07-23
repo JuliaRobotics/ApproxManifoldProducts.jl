@@ -25,6 +25,8 @@ export ArrayPartition
 import ManifoldsBase
 import ManifoldsBase: AbstractManifold, distance
 using Manifolds
+using LieGroups
+using LieGroups: TranslationGroup
 
 using NLsolve
 import Optim

@@ -39,7 +39,7 @@ function manifoldProduct(
   ndims::Integer=maximum([0;Ndim.(ff)]),
   N::Integer = maximum([0;Npts.(ff)]),
   u0 = getPoints(ff[1], false)[1],
-  oldPoints::AbstractVector{P}= [identity_element(mani, u0) for i in 1:N],
+  oldPoints::AbstractVector{P}= [identity_element(mani, typeof(u0)) for i in 1:N],
   addEntropy::Bool=true,
   recordLabels::Bool=false,
   selectedLabels::Vector{Vector{Int}}=Vector{Vector{Int}}(),
@@ -56,7 +56,7 @@ function manifoldProduct(
   end
 
   # TODO DEPRECATE ::NTuple{Symbol} approach
-  manif = convert(Tuple, mani)  #[partialDimsWorkaround]
+  manif = _manifoldtuple(mani)  #[partialDimsWorkaround]
   addopT, diffopT, getManiMu, _ = buildHybridManifoldCallbacks(manif)
   
   Ndens = length(ff)

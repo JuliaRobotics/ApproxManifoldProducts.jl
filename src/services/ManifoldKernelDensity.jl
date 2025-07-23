@@ -55,7 +55,7 @@ function ManifoldKernelDensity(
   M::MB.AbstractManifold,
   vecP::AbstractVector{P},
   u0 = vecP[1],
-  ϵ = identity_element(M, u0); # vecP[1]
+  ϵ = identity_element(M, typeof(u0)); # vecP[1]
   partial::L=nothing,
   infoPerCoord::AbstractVector{<:Real}=ones(getNumberCoords(M, u0)),
   dims::Int=manifold_dimension(M),
@@ -67,11 +67,11 @@ function ManifoldKernelDensity(
   arr = Matrix{Float64}(undef, dims, length(vecP))
   
   for j in 1:length(vecP)
-    arr[:,j] = vee(M, ϵ, log(M, ϵ, vecP[j]))
+    arr[:,j] = vee(LieAlgebra(M), log(M, ϵ, vecP[j]))
   end
 
     # FIXME ON FIRE REMOVE LEGACY
-    manis = convert(Tuple, M)
+    manis = _manifoldtuple(M)
     # find or have the bandwidth
     _bw = isnothing(bw) ? getKDEManifoldBandwidths(arr, manis ) : bw
   # NOTE workaround for partials and user did not specify a bw
@@ -191,7 +191,7 @@ function _buildManifoldPartial( fullM::MB.AbstractManifold,
                                 partial_coord_dims )
   #
   # temporary workaround during Manifolds.jl integration
-  manif = convert(Tuple, fullM)[partial_coord_dims]
+  manif = _manifoldtuple(fullM)[partial_coord_dims]
   # 
   newMani = MB.AbstractManifold[]
   for me in manif

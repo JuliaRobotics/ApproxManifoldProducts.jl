@@ -9,7 +9,7 @@ using Manifolds
 
 M = SpecialEuclidean(2; vectors=HybridTangentRepresentation())
 u0 = ArrayPartition(zeros(2),[1 0; 0 1.0])
-ϵ = identity_element(M, u0)
+ϵ = identity_element(M, typeof(u0))
 
 pts = [exp(M, ϵ, hat(M, ϵ, [0.05*randn(2);0.75*randn()])) for i in 1:100]
 
