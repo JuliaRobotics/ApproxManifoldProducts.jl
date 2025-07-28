@@ -101,7 +101,7 @@ function getManifoldPartial(M::TranslationGroup{Tuple{N}},
   return (TranslationGroup(len),repr_p)
 end
 
-function getManifoldPartial(M::typeof(SpecialOrthogonal(2)), 
+function getManifoldPartial(M::typeof(SpecialOrthogonalGroup(2)), 
                             partial::AbstractVector{Int}, 
                             repr::_PartiableRepresentation=nothing,
                             offset::Base.RefValue{Int}=Ref(0);
@@ -174,6 +174,51 @@ function getManifoldPartial(M::ProductManifold,
   ManiArr = []
   ReprArr = []
   for (i,m) in enumerate(M.manifolds)
+    mask = _checkManifoldPartialDims(m,partial,offset, false)
+    if any(mask)
+      Mp = if repr === nothing
+        # decide if representation should also be updated or left as nothing
+        Mp, = getManifoldPartial(m, partial, nothing, offset, doError=false)
+        Mp
+      else
+        # hard assumption that repr::ArrayPartition to go along with M::ProductManifold
+        # NOTE submanifold_component is the correct way to avoid this assumption
+        Mp, Rp = getManifoldPartial(m, partial, submanifold_component(repr,i), offset, doError=false)
+        push!(ReprArr, Rp)
+        Mp
+      end
+      push!(ManiArr, Mp)
+    else
+      offset[] += manifold_dimension(m)
+    end
+  end
+
+  # trivial case, drop the ProductManifold for single element
+  if length(ManiArr) == 1
+    repr_p = repr === nothing ? nothing : ReprArr[1]
+    return (ManiArr[1],repr_p)
+  elseif 1 < length(ManiArr)
+    repr_p = repr === nothing ? nothing : ArrayPartition(ReprArr...)
+    return (ProductManifold(ManiArr...), repr_p)
+  end
+  error("partial manifold calculations should not reach here")
+end
+
+function getManifoldPartial(
+  PrG::LieGroup{ℝ, <:ProductGroupOperation, <:ProductManifold},
+  partial::AbstractVector{Int},
+  repr::_PartiableRepresentationProduct=nothing,
+  offset::Base.RefValue{Int}=Ref(0);
+  doError::Bool=true
+  )
+  _checkManifoldPartialDims(PrG,partial,offset,doError)
+
+  # loop through the ProductManifold components 
+  ManiArr = []
+  ReprArr = []
+  
+  subgroups = map(LieGroup, PrG.manifold.manifolds, PrG.op.operations)
+  for (i,m) in enumerate(subgroups)
     mask = _checkManifoldPartialDims(m,partial,offset, false)
     if any(mask)
       Mp = if repr === nothing
