@@ -19,7 +19,6 @@ include("testPartialProductSE2.jl")
 include("basic_se3.jl")
 include("testSymmetry.jl")
 include("testUpdateMKD.jl")
-# FIXME
 include("testMKDStats.jl")
 
 # Manellic tree, (on-Manifold Ellipse Ball Tree)
