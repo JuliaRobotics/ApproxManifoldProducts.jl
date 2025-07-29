@@ -48,8 +48,8 @@ function buildHybridManifoldCallbacks(manif::Tuple)
 end
 
 # FIXME TO BE REMOVED
-_MtoSymbol(::Euclidean{Tuple{1}}) = :Euclid
-_MtoSymbol(::Circle) = :Circular
+# _MtoSymbol(::Euclidean{Tuple{1}}) = :Euclid
+# _MtoSymbol(::Circle) = :Circular
 
 function _manifoldtuple(M::AbstractManifold)
   # TODO WIP to remove convert(Tuple, M) type piracy.
@@ -57,28 +57,22 @@ function _manifoldtuple(M::AbstractManifold)
   @warn "Please use `_manifoldtuple(M)` instead. This will be removed (hopefully soon). Got" typeof(M)
   convert(Tuple, M)
 end
-_manifoldtuple(M::ProductManifold) = _MtoSymbol.(M.manifolds)
-_manifoldtuple(M::Manifolds.TranslationGroup) = tuple([:Euclid for i in 1:manifold_dimension(M)]...)
+# _manifoldtuple(M::ProductManifold) = _MtoSymbol.(M.manifolds)
+# _manifoldtuple(M::Manifolds.TranslationGroup) = tuple([:Euclid for i in 1:manifold_dimension(M)]...)
 _manifoldtuple(M::LieGroups.TranslationGroup) = tuple([:Euclid for i in 1:manifold_dimension(M)]...)
 _manifoldtuple(::typeof(LieGroups.CircleGroup(ℝ))) = (:Circular,)
-_manifoldtuple(::LieGroup{ℂ, AbelianMultiplicationGroupOperation, Circle{ℂ}}) = (:Euclid,)
+_manifoldtuple(::LieGroup{ℂ, AbelianMultiplicationGroupOperation, Manifolds.Circle{ℂ}}) = (:Euclid,)
 _manifoldtuple(M::ValidationLieGroup) = _manifoldtuple(M.lie_group)
 
 _manifoldtuple(::Manifolds.Euclidean{Tuple{N}, ℝ} ) where N = tuple([:Euclid for i in 1:N]...)
-_manifoldtuple(::Manifolds.Circle{ℝ})  = error("#FIXME")#(:Circular,)
-_manifoldtuple(::Manifolds.RealCircleGroup)  = (:Circular,)
+# _manifoldtuple(::Manifolds.Circle{ℝ})  = error("#FIXME")#(:Circular,)
+# _manifoldtuple(::Manifolds.RealCircleGroup)  = (:Circular,)
 
 _manifoldtuple(::typeof(Euclid)) = (:Euclid,)
 _manifoldtuple(::typeof(Euclid2)) = (:Euclid,:Euclid)
 _manifoldtuple(::typeof(Euclid3)) = (:Euclid,:Euclid,:Euclid)
 _manifoldtuple(::typeof(Euclid4)) = (:Euclid,:Euclid,:Euclid,:Euclid)
-_manifoldtuple(::typeof(SE2_Manifold)) = (:Euclid,:Euclid,:Circular)
-_manifoldtuple(::typeof(SE3_Manifold)) = (:Euclid,:Euclid,:Euclid,:Circular,:Circular,:Circular)
 
-# _manifoldtuple(::Type{<: typeof(Manifolds.SpecialOrthogonal(2))}) = (:Circular,)
-# _manifoldtuple(::Type{<: typeof(Manifolds.SpecialOrthogonal(3))}) = (:Circular,:Circular,:Circular)
-_manifoldtuple(::typeof(Manifolds.SpecialOrthogonal(2))) = (:Circular,)
-_manifoldtuple(::typeof(Manifolds.SpecialOrthogonal(3))) = (:Circular,:Circular,:Circular)
 _manifoldtuple(::typeof(SpecialOrthogonalGroup(2))) = (:Circular,)
 _manifoldtuple(::typeof(SpecialOrthogonalGroup(3))) = (:Circular,:Circular,:Circular)
 _manifoldtuple(::typeof(SpecialEuclideanGroup(2; variant=:right))) = (:Euclid,:Euclid,:Circular)

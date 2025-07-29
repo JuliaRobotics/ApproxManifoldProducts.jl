@@ -26,7 +26,7 @@ function testEigenCoords(
   r_C = pi/3,
   ax_CC = [SA[5*randn();randn()] for _ in 1:100],
 )
-  M = MF.TranslationGroup(2)
+  M = TranslationGroup(2)
   _R(α, s=exp(-α*im)) = real(s)*SA[1 0; 0 1] + imag(s)*SA[0 1; -1 0]
   # _R(α) = SA[cos(α) sin(α); -sin(α) cos(α)]
   r_R_ax = _R(r_C)
@@ -38,7 +38,7 @@ function testEigenCoords(
   r_R_ax_, L, pidx = ApproxManifoldProducts.eigenCoords(r_CV)
 
   # spot check
-  @show _ax_ERR = MF.log_lie(MF.SpecialOrthogonal(2), (r_R_ax_')*r_R_ax)[1,2]
+  @show _ax_ERR = log(SpecialOrthogonalGroup(2), (r_R_ax_')*r_R_ax)[1,2]
   @show testval = isapprox(0, _ax_ERR; atol = 8/length(ax_CC))
   @assert testval "Spot check failed on eigen split of manifold points, the estimated point rotation matrix did not match construction. length(ax_CC)=$(length(ax_CC))"
 
@@ -49,14 +49,14 @@ end
 @testset "test ManellicTree construction" begin
 ##
 
-M = MF.TranslationGroup(2)
+M = TranslationGroup(2)
 α = pi/3
 r_CC, R, pidx, r_CV = testEigenCoords(α);
 ax_CCp, mask, knl = splitPointsEigen(M, r_CC)
 @test sum(mask) == (length(r_CC) ÷ 2)
 @test knl isa ApproxManifoldProducts.MvNormalKernel
-Mr = MF.SpecialOrthogonal(2)
-@test isapprox( α, MF.vee(Mr, MF.Identity(Mr), MF.log_lie(Mr, R))[1] ; atol=0.1)
+Mr = SpecialOrthogonalGroup(2)
+@test isapprox( α, vee(LieAlgebra(Mr), log(Mr, R))[1] ; atol=0.1)
 
 ##
 
@@ -117,7 +117,7 @@ end
 @testset "ManellicTree construction 1D" begin
 ##
 
-M = MF.TranslationGroup(1)
+M = TranslationGroup(1)
 # already sorted list
 pts = [[1.],[2.],[4.],[7.],[11.],[16.],[22.]]
 bw = [1.0]
@@ -147,7 +147,7 @@ function testMDEConstr(
   rseg = 3:4
 )
   # check permutation
-  M = MF.TranslationGroup(1)
+  M = TranslationGroup(1)
   bw = [1.0]
 
   mtree = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw=bw,kernel=AMP.MvNormalKernel)
@@ -203,7 +203,7 @@ end
 
 
 #
-M = MF.TranslationGroup(1)
+M = TranslationGroup(1)
 pts = [randn(1) for _ in 1:8]
 for i in 1:10
   _pts = pts[shuffle(1:length(pts))]
@@ -218,7 +218,7 @@ end
 @testset "ManellicTree 1D basic construction and evaluations" begin
 ## 
 
-M = MF.TranslationGroup(1)
+M = TranslationGroup(1)
 pts = [randn(1) for _ in 1:128]
 mtree = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel=AMP.MvNormalKernel)
 
@@ -229,7 +229,7 @@ AMP.evaluate(mtree, SA[0.0;])
 json_string = read(joinpath(DATADIR,"manellic_test_data.json"), String)
 dict = JSON3.read(json_string, Dict{Symbol,Vector{Float64}})
 
-M = MF.TranslationGroup(1)
+M = TranslationGroup(1)
 pts = [[v;] for v in dict[:evaltest_1_pts]]
 bw = reshape(dict[:evaltest_1_bw],1,1)
 mtree = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw=bw,kernel=AMP.MvNormalKernel)
@@ -272,7 +272,7 @@ end
 @testset "Test evaluate MvNormalKernel" begin
 ##
 
-M = MF.TranslationGroup(1)
+M = TranslationGroup(1)
 ker = AMP.MvNormalKernel([0.0], [0.5;;])
 @test isapprox(
   AMP.evaluate(M, ker, [0.1]),
@@ -289,7 +289,7 @@ function pdf_wrapped_normal(μ, σ, θ; nwrap=1000)
   return 1/(σ*sqrt(2pi)) * s
 end 
 
-M = RealCircleGroup()
+M = LieGroups.CircleGroup(ℝ)
 ker = AMP.MvNormalKernel([0.0], [0.1;;])
 @test isapprox(
   AMP.evaluate(M, ker, [0.1]),
@@ -312,10 +312,10 @@ ker = AMP.MvNormalKernel([0], [2.0;;])
 )
 
 ##
-M = SpecialEuclidean(2; vectors=HybridTangentRepresentation())
+M = SpecialEuclideanGroup(2; variant = :right)
 ε = identity_element(M)
 Xc = [10, 20, 0.1]
-p = exp(M, ε, hat(M, ε, Xc))
+p = exp(M, hat(LieAlgebra(M), Xc))
 kercov = diagm([0.5, 2.0, 0.1].^2)
 ker = AMP.MvNormalKernel(p, kercov)
 @test isapprox(
@@ -324,15 +324,15 @@ ker = AMP.MvNormalKernel(p, kercov)
 )
 
 Xc = [10, 22, -0.1]
-q = exp(M, ε, hat(M, ε, Xc))
+q = exp(M, hat(LieAlgebra(M), Xc))
 
 @test isapprox(
   pdf(MvNormal(cov(ker)), [0,0,0]),
   AMP.evaluate(M, ker, p)
 )
 
-X = log(M, ε, Manifolds.compose(M, inv(M, p), q))
-Xc_e = vee(M, ε, X)
+X = log(M, LieGroups.compose(M, inv(M, p), q))
+Xc_e = vee(LieAlgebra(M), X)
 pdf_local_coords = pdf(MvNormal(cov(ker)), Xc_e)
 
 @test isapprox(
@@ -341,8 +341,8 @@ pdf_local_coords = pdf(MvNormal(cov(ker)), Xc_e)
 )
 
 delta_c = AMP.distanceMalahanobisCoordinates(M, ker, q)
-X = log(M, ε, Manifolds.compose(M, inv(M, p), q))
-Xc_e = vee(M, ε, X)
+X = log(M, LieGroups.compose(M, inv(M, p), q))
+Xc_e = vee(LieAlgebra(M), X)
 malad_t = Xc_e'*inv(kercov)*Xc_e
 # delta_t = [10, 20, 0.1] - [10, 22, -0.1] 
 @test isapprox(
@@ -367,7 +367,7 @@ rbfd = AMP.ker(M, ker, q, 0.5, AMP.distanceMalahanobisSq)
 
 # NOTE 'global' distribution would have been 
 X = log(M, mean(ker), q) 
-Xc_e = vee(M, ε, X)
+Xc_e = vee(LieAlgebra(M), X)
 pdf_global_coords = pdf(MvNormal(cov(ker)), Xc_e)
 
 
@@ -378,7 +378,7 @@ end
 ## 
 
 
-M = MF.TranslationGroup(1)
+M = TranslationGroup(1)
 ε = identity_element(M)
 dis = MvNormal([3.0], diagm([1.0].^2)) 
 Cpts = [rand(dis) for _ in 1:128]
@@ -386,7 +386,7 @@ pts = map(c->exp(M, ε, hat(M, ε, c)), Cpts)
 mtree = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw = [0.2;;],  kernel=AMP.MvNormalKernel)
 
 ##
-p = exp(M, ε, hat(M, ε, [3.0]))
+p = exp(M, ε, hat(LieAlgebra(M), [3.0]))
 y_amp = AMP.evaluate(mtree, p)
 
 y_pdf = pdf(dis, [3.0])
@@ -404,15 +404,15 @@ y_pdf = pdf(dis, [3.0])
 # lines(first.(ps), ys_amp)
 ##
 
-M = SpecialOrthogonal(2)
+M = SpecialOrthogonalGroup(2)
 ε = identity_element(M)
 dis = MvNormal([0.0], diagm([0.1].^2)) 
 Cpts = [rand(dis) for _ in 1:128]
-pts = map(c->exp(M, ε, hat(M, ε, c)), Cpts)
+pts = map(c->exp(M, hat(LieAlgebra(M), c)), Cpts)
 mtree = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw = [0.005;;], kernel=AMP.MvNormalKernel)
 
 ##
-p = exp(M, ε, hat(M, ε, [0.1]))
+p = exp(M, ε, hat(LieAlgebra(M), [0.1]))
 y_amp = AMP.evaluate(mtree, p)
 
 y_pdf = pdf(dis, [0.1])
@@ -420,22 +420,22 @@ y_pdf = pdf(dis, [0.1])
 @test isapprox(y_amp, y_pdf; atol=0.5)
 
 ps = [[p] for p = -0.3:0.01:0.3]
-ys_amp = map(p->AMP.evaluate(mtree, exp(M, ε, hat(M, ε, p))), ps)
+ys_amp = map(p->AMP.evaluate(mtree, exp(M, ε, hat(LieAlgebra(M), p))), ps)
 ys_pdf = pdf(dis, ps)
 
 # lines(first.(ps), ys_pdf)
 # lines!(first.(ps), ys_amp)
 
 
-M = SpecialEuclidean(2; vectors=HybridTangentRepresentation())
+M = SpecialEuclideanGroup(2; variant = :right)
 ε = identity_element(M)
 dis = MvNormal([10,20,0.1], diagm([0.5,2.0,0.1].^2)) 
 Cpts = [rand(dis) for _ in 1:128]
-pts = map(c->exp(M, ε, hat(M, ε, c)), Cpts)
+pts = map(c->exp(M, ε, hat(LieAlgebra(M), c)), Cpts)
 mtree = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw = diagm([0.05,0.2,0.01]), kernel=AMP.MvNormalKernel)
 
 ##
-p = exp(M, ε, hat(M, ε, [10, 20, 0.1]))
+p = exp(M, hat(LieAlgebra(M), [10, 20, 0.1]))
 y_amp = AMP.evaluate(mtree, p)
 y_pdf = pdf(dis, [10,20,0.1])
 # check kde eval is within 20% of true value

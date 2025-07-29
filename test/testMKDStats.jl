@@ -7,7 +7,7 @@ using Manifolds
 @testset "Test basic MKD statistics" begin
 ##
 
-M = SpecialEuclidean(2; vectors=HybridTangentRepresentation())
+M = SpecialEuclideanGroup(2; variant = :right)
 u0 = ArrayPartition(zeros(2),[1 0; 0 1.0])
 ϵ = identity_element(M, typeof(u0))
 

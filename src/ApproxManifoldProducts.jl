@@ -22,9 +22,9 @@ using CoordinateTransformations
 using RecursiveArrayTools: ArrayPartition
 export ArrayPartition
 
-import ManifoldsBase
-import ManifoldsBase: AbstractManifold, distance
-using Manifolds
+using ManifoldsBase
+using ManifoldsBase: AbstractManifold, distance, TypeParameter, submanifold_component
+import Manifolds
 using LieGroups
 using LieGroups: TranslationGroup
 

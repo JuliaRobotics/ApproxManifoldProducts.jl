@@ -39,13 +39,14 @@ function _getReprPartial( M::MB.AbstractManifold,
   return ret
 end
 
-function _getReprPartial( M::Union{<:typeof(SpecialOrthogonal(2)), <:Rotations{ManifoldsBase.TypeParameter{Tuple{2}}}}, 
-                          repr::AbstractMatrix{T}, 
-                          partial::AbstractVector{Int}, # total partial from user over all Factors
-                          offset::Base.RefValue{Int}=Ref(0),
-                          mask::BitVector=_checkManifoldPartialDims(M,partial,offset, false) ) where {T <: Number}
-  #
-  @assert sum(mask) == 1 "Can only return the same point represenation matrix for SpecialOrthogonal(2) / Rotations(2)"
+function _getReprPartial(
+  M::Union{<:typeof(SpecialOrthogonalGroup(2)), <: Manifolds.Rotations{TypeParameter{Tuple{2}}}}, 
+  repr::AbstractMatrix{T}, 
+  partial::AbstractVector{Int}, # total partial from user over all Factors
+  offset::Base.RefValue{Int}=Ref(0),
+  mask::BitVector=_checkManifoldPartialDims(M,partial,offset, false) 
+) where {T <: Number}
+  @assert sum(mask) == 1 "Can only return the same point represenation matrix for SpecialOrthogonalGroup(2) / Rotations(2)"
   return repr
 end
 
@@ -53,12 +54,13 @@ end
 ## EXTRACT PARTIAL MANIFOLD
 
 
-function getManifoldPartial(M::Union{<:Euclidean{Tuple{N}},<:TranslationGroup}, 
-                            partial::AbstractVector{Int}, 
-                            repr::_PartiableRepresentationFlat{T}=nothing,
-                            offset::Base.RefValue{Int}=Ref(0);
-                            doError::Bool=true) where {N, T <: Number}
-  #
+function getManifoldPartial(
+  M::Union{<:Manifolds.Euclidean{Tuple{N}},<:TranslationGroup}, 
+  partial::AbstractVector{Int}, 
+  repr::_PartiableRepresentationFlat{T}=nothing,
+  offset::Base.RefValue{Int}=Ref(0);
+  doError::Bool=true
+) where {N, T <: Number}
   mask = _checkManifoldPartialDims(M,partial,offset, doError)
   offset[] += manifold_dimension(M)
   len = sum(mask)
@@ -66,18 +68,19 @@ function getManifoldPartial(M::Union{<:Euclidean{Tuple{N}},<:TranslationGroup},
   return (TranslationGroup(len),repr_p)
 end
 
-function getManifoldPartial(M::Circle, 
-                            partial::AbstractVector{Int}, 
-                            repr::_PartiableRepresentation=nothing,
-                            offset::Base.RefValue{Int}=Ref(0);
-                            doError::Bool=true )
-  #
+function getManifoldPartial(
+  M::Manifolds.Circle, 
+  partial::AbstractVector{Int}, 
+  repr::_PartiableRepresentation=nothing,
+  offset::Base.RefValue{Int}=Ref(0);
+  doError::Bool=true
+)
   mask = _checkManifoldPartialDims(M,partial,offset,doError)
   offset[] += manifold_dimension(M)
   return (M,repr)
 end
 
-function getManifoldPartial(M::Rotations{ManifoldsBase.TypeParameter{Tuple{2}}}, 
+function getManifoldPartial(M::Manifolds.Rotations{TypeParameter{Tuple{2}}}, 
                             partial::AbstractVector{Int}, 
                             repr::_PartiableRepresentation=nothing,
                             offset::Base.RefValue{Int}=Ref(0);
@@ -126,7 +129,7 @@ using Manifolds
 using ApproxManifoldProducts
 
 # a familiar manifold of translation and rotation in 2D
-M = SpecialEuclidean(2; vectors=HybridTangentRepresentation())
+M = SpecialEuclideanGroup(2; variant = :right)
 
 
 # make a new partial of only the translation components
@@ -142,11 +145,11 @@ u0 = ArrayPartition([0.0;0],[1 0; 0 1.0])
 
 # make another new partial of only the rotation component
 M_rot, u_rot = getManifoldPartial(M,[3],u0)
-# returns SpecialOrthogonal(2) information
+# returns SpecialOrthogonalGroup(2) information
 
 # make another new partial of only  y and θ
 M_yθ, u_yθ = getManifoldPartial(M,[2;3],u0)
-# returns new manifold information as ProductArray(TranslationGroup(1),SpecialOrthogonal(2))
+# returns new manifold information as ProductArray(TranslationGroup(1),SpecialOrthogonalGroup(2))
 ```
 
 Notes
@@ -228,7 +231,7 @@ function getManifoldPartial(
       else
         # hard assumption that repr::ArrayPartition to go along with M::ProductManifold
         # NOTE submanifold_component is the correct way to avoid this assumption
-        Mp, Rp = getManifoldPartial(m, partial, submanifold_component(repr,i), offset, doError=false)
+        Mp, Rp = getManifoldPartial(m, partial, submanifold_component(PrG, repr, i), offset, doError=false)
         push!(ReprArr, Rp)
         Mp
       end
@@ -244,28 +247,52 @@ function getManifoldPartial(
     return (ManiArr[1],repr_p)
   elseif 1 < length(ManiArr)
     repr_p = repr === nothing ? nothing : ArrayPartition(ReprArr...)
-    return (ProductManifold(ManiArr...), repr_p)
+    return (ProductLieGroup(ManiArr...), repr_p)
   end
   error("partial manifold calculations should not reach here")
 end
 
-function getManifoldPartial(M::GroupManifold, 
-                            partial::AbstractVector{<:Integer}, 
-                            repr::_PartiableRepresentation=nothing,
-                            offset::Base.RefValue{<:Integer}=Ref(0);
-                            doError::Bool=true )
-  #
-  # mask the desired coordinate dimensions
-  mask = _checkManifoldPartialDims(M,partial,offset, doError)
-
-  if sum(mask) == manifold_dimension(M)
-    # asking for all coordinate dimensions as offered by M
-    return (M,repr)
+function getManifoldPartial(
+  M::typeof(SpecialEuclideanGroup(2; variant=:right)), 
+  partial::AbstractVector{Int}, 
+  repr::_PartiableRepresentation=nothing,
+  offset::Base.RefValue{Int}=Ref(0);
+  doError::Bool=true
+)
+  #FIXME This doesn't seem correct:
+  # How is it used?
+  # Is the partial dimension coupled or not?
+  # A SE(2) prior will have different results than a product prior.
+  if partial == [1, 2, 3]
+    return (M, repr)
+  else
+    return getManifoldPartial(
+      ProductLieGroup(TranslationGroup(2), SpecialOrthogonalGroup(2)),
+      partial,
+      repr,
+      offset;
+      doError
+    )
   end
-  # recursion may need to branch for ProductManifold
-  # Note loss of the Group operation information at this time
-  getManifoldPartial(M.manifold, partial, repr, offset, doError=doError)
 end
+
+# function getManifoldPartial(M::AbstractLieGroup, 
+#                             partial::AbstractVector{<:Integer}, 
+#                             repr::_PartiableRepresentation=nothing,
+#                             offset::Base.RefValue{<:Integer}=Ref(0);
+#                             doError::Bool=true )
+#   #
+#   # mask the desired coordinate dimensions
+#   mask = _checkManifoldPartialDims(M,partial,offset, doError)
+
+#   if sum(mask) == manifold_dimension(M)
+#     # asking for all coordinate dimensions as offered by M
+#     return (M,repr)
+#   end
+#   # recursion may need to branch for ProductManifold
+#   # Note loss of the Group operation information at this time
+#   getManifoldPartial(M.manifold, partial, repr, offset, doError=doError)
+# end
 
 
 

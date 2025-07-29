@@ -87,7 +87,12 @@ end
 function Statistics.var(mkd::ManifoldKernelDensity, aspartial::Bool=true; kwargs...)
   var(_getManifoldFullOrPart(mkd,aspartial), getPoints(mkd, aspartial); kwargs...)
 end
-function Statistics.cov(mkd::ManifoldKernelDensity, aspartial::Bool=true; basis::Manifolds.AbstractBasis = Manifolds.DefaultOrthogonalBasis(), kwargs...)
+function Statistics.cov(
+  mkd::ManifoldKernelDensity,
+  aspartial::Bool=true;
+  basis::ManifoldsBase.AbstractBasis = DefaultOrthogonalBasis(),
+  kwargs...
+)
   return cov(_getManifoldFullOrPart(mkd,aspartial), getPoints(mkd, aspartial); basis, kwargs... )
 end
 # function Statistics.mean(mkd::ManifoldKernelDensity; kwargs...)
@@ -121,7 +126,7 @@ function calcProductGaussians_flat(
   
   # calc the covariance weighted delta means of incoming points and covariances
   ΛΔμc = mapreduce(+, zip(Λ_, μ_)) do (s,u)
-    Δuvee = vee(M, μ0, log(M, μ0, u))
+    Δuvee = vee(LieAlgebra(M), log(M, μ0, u))
     s*Δuvee
   end
 
@@ -167,7 +172,7 @@ function calcProductGaussians(
   # first transport (push forward) covariances to common coordinates
   # see [Ge, van Goor, Mahony, 2024]
   iΔμ = inv(M, Δμ)
-  μi_ = map(u->Manifolds.compose(M,iΔμ,u), μ_)
+  μi_ = map(u->LieGroups.compose(M,iΔμ,u), μ_)
   μi_̂  = map(u->log(M,μ0,u), μi_)
   # μi = map(u->vee(M,μ0,u), μi_̂ )
   Ji = ApproxManifoldProducts.parallel_transport_curvature_2nd_lie.(Ref(M), μi_̂ )
@@ -179,7 +184,7 @@ function calcProductGaussians(
   Δμplusc, Σdiam = ApproxManifoldProducts.calcProductGaussians_flat(M, μi_, Σi_hat; μ0, weight)
   Δμplus_̂  = hat(M, μ0, Δμplusc)
   Δμplus = exp(M, μ0, Δμplus_̂ )
-  μ_plus = Manifolds.compose(M,Δμ,Δμplus)
+  μ_plus = LieGroups.compose(M,Δμ,Δμplus)
   Jμ = ApproxManifoldProducts.parallel_transport_curvature_2nd_lie(M, Δμplus_̂ )
   Σ_plus = Jμ*Σdiam*(Jμ')
   

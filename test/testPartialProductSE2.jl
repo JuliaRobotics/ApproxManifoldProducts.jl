@@ -1,4 +1,4 @@
-# test on partial products with SpecialEuclidean(2; vectors=HybridTangentRepresentation())
+# test on partial products with SpecialEuclideanGroup(2; variant = :right)
 
 using Manifolds
 using ApproxManifoldProducts
@@ -7,7 +7,7 @@ using BSON
 
 ##
 
-@testset "partial product with a SpecialEuclidean(2; vectors=HybridTangentRepresentation())" begin
+@testset "partial product with a SpecialEuclideanGroup(2; variant = :right)" begin
 ##
 
 datafile = joinpath(@__DIR__, "testdata", "partialtest.bson")
@@ -22,10 +22,10 @@ randN = Float64[]
 len = length(pts1)
 
 # define test manifold
-M = SpecialEuclidean(2; vectors=HybridTangentRepresentation())
+M = SpecialEuclideanGroup(2; variant = :right)
 e0 = ArrayPartition([0.0;0.0], [1 0; 0 1.0]) # identity_element(M)
 
-# p1 full SpecialEuclidean(2; vectors=HybridTangentRepresentation())
+# p1 full SpecialEuclideanGroup(2; variant = :right)
 p1 = manikde!(M, pts1)
 p1_ = marginal(p1,[1;2])
 

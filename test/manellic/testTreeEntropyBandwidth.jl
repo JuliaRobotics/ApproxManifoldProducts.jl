@@ -217,10 +217,10 @@ end
 
 if !(v"1.11" < VERSION < v"1.12.0-beta99")
 
-@testset "Multidimensional LOOCV bandwidth optimization, SpecialEuclidean(2; vectors=HybridTangentRepresentation())" begin
+@testset "Multidimensional LOOCV bandwidth optimization, SpecialEuclideanGroup(2; variant = :right)" begin
 ##
 
-M = SpecialEuclidean(2; vectors=HybridTangentRepresentation())
+M = SpecialEuclideanGroup(2; variant = :right)
 pts = [ArrayPartition(randn(2),Rot_.RotMatrix{2}(0.1*randn()).mat) for _ in 1:64]
 
 bw = [1.0; 1.0; 0.3]
@@ -256,10 +256,10 @@ end
 
 
 
-@testset "Multidimensional LOOCV bandwidth optimization, SpecialEuclidean(3; vectors=HybridTangentRepresentation())" begin
+@testset "Multidimensional LOOCV bandwidth optimization, SpecialEuclideanGroup(3; variant = :right)" begin
 ##
 
-M = SpecialEuclidean(3; vectors=HybridTangentRepresentation())
+M = SpecialEuclideanGroup(3; variant = :right)
 pts = [ArrayPartition(SA[randn(3)...;],SMatrix{3,3,Float64}(collect(Rot_.RotXYZ(0.1*randn(3)...)))) for _ in 1:64]
 
 bw = SA[1.0; 1.0; 1.0; 0.3; 0.3; 0.3]

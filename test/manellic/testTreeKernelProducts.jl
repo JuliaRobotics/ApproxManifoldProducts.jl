@@ -20,7 +20,7 @@ using JSON3
 # DATADIR = joinpath(dirname(@__DIR__),"testdata")
 
 ##
-@testset "Test Product the brute force way, MF.SpecialEuclidean(2; vectors=HybridTangentRepresentation())" begin
+@testset "Test Product the brute force way, MF.SpecialEuclideanGroup(2; variant = :right)" begin
 
 M = MF.SpecialEuclidean(2; vectors = MF.HybridTangentRepresentation())
 ε = MF.identity_element(M)
@@ -183,7 +183,7 @@ maj_ang = (angle(Complex(evv.vectors[:,maj_idx]...)) + 2pi) % pi
 end
 
 
-@testset "Rotated covariance product major axis checks, MF.SpecialEuclidean(2; vectors=HybridTangentRepresentation())" begin
+@testset "Rotated covariance product major axis checks, MF.SpecialEuclideanGroup(2; variant = :right)" begin
 ##
 
 M = MF.SpecialEuclidean(2; vectors = MF.HybridTangentRepresentation())

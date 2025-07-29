@@ -11,7 +11,7 @@ using TensorCast
 
 ##
 
-M = SpecialEuclidean(2; vectors=HybridTangentRepresentation())
+M = SpecialEuclideanGroup(2; variant = :right)
 N = 100
 u0 = ArrayPartition([0;0.0],[1 0; 0 1.0])
 ϵ = identity_element(M, typeof(u0))
@@ -32,12 +32,12 @@ p = manikde!(M, X1)
 q = manikde!(M, X2)
 
 # check new MKD have right type info cached
-@test_broken (p._u0 |> typeof) == typeof(u0)
+@test (p._u0 |> typeof) == typeof(u0)
 
 pq = manifoldProduct([p;q], M)
 
 # check new product also has right point type info cached
-@test_broken (pq._u0 |> typeof) == typeof(u0)
+@test (pq._u0 |> typeof) == typeof(u0)
 
 ##
 

@@ -1,5 +1,6 @@
 
 using Test
+using LieGroups
 using Manifolds
 using ApproxManifoldProducts
 using StaticArrays
@@ -27,8 +28,8 @@ using Distributions
 @testset "SO(2) Vector transport (w curvature) via Jacobians and Lie adjoints" begin
 ##
 
-M = SpecialOrthogonal(2)
-p = Identity(M)
+M = SpecialOrthogonalGroup(2)
+p = identity_element(M)
 Xc = 0.5*randn(1)
 X = hat(M, p, Xc)   # random algebra element
 d̂ = 0.5*randn(1) 
@@ -69,12 +70,12 @@ end
 @testset "SO(3) Vector transport (w curvature) via Jacobians and Lie adjoints" begin 
 ##
 
-M = SpecialOrthogonal(3)
-p = Identity(M)
+M = SpecialOrthogonalGroup(3)
+p = LieGroups.Identity(M)
 Xc = [1.,0,0]
-X = hat(M, p, Xc)   # random algebra element
+X = hat(LieAlgebra(M), Xc)   # random algebra element
 d̂ = [0,0,1.]
-d = hat(M, p, d̂)    # direction in algebra
+d = hat(LieAlgebra(M), d̂)    # direction in algebra
 
 ## piggy back utility tests used in construction of transports
 
@@ -86,16 +87,17 @@ d = hat(M, p, d̂)    # direction in algebra
 # Ad_vee and ad_vee are matrices which use multiplication to operate Ad and ad respectively
 # @test Ad_vee(exp_G(-0.5*coord_u)) == exp(-0.5*ad_vee(coord_u))
 @test isapprox(
-  ApproxManifoldProducts.Ad(M, exp_lie(M,-0.5*X)),  # from Manifolds.jl
+  ApproxManifoldProducts.Ad(M, exp(M,-0.5*X)),  # from Manifolds.jl
   exp(-0.5*ApproxManifoldProducts.ad(M, X))         # rom Chirikjian
 )
 
 ## parallel transport without curvature correction
 
-Y = parallel_transport_direction(M, p, X, d) # compare to Lie ad and Ad and P, bottom [Mahony 2024 p3]
+Y = parallel_transport_direction(base_manifold(M), identity_element(M), X, d) # compare to Lie ad and Ad and P, bottom [Mahony 2024 p3]
+
 ptcMat_ = ApproxManifoldProducts.parallel_transport_direction_lie(M, d)
 Yc_ = ptcMat_ * Xc
-Y_ = hat(M, p, Yc_)
+Y_ = hat(LieAlgebra(M), Yc_)
 
 @test isapprox(
   Y, 
@@ -111,7 +113,7 @@ Jr = ptcMat_
 Jl = ptcMat_'
 @test isapprox(
   Jl*inv(Jr),
-  ApproxManifoldProducts.Ad(M,exp_lie(M,d));
+  ApproxManifoldProducts.Ad(M, exp(M, d));
   atol=1e-8
 )
 
@@ -142,7 +144,7 @@ Jr = ptcMat
 Jl = ptcMat'
 @test isapprox(
   Jl*inv(Jr),
-  ApproxManifoldProducts.Ad(M,exp_lie(M,d));
+  ApproxManifoldProducts.Ad(M, exp(M, d));
   atol=1e-8
 )
 
@@ -190,12 +192,12 @@ end
 @testset "SE(2) Vector transport (w curvature) via Jacobians and Lie adjoints" begin
 ##
 
-M = SpecialEuclidean(2; vectors=HybridTangentRepresentation())
-p = Identity(M)
+M = SpecialEuclideanGroup(2; variant = :right)
+p = LieGroups.Identity(M)
 Xc = 0.5*randn(3)
-X = hat(M, p, Xc)   # random algebra element
+X = hat(LieAlgebra(M), Xc, ArrayPartition)   # random algebra element
 d̂ = 0.5*randn(3) 
-d = hat(M, p, d̂)    # direction in algebra
+d = hat(LieAlgebra(M), d̂, ArrayPartition)    # direction in algebra
 
 @test isapprox(
   ApproxManifoldProducts.ad_lie(M, X),
@@ -203,7 +205,7 @@ d = hat(M, p, d̂)    # direction in algebra
 )
 
 @test isapprox(
-  ApproxManifoldProducts.Ad(M, exp_lie(M,-0.5*X)),  # from Manifolds.jl
+  ApproxManifoldProducts.Ad(M, exp(M, -0.5*X)),  # from Manifolds.jl
   exp(-0.5*ApproxManifoldProducts.ad(M, X))         # from Chirikjian
 )
 
@@ -230,12 +232,12 @@ end
 ##
 
 
-M = SpecialEuclidean(3; vectors=HybridTangentRepresentation())
-p = Identity(M)
+M = SpecialEuclideanGroup(3; variant = :right)
+p = LieGroups.Identity(M)
 Xc = 0.5*randn(6)
-X = hat(M, p, Xc)   # random algebra element
+X = hat(LieAlgebra(M), Xc)   # random algebra element
 d̂ = 0.5*randn(6) 
-d = hat(M, p, d̂)    # direction in algebra
+d = hat(LieAlgebra(M), d̂)    # direction in algebra
 
 @test isapprox(
   ApproxManifoldProducts.ad_lie(M, X),
@@ -265,17 +267,17 @@ end
 γ = 1
 ξ = 1
 
-M = SpecialOrthogonal(3)
-ε = Identity(M)
+M = SpecialOrthogonalGroup(3)
+ε = identity_element(M)
 
 X1c = γ/sqrt(3) .* SA[1; 1; -1.0]
-X1 = hat(M, ε, X1c)   # random algebra element
-w_R1 = exp(M, ε, X1)
+X1 = hat(LieAlgebra(M), X1c)   # random algebra element
+w_R1 = exp(M, X1)
 Σ1 = ξ .* SA[1 0 0; 0 0.75 0; 0 0 0.5]
 
 X2c = γ/sqrt(2) .* SA[1; -1; 0.0]
-X2 = hat(M, ε, X2c)
-w_R2 = exp(M, ε, X2)
+X2 = hat(LieAlgebra(M), X2c)
+w_R2 = exp(M, X2)
 Σ2 = ξ .* SA[0.5 0 0; 0 1 0; 0 0 0.75]
 
 #
@@ -395,18 +397,3 @@ sigma_points = [
   [0;0;-0.1];
   [0;0;0.1];
 ]
-
-# difference between log and log_lie when expanding at identity????????
-
-M = SpecialEuclidean(2)
-ε = Identity(M)
-
-p = rand(M)
-
-log(M, ε, p)
-log_lie(M, p)
-
-
-
-
-#

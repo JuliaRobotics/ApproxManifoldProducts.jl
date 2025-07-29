@@ -9,10 +9,10 @@ LieGroupManifoldsPirate = Union{
   typeof(TranslationGroup(4)),
   typeof(TranslationGroup(5)),
   typeof(TranslationGroup(6)),
-  typeof(SpecialOrthogonal(2)), 
-  typeof(SpecialOrthogonal(3)), 
-  typeof(SpecialEuclidean(2; vectors=HybridTangentRepresentation())), 
-  typeof(SpecialEuclidean(3; vectors=HybridTangentRepresentation()))
+  typeof(SpecialOrthogonalGroup(2)), 
+  typeof(SpecialOrthogonalGroup(3)), 
+  typeof(SpecialEuclideanGroup(2; variant = :right)), 
+  typeof(SpecialEuclideanGroup(3; variant = :right))
 }
 
 ## ===================================== BASIS PIRATES =====================================
@@ -25,20 +25,20 @@ LieGroupManifoldsPirate = Union{
 # ```
 
 get_basis_affine(
-  ::TranslationGroup{Manifolds.TypeParameter{Tuple{N}}, ℝ}
+  ::TranslationGroup{ℝ, TypeParameter{Tuple{N}}}
 ) where N = map(
   i->SVector{N,Float64}( ntuple(s->float(s==i),N) ),
   1:N
 )
 
 get_basis_affine(
-  ::typeof(SpecialOrthogonal(2))
+  ::typeof(SpecialOrthogonalGroup(2))
 ) = tuple(
   SA[0 -1; 1 0.0],
 )
 
 get_basis_affine(
-  ::typeof(SpecialOrthogonal(3))
+  ::typeof(SpecialOrthogonalGroup(3))
 ) = tuple(
   SA[0 -0 0; 0 0 -1; -0 1 0.0],
   SA[0 -0 1; 0 0 -0; -1 0 0.0],
@@ -46,7 +46,7 @@ get_basis_affine(
 )
 
 get_basis_affine(
-  ::typeof(SpecialEuclidean(2; vectors=HybridTangentRepresentation()))
+  ::typeof(SpecialEuclideanGroup(2; variant=:right))
 ) = tuple(
   SA[0 -0 1; 0 0 0; 0 0 0.0],
   SA[0 -0 0; 0 0 1; 0 0 0.0],
@@ -54,7 +54,7 @@ get_basis_affine(
 )
 
 get_basis_affine(
-  ::typeof(SpecialEuclidean(3; vectors=HybridTangentRepresentation()))
+  ::typeof(SpecialEuclideanGroup(3; variant=:right))
 ) = tuple(
   SA[0 -0 0 1; 0 0 -0 0; -0 0 0 0; 0 0 0 0.0],
   SA[0 -0 0 0; 0 0 -0 1; -0 0 0 0; 0 0 0 0.0],
@@ -88,7 +88,7 @@ end
 
 # right Jacobian (Lie Group, originally from ?)
 function Jr(
-  M::Manifolds.GroupManifold, 
+  M::AbstractLieGroup, 
   X; 
   order=5
 )
@@ -141,14 +141,19 @@ parallel_transport_best(
 
 
 _makeaffine(::AbstractManifold, X) = X
-_makeaffine(M::Union{typeof(SpecialEuclidean(2; vectors=HybridTangentRepresentation())),typeof(SpecialEuclidean(3; vectors=HybridTangentRepresentation()))}, X::ArrayPartition) = screw_matrix(M,X)
+function _makeaffine(
+  ::SpecialEuclideanGroup, 
+  X::ArrayPartition
+)
+  return convert(AbstractMatrix, SpecialEuclideanProductTangentVector(X))
+end
 
 # assumes inputs are Lie algebra tangent vectors represented in matrix form
 ad(
   M::LieGroupManifoldsPirate, 
   X::AbstractMatrix, 
   d::AbstractMatrix
-) = Manifolds.lie_bracket(M, X, d)
+) = LieGroups.lie_bracket(M, X, d)
 
 """
     $SIGNATURES
@@ -162,16 +167,16 @@ Notes
 - Two parameters means this function builds a matrix that can be used to do the action.
 """
 function ad_lie(
-  M::LieGroupManifoldsPirate,
+  M::AbstractLieGroup,
   X::AbstractArray,
 ) 
   #
-  ε = identity_element(M, X)
   Es = get_basis_affine(M)
   Xa = _makeaffine(M,X)
+  𝔤 = LieAlgebra(M)
   hcat(
     map(
-      (e)->vee(M, ε, Manifolds.lie_bracket(M, Xa, e)), # Lie bracket here is also the adjoint action for M
+      (e)->vee(𝔤, LieGroups.lie_bracket(𝔤, Xa, e)), # Lie bracket here is also the adjoint action for M
       Es
     )...
   )
@@ -186,26 +191,26 @@ ad(
 
 
 Ad(
-  M::Union{typeof(SpecialOrthogonal(2)), typeof(SpecialOrthogonal(3))}, 
+  M::Union{typeof(SpecialOrthogonalGroup(2)), typeof(SpecialOrthogonalGroup(3))}, 
   p, 
   X::AbstractMatrix;
   use_upstream::Bool = _UPSTREAM_MANIFOLDS_ADJOINT_ACTION # explict to support R&D
 ) = if use_upstream
-  Manifolds.adjoint_action(M, p, X)
+  LieGroups.adjoint_action(M, p, X)
 else
   p*X*(p')
 end
 
 
 function Ad(
-  M::Union{typeof(SpecialEuclidean(2; vectors=HybridTangentRepresentation())), typeof(SpecialEuclidean(3; vectors=HybridTangentRepresentation()))}, 
+  M::Union{typeof(SpecialEuclideanGroup(2; variant = :right)), typeof(SpecialEuclideanGroup(3; variant = :right))}, 
   p, 
   X::ArrayPartition;
   use_upstream::Bool = _UPSTREAM_MANIFOLDS_ADJOINT_ACTION # explict to support R&D
 )
   if use_upstream
     # TODO swap and test
-    Manifolds.adjoint_action(M, p, X)
+    LieGroups.adjoint_action(M, p, X)
   else
     t = p.x[1]
     R = p.x[2]
@@ -258,9 +263,8 @@ function parallel_transport_direction_lie(
   X
 )
   hat(
-    M, 
-    Identity(M), 
-    parallel_transport_direction_lie(M, d) * vee(M, Identity(M), X)
+    LieAlgebra(M), 
+    parallel_transport_direction_lie(M, d) * vee(LieAlgebra(M), X)
   )
 end
 
@@ -285,18 +289,18 @@ parallel_transport_best(
 
 
 
-## ----------------------------- SpecialOrthogonal(3) -----------------------------
+## ----------------------------- SpecialOrthogonalGroup(3) -----------------------------
 
 
 # matrix versions
 # [Chirikjian, 2012 Vol2, p.39]
 ad(
-  ::typeof(SpecialOrthogonal(3)), 
+  ::typeof(SpecialOrthogonalGroup(3)), 
   X
 ) = X
 
 Ad(
-  ::typeof(SpecialOrthogonal(3)), 
+  ::typeof(SpecialOrthogonalGroup(3)), 
   R
 ) = R
 
@@ -312,18 +316,17 @@ Ad(
 # d is a Lie algebra element (tangent vector) providing the direction of transport
 # X is the tangent vector to be transported 
 function ad(
-  M::typeof(SpecialEuclidean(3; vectors=HybridTangentRepresentation())), 
+  M::typeof(SpecialEuclideanGroup(3; variant = :right)), 
   d::ArrayPartition, 
   X::ArrayPartition
 )
-  #
+  SO3 = SpecialOrthogonalGroup(3)
   v1x = skew(d.x[1])
   Ω1  = d.x[2]
   v2 = X.x[1]
-  ω2 = log_lie(M.manifold[2], X.x[2])
+  ω2 = log(SO3, X.x[2])
 
-  Rε = identity_element(M.manifold[2], Ω1)
-  Ω = Manifolds.hat(M.manifold[2], Rε, Ω1*ω2)
+  Ω = hat(LieGroup(SO3), Ω1*ω2)
 
   ArrayPartition(v1x*ω2 + Ω1*v2, Ω)
 end
@@ -333,7 +336,7 @@ end
 
 
 function ad(
-  ::typeof(SpecialEuclidean(2; vectors=HybridTangentRepresentation())), 
+  ::typeof(SpecialEuclideanGroup(2; variant = :right)), 
   d::ArrayPartition, 
 )
   Vx = SA[d.x[1][2]; -d.x[1][1]]
@@ -345,7 +348,7 @@ function ad(
 end
 
 function ad(
-  ::typeof(SpecialEuclidean(3; vectors=HybridTangentRepresentation())), 
+  ::typeof(SpecialEuclideanGroup(3; variant = :right)), 
   d::ArrayPartition, 
 )
   Vx = skew(d.x[1])
@@ -358,7 +361,7 @@ end
 
 
 function Ad(
-  ::typeof(SpecialEuclidean(2; vectors=HybridTangentRepresentation())), 
+  ::typeof(SpecialEuclideanGroup(2; variant = :right)), 
   p
 )
   t = p.x[1]
@@ -370,7 +373,7 @@ function Ad(
 end
 
 function Ad(
-  ::typeof(SpecialEuclidean(3; vectors=HybridTangentRepresentation())), 
+  ::typeof(SpecialEuclideanGroup(3; variant = :right)), 
   p
 )
   t = p.x[1]
