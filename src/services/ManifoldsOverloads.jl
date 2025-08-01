@@ -45,6 +45,7 @@ get_basis_affine(
   SA[0 -1 0; 1 0 -0; -0 0 0.0],
 )
 
+# right variant is translate-then-rotate
 get_basis_affine(
   ::typeof(SpecialEuclideanGroup(2; variant=:right))
 ) = tuple(
@@ -53,6 +54,7 @@ get_basis_affine(
   SA[0 -1 0; 1 0 0; 0 0 0.0],
 )
 
+# right variant is translate-then-rotate
 get_basis_affine(
   ::typeof(SpecialEuclideanGroup(3; variant=:right))
 ) = tuple(

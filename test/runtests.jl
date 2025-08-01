@@ -14,7 +14,6 @@ include("testManiProductBigSmall.jl")
 include("testBasicManiProduct.jl")
 include("testMarginalProducts.jl")
 include("testMMD.jl")
-# FIXME
 include("testPartialProductSE2.jl")
 include("basic_se3.jl")
 include("testSymmetry.jl")
@@ -22,7 +21,6 @@ include("testUpdateMKD.jl")
 include("testMKDStats.jl")
 
 # Manellic tree, (on-Manifold Ellipse Ball Tree)
-# FIXME
 include("manellic/testManifoldTreeConstr.jl")
 include("manellic/testTreeEvaluation.jl")
 include("manellic/testTreeEntropyBandwidth.jl")

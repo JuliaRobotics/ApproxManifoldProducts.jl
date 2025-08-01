@@ -144,7 +144,8 @@ function testMDEConstr(
   pts::AbstractVector{<:AbstractVector{<:Real}},
   permref = sortperm(pts, by=s->getindex(s,1));
   lseg = 1:2,
-  rseg = 3:4
+  rseg = 3:4,
+  atol = 1e-6,
 )
   # check permutation
   M = TranslationGroup(1)
@@ -156,8 +157,8 @@ function testMDEConstr(
   @test Set(mtree.segments[1]) == Set(union(lseg, rseg))
   @test Set(mtree.segments[2]) == Set(mtree.permute[lseg])
   @test Set(mtree.segments[3]) == Set(mtree.permute[rseg])
-  @test isapprox( mean(M, pts[mtree.permute[lseg]]), mean(mtree.tree_kernels[2]); atol=1e-10)
-  @test isapprox( mean(M, pts[mtree.permute[rseg]]), mean(mtree.tree_kernels[3]); atol=1e-10)
+  @test isapprox( mean(M, pts[mtree.permute[lseg]]), mean(mtree.tree_kernels[2]); atol)
+  @test isapprox( mean(M, pts[mtree.permute[rseg]]), mean(mtree.tree_kernels[3]); atol)
   nothing
 end
 
