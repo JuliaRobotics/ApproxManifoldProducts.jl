@@ -14,20 +14,31 @@ Helper function to convert coordinates to a desired on-manifold point.
 
 DevNotes
 - FIXME need much better consolidation or even removal of this function entirely.
-  - This function makes too strong an assumption of groups
+  - This function is only implemented on Lie groups
 
 Notes
 - `u0` is used to identify the data type for a point
 - Pass in a different `exp` if needed.
 """
-makePointFromCoords(
-  M::MB.AbstractManifold,  # Manifolds.AbstractGroupManifold
+function makePointFromCoords(
+  G::AbstractLieGroup,
   coords::AbstractVector{<:Real},
-  u0=zeros(manifold_dimension(M)),
-  ϵ=identity_element(M, typeof(u0)),
-  retraction_method::AbstractRetractionMethod=ExponentialRetraction()  
-) = retract(M, ϵ, hat(M, ϵ, coords), retraction_method)
-#
+  u0=zeros(manifold_dimension(G)),
+)
+  X = hat(LieAlgebra(G), coords, typeof(u0))
+  return exp(G, X)
+end
+
+function makePointFromCoords(
+  G::SpecialEuclideanGroup,
+  coords::AbstractVector{<:Real},
+  u0=zeros(manifold_dimension(G)),
+)
+  X = hat(LieAlgebra(G), coords, typeof(u0))
+  ε = identity_element(G, typeof(u0))
+  #TODO - review - Force TR-coordinates on SE(n)
+  return exp(base_manifold(G), ε, X)
+end
 
 # should perhaps just be dispatched for <:AbstractGroupManifold
 # only works for AbstractGroupManifold (have an identity)
@@ -35,9 +46,19 @@ makePointFromCoords(
 function makeCoordsFromPoint(
   G::AbstractLieGroup,
   pt,
-  ϵ = identity_element(G, typeof(pt)) 
 )
-  vee(LieAlgebra(G), log(G, ϵ, pt))
+  vee(LieAlgebra(G), log(G, pt))
+end
+
+function makeCoordsFromPoint(
+  G::SpecialEuclideanGroup,
+  pt,
+)
+  #TODO - review - Force TR-coordinates on SE(n)
+  p = ArrayPartition(ManifoldsBase.submanifold_components(G, pt))
+  ϵ = identity_element(G, typeof(p))
+  X = log(base_manifold(G), ϵ, p)
+  return vee(LieAlgebra(G), X)
 end
 
 # Sphere(2) has 3 coords, even though the manifolds only has 2 dimensions (degrees of freedom)

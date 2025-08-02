@@ -15,6 +15,7 @@ using Random
 datafile = joinpath(@__DIR__, "testdata", "partialtest.bson")
 # BSON.save(datafile, dict)
 data = BSON.load(datafile)
+# pts1, pts2 ∈ SE(2)
 pts1 = data[:dict][:pts1]
 pts2 = data[:dict][:pts2]
 
@@ -28,24 +29,24 @@ M = SpecialEuclideanGroup(2; variant = :right)
 # M = TranslationGroup(2) × SpecialOrthogonalGroup(2)
 e0 = ArrayPartition([0.0;0.0], [1 0; 0 1.0]) # identity_element(M)
 
-# p1 full SpecialEuclideanGroup(2; variant = :right)
-p1 = manikde!(M, pts1)
-p1_ = marginal(p1,[1;2])
+# p1_SE2_kde full SpecialEuclideanGroup(2; variant = :right)
+p1_SE2_kde = manikde!(M, pts1)
+p1_SE2_marg_Tr2_kde = marginal(p1_SE2_kde,[1;2])
 
-# p2 only Translation(2) part
-_p2 = manikde!(M, pts2)
-p2 = marginal(_p2, [1;2])
+# p2_SE2_marg_Tr2_kde only Translation(2) part
+p2_SE2_kde = manikde!(M, pts2)
+p2_SE2_marg_Tr2_kde = marginal(p2_SE2_kde, [1;2])
 
 # product of full and marginal
-# p12 = p1*p2
+# p12 = p1_SE2_kde*p2_SE2_marg_Tr2_kde
 
 ## =======================FIRST PRODUCT================================================
 
 # this function also exports which kernels (ie labels) from incoming densities should be multiplied
 selectedLabels=Vector{Vector{Int}}()
-# multiply full SE2 p1 with translation-only marginal p2 
+# multiply full SE2 p1_SE2_kde with translation-only marginal p2_SE2_marg_Tr2_kde 
 Random.seed!(0)
-p12 = manifoldProduct([p1; p2]; addEntropy=false,
+p12 = manifoldProduct([p1_SE2_kde; p2_SE2_marg_Tr2_kde]; addEntropy=false,
                                 recordLabels=true,
                                 selectedLabels=selectedLabels,
                                 _randU=randU,
@@ -64,12 +65,15 @@ _p12_ = manikde!(TranslationGroup(2), getPoints(p12_))
 ## intermediate test, check product of selected kernels match what is in the marginal
 
 for sidx = 1:len
-  bw1 = getBW(p1)[:,1] .^2
-  bw2 = getBW(p2, false)[:,1] .^2
+  bw1 = getBW(p1_SE2_kde)[:,1] .^2
+  bw2 = getBW(p2_SE2_marg_Tr2_kde, false)[:,1] .^2
 
   u1 = pts1[selectedLabels[sidx][1]]
   u2 = pts2[selectedLabels[sidx][2]]
 
+  #FIXME - JT - I think this is comparing independent coordinates to a coupled SE(2) product
+  # Perhaps fix and test: TranslationGroup(2) × SpecialOrthogonalGroup(2)
+  # u12 = calcProductGaussians(TranslationGroup(2) × SpecialOrthogonalGroup(2), [u1,u2], [bw1,bw2])
   u12 = calcProductGaussians(M, [u1,u2], [bw1,bw2])
 
   @test_broken isapprox( submanifold_component(mean(u12),1), submanifold_component(getPoints(p12)[sidx],1) )
@@ -78,20 +82,19 @@ end
 ## now check the marginal dimensions only
 
 # now do submanifold dimensions separately as reference test -- should get a similar result
-pts1_ = getPoints(p1_)
-pts2_ = getPoints(p2)
+pts1_ = getPoints(p1_SE2_marg_Tr2_kde)
+pts2_ = getPoints(p2_SE2_marg_Tr2_kde)
 
 ## Do the translation part separate
-@error "TODO use manellic tree belief instead, old MKD does not support LieGroups.jl.  Old MKD tree used coordinates."
 for sidx = 1:len
-  bw1 = getBW(p1_)[:,1] .^2
-  bw2 = getBW(p2)[:,1] .^2
+  bw1 = getBW(p1_SE2_marg_Tr2_kde)[:,1] .^2
+  bw2 = getBW(p2_SE2_marg_Tr2_kde)[:,1] .^2
 
   u1 = pts1_[selectedLabels[sidx][1]]
   u2 = pts2_[selectedLabels[sidx][2]]
 
   u12 = calcProductGaussians(TranslationGroup(2), [u1,u2], [bw1,bw2])
-  @test_broken isapprox( mean(u12), submanifold_component(M, getPoints(p12)[sidx], 1) )
+  @test isapprox( mean(u12), submanifold_component(M, getPoints(p12)[sidx], 1) )
 end
 
 
@@ -122,13 +125,17 @@ sidx = 1
 @error "TODO use manellic tree belief instead, old MKD does not support LieGroups.jl.  Old MKD tree used coordinates."
 for sidx = 1:len
 
-bw1 = getBW(p1)[:,1] .^2
-bw2 = getBW(p2, false)[:,1] .^2
+bw1 = getBW(p1_SE2_kde)[:,1] .^2
+bw2 = getBW(p2_SE2_marg_Tr2_kde, false)[:,1] .^2
 
 # full-partial points, but selected from partial-partial product
 u1 = pts1[selectedLabels__[sidx][1]]
 u2 = pts2[selectedLabels__[sidx][2]]
 
+# same as above
+  #FIXME - JT - I think this is comparing independent coordinates to a coupled SE(2) product
+  # Perhaps fix and test: TranslationGroup(2) × SpecialOrthogonalGroup(2)
+  # u12 = calcProductGaussians(TranslationGroup(2) × SpecialOrthogonalGroup(2), [u1,u2], [bw1,bw2])
 u12 = calcProductGaussians(M, [u1,u2], [bw1,bw2]);
 u12_ = calcProductGaussians(TranslationGroup(2), [submanifold_component(u1,1),submanifold_component(u2,1)], [bw1[1:2],bw2[1:2]]);
 
@@ -155,7 +162,7 @@ end
 # using Cairo, RoMEPlotting
 # Gadfly.set_default_plot_size(35cm,20cm)
 
-# n=10; plotKDE([p1_;p2; p12], levels=3, selectedPoints=selectedLabels[n:n])
+# n=10; plotKDE([p1_SE2_marg_Tr2_kde;p2_SE2_marg_Tr2_kde; p12], levels=3, selectedPoints=selectedLabels[n:n])
 # n=3; plotKDE([p1__;p2__; p12__], levels=3, selectedPoints=selectedLabels__[n:n])
 # plotKDE([p1__; p2__; p12__])
 
