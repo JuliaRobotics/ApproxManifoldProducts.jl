@@ -12,6 +12,8 @@ import Manifolds as MF
 import Rotations as Rot_
 using Distributions
 import ApproxManifoldProducts: ManellicTree, eigenCoords, splitPointsEigen
+using LieGroups
+using LieGroups: TranslationGroup
 
 using Optim
 
@@ -22,15 +24,15 @@ using JSON3
 ##
 @testset "Test Product the brute force way, MF.SpecialEuclideanGroup(2; variant = :right)" begin
 
-M = MF.SpecialEuclidean(2; vectors = MF.HybridTangentRepresentation())
-ε = MF.identity_element(M)
+M = SpecialEuclideanGroup(2; variant=:right)
+ε = identity_element(M, ArrayPartition)
 
 Xc_p = [10, 20, 0.1]
-p = MF.exp(M, ε, MF.hat(M, ε, Xc_p))
+p = exp(M, hat(LieAlgebra(M), Xc_p, ArrayPartition))
 kerp = AMP.MvNormalKernel(p, diagm([0.5, 2.0, 0.1].^2))
 
 Xc_q = [10, 22, -0.1]
-q = MF.exp(M, ε, MF.hat(M, ε, Xc_q))
+q = exp(M, hat(LieAlgebra(M), Xc_q, ArrayPartition))
 kerq = AMP.MvNormalKernel(q, diagm([1.0, 1.0, 0.1].^2))
 
 kerpq = calcProductGaussians(M, [kerp, kerq])
@@ -41,7 +43,7 @@ ys = 15:0.1:27
 θs = -0.3:0.01:0.3
 
 grid_points = map(Iterators.product(xs, ys, θs)) do (x,y,θ)
-    MF.exp(M, ε, MF.hat(M, ε, SVector(x,y,θ)))
+    exp(M, ε, hat(LieAlgebra(M), SVector(x,y,θ), ArrayPartition))
 end
 
 # use_global_coords = true
@@ -49,24 +51,24 @@ use_global_coords = false
 
 pdf_ps = map(grid_points) do gp
   if use_global_coords
-    X = MF.log(M, p, gp) 
-    Xc_e = MF.vee(M, ε, X)
+    X = log(M, p, gp) 
+    Xc_e = vee(LieAlgebra(M), X)
     pdf(MvNormal(cov(kerp)), Xc_e)
   else
-    X = MF.log(M, ε, MF.compose(M, inv(M, p), gp))
-    Xc_e = MF.vee(M, ε, X)
+    X = log(M, ε, compose(M, inv(M, p), gp))
+    Xc_e = vee(LieAlgebra(M), X)
     pdf(MvNormal(cov(kerp)), Xc_e)
   end
 end
 
 pdf_qs = map(grid_points) do gp
   if use_global_coords
-    X = MF.log(M, q, gp) 
-    Xc_e = MF.vee(M, ε, X)
+    X = log(M, q, gp) 
+    Xc_e = vee(LieAlgebra(M), X)
     pdf(MvNormal(cov(kerq)), Xc_e)
   else
-    X = MF.log(M, ε, MF.compose(M, inv(M, q), gp))
-    Xc_e = MF.vee(M, ε, X)
+    X = log(M, ε, compose(M, inv(M, q), gp))
+    Xc_e = vee(LieAlgebra(M), X)
     pdf(MvNormal(cov(kerq)), Xc_e)
   end
 end
@@ -90,11 +92,11 @@ amp_bf_pqs = amp_ps .* amp_qs
 
 #FIXME -- brute force will be more accurate than approx product, relax these tests for stochastic variability
 normalized_compare_test = isapprox.(normalize(amp_pqs), normalize(amp_bf_pqs); atol=0.001)
-@test_broken all(normalized_compare_test)
+@test all(normalized_compare_test)
 @warn "Brute force product test overlap $(round(count(normalized_compare_test) / length(amp_pqs) * 100, digits=2))%"
 
 #TODO should this be local or global coords?
-@test_broken findmax(pdf_pqs[:,60,30])[2] == findmax(amp_pqs[:,60,30])[2]
+@test findmax(pdf_pqs[:,60,30])[2] == findmax(amp_pqs[:,60,30])[2]
 
 # these are all correct
 # lines(xs, pdf_ps[:,60,30])
@@ -156,18 +158,18 @@ end
 @testset "Rotated covariance product major axis checks, MF.TranslationGroup(2)" begin
 ##
 
-M = MF.TranslationGroup(2)
-ε = MF.identity_element(M)
+M = TranslationGroup(2)
+ε = identity_element(M)
 
 Xc_p = [0, 0.0]
-p = MF.exp(M, ε, MF.hat(M, ε, Xc_p))
+p = exp(M, hat(LieAlgebra(M), Xc_p))
 kerp = AMP.MvNormalKernel(p, diagm([2.0, 1.0].^2))
 
 Xc_q = [0, 0.0]
 # rotate by 60 deg
 R = Rot_.RotMatrix{2}(pi/3).mat
 Σ = R * diagm([2.0, 1.0].^2) * R'
-q = MF.exp(M, ε, MF.hat(M, ε, Xc_q))
+q = exp(M, hat(LieAlgebra(M), Xc_q))
 kerq = AMP.MvNormalKernel(q, Σ)
 
 kerpq = calcProductGaussians(M, [kerp, kerq])
@@ -186,17 +188,17 @@ end
 @testset "Rotated covariance product major axis checks, MF.SpecialEuclideanGroup(2; variant = :right)" begin
 ##
 
-M = MF.SpecialEuclidean(2; vectors = MF.HybridTangentRepresentation())
-ε = MF.identity_element(M)
+M = SpecialEuclideanGroup(2; variant=:right)
+ε = MF.identity_element(M, ArrayPartition)
 
 Xc_p = [0, 0, 0.0]
-p = MF.exp(M, ε, MF.hat(M, ε, Xc_p))
+p = exp(M, hat(LieAlgebra(M), Xc_p, ArrayPartition))
 kerp = AMP.MvNormalKernel(p, diagm([2.0, 1.0, 0.1].^2))
 
 # referenced to "global frame"
 # rotate by 60 deg
 Xc_q = [0, 0, pi/3]
-q = MF.exp(M, ε, MF.hat(M, ε, Xc_q))
+q = exp(M, ε, hat(LieAlgebra(M), Xc_q, ArrayPartition))
 kerq = AMP.MvNormalKernel(q, diagm([2.0, 1.0, 0.1].^2))
 
 kerpq = calcProductGaussians(M, [kerp, kerq])
@@ -204,7 +206,7 @@ kerpq = calcProductGaussians(M, [kerp, kerq])
 evv = eigen(cov(kerpq))
 maj_idx = sortperm(evv.values)[end]
 
-# check tMF.hat the major axis is halfway between 0 and 60deg -- i.e. 30 deg
+# check hat the major axis is halfway between 0 and 60deg -- i.e. 30 deg
 @show mean(kerpq)
 
 @test isapprox(
@@ -221,7 +223,7 @@ end
 @testset "Test utility functions for Gaussian products, MF.TranslationGroup(1)" begin
 ##
 
-M = MF.TranslationGroup(1)
+M = TranslationGroup(1)
 
 g1 = ApproxManifoldProducts.MvNormalKernel([-1.0;],[4.0;;])
 g2 = ApproxManifoldProducts.MvNormalKernel([1.0;],[4.0;;])
