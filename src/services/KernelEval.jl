@@ -5,7 +5,7 @@ function projectSymPosDef(c::AbstractMatrix)
   # pretty fast to make or remake isbitstype form matrix
   _c = SMatrix{s...}(c)
   #TODO likely not intended project here: see AMP#283
-  issymmetric(_c) ? _c : project(SymmetricPositiveDefinite(s[1]),_c,_c)
+  issymmetric(_c) ? _c : project(Manifolds.SymmetricPositiveDefinite(s[1]),_c,_c)
 end
 
 function MvNormalKernel(
@@ -97,10 +97,24 @@ function distanceMalahanobisCoordinates(
 )
   p = mean(K)
   i_p = inv(M,p)
-  pq = Manifolds.compose(M, i_p, q)
-  ϵ = identity_element(M,q)
+  pq = LieGroups.compose(M, i_p, q)
+  ϵ = identity_element(M, typeof(q))
   X = log(M, ϵ, pq)
   Xc = get_coordinates(M, ϵ, X, basis)
+  return K.sqrt_iΣ*Xc
+end
+
+function distanceMalahanobisCoordinates(
+  M::AbstractLieGroup, 
+  K::AbstractKernel, 
+  q,
+  # basis=DefaultOrthogonalBasis()
+)
+  p = mean(K)
+  i_p = inv(M,p)
+  pq = LieGroups.compose(M, i_p, q)
+  X = log(M, pq)
+  Xc = vee(LieAlgebra(M), X)
   return K.sqrt_iΣ*Xc
 end
 
@@ -111,6 +125,17 @@ function distanceMalahanobisSq(
   basis=DefaultOrthogonalBasis()
 )
   δc = distanceMalahanobisCoordinates(M,K,q,basis)
+  # return inner(M, p, X, X) # did not work as inner gave almost 2x the answer?
+  return δc'*δc
+end
+
+function distanceMalahanobisSq(
+  M::AbstractLieGroup,
+  K::AbstractKernel,
+  q,
+  # basis=DefaultOrthogonalBasis()
+)
+  δc = distanceMalahanobisCoordinates(M,K,q)
   # return inner(M, p, X, X) # did not work as inner gave almost 2x the answer?
   return δc'*δc
 end

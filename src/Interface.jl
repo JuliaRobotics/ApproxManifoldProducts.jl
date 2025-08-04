@@ -14,26 +14,51 @@ Helper function to convert coordinates to a desired on-manifold point.
 
 DevNotes
 - FIXME need much better consolidation or even removal of this function entirely.
-  - This function makes too strong an assumption of groups
+  - This function is only implemented on Lie groups
 
 Notes
 - `u0` is used to identify the data type for a point
 - Pass in a different `exp` if needed.
 """
-makePointFromCoords(M::MB.AbstractManifold,  # Manifolds.AbstractGroupManifold
-                    coords::AbstractVector{<:Real},
-                    u0=zeros(manifold_dimension(M)),
-                    ϵ=identity_element(M,u0),
-                    retraction_method::AbstractRetractionMethod=ExponentialRetraction()  ) = retract(M, ϵ, hat(M, ϵ, coords), retraction_method)
-#
+function makePointFromCoords(
+  G::AbstractLieGroup,
+  coords::AbstractVector{<:Real},
+  u0=zeros(manifold_dimension(G)),
+)
+  X = hat(LieAlgebra(G), coords, typeof(u0))
+  return exp(G, X)
+end
+
+function makePointFromCoords(
+  G::SpecialEuclideanGroup,
+  coords::AbstractVector{<:Real},
+  u0=zeros(manifold_dimension(G)),
+)
+  X = hat(LieAlgebra(G), coords, typeof(u0))
+  ε = identity_element(G, typeof(u0))
+  #TODO - review - Force TR-coordinates on SE(n)
+  return exp(base_manifold(G), ε, X)
+end
 
 # should perhaps just be dispatched for <:AbstractGroupManifold
 # only works for AbstractGroupManifold (have an identity)
-function makeCoordsFromPoint( M::MB.AbstractManifold,
-                              pt::P,
-                              ϵ = identity_element(M, pt) ) where P
-  #
-  vee(M, ϵ, log(M, ϵ, pt))
+
+function makeCoordsFromPoint(
+  G::AbstractLieGroup,
+  pt,
+)
+  vee(LieAlgebra(G), log(G, pt))
+end
+
+function makeCoordsFromPoint(
+  G::SpecialEuclideanGroup,
+  pt,
+)
+  #TODO - review - Force TR-coordinates on SE(n)
+  p = ArrayPartition(ManifoldsBase.submanifold_components(G, pt))
+  ϵ = identity_element(G, typeof(p))
+  X = log(base_manifold(G), ϵ, p)
+  return vee(LieAlgebra(G), X)
 end
 
 # Sphere(2) has 3 coords, even though the manifolds only has 2 dimensions (degrees of freedom)
@@ -58,7 +83,7 @@ end
 
 function _pointsToMatrixCoords(M::MB.AbstractManifold, pts::AbstractVector{P}) where P
   mat = zeros(manifold_dimension(M), length(pts))
-  ϵ = identity_element(M, pts[1])
+  ϵ = identity_element(M, typeof(pts[1]))
   for (j,pt) in enumerate(pts)
     mat[:,j] = vee(M, ϵ, log(M, ϵ, pt))
   end
@@ -134,16 +159,22 @@ end
 
 #TODO workaround for supporting bitstypes, need rewrite, can consider `PowerManifoldNestedReplacing` or similar, maybe copyto!
 function setPointsMani!(dest::AbstractArray{T}, src::AbstractArray{U}, destIdx, srcIdx=destIdx) where {T<:AbstractArray,U<:AbstractArray}
-  if isbitstype(T)
+  if isbitstype(T) || T <: AbstractArray{<:Number, 0}
     dest[destIdx] = src[srcIdx]
   else
     setPointsMani!(dest[destIdx],src[srcIdx])
   end
 end
 
-function setPointsMani!(dest::AbstractArray{T}, src::AbstractArray{U}, destIdx) where {T <: AbstractArray, U <: Real}
+function setPointsMani!(dest::AbstractArray{T}, src::AbstractArray{T}, destIdx, srcIdx=destIdx) where {T<:Array{<:Number, 0}}
+  dest[destIdx] = src[srcIdx]
+end
+
+function setPointsMani!(dest::AbstractArray{T}, src::AbstractArray{U}, destIdx) where {T <: AbstractArray, U <: Number}
   if isbitstype(T)
     dest[destIdx] = src
+  elseif T <: AbstractArray{<:Number, 0}
+    dest[destIdx] = fill(src[1])
   else
     setPointsMani!(dest[destIdx], src)
   end

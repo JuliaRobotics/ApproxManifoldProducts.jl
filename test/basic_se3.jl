@@ -6,7 +6,7 @@ using Test
 
 ##
 
-@testset "Test isapprox function on basic SpecialEuclidean(3; vectors=HybridTangentRepresentation())" begin
+@testset "Test isapprox function on basic SpecialEuclideanGroup(3; variant = :right)" begin
 
 ##
 
@@ -17,9 +17,9 @@ using Test
 # c_[1,:] .+= 50
 # c = kde!(c_)
 
-M = SpecialEuclidean(3; vectors=HybridTangentRepresentation())
+M = SpecialEuclideanGroup(3; variant = :right)
 u0 = ArrayPartition(zeros(3),[1 0 0; 0 1 0; 0 0 1.0])
-ϵ = identity_element(M, u0)
+ϵ = identity_element(M, typeof(u0))
 N = 50
 
 pts1 = [exp(M, ϵ, hat(M, ϵ, [0.5*randn(3);0.1*randn(3)])) for i in 1:N]

@@ -1,6 +1,8 @@
 
 using Test
 using ApproxManifoldProducts
+using LieGroups
+using LieGroups: TranslationGroup
 using Manifolds
 
 ##
@@ -56,27 +58,23 @@ M = Manifolds.Rotations(2)
 ##
 end
 
+@testset "test getManifoldPartial on ProductLieGroup" begin
 
-@testset "test getManifoldPartial on SpecialEuclidean(2; vectors=HybridTangentRepresentation())" begin
+M = TranslationGroup(2) × SpecialOrthogonalGroup(2)
 
-##
-
-M = SpecialEuclidean(2; vectors=HybridTangentRepresentation())
-
-@test getManifoldPartial(M, [1;2;3])[1] == SpecialEuclidean(2; vectors=HybridTangentRepresentation())
+@test getManifoldPartial(M, [1;2;3])[1] == TranslationGroup(2) × SpecialOrthogonalGroup(2)
 
 @test getManifoldPartial(M, [1;])[1] == TranslationGroup(1)
 @test getManifoldPartial(M, [2;])[1] == TranslationGroup(1)
 @test getManifoldPartial(M, [1;2])[1] == TranslationGroup(2)
 
-@test getManifoldPartial(M, [3;])[1] == SpecialOrthogonal(2)
+@test getManifoldPartial(M, [3;])[1] == SpecialOrthogonalGroup(2)
 
-@test getManifoldPartial(M, [1;3;])[1] == ProductManifold(TranslationGroup(1), SpecialOrthogonal(2))
-
+@test getManifoldPartial(M, [1;3;])[1] == ProductLieGroup(TranslationGroup(1), SpecialOrthogonalGroup(2))
 
 repr = ArrayPartition([0.0; 0], [1 0; 0 1.0])
 
-@test getManifoldPartial(M, [1;2;3], repr)[1] == SpecialEuclidean(2; vectors=HybridTangentRepresentation())
+@test getManifoldPartial(M, [1;2;3], repr)[1] == TranslationGroup(2) × SpecialOrthogonalGroup(2)
 @test getManifoldPartial(M, [1;2;3], repr)[2] == repr
 
 @test getManifoldPartial(M, [1;], repr)[1] == TranslationGroup(1)
@@ -88,16 +86,55 @@ repr = ArrayPartition([0.0; 0], [1 0; 0 1.0])
 @test getManifoldPartial(M, [1;2], repr)[1] == TranslationGroup(2)
 @test getManifoldPartial(M, [1;2], repr)[2] == [0.0;0]
 
-@test getManifoldPartial(M, [3;], repr)[1] == SpecialOrthogonal(2)
+@test getManifoldPartial(M, [3;], repr)[1] == SpecialOrthogonalGroup(2)
 @test getManifoldPartial(M, [3;], repr)[2] == submanifold_component(repr,2)
 
-@test getManifoldPartial(M, [1;3;], repr)[1] == ProductManifold(TranslationGroup(1), SpecialOrthogonal(2))
+@test getManifoldPartial(M, [1;3;], repr)[1] == ProductLieGroup(TranslationGroup(1), SpecialOrthogonalGroup(2))
 r_repr = getManifoldPartial(M, [1;3;], repr)[2]
 @test r_repr isa ArrayPartition
 @test submanifold_component(r_repr,1) == [0.0;]
 @test submanifold_component(r_repr,2) == [1 0; 0 1.0]
 
-##
+end
+
+@testset "test getManifoldPartial on SpecialEuclideanGroup(2; variant = :right)" begin
+
+M = SpecialEuclideanGroup(2; variant = :right)
+
+@test getManifoldPartial(M, [1;2;3])[1] == M
+
+@test getManifoldPartial(M, [1;])[1] == TranslationGroup(1)
+@test getManifoldPartial(M, [2;])[1] == TranslationGroup(1)
+@test getManifoldPartial(M, [1;2])[1] == TranslationGroup(2)
+
+@test getManifoldPartial(M, [3;])[1] == SpecialOrthogonalGroup(2)
+
+@test getManifoldPartial(M, [1;3;])[1] == ProductLieGroup(TranslationGroup(1), SpecialOrthogonalGroup(2))
+
+
+repr = ArrayPartition([0.0; 0], [1 0; 0 1.0])
+
+@test getManifoldPartial(M, [1;2;3], repr)[1] == M
+@test getManifoldPartial(M, [1;2;3], repr)[2] == repr
+
+@test getManifoldPartial(M, [1;], repr)[1] == TranslationGroup(1)
+@test getManifoldPartial(M, [1;], repr)[2] == [0.0;]
+
+@test getManifoldPartial(M, [2;], repr)[1] == TranslationGroup(1)
+@test getManifoldPartial(M, [2;], repr)[2] == [0.0;]
+
+@test getManifoldPartial(M, [1;2], repr)[1] == TranslationGroup(2)
+@test getManifoldPartial(M, [1;2], repr)[2] == [0.0;0]
+
+@test getManifoldPartial(M, [3;], repr)[1] == SpecialOrthogonalGroup(2)
+@test getManifoldPartial(M, [3;], repr)[2] == submanifold_component(repr,2)
+
+@test getManifoldPartial(M, [1;3;], repr)[1] == ProductLieGroup(TranslationGroup(1), SpecialOrthogonalGroup(2))
+r_repr = getManifoldPartial(M, [1;3;], repr)[2]
+@test r_repr isa ArrayPartition
+@test submanifold_component(r_repr,1) == [0.0;]
+@test submanifold_component(r_repr,2) == [1 0; 0 1.0]
+
 end
 
 
@@ -111,16 +148,16 @@ end
 ##
 end
 
-
-@testset "test getPoints under partial with representation" begin
+@testset "test getPoints under partial with representation on ProductLieGroup" begin
 
 ##
 
 N = 100
-M = SpecialEuclidean(2; vectors=HybridTangentRepresentation())
+# M = SpecialEuclideanGroup(2; variant = :right)
+M = TranslationGroup(2) × SpecialOrthogonalGroup(2)
 u0 = ArrayPartition([0.0; 0], [1 0; 0 1.0])
 
-pts = [exp(M, u0, hat(M, u0, [10 .+ randn(2);randn()])) for i in 1:N]
+pts = [exp(M, u0, hat(LieAlgebra(M), [10 .+ randn(2);randn()])) for i in 1:N]
 
 P = manikde!(M, pts)
 
@@ -132,6 +169,31 @@ p12 = getPoints(P12)
 @test length(p12[1]) == 2
 @test_broken P12.manifold isa TranslationGroup(2)
 
+
+##
+end
+
+@testset "test getPoints under partial with representation on SE2" begin
+
+##
+
+N = 100
+M = SpecialEuclideanGroup(2; variant = :right)
+u0 = ArrayPartition([0.0; 0], [1 0; 0 1.0])
+
+pts = [exp(M, hat(LieAlgebra(M), [10 .+ randn(2);randn()])) for i in 1:N]
+
+P = manikde!(M, pts)
+
+P12 = marginal(P, [1;2])
+
+@test_broken begin
+p12 = getPoints(P12)
+
+@test length(p12) == N
+@test length(p12[1]) == 2
+@test_broken P12.manifold isa TranslationGroup(2)
+end
 
 ##
 end

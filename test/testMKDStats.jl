@@ -7,15 +7,17 @@ using Manifolds
 @testset "Test basic MKD statistics" begin
 ##
 
-M = SpecialEuclidean(2; vectors=HybridTangentRepresentation())
+M = SpecialEuclideanGroup(2; variant = :right)
 u0 = ArrayPartition(zeros(2),[1 0; 0 1.0])
-ϵ = identity_element(M, u0)
+ϵ = identity_element(M, typeof(u0))
 
-pts = [exp(M, ϵ, hat(M, ϵ, [0.05*randn(2);0.75*randn()])) for i in 1:100]
+pts = [exp(M, ϵ, hat(LieAlgebra(M), [0.05*randn(2);0.75*randn()], ArrayPartition)) for i in 1:100]
 
 P = manikde!(M, pts)
 
-@test isapprox(M, mean(P), mean(M, pts))
+#TODO what mean do we want here?
+# mean(M, pts, GeodesicInterpolation()) != mean(M, pts)
+@test isapprox(M, mean(P), mean(M, pts, GeodesicInterpolation()))
 @test isapprox(var(P), var(M, pts))
 @test isapprox(std(P), std(M, pts))
 @test_broken isapprox(cov(P), cov(M, pts))

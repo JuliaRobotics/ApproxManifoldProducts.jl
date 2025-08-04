@@ -29,7 +29,7 @@ end
 
 ##
 
-M = SpecialEuclidean(2; vectors=HybridTangentRepresentation())
+M = SpecialEuclideanGroup(2; variant = :right)
 N = 128
 
 

@@ -292,7 +292,7 @@ DeVNotes:
 - FIXME use manifold mean and cov calculation instead
 """
 function splitPointsEigen(
-  M::AbstractManifold,
+  M::AbstractLieGroup,
   r_PP::AbstractVector{P},
   weights::AbstractVector{<:Real} = ones(length(r_PP)); # FIXME, make static vector unless large
   kernel = MvNormalKernel,
@@ -306,15 +306,15 @@ function splitPointsEigen(
   p = mean(M, r_PP)
   
   r_XXp = log.(Ref(M), Ref(p), r_PP) # FIXME replace with on-manifold distance
-  r_CCp = vee.(Ref(M), Ref(p), r_XXp)
-  
+  r_CCp = vee.(Ref(LieAlgebra(M)), r_XXp)
+
   D = manifold_dimension(M)
   ndia = ( (D-1) ÷ 2 + 1 ) * D
   # FIXME, consider user provided bandwidth in estimating multisample covariance
   cv = if ndia < len
-    SMatrix{D,D,Float64}(Manifolds.cov(M, r_PP))
+    SMatrix{D,D,Float64}(Manifolds.cov(M, r_PP; basis = DefaultLieAlgebraOrthogonalBasis()))
   elseif 1 < len <= ndia
-    SMatrix{D,D,Float64}(diagm(diag(Manifolds.cov(M, r_PP))))
+    SMatrix{D,D,Float64}(diagm(diag(Manifolds.cov(M, r_PP; basis = DefaultLieAlgebraOrthogonalBasis()))))
   else
     # TODO case with user defined bandwidth for faster tree construction
     bw = isnothing(kernel_bw) ? SMatrix{D,D,Float64}(diagm(eps(Float64)*ones(D))) : kernel_bw

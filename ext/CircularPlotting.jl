@@ -24,7 +24,7 @@ function plotCircBeliefs( arr::V;
     beliefs[j] = logpdf ? (x)->log(ar(x)+1.0) : (x)->ar(x) #
   end
 
-  M = SpecialOrthogonal(2)
+  M = SpecialOrthogonalGroup(2)
   e0 = Identity(M)
 
   PL = []

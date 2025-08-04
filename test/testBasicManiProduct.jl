@@ -36,9 +36,9 @@ pts = AMP._pointsToMatrixCoords(P12.manifold, pts_)
 
 ##
 
-M = SpecialEuclidean(2; vectors=HybridTangentRepresentation())
+M = SpecialEuclideanGroup(2; variant = :right)
 u0 = ArrayPartition(zeros(2),[1 0; 0 1.0])
-ϵ = identity_element(M, u0)
+ϵ = identity_element(M, typeof(u0))
 
 pts1 = [exp(M, ϵ, hat(M, ϵ, [0.05*randn(2);0.75*randn()])) for i in 1:N]
 pts2 = [exp(M, ϵ, hat(M, ϵ, [0.05*randn(2);0.75*randn()])) for i in 1:N]

@@ -21,7 +21,7 @@
 
 
 @deprecate R(th::Real) _Rot.RotMatrix2(th).mat # = [[cos(th);-sin(th)]';[sin(th);cos(th)]'];
-@deprecate R(;x::Real=0.0,y::Real=0.0,z::Real=0.0) (M=SpecialOrthogonal(3);exp(M,identity_element(M),hat(M,Identity(M),[x,y,z]))) # convert(SO3, so3([x,y,z]))
+@deprecate R(;x::Real=0.0,y::Real=0.0,z::Real=0.0) (M=SpecialOrthogonalGroup(3);exp(M,identity_element(M),hat(M,Identity(M),[x,y,z]))) # convert(SO3, so3([x,y,z]))
 
 export calcCovarianceBasic
 # Returns the covariance (square), not deviation
