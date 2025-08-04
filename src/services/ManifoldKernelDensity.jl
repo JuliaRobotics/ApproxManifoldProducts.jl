@@ -67,7 +67,7 @@ function ManifoldKernelDensity(
   arr = Matrix{Float64}(undef, dims, length(vecP))
   
   for j in 1:length(vecP)
-    arr[:,j] = vee(LieAlgebra(M), log(M, ϵ, vecP[j]))
+    arr[:,j] = makeCoordsFromPoint(M, vecP[j])
   end
 
     # FIXME ON FIRE REMOVE LEGACY

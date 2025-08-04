@@ -122,7 +122,6 @@ selectedLabels__
 
 
 sidx = 1
-@error "TODO use manellic tree belief instead, old MKD does not support LieGroups.jl.  Old MKD tree used coordinates."
 for sidx = 1:len
 
 bw1 = getBW(p1_SE2_kde)[:,1] .^2
@@ -140,7 +139,7 @@ u12 = calcProductGaussians(M, [u1,u2], [bw1,bw2]);
 u12_ = calcProductGaussians(TranslationGroup(2), [submanifold_component(u1,1),submanifold_component(u2,1)], [bw1[1:2],bw2[1:2]]);
 
 @test_broken isapprox( submanifold_component(mean(u12),1), mean(u12_); atol=0.001 ) # atol = 0.1
-@test_broken isapprox( getPoints(p12__)[sidx], mean(u12_) )
+@test isapprox( getPoints(p12__)[sidx], mean(u12_) )
 
 end
 
