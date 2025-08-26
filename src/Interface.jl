@@ -43,17 +43,11 @@ end
 # should perhaps just be dispatched for <:AbstractGroupManifold
 # only works for AbstractGroupManifold (have an identity)
 
-function makeCoordsFromPoint(
-  G::AbstractLieGroup,
-  pt,
-)
-  vee(LieAlgebra(G), log(G, pt))
+function makeCoordsFromPoint(G::AbstractLieGroup, pt)
+  return vee(LieAlgebra(G), log(G, pt))
 end
 
-function makeCoordsFromPoint(
-  G::SpecialEuclideanGroup,
-  pt,
-)
+function makeCoordsFromPoint(G::SpecialEuclideanGroup, pt)
   #TODO - review - Force TR-coordinates on SE(n)
   p = ArrayPartition(ManifoldsBase.submanifold_components(G, pt))
   ϵ = identity_element(G, typeof(p))

@@ -54,8 +54,7 @@ ManifoldKernelDensity(
 function ManifoldKernelDensity( 
   M::MB.AbstractManifold,
   vecP::AbstractVector{P},
-  u0 = vecP[1],
-  ϵ = identity_element(M, typeof(u0)); # vecP[1]
+  u0 = vecP[1]; # vecP[1]
   partial::L=nothing,
   infoPerCoord::AbstractVector{<:Real}=ones(getNumberCoords(M, u0)),
   dims::Int=manifold_dimension(M),
@@ -89,17 +88,12 @@ end
 
 
 # MAYBE deprecate name
-manikde!( 
+manikde!(
   M::MB.AbstractManifold,
   vecP::AbstractVector{P},
   u0::P=vecP[1];
-  kw... 
-) where P = ManifoldKernelDensity(
-  M, 
-  vecP, 
-  u0; 
   kw...
-)
+) where P = ManifoldKernelDensity(M, vecP, u0; kw...)
 
 #
 

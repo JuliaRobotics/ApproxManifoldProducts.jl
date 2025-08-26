@@ -78,6 +78,9 @@ _manifoldtuple(::typeof(SpecialOrthogonalGroup(3))) = (:Circular,:Circular,:Circ
 _manifoldtuple(::typeof(SpecialEuclideanGroup(2; variant=:right))) = (:Euclid,:Euclid,:Circular)
 _manifoldtuple(::typeof(SpecialEuclideanGroup(3; variant=:right))) = (:Euclid,:Euclid,:Euclid,:Circular,:Circular,:Circular)
 _manifoldtuple(::typeof(TranslationGroup(2) × SpecialOrthogonalGroup(2))) = (:Euclid,:Euclid,:Circular)
+_manifoldtuple(::typeof(TranslationGroup(2) × SpecialOrthogonalGroup(2) × TranslationGroup(2))) = (:Euclid,:Euclid, :Circular,:Euclid,:Euclid)
+_manifoldtuple(::typeof(TranslationGroup(3) × SpecialOrthogonalGroup(3))) = (:Euclid,:Euclid,:Euclid,:Circular,:Circular,:Circular)
+_manifoldtuple(::typeof(SpecialOrthogonalGroup(3) × TranslationGroup(3) × TranslationGroup(3))) = (:Circular,:Circular,:Circular,:Euclid,:Euclid,:Euclid,:Euclid,:Euclid,:Euclid)
 
 """
     $(SIGNATURES)
