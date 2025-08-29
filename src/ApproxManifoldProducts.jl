@@ -38,7 +38,6 @@ using Reexport
 @reexport using KernelDensityEstimate
 import KernelDensityEstimate: getPoints, getBW, evalAvgLogL, entropy, evaluate
 
-
 # FIXME ON FIRE OBSOLETE REMOVE
 using Requires
 
@@ -87,6 +86,5 @@ include("Deprecated.jl")
 
 # weak dependencies
 include("../ext/WeakdepsPrototypes.jl")
-
 
 end

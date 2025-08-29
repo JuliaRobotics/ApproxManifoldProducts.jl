@@ -1,10 +1,8 @@
 # Test naive implementation of entropy calculations towards efficient calculation of entropy on a manifold
 
-
 import TransformUtils.logmap_SO2
 
-export
-    difftheta,
+export difftheta,
     addtheta,
     rbfAccAt!,
     rbf!,
@@ -15,25 +13,22 @@ export
     getCircMu,
     getCircLambda
 
-
-global const reci_s2pi=1.0/sqrt(2.0*pi) # 1.0/2.5066282746310002
-
+const global reci_s2pi = 1.0 / sqrt(2.0 * pi) # 1.0/2.5066282746310002
 
 # On-manifold circular product callbacks
 
-
-
 # sign migth be flipped, but kept for legacy support -- FIXME this should be standardized!!
 difftheta(wth1, wth2) = log(_AMP_CIRCLE, wth2, wth1) # logmap_SO2(TUs.R(wth1)'*TUs.R(wth2))
-addtheta(wth1, wth2) =  exp(_AMP_CIRCLE, wth2, wth1)   # TUs.wrapRad( wth1+wth2 )
+addtheta(wth1, wth2) = exp(_AMP_CIRCLE, wth2, wth1)   # TUs.wrapRad( wth1+wth2 )
 
 # manifold get Gaussian products mean
-getCircMu(m::Vector{Float64}, s::Vector{Float64}, ::Float64) = addtheta(0, get2DMu(m, s, diffop=difftheta, initrange=(-pi+0.0,pi+0.0)) )
+function getCircMu(m::Vector{Float64}, s::Vector{Float64}, ::Float64)
+    return addtheta(0, get2DMu(m, s; diffop = difftheta, initrange = (-pi + 0.0, pi + 0.0)))
+end
 
 # getCircMu = (m::Vector{Float64}, s::Vector{Float64}, dummy::Float64) -> TUs.wrapRad(get2DMuMin(m, s, diffop=difftheta, initrange=(-pi+0.0,pi+0.0)))
 
 getCircLambda(x) = getEuclidLambda(x)
-
 
 """
     $SIGNATURES
@@ -48,50 +43,44 @@ function normDistAccAt!(
     idx::Int,
     x::Float64,
     sigma::Float64,
-    w::Float64=1.0  
+    w::Float64 = 1.0,
 ) where {AV <: AbstractVector}
     global reci_s2pi
-    @fastmath ret[idx] += w*reci_s2pi/sigma * exp( - (x^2)/(2.0*(sigma^2)) )
+    @fastmath ret[idx] += w * reci_s2pi / sigma * exp(-(x^2) / (2.0 * (sigma^2)))
     return nothing
 end
 
-function rbfAccAt!( 
+function rbfAccAt!(
     ret::AV,
     idx::Int,
     x::Float64,
-    μ::Float64=0.0,
-    σ::Float64=1.0,
-    w::Float64=1.0,
-    diffop::Function=-
-)  where {AV <: AbstractVector}
+    μ::Float64 = 0.0,
+    σ::Float64 = 1.0,
+    w::Float64 = 1.0,
+    diffop::Function = -,
+) where {AV <: AbstractVector}
     #
     normDistAccAt!(ret, idx, diffop(x, μ), σ, w)
-    nothing
+    return nothing
 end
 function rbf!(
     ret::AV,
     x::Float64,
-    μ::Float64=0.0,
-    σ::Float64=1.0,
-    diffop::Function=-
-)  where {AV <: AbstractVector}
+    μ::Float64 = 0.0,
+    σ::Float64 = 1.0,
+    diffop::Function = -,
+) where {AV <: AbstractVector}
     #
     ret[1] = 0.0
-    normDistAccAt!(ret, 1, diffop(x,μ), σ)
-    nothing
+    normDistAccAt!(ret, 1, diffop(x, μ), σ)
+    return nothing
 end
 
-
-function rbf(
-    x::Float64, 
-    μ::Float64=0.0, 
-    σ::Float64=1.0
-)
+function rbf(x::Float64, μ::Float64 = 0.0, σ::Float64 = 1.0)
     ret = Vector{Float64}(undef, 1) # initialized in rbf!(..)
     rbf!(ret, x, μ, σ)
     return ret[1]
 end
-
 
 """
     $SIGNATURES
@@ -102,17 +91,17 @@ This function does, however, allow on-manifold evaluations.
 function evaluateManifoldNaive1D!(
     ret::Vector{Float64},
     idx::Int,
-    pts::Array{Float64,1},
+    pts::Array{Float64, 1},
     bw::Float64,
-    x::Array{Float64,1},
-    loo::Int=-1,
-    diffop=-  
+    x::Array{Float64, 1},
+    loo::Int = -1,
+    diffop = -,
 )
     #
     dontskip = loo == -1
     N = length(pts)
-    reci_N = dontskip ? 1.0/N : 1.0/(N-1)
-    for j in 1:N
+    reci_N = dontskip ? 1.0 / N : 1.0 / (N - 1)
+    for j = 1:N
         if dontskip || loo != j
             manifolddist = diffop(pts[loo], pts[j])
             normDistAccAt!(ret, idx, manifolddist, bw, reci_N)
@@ -125,12 +114,20 @@ function evaluateManifoldNaive1D!(
     ret::Vector{Float64},
     idx::Int,
     bd::BallTreeDensity,
-    x::Array{Float64,1},
-    loo::Int=-1,
-    diffop=-
+    x::Array{Float64, 1},
+    loo::Int = -1,
+    diffop = -,
 )
     #
-    evaluateManifoldNaive1D!(ret, idx, getPoints(bd)[:], getBW(bd)[1,1], x, loo, diffop )
+    return evaluateManifoldNaive1D!(
+        ret,
+        idx,
+        getPoints(bd)[:],
+        getBW(bd)[1, 1],
+        x,
+        loo,
+        diffop,
+    )
 end
 
 """
@@ -160,17 +157,17 @@ H(p) = -CV(p)
 function manifoldLooCrossValidation(
     pts::Array,
     bw::Float64;
-    own::Bool=true,
-    diffop::Function=-
+    own::Bool = true,
+    diffop::Function = -,
 )
     #
     N = maximum(size(pts))
     h = [bw;]
     loo = zeros(N)
-    @inbounds for i in 1:N
+    @inbounds for i = 1:N
         if !own
             # validation version
-            pts99 = pts[[1:(i-1);(i+1):end]]
+            pts99 = pts[[1:(i - 1); (i + 1):end]]
             p99 = kde!(pts99, h)
             loo[i] = log(p99([pts[i];])[1])
         else
@@ -180,13 +177,10 @@ function manifoldLooCrossValidation(
             loo[i] = log(loo[i])
         end
     end
-    return  sum(loo)/N
+    return sum(loo) / N
 end
 
-
-function kde!_CircularNaiveCV(
-    points::AbstractVector
-)
+function kde!_CircularNaiveCV(points::AbstractVector)
     # initial setup parameters
     dims = 1 # size(points,1)
     bwds = zeros(dims)
@@ -195,17 +189,23 @@ function kde!_CircularNaiveCV(
     upper = 2pi
 
     # excessive for loop for leave one out likelihiood cross validation (Silverman 1986, p.52)
-    for i in 1:dims
-        minEntropyLOOCV = (bw) -> -manifoldLooCrossValidation(points, bw, own=true, diffop=difftheta)
-        res = Optim.optimize(minEntropyLOOCV, lower, upper, Optim.GoldenSection(), x_tol=0.001)
+    for i = 1:dims
+        minEntropyLOOCV =
+            (bw) -> -manifoldLooCrossValidation(points, bw; own = true, diffop = difftheta)
+        res = Optim.optimize(
+            minEntropyLOOCV,
+            lower,
+            upper,
+            Optim.GoldenSection();
+            x_tol = 0.001,
+        )
         bwds[i] = res.minimizer
     end
 
     # cosntruct the kde with CV optimized bandwidth
-    p = kde!( points, bwds, (addtheta,), (difftheta,) )
+    p = kde!(points, bwds, (addtheta,), (difftheta,))
 
     return p
 end
-
 
 #

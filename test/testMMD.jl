@@ -13,78 +13,69 @@ using StaticArrays
 
 const AMP = ApproxManifoldProducts
 
-
 ##
 @testset "Test mmd distance between Euclidean beliefs" begin
-##
+    ##
 
-# when not plottin
-offsets = 1:1 # -30:0.25:30
-mc      = 1   # 1:100
+    # when not plottin
+    offsets = 1:1 # -30:0.25:30
+    mc = 1   # 1:100
 
-checkGrid = zeros(length(offsets), length(mc))
+    checkGrid = zeros(length(offsets), length(mc))
 
-df = DataFrame(offsets=[], mmd=[])
+    df = DataFrame(; offsets = [], mmd = [])
 
+    for i = 1:length(offsets), j in mc
+        P = [SA[randn();] for k = 1:1000]
+        Q = [SA[randn() + offsets[i];] for k = 1:1000]
 
-for i in 1:length(offsets), j in mc
+        res = MVector(0.0)
 
-P = [SA[randn();]  for k in 1:1000]
-Q = [SA[randn()+offsets[i];]  for k in 1:1000]
+        AMP.mmd!(TranslationGroup(1), res, P, Q; bw = [0.001])
 
-res = MVector(0.0)
+        checkGrid[i, j] = res[1]
+        push!(df, (offsets[i], res[1]))
+    end
 
-AMP.mmd!(TranslationGroup(1), res, P, Q, bw=[0.001])
+    # when not plotting
+    @test 0 < df[!, :mmd][1] < 1.0
 
-checkGrid[i,j] = res[1]
-push!(df, (offsets[i],res[1]))
+    # plot(df, x=:offsets, y=:mmd, Geom.boxplot,
+    # Theme(default_color="MidnightBlue"))
 
+    # (manikde!(P, (:Euclid,)) |> getBW)[1,1]
+
+    ##
 end
-
-# when not plotting
-@test 0 < df[!,:mmd][1] < 1.0
-
-# plot(df, x=:offsets, y=:mmd, Geom.boxplot,
-# Theme(default_color="MidnightBlue"))
-
-# (manikde!(P, (:Euclid,)) |> getBW)[1,1]
-
-##
-end
-
-
 
 @testset "Test mmd distance between 2D Euclidean beliefs" begin
 
-# when not plottin
-offsets = 1:1 # -30:0.25:30
-mc      = 1   # 1:100
+    # when not plottin
+    offsets = 1:1 # -30:0.25:30
+    mc = 1   # 1:100
 
-checkGrid = zeros(length(offsets), length(mc))
+    checkGrid = zeros(length(offsets), length(mc))
 
-df = DataFrame(offsets=[], mmd=[])
+    df = DataFrame(; offsets = [], mmd = [])
 
+    for i = 1:length(offsets), j in mc
+        P = [randn(2) for k = 1:100]
+        Q = [randn(2) .+ offsets[i] for k = 1:100]
 
-for i in 1:length(offsets), j in mc
+        res = zeros(1)
 
-P = [randn(2) for k in 1:100]
-Q = [randn(2) .+ offsets[i] for k in 1:100]
+        AMP.mmd!(TranslationGroup(2), res, P, Q; bw = [0.001])
 
-res = zeros(1)
+        checkGrid[i, j] = res[1]
+        push!(df, (offsets[i], res[1]))
+    end
 
-AMP.mmd!(TranslationGroup(2), res, P, Q, bw=[0.001])
+    # when not plotting
+    @test 0 < df[!, :mmd][1] < 1.0
 
-checkGrid[i,j] = res[1]
-push!(df, (offsets[i],res[1]))
+    # plot(df, x=:offsets, y=:mmd, Geom.boxplot,
+    # Theme(default_color="MidnightBlue"))
 
-end
-
-# when not plotting
-@test 0 < df[!,:mmd][1] < 1.0
-
-# plot(df, x=:offsets, y=:mmd, Geom.boxplot,
-# Theme(default_color="MidnightBlue"))
-
-# (manikde!(P, (:Euclid,)) |> getBW)[1,1]
+    # (manikde!(P, (:Euclid,)) |> getBW)[1,1]
 
 end

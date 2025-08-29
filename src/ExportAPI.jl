@@ -1,26 +1,26 @@
 
-export  
-  # new local features
-  AMP,
-  MKD,
-  AbstractManifold,
-  ManifoldKernelDensity,
-  get2DLambda,
-  get2DMu,
-  get2DMuMin,
-  resid2DLinear,
-  solveresid2DLinear!,
-  solveresid2DLinear,
-  *,
-  isapprox,
+export
+    # new local features
+    AMP,
+    MKD,
+    AbstractManifold,
+    ManifoldKernelDensity,
+    get2DLambda,
+    get2DMu,
+    get2DMuMin,
+    resid2DLinear,
+    solveresid2DLinear!,
+    solveresid2DLinear,
+    *,
+    isapprox,
 
-  # APi and util functions
-  buildHybridManifoldCallbacks,
-  getKDEManifoldBandwidths,
-  manifoldProduct,
-  manikde!,
-  isPartial,
-  calcProductGaussians
+    # APi and util functions
+    buildHybridManifoldCallbacks,
+    getKDEManifoldBandwidths,
+    manifoldProduct,
+    manikde!,
+    isPartial,
+    calcProductGaussians
 
 export getPoints, getBW, Ndim, Npts
 export getKDERange, getKDEMax, getKDEMean, getKDEfit

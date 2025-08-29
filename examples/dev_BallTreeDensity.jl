@@ -1,13 +1,12 @@
 ## mateusz recommendation Manifolds.jl ProductRepr, see AMP.jl#41
 
-
 using StaticArrays, Manifolds, NearestNeighbors, Distances
 
 M = SpecialEuclideanGroup(2; variant = :right)
 N = 100
 # convert point to coordinates
 function coords(p)
-    return SA[p.parts[1][1], p.parts[1][2], acos(p.parts[2][1,1])]
+    return SA[p.parts[1][1], p.parts[1][2], acos(p.parts[2][1, 1])]
 end
 # reverse of `coords`
 function uncoords(p)
@@ -15,10 +14,10 @@ function uncoords(p)
     return ProductRepr((SA[p[1], p[2]]), SA[cos(α) -sin(α); sin(α) cos(α)])
 end
 # some random points to make a tree from
-pts = [uncoords(@SVector randn(3)) for _ in 1:N]
+pts = [uncoords(@SVector randn(3)) for _ = 1:N]
 
 # The variant in ManifoldML doesn't support `ProductRepr` currently.
-struct SE2Distance{TM<:Manifold} <: Distances.Metric
+struct SE2Distance{TM <: Manifold} <: Distances.Metric
     manifold::TM
 end
 function (dist::SE2Distance)(a, b)
@@ -36,68 +35,67 @@ balltree = BallTree(vector_elem, dist)
 k = 3
 idxs, dists = knn(balltree, coords(pts[2]), k)
 
-
-
 ## try make ManifoldFakeArray
 
-mutable struct ManifoldFakeArray{T,N} <: Base.AbstractArray{T,N}
+mutable struct ManifoldFakeArray{T, N} <: Base.AbstractArray{T, N}
     element::T
 end
 
-ManifoldFakeArray{N}(el::T) where {T,N} = ManifoldFakeArray{T,N}(el)
+ManifoldFakeArray{N}(el::T) where {T, N} = ManifoldFakeArray{T, N}(el)
 
-
-struct ManifoldFakeArrayDistance{TM<:Manifold} <: Distances.Metric
+struct ManifoldFakeArrayDistance{TM <: Manifold} <: Distances.Metric
     manifold::TM
 end
 
-function (dist::ManifoldFakeArrayDistance{TM})(a, b) where TM
+function (dist::ManifoldFakeArrayDistance{TM})(a, b) where {TM}
     return distance(dist.manifold, a.element, b.element)
 end
 
-
-
 import Base: size
-Base.size(el::Union{<:ManifoldFakeArray{T,N},Type{<:ManifoldFakeArray{T,N}}}) where {T,N} = N
-Base.length(el::Union{<:ManifoldFakeArray{T,N},Type{<:ManifoldFakeArray{T,N}}}) where {T,N} = N
+function Base.size(
+    el::Union{<:ManifoldFakeArray{T, N}, Type{<:ManifoldFakeArray{T, N}}},
+) where {T, N}
+    return N
+end
+function Base.length(
+    el::Union{<:ManifoldFakeArray{T, N}, Type{<:ManifoldFakeArray{T, N}}},
+) where {T, N}
+    return N
+end
 
 # Base.tail(el::ManifoldFakeArray{T,N}) where {T,N} = T[]
 
-function Base.show(io, mime, mdfa::ManifoldFakeArray{T,N}) where {T,N}
+function Base.show(io, mime, mdfa::ManifoldFakeArray{T, N}) where {T, N}
     println(io, "ManifoldFakeArray{T,N}")
-    println(io, "  N: $N")
+    return println(io, "  N: $N")
     # println(io, "  T: $T")
     # println(io, "    .element::T: $(mdfa.element)")
 end
 
-function Base.show(io, mime, mdfa::AbstractArray{ <: ManifoldFakeArray{T,N}}) where {T,N}
-    for i in 1:length(mdfa)
-        show(io,mime, mdfa[i])
+function Base.show(io, mime, mdfa::AbstractArray{<:ManifoldFakeArray{T, N}}) where {T, N}
+    for i = 1:length(mdfa)
+        show(io, mime, mdfa[i])
     end
 end
 
-Base.Multimedia.display(mdfa::ManifoldFakeArray{T,N}) where {T,N} = display(T)
-Base.Multimedia.display(mdfa::AbstractArray{<:ManifoldFakeArray{T,N}}) where {T,N} = display.(mdfa)
+Base.Multimedia.display(mdfa::ManifoldFakeArray{T, N}) where {T, N} = display(T)
+function Base.Multimedia.display(
+    mdfa::AbstractArray{<:ManifoldFakeArray{T, N}},
+) where {T, N}
+    return display.(mdfa)
+end
 
-
-
-faPts = map(x->ManifoldFakeArray{3}(x), pts)
-
+faPts = map(x -> ManifoldFakeArray{3}(x), pts)
 
 distFA = ManifoldFakeArrayDistance(M)
 
-
 distFA(faPts[1], faPts[2])
-
-
 
 ## real test
 
 balltree = BallTree(faPts, distFA)
 
-
 ## build BallTree for KDE density estimation
-
 
 using NearestNeighbors: BallTree, RMSDeviation
 using Colors
@@ -110,10 +108,9 @@ using LinearAlgebra
 
 using BenchmarkTools
 
-
 ##
 
-allpts = [SVector(randn(2)...) for i in 1:100];
+allpts = [SVector(randn(2)...) for i = 1:100];
 
 tree = BallTree(allpts, RMSDeviation(); leafsize = 50)
 
@@ -123,9 +120,7 @@ tree = BallTree(allpts, RMSDeviation(); leafsize = 13)
 
 tree = BallTree(allpts, RMSDeviation(); leafsize = 7)
 
-tree = BallTree(rand(2,100), RMSDeviation(); leafsize = 1)
-
-
+tree = BallTree(rand(2, 100), RMSDeviation(); leafsize = 1)
 
 ## Make own distance
 
@@ -135,54 +130,35 @@ using Manifolds
 # carfully only include a single definition for use with NearestNeighbors.jl
 using Distances: Metric
 
-
-struct ManiRMSDeviation{M <: ManifoldsBase.AbstractManifold} <: Metric where M
-  manifold::M
+struct ManiRMSDeviation{M <: ManifoldsBase.AbstractManifold} <: Metric where {M}
+    manifold::M
 end
 
 ##
 
-
-
 mr = ManiRMSDeviation(Euclidean(2))
 
+##
 
+distance(mr.manifold, 1, 2)
 
 ##
 
-
-
-distance(mr.manifold, 1,2)
-
+distance(mr.manifold, SVector(1, 2), SVector(2, 3))
 
 ##
-
-distance(mr.manifold, SVector(1,2),SVector(2,3))
-
-
-
-
-
-##
-
 
 M_se2 = SpecialEuclideanGroup(2; variant = :right)
 
+sI = SMatrix{3, 3, Float64}(diagm(ones(3)))
 
-sI = SMatrix{3,3,Float64}(diagm(ones(3)))
+T1 = Manifolds.hat(M_se2, sI, SVector(0, 0, pi / 2))
 
-T1 = Manifolds.hat(M_se2, sI, SVector(0,0,pi/2))
-
-T2 = Manifolds.hat(M_se2, sI, SVector(1,0,0))
-
+T2 = Manifolds.hat(M_se2, sI, SVector(1, 0, 0))
 
 distance(M_se2, T1, T2)
 
-
-
-
 ##
-
 
 md = ManiRMSDeviation{}()
 
@@ -196,17 +172,11 @@ isconcretetype(rd)
 # (dist::RMSDeviation)(a, b) = sqrt(MeanSqDeviation()(a, b))
 # rmsd(a, b) = RMSDeviation()(a, b)
 
-
-@code_warntype rmsd(1,1)
-
-
+@code_warntype rmsd(1, 1)
 
 sqeuclidean(a, b) / length(a)
 
-(::ManiRMSDeviation{T})(a, b) where T = sqrt(MeanSqDeviation()(a, b))
-
-
-
+(::ManiRMSDeviation{T})(a, b) where {T} = sqrt(MeanSqDeviation()(a, b))
 
 ##
 
@@ -216,8 +186,8 @@ import NearestNeighbors.HyperSphere
 
 # Adds a sphere to an axis
 function add_sphere(ax, hs::HyperSphere, col)
-    ell = patch.Circle(hs.center, radius = hs.r, facecolor="none", edgecolor=col)
-    ax.add_artist(ell)
+    ell = patch.Circle(hs.center; radius = hs.r, facecolor = "none", edgecolor = col)
+    return ax.add_artist(ell)
 end
 
 # Skip non leaf nodes
@@ -225,45 +195,37 @@ offset = tree.tree_data.n_internal_nodes + 1
 nleafs = tree.tree_data.n_leafs
 
 # Range of leaf nodes
-index_range = offset: offset + nleafs - 1
+index_range = offset:(offset + nleafs - 1)
 
 # Generate some nice colors
-cols = distinguishable_colors(length(index_range), RGB(0,0,0))
+cols = distinguishable_colors(length(index_range), RGB(0, 0, 0))
 
 # Create figure
 cfig = figure()
-ax = cfig.add_subplot(1,1,1)
+ax = cfig.add_subplot(1, 1, 1)
 ax.set_aspect("equal")
-axis((-.25,1.25,-.25,1.25))
+axis((-0.25, 1.25, -0.25, 1.25))
 
+for (i, idx) in enumerate(index_range)
+    col = cols[i]
+    # Get the indices of the leaf nodes into the tree data
+    range = NearestNeighbors.get_leaf_range(tree.tree_data, idx)
+    d = tree.data[range]
 
-for (i, idx) = enumerate(index_range)
-  col = cols[i]
-  # Get the indices of the leaf nodes into the tree data
-  range = NearestNeighbors.get_leaf_range(tree.tree_data, idx)
-  d = tree.data[range]
-  
-  # Plot the points in the hyper spehre
-  plot(getindex.(d, 1), getindex.(d, 2), "*", color = (col.r, col.g, col.b))
-  
-  # And the hypersphere itself
-  sphere = tree.hyper_spheres[idx]
-  add_sphere(ax, sphere, (col.r, col.g, col.b))
+    # Plot the points in the hyper spehre
+    plot(getindex.(d, 1), getindex.(d, 2), "*"; color = (col.r, col.g, col.b))
+
+    # And the hypersphere itself
+    sphere = tree.hyper_spheres[idx]
+    add_sphere(ax, sphere, (col.r, col.g, col.b))
 end
 
 title("Leaf nodes with their corresponding points")
-
-
-
 
 ##
 
 using Distances
 
-
-MeanSqDeviation()([1;2;3;4], [2;3;4;5])
-
-
-
+MeanSqDeviation()([1; 2; 3; 4], [2; 3; 4; 5])
 
 #
