@@ -9,17 +9,13 @@ const TU = TransformUtils
 
 # using Gadfly
 
-
-
-logmap_SO2(Rl::Matrix{Float64}) = sign(Rl[2,1])*acos(Rl[1,1])
-difftheta(wth1::Float64, wth2::Float64)::Float64 = logmap_SO2(TU.R(wth1)'*TU.R(wth2))
-
+logmap_SO2(Rl::Matrix{Float64}) = sign(Rl[2, 1]) * acos(Rl[1, 1])
+difftheta(wth1::Float64, wth2::Float64)::Float64 = logmap_SO2(TU.R(wth1)' * TU.R(wth2))
 
 #assume an unwrapped circle
 
-
 μ1 = # 0.0
-μ2 = pi/2.0
+    μ2 = pi / 2.0
 
 Λ1 = 10.0
 Λ2 = 10.0
@@ -27,23 +23,27 @@ difftheta(wth1::Float64, wth2::Float64)::Float64 = logmap_SO2(TU.R(wth1)'*TU.R(w
 Lambdas = [Λ1; Λ2]
 mus = [μ1; μ2]
 
-
-μ = get2DMuMin(mus, Lambdas, diffop=difftheta, initrange=(-pi+0.0,pi+0.0), periodicmanifold=wrapRad)[1]
+μ = get2DMuMin(
+    mus,
+    Lambdas;
+    diffop = difftheta,
+    initrange = (-pi + 0.0, pi + 0.0),
+    periodicmanifold = wrapRad,
+)[1]
 TU.wrapRad(μ)
 
 N = 1000
 
-BUPS = Float64[get2DMuMin(mus, Lambdas, diffop=difftheta, periodicmanifold=wrapRad)[1] for i in 1:N]
+BUPS = Float64[
+    get2DMuMin(mus, Lambdas; diffop = difftheta, periodicmanifold = wrapRad)[1] for i = 1:N
+]
 # BUPS[:] .= TU.wrapRad.(BUPS)
 
-
-@test 0.3*N < sum( 0 .< BUPS .< 3pi/2.0)
-@test 0.3*N < sum( -3pi/2 .< BUPS .< 0.0)
-@test sum( -0.1 .< BUPS .< 0.1) < 0.01*N
+@test 0.3 * N < sum(0 .< BUPS .< 3pi / 2.0)
+@test 0.3 * N < sum(-3pi / 2 .< BUPS .< 0.0)
+@test sum(-0.1 .< BUPS .< 0.1) < 0.01 * N
 
 # plot(x=BUPS, Geom.histogram)
-
-
 
 # @testset "fanning ternary means..." begin
 #
@@ -145,8 +145,5 @@ BUPS = Float64[get2DMuMin(mus, Lambdas, diffop=difftheta, periodicmanifold=wrapR
 #
 # end
 #
-
-
-
 
 #

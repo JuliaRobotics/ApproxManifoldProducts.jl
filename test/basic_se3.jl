@@ -8,60 +8,58 @@ using Test
 
 @testset "Test isapprox function on basic SpecialEuclideanGroup(3; variant = :right)" begin
 
-##
+    ##
 
-# FIXME hacking the manifolds here, needs consolidation
-# a = kde!(randn(6,50))
-# b = kde!(randn(6,50))
-# c_ = randn(6,50)
-# c_[1,:] .+= 50
-# c = kde!(c_)
+    # FIXME hacking the manifolds here, needs consolidation
+    # a = kde!(randn(6,50))
+    # b = kde!(randn(6,50))
+    # c_ = randn(6,50)
+    # c_[1,:] .+= 50
+    # c = kde!(c_)
 
-M = SpecialEuclideanGroup(3; variant = :right)
-u0 = ArrayPartition(zeros(3),[1 0 0; 0 1 0; 0 0 1.0])
-ϵ = identity_element(M, typeof(u0))
-N = 50
+    M = SpecialEuclideanGroup(3; variant = :right)
+    u0 = ArrayPartition(zeros(3), [1 0 0; 0 1 0; 0 0 1.0])
+    ϵ = identity_element(M, typeof(u0))
+    N = 50
 
-pts1 = [exp(M, ϵ, hat(M, ϵ, [0.5*randn(3);0.1*randn(3)])) for i in 1:N]
-pts2 = [exp(M, ϵ, hat(M, ϵ, [0.5*randn(3);0.1*randn(3)])) for i in 1:N]
-pts3 = [exp(M, ϵ, hat(M, ϵ, [0.5*randn()+50;0.5*randn(2);0.1*randn(3)])) for i in 1:N]
+    pts1 = [exp(M, ϵ, hat(M, ϵ, [0.5 * randn(3); 0.1 * randn(3)])) for i = 1:N]
+    pts2 = [exp(M, ϵ, hat(M, ϵ, [0.5 * randn(3); 0.1 * randn(3)])) for i = 1:N]
+    pts3 = [
+        exp(M, ϵ, hat(M, ϵ, [0.5 * randn() + 50; 0.5 * randn(2); 0.1 * randn(3)])) for
+        i = 1:N
+    ]
 
-##
+    ##
 
-ret = mmd(M, pts1, pts2)
-@test ret < 1
+    ret = mmd(M, pts1, pts2)
+    @test ret < 1
 
-ret = mmd(M, pts1, pts3)
-@test 0.001 < ret
+    ret = mmd(M, pts1, pts3)
+    @test 0.001 < ret
 
+    ##
 
-##
+    A = ManifoldKernelDensity(M, pts1)
+    B = ManifoldKernelDensity(M, pts2)
+    C = ManifoldKernelDensity(M, pts3)
 
-A = ManifoldKernelDensity(M, pts1)
-B = ManifoldKernelDensity(M, pts2)
-C = ManifoldKernelDensity(M, pts3)
+    @test 0.75 < AMP.ker(M, pts1[1], pts1[2], 0.001) < 1.25
+    @test 0.75 < AMP.ker(M, pts2[1], pts2[2], 0.001) < 1.25
+    @test 0.75 < AMP.ker(M, pts3[1], pts3[2], 0.001) < 1.25
 
+    @test 0 < AMP.ker(M, pts1[1], pts3[1], 0.001) < 0.25
+    @test 0 < AMP.ker(M, pts1[1], pts3[2], 0.001) < 0.25
+    @test 0 < AMP.ker(M, pts1[2], pts3[1], 0.001) < 0.25
 
-@test 0.75 < AMP.ker(M, pts1[1], pts1[2], 0.001) < 1.25
-@test 0.75 < AMP.ker(M, pts2[1], pts2[2], 0.001) < 1.25
-@test 0.75 < AMP.ker(M, pts3[1], pts3[2], 0.001) < 1.25
+    @test isapprox(A, B)
+    @test !isapprox(A, C)
 
-@test 0 < AMP.ker(M, pts1[1], pts3[1], 0.001) < 0.25
-@test 0 < AMP.ker(M, pts1[1], pts3[2], 0.001) < 0.25
-@test 0 < AMP.ker(M, pts1[2], pts3[1], 0.001) < 0.25
+    ##
 
+    show(A)
 
-@test isapprox(A, B)
-@test !isapprox(A, C)
-
-
-##
-
-show(A)
-
-##
+    ##
 
 end
-
 
 #

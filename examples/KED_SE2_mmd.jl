@@ -5,8 +5,8 @@ using ApproxManifoldProducts
 # @load "mmdse2.jld2" pred meas
 
 # x,y,theta
-pred = randn(3,100)
-meas = randn(3,100)
+pred = randn(3, 100)
+meas = randn(3, 100)
 
 val = [0.0]
 mmd!(val, pred, meas, SE2_Manifold)

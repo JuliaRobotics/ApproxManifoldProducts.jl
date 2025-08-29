@@ -7,11 +7,9 @@ import NearestNeighbors: interpolate
 
 ##
 
-
-
 # convert point to coordinates
 function coords(p)
-    return SA[p.x[1][1], p.x[1][2], atan(p.x[2][2,1],p.x[2][1,1])] # fixed from acos(p.parts[2][1,1]
+    return SA[p.x[1][1], p.x[1][2], atan(p.x[2][2, 1], p.x[2][1, 1])] # fixed from acos(p.parts[2][1,1]
 end
 # reverse of `coords`
 function uncoords(p)
@@ -20,7 +18,7 @@ function uncoords(p)
 end
 
 # The variant in ManifoldML doesn't support `ProductRepr` currently.
-struct SE2Distance{TM<:AbstractManifold} <: Distances.Metric
+struct SE2Distance{TM <: AbstractManifold} <: Distances.Metric
     manifold::TM
 end
 function (dist::SE2Distance)(a, b)
@@ -32,52 +30,27 @@ end
 M = SpecialEuclideanGroup(2; variant = :right)
 N = 128
 
-
 # some random points to make a tree from
-pts = [uncoords(@SVector randn(3)) for _ in 1:N]
-
+pts = [uncoords(@SVector randn(3)) for _ = 1:N]
 
 dist = SE2Distance(M)
 # making a tree
 point_matrix = reduce(hcat, map(a -> coords(a), pts))
-balltree = BallTree(point_matrix, dist; leafsize=1)
+balltree = BallTree(point_matrix, dist; leafsize = 1)
 # finding nearest neighbors
 k = 3
 idxs, dists = knn(balltree, coords(pts[2]), k)
 
-
-
 ## ========================
-
-
-
 
 import ApproxManifoldProducts: HyperEllipse, ManellicTree, eigenCoords, splitPointsEigen
 
+function buildTree(tree, pts)
+    #
 
-
-
-
-function buildTree(
-  tree,
-  pts
-)
-  #
-
-
-
-
-1 == length(pts) ? nothing : nothing
-
-
+    return 1 == length(pts) ? nothing : nothing
 end
-
-
-
 
 ## ====================================================================
 ## TESTING CODE
 ## ====================================================================
-
-
-
