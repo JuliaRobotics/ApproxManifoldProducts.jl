@@ -880,7 +880,7 @@ function sampleProductSeqGibbsBTLabel(
     return labels_sampled
 end
 
-Base.length(mkd::ManifoldKernelDensity) = length(mkd.belief)
+Base.length(mkd::ManifoldKernelDensity) = Ndim(mkd.belief)
 
 function sampleProductSeqGibbsBTLabels(
     M::AbstractManifold,

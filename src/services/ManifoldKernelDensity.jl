@@ -266,7 +266,15 @@ function sample(x::ManifoldKernelDensity{M, B, L, P}, N::Integer = 1) where {M, 
     return vecP, lbls
 end
 
-Random.rand(mkd::ManifoldKernelDensity, N::Integer = 1) = sample(mkd, N)[1]
+Random.rand(mkd::ManifoldKernelDensity, N::Integer) = sample(mkd, N)[1]
+
+# rand(mkd::ManifoldKernelDensity) = sample(mkd, 1)[1][1]
+Distributions.variate_form(mkd::ManifoldKernelDensity) = Ndim(mkd) == 1 ? Univariate : Multivariate
+function Random.rand(mkd::ManifoldKernelDensity)
+    return _rand(Distributions.variate_form(mkd), mkd)
+end
+_rand(::Type{Univariate}, mkd::ManifoldKernelDensity) = sample(mkd.belief, 1)[1][:][]
+_rand(::Type{Multivariate}, mkd::ManifoldKernelDensity) = sample(mkd.belief, 1)[1][:]
 
 function resample(x::ManifoldKernelDensity, N::Int)
     pts = if N < Npts(x)
