@@ -186,7 +186,7 @@ end
     ##
 
     M = SpecialEuclideanGroup(2; variant = :right)
-    ε = MF.identity_element(M, ArrayPartition)
+    ε = identity_element(M, ArrayPartition)
 
     Xc_p = [0, 0, 0.0]
     p = exp(M, hat(LieAlgebra(M), Xc_p, ArrayPartition))
