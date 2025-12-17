@@ -7,6 +7,7 @@
 #   end
 # end
 
+# number of data points (aka particles) in tree, i.e. N
 Base.length(::ManellicTree{M, D, N}) where {M, D, N} = N
 
 getPoints(mt::ManellicTree) = view(mt.data, mt.permute)
@@ -16,7 +17,7 @@ getWeights(mt::ManellicTree) = view(mt.weights, mt.permute)
 # _getleft(i::Integer, N) = 2*i + (2*i < N ? 0 : 1)
 # _getright(i::Integer, N) = _getleft(i,N) + 1
 
-# either leaf or tree kernel, if larger than N
+# either tree or leaf kernel, if larger than N
 function leftIndex(mt::ManellicTree, krnIdx::Int = 1)
     return 2 * krnIdx + (2 * krnIdx < length(mt) ? 0 : 1)
 end
@@ -50,6 +51,9 @@ getKernelLeafAsTreeKer(
     $SIGNATURES
 
 Return kernel from tree by binary tree index, and convert leaf kernels to tree kernel types if necessary.
+
+Notes:
+- BinaryTree (BT) index goes from root=1 to largest leaf 2*N
 
 See also: [`getKernelLeafAsTreeKer`](@ref)
 """
@@ -92,8 +96,9 @@ function getKernelTree(
     end
 end
 
+
+# check for existence in tree or leaves
 function exists_BTLabel(mt::ManellicTree{M, D, N}, idx::Int) where {M, D, N}
-    # check for existence in tree or leaves
     eset = if idx < N
         mt._workaround_isdef_treekernel
     else
@@ -115,8 +120,11 @@ function isLeaf_BTLabel(mt::ManellicTree{M, D, N}, idx::Int) where {M, D, N}
     end
 end
 
+# check for uniform weights
 uniWT(mt::ManellicTree) = 1 === length(union(diff(getWeights(mt))))
 
+
+# check for uniform bandwidths in kernels
 function uniBW(mt::ManellicTree{M, D, N}) where {M, D, N}
     if 1 < length(mt.leaf_kernels)
         bw = cov(mt.leaf_kernels[1])
@@ -219,6 +227,7 @@ function Base.convert(
     return src
 end
 
+# case for different types requiring conversion
 function Base.convert(
     ::Type{MvNormalKernel{P, T, M, iM}},
     src::MvNormalKernel,
@@ -231,7 +240,7 @@ function Base.convert(
     return MvNormalKernel{P, T, M, iM}(μ, p, sqrt_iΣ, src.weight)
 end
 
-# covariance
+# covariance eigen decomposition and sort ascending
 function eigenCoords(f_CVp::AbstractMatrix)
     function _decomp(evc::AbstractMatrix, evl::AbstractVector, _toflip::Bool = det(evc) < 0)
         pidx = _toflip ? sortperm(evl; rev = true) : 1:length(evl)
@@ -253,10 +262,10 @@ end
 
 Give vector of manifold points and split along largest covariance (i.e. major direction)
 
-DeVNotes:
+DevNotes:
 - FIXME: upgrade to Manopt version 
   - https://github.com/JuliaRobotics/ApproxManifoldProducts.jl/issues/277
-- FIXME use manifold mean and cov calculation instead
+- TODO, use recursive power series for next largest eigen vector down depth of tree for efficiency
 """
 function splitPointsEigen(
     M::AbstractLieGroup,
@@ -437,7 +446,7 @@ Notes:
 DevNotes:
 - Design Decision 24Q1, Manellic.MvNormalKernel bandwidth defs should ALWAYS ONLY BE covariances, because
   - Vision state is multiple bandwidth kernels including off diagonals in both tree or leaf kernels
-  - Hybrid parametric to leafs convariance continuity
+  - Hybrid parametric to leafs covariance continuity
   - https://github.com/JuliaStats/Distributions.jl/blob/a9b0e3c99c8dda367f69b2dbbdfa4530c810e3d7/src/multivariate/mvnormal.jl#L220-L224
 """
 function buildTree_Manellic!(

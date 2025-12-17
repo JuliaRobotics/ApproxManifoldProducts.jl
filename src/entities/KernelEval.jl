@@ -2,9 +2,9 @@
 abstract type AbstractKernel end
 
 @kwdef struct MvNormalKernel{P, T, M, iM} <: AbstractKernel
-    """ On-manifold point representing center (mean) of the MvNormal distrubtion """
+    """ On-manifold point representing center (mean) of the MvNormal distribution """
     μ::P
-    """ Zero-mean normal distrubtion with covariance """
+    """ Zero-mean normal distribution with covariance """
     p::MvNormal{T, M}
     # TDB might already be covered in p.Σ.chol but having issues with SymPD (not particular to this AMP repo)
     """ Manually maintained square root concentration matrix for faster compute, TODO likely duplicate of existing Distrubtions.jl functionality. """

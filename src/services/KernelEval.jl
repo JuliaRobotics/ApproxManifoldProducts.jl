@@ -1,8 +1,49 @@
 
+## =============================================================================
+## Function Overloads
+
+# NOTES, 
+# - ManellicTree kernel types have mean and cov methods for easy access
+# - ManellicTree currently only supports MvNormalKernel types
+
+Statistics.mean(m::MvNormalKernel) = m.μ         # mean(m.p)
+Statistics.cov(m::MvNormalKernel) = cov(m.p)     # note also about m.sqrt_iΣ
+Statistics.std(m::MvNormalKernel) = sqrt(cov(m)) # regular sqrt (not of inverse)
+
+
+function Base.show(io::IO, mvk::MvNormalKernel)
+    μ = mean(mvk)
+    Σ2 = cov(mvk)
+    # Σ=sqrt(Σ2)
+    d = size(Σ2, 1)
+    print(io, "MvNormalKernel(d=", d)
+    print(io, ",μ=", round.(μ; digits = 3))
+    print(io, ",Σ^2=[", round(Σ2[1]; digits = 3))
+    if 1 < d
+        print(io, "...")
+    end
+    # det(T-I) is a proxy through volume meaure of Transform from unit covariance matrix to this instance
+    # i.e. how large or rotated is this covariance instance
+    println(
+        io,
+        "]); det(T-I)=",
+        round(det(covTransformNormalized(Σ2) - diagm(ones(d))); digits = 3),
+    )
+    # ; det(Σ)=",round(det(Σ);digits=3), "
+    return nothing
+end
+
+Base.show(io::IO, ::MIME"text/plain", mvk::MvNormalKernel) = show(io, mvk)
+
+
+
+## =============================================================================
+## Various kernel accessors and functions
+
 # also makes static
 function projectSymPosDef(c::AbstractMatrix)
     s = size(c)
-    # pretty fast to make or remake isbitstype form matrix
+    # pretty fast to make or remake isbitstype from matrix
     _c = SMatrix{s...}(c)
     #TODO likely not intended project here: see AMP#283
     return issymmetric(_c) ? _c : project(Manifolds.SymmetricPositiveDefinite(s[1]), _c, _c)
@@ -18,10 +59,6 @@ function MvNormalKernel(μ::AbstractArray, σ::AbstractArray, weight::Real = 1.0
     sqrt_iΣ = sqrt(inv(_c))
     return MvNormalKernel(; μ, p, sqrt_iΣ, weight = float(weight))
 end
-
-Statistics.mean(m::MvNormalKernel) = m.μ # mean(m.p) # m.p.μ
-Statistics.cov(m::MvNormalKernel) = cov(m.p) # note also about m.sqrt_iΣ
-Statistics.std(m::MvNormalKernel) = sqrt(cov(m))
 
 function updateKernelBW(k::MvNormalKernel, _bw, isq_bw = inv(sqrt(_bw)))
     p = MvNormal(_bw)
@@ -58,29 +95,6 @@ function covTransformNormalized(Σ::AbstractMatrix)
     return R * S
 end
 
-function Base.show(io::IO, mvk::MvNormalKernel)
-    μ = mean(mvk)
-    Σ2 = cov(mvk)
-    # Σ=sqrt(Σ2)
-    d = size(Σ2, 1)
-    print(io, "MvNormalKernel(d=", d)
-    print(io, ",μ=", round.(μ; digits = 3))
-    print(io, ",Σ^2=[", round(Σ2[1]; digits = 3))
-    if 1 < d
-        print(io, "...")
-    end
-    # det(T-I) is a proxy through volume meaure of Transform from unit covariance matrix to this instance
-    # i.e. how large or rotated is this covariance instance
-    println(
-        io,
-        "]); det(T-I)=",
-        round(det(covTransformNormalized(Σ2) - diagm(ones(d))); digits = 3),
-    )
-    # ; det(Σ)=",round(det(Σ);digits=3), "
-    return nothing
-end
-
-Base.show(io::IO, ::MIME"text/plain", mvk::MvNormalKernel) = show(io, mvk)
 
 function distanceMalahanobisCoordinates(
     M::AbstractManifold,
