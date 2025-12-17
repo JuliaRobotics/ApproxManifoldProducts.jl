@@ -265,7 +265,7 @@ Give vector of manifold points and split along largest covariance (i.e. major di
 DevNotes:
 - FIXME: upgrade to Manopt version 
   - https://github.com/JuliaRobotics/ApproxManifoldProducts.jl/issues/277
-- TODO, use recursive power series for next largest eigen vector down depth of tree for efficiency
+- TODO, instead use Krylov methods (e.g. recursive power series) for next largest eigen vector down depth of tree for efficiency
 """
 function splitPointsEigen(
     M::AbstractLieGroup,
