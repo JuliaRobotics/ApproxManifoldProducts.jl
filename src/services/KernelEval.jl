@@ -49,16 +49,6 @@ function projectSymPosDef(c::AbstractMatrix)
     return issymmetric(_c) ? _c : project(Manifolds.SymmetricPositiveDefinite(s[1]), _c, _c)
 end
 
-function MvNormalKernel(μ::AbstractArray, σ::AbstractArray, weight::Real = 1.0)
-    c_(s::AbstractMatrix) = s
-    c_(s::AbstractVector) = diagm(s)
-    Σ = c_(σ)
-    _c = projectSymPosDef(Σ)
-    p = MvNormal(_c)
-    # NOTE, TBD, why not sqrt(inv(p.Σ)), this had an issue seemingly internal to PDMat.chol which breaks an already forced SymPD matrix to again be not SymPD???
-    sqrt_iΣ = sqrt(inv(_c))
-    return MvNormalKernel(; μ, p, sqrt_iΣ, weight = float(weight))
-end
 
 function updateKernelBW(k::MvNormalKernel, _bw, isq_bw = inv(sqrt(_bw)))
     p = MvNormal(_bw)

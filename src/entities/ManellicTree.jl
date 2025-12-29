@@ -18,11 +18,12 @@
 struct ManellicTree{M, D <: AbstractVector, N, HL, HT}
     manifold::M
     data::D
-    weights::MVector{N, <:Real}
+    weights::MVector{N, <:Real}  # TODO rename to mixture_weights
+    # TODO introduce weights
     permute::MVector{N, Int}
     # kernels::ArrayPartition{<:Number,KT}
-    leaf_kernels::SizedVector{N, HL}
-    tree_kernels::SizedVector{N, HT}
+    leaf_kernels::SizedVector{N, HL}  # TODO rename to twig_kernels
+    tree_kernels::SizedVector{N, HT}  # TODO rename to mixture_kernels
     segments::SizedVector{N, Set{Int}}
     # left_idx::MVector{N,Int}
     # right_idx::MVector{N,Int}

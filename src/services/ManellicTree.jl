@@ -219,26 +219,7 @@ end
 
 Base.show(io::IO, ::MIME"text/plain", mt::ManellicTree) = show(io, mt)
 
-# case for identical types not requiring any conversions
-function Base.convert(
-    ::Type{MvNormalKernel{P, T, M, iM}},
-    src::MvNormalKernel{P, T, M, iM},
-) where {P, T, M, iM}
-    return src
-end
 
-# case for different types requiring conversion
-function Base.convert(
-    ::Type{MvNormalKernel{P, T, M, iM}},
-    src::MvNormalKernel,
-) where {P, T, M, iM}
-    #
-    _matType(::Type{Distributions.PDMats.PDMat{_F, _M}}) where {_F, _M} = _M
-    μ = convert(P, src.μ) # P(src.μ)
-    p = MvNormal(_matType(M)(cov(src.p)))
-    sqrt_iΣ = iM(src.sqrt_iΣ)
-    return MvNormalKernel{P, T, M, iM}(μ, p, sqrt_iΣ, src.weight)
-end
 
 # covariance eigen decomposition and sort ascending
 function eigenCoords(f_CVp::AbstractMatrix)
