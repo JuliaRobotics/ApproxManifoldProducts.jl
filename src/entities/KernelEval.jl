@@ -16,12 +16,12 @@ end
 
 const ConcentratedGaussianKernel(;
     weight=1.0,
-    p=SVector(0.0),
+    p=SVector(0.0),  # center/expansion point on the manifold
     devmat=SMatrix{1,1}(1.0)
 ) = HomotopyBeliefKernel(;
     weight, 
     functional=MvNormal(p, devmat^2), # NOTE, find inverse Cholesky in MvNormal structure
-    params=(; p),
+    params=p,
 )
 
 
@@ -35,19 +35,19 @@ struct MvNormalKernel{T <: HomotopyBeliefKernel} <: AbstractKernel
 end
 
 
-import Base: getproperty
+# import Base: getproperty
 
 
-function Base.getproperty(k::MvNormalKernel, f::Symbol)
-    if f === :cov
-        return cov(k.shim.functional)
-    elseif f === :sqrt_iΣ
-        # super slow and hacky, but only legacy.  WIP replacing
-        cov(k) |> inv |> sqrt
-    else
-        return getproperty(k.shim, f)
-    end
-end
+# function Base.getproperty(k::MvNormalKernel, f::Symbol)
+#     if f === :cov
+#         return k.shim.functional.Σ.mat
+#     elseif f === :sqrt_iΣ
+#         # super slow and hacky, but only legacy.  WIP replacing
+#         cov(k) |> inv |> sqrt
+#     else
+#         return getproperty(k.shim, f)
+#     end
+# end
 
 
 
