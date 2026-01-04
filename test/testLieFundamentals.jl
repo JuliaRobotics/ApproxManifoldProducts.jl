@@ -239,6 +239,7 @@ end
     μn = _Σn \ _Σnμn
     Σn = inv(_Σn)
 
+
     # verify calcProductGaussians utility function
     p̂ = calcProductGaussians(M, (p1, p2); μ0 = ε, do_transport_correction = false)
 
@@ -266,7 +267,7 @@ end
         do_transport_correction = true,
     )
 
-    @test isapprox([0; 0; 0.0], mean(p̂.p); atol = 1e-10)
+    @test isapprox([0; 0; 0.0], mean(p̂.shim.functional); atol = 1e-10)
 
     @test isapprox(
         μn,

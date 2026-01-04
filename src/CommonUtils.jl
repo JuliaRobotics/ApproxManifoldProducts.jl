@@ -241,7 +241,7 @@ function calcProductGaussians(
 ) where {N, K <: MvNormalKernel}
     # CHECK this should be on-manifold for points
     μ_ = mean.(kernels) # This is a ArrayPartition which IS DEFINITELY ON MANIFOLD (we dispatch on mean)
-    Σ_ = cov.(kernels) .|> s -> s.mat  # on tangent
+    Σ_ = cov.(kernels) # .|> s -> s.mat  # on tangent
 
     # parallel transport needed for covariances from different tangent spaces
     _μ, _Σ = if isnothing(μ0)

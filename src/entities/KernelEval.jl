@@ -20,7 +20,7 @@ const ConcentratedGaussianKernel(;
     devmat=SMatrix{1,1}(1.0)
 ) = HomotopyBeliefKernel(;
     weight, 
-    functional=MvNormal(p, devmat^2), # NOTE, find inverse Cholesky in MvNormal structure
+    functional=MvNormal(devmat^2), # NOTE, find inverse Cholesky in MvNormal structure
     params=p,
 )
 
@@ -35,13 +35,11 @@ struct MvNormalKernel{T <: HomotopyBeliefKernel} <: AbstractKernel
 end
 
 
-# import Base: getproperty
+import Base: getproperty
 
 
 # function Base.getproperty(k::MvNormalKernel, f::Symbol)
-#     if f === :cov
-#         return k.shim.functional.Σ.mat
-#     elseif f === :sqrt_iΣ
+#     if f === :sqrt_iΣ
 #         # super slow and hacky, but only legacy.  WIP replacing
 #         cov(k) |> inv |> sqrt
 #     else
@@ -69,6 +67,7 @@ function MvNormalKernel(
     σ::AbstractArray, 
     weight::Real = 1.0
 )
+    @warn "MvNormalKernel is deprecated, use ConcentratedGaussianKernel instead" maxlog=10
     c_(s::AbstractMatrix) = s
     c_(s::AbstractVector) = diagm(s)
     Σ = c_(σ)
@@ -83,6 +82,28 @@ function MvNormalKernel(
     )
 end
 
+
+MvNormalKernel(; μ, p::MvNormal, weight = 1.0) = MvNormalKernel(μ, cov(p), weight)
+
+
+function convert(
+    ::Type{MvNormalKernel{
+        ApproxManifoldProducts.HomotopyBeliefKernel{
+            MvNormal{F,P,Z},
+            S
+        }
+    }},
+    src::MvNormalKernel,
+) where {F,P,Z,S}
+
+    _matType(::Type{Distributions.PDMats.PDMat{_F, _M}}) where {_F, _M} = _M
+
+    MvNormalKernel(
+        S(src.shim.params),
+        _matType(P)(cov(src.shim.functional)),
+        src.shim.weight,
+    )
+end
 
 
 # function MvNormalKernel(
@@ -110,15 +131,16 @@ function Base.convert(
     return src
 end
 
-# case for different types requiring conversion
-function Base.convert(
-    ::Type{MvNormalKernel{T}},
-    src::MvNormalKernel,
-) where {T}
-    #
-    _matType(::Type{Distributions.PDMats.PDMat{_F, _M}}) where {_F, _M} = _M
-    μ = convert(P, src.μ) # P(src.μ)
-    p = MvNormal(_matType(M)(cov(src.p)))
-    # sqrt_iΣ = iM(src.sqrt_iΣ)
-    return MvNormalKernel(μ, p, src.weight)
-end
+
+# # case for different types requiring conversion
+# function Base.convert(
+#     ::Type{MvNormalKernel{T}},
+#     src::MvNormalKernel,
+# ) where {T}
+#     #
+#     _matType(::Type{Distributions.PDMats.PDMat{_F, _M}}) where {_F, _M} = _M
+#     μ = convert(P, src.μ) # P(src.μ)
+#     p = MvNormal(_matType(M)(cov(src.p)))
+#     # sqrt_iΣ = iM(src.sqrt_iΣ)
+#     return MvNormalKernel(μ, p, src.weight)
+# end

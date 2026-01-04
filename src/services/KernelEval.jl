@@ -6,7 +6,7 @@
 # - ManellicTree kernel types have mean and cov methods for easy access
 # - ManellicTree currently only supports MvNormalKernel types
 
-Statistics.mean(m::MvNormalKernel) = m.shim.functional.μ         # mean(m.p)
+Statistics.mean(m::MvNormalKernel) = m.shim.params         # mean(m.p)
 # Statistics.cov(m::MvNormalKernel) = cov(m.p)     # note also about m.sqrt_iΣ
 Statistics.cov(m::MvNormalKernel) = m.shim.functional.Σ.mat # direct from stored matrix
 Statistics.std(m::MvNormalKernel) = sqrt(cov(m)) # regular sqrt (not of inverse)
@@ -53,7 +53,8 @@ end
 
 function updateKernelBW(k::MvNormalKernel, _bw, isq_bw = inv(sqrt(_bw)))
     p = MvNormal(_bw)
-    sqrt_iΣ = typeof(k.sqrt_iΣ)(isq_bw)
+    # sqrt_iΣ = typeof(k.sqrt_iΣ)(isq_bw)
+    sqrt_iΣ = isq_bw
     return MvNormalKernel(; μ = k.μ, p, sqrt_iΣ, weight = k.weight)
 end
 updateKernelBW(ekr::MvNormalKernel, ::Nothing) = ekr # avoid ifs for noops
