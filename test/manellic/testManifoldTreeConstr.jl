@@ -23,19 +23,19 @@ DATADIR = joinpath(dirname(@__DIR__), "testdata")
 
 # test 
 function testEigenCoords(r_C = pi / 3, ax_CC = [SA[5 * randn(); randn()] for _ = 1:100])
-    M = TranslationGroup(2)
+    M = LGr.TranslationGroup(2)
     _R(α, s = exp(-α * im)) = real(s) * SA[1 0; 0 1] + imag(s) * SA[0 1; -1 0]
     # _R(α) = SA[cos(α) sin(α); -sin(α) cos(α)]
     r_R_ax = _R(r_C)
     # rotate coordinates
     r_CC = map(ax_CC) do ax_C
-        return r_R_ax * ax_C + SA[10; -100]
+        r_R_ax * ax_C + SA[10; -100]
     end
     r_CV = Statistics.cov(M, r_CC)
     r_R_ax_, L, pidx = ApproxManifoldProducts.eigenCoords(r_CV)
 
     # spot check
-    @show _ax_ERR = log(SpecialOrthogonalGroup(2), (r_R_ax_') * r_R_ax)[1, 2]
+    @show _ax_ERR = log(LGr.SpecialOrthogonalGroup(2), (r_R_ax_') * r_R_ax)[1, 2]
     @show testval = isapprox(0, _ax_ERR; atol = 8 / length(ax_CC))
     @assert testval "Spot check failed on eigen split of manifold points, the estimated point rotation matrix did not match construction. length(ax_CC)=$(length(ax_CC))"
 
@@ -46,14 +46,14 @@ end
 @testset "test ManellicTree construction" begin
     ##
 
-    M = TranslationGroup(2)
+    M = LGr.TranslationGroup(2)
     α = pi / 3
     r_CC, R, pidx, r_CV = testEigenCoords(α)
     ax_CCp, mask, knl = splitPointsEigen(M, r_CC)
     @test sum(mask) == (length(r_CC) ÷ 2)
     @test knl isa ApproxManifoldProducts.MvNormalKernel
-    Mr = SpecialOrthogonalGroup(2)
-    @test isapprox(α, vee(LieAlgebra(Mr), log(Mr, R))[1]; atol = 0.1)
+    Mr = LGr.SpecialOrthogonalGroup(2)
+    @test isapprox(α, LGr.vee(LGr.LieAlgebra(Mr), log(Mr, R))[1]; atol = 0.1)
 
     ##
 
@@ -111,7 +111,7 @@ end
 @testset "ManellicTree construction 1D" begin
     ##
 
-    M = TranslationGroup(1)
+    M = LGr.TranslationGroup(1)
     # already sorted list
     pts = [[1.0], [2.0], [4.0], [7.0], [11.0], [16.0], [22.0]]
     bw = [1.0]
@@ -283,7 +283,7 @@ end
 @testset "Test evaluate MvNormalKernel" begin
     ##
 
-    M = TranslationGroup(1)
+    M = LGr.TranslationGroup(1)
     ker = AMP.MvNormalKernel([0.0], [0.5;;])
     @test isapprox(AMP.evaluate(M, ker, [0.1]), pdf(MvNormal(mean(ker), cov(ker)), [0.1]))
 
@@ -296,7 +296,7 @@ end
         return 1 / (σ * sqrt(2pi)) * s
     end
 
-    M = LieGroups.CircleGroup(ℝ)
+    M = LGr.CircleGroup(ℝ)
     ker = AMP.MvNormalKernel([0.0], [0.1;;])
     @test isapprox(
         AMP.evaluate(M, ker, [0.1]),
@@ -316,28 +316,28 @@ end
     )
 
     ##
-    M = SpecialEuclideanGroup(2; variant = :right)
+    M = LGr.SpecialEuclideanGroup(2; variant = :right)
     ε = identity_element(M)
     Xc = [10, 20, 0.1]
-    p = exp(M, hat(LieAlgebra(M), Xc))
+    p = exp(M, LGr.hat(LGr.LieAlgebra(M), Xc))
     kercov = diagm([0.5, 2.0, 0.1] .^ 2)
     ker = AMP.MvNormalKernel(p, kercov)
     @test isapprox(AMP.evaluate(M, ker, p), pdf(MvNormal(Xc, cov(ker)), Xc))
 
     Xc = [10, 22, -0.1]
-    q = exp(M, hat(LieAlgebra(M), Xc))
+    q = exp(M, LGr.hat(LGr.LieAlgebra(M), Xc))
 
     @test isapprox(pdf(MvNormal(cov(ker)), [0, 0, 0]), AMP.evaluate(M, ker, p))
 
-    X = log(M, LieGroups.compose(M, inv(M, p), q))
-    Xc_e = vee(LieAlgebra(M), X)
+    X = log(M, LGr.compose(M, inv(M, p), q))
+    Xc_e = LGr.vee(LGr.LieAlgebra(M), X)
     pdf_local_coords = pdf(MvNormal(cov(ker)), Xc_e)
 
     @test isapprox(pdf_local_coords, AMP.evaluate(M, ker, q))
 
     delta_c = AMP.distanceMalahanobisCoordinates(M, ker, q)
-    X = log(M, LieGroups.compose(M, inv(M, p), q))
-    Xc_e = vee(LieAlgebra(M), X)
+    X = log(M, LGr.compose(M, inv(M, p), q))
+    Xc_e = LGr.vee(LGr.LieAlgebra(M), X)
     malad_t = Xc_e' * inv(kercov) * Xc_e
     # delta_t = [10, 20, 0.1] - [10, 22, -0.1] 
     @test isapprox(malad_t, delta_c' * delta_c; atol = 1e-10)
@@ -350,7 +350,7 @@ end
 
     # NOTE 'global' distribution would have been 
     X = log(M, mean(ker), q)
-    Xc_e = vee(LieAlgebra(M), X)
+    Xc_e = LGr.vee(LGr.LieAlgebra(M), X)
     pdf_global_coords = pdf(MvNormal(cov(ker)), Xc_e)
 
     ##
@@ -359,11 +359,11 @@ end
 @testset "Basic ManellicTree manifolds construction and evaluations" begin
     ## 
 
-    M = TranslationGroup(1)
+    M = LGr.TranslationGroup(1)
     ε = identity_element(M)
     dis = MvNormal([3.0], diagm([1.0] .^ 2))
     Cpts = [rand(dis) for _ = 1:128]
-    pts = map(c -> exp(M, ε, hat(M, ε, c)), Cpts)
+    pts = map(c -> exp(M, ε, LGr.hat(LGr.LieAlgebra(M), c)), Cpts)
     mtree = ApproxManifoldProducts.buildTree_Manellic!(
         M,
         pts;
@@ -372,7 +372,7 @@ end
     )
 
     ##
-    p = exp(M, ε, hat(LieAlgebra(M), [3.0]))
+    p = exp(M, ε, LGr.hat(LGr.LieAlgebra(M), [3.0]))
     y_amp = AMP.evaluate(mtree, p)
 
     y_pdf = pdf(dis, [3.0])
@@ -390,11 +390,11 @@ end
     # lines(first.(ps), ys_amp)
     ##
 
-    M = SpecialOrthogonalGroup(2)
+    M = LGr.SpecialOrthogonalGroup(2)
     ε = identity_element(M)
     dis = MvNormal([0.0], diagm([0.1] .^ 2))
     Cpts = [rand(dis) for _ = 1:128]
-    pts = map(c -> exp(M, hat(LieAlgebra(M), c)), Cpts)
+    pts = map(c -> exp(M, LGr.hat(LGr.LieAlgebra(M), c)), Cpts)
     mtree = ApproxManifoldProducts.buildTree_Manellic!(
         M,
         pts;
@@ -403,7 +403,7 @@ end
     )
 
     ##
-    p = exp(M, ε, hat(LieAlgebra(M), [0.1]))
+    p = exp(M, ε, LGr.hat(LGr.LieAlgebra(M), [0.1]))
     y_amp = AMP.evaluate(mtree, p)
 
     y_pdf = pdf(dis, [0.1])
@@ -411,17 +411,17 @@ end
     @test isapprox(y_amp, y_pdf; atol = 0.5)
 
     ps = [[p] for p = -0.3:0.01:0.3]
-    ys_amp = map(p -> AMP.evaluate(mtree, exp(M, ε, hat(LieAlgebra(M), p))), ps)
+    ys_amp = map(p -> AMP.evaluate(mtree, exp(M, ε, LGr.hat(LGr.LieAlgebra(M), p))), ps)
     ys_pdf = pdf(dis, ps)
 
     # lines(first.(ps), ys_pdf)
     # lines!(first.(ps), ys_amp)
 
-    M = SpecialEuclideanGroup(2; variant = :right)
+    M = LGr.SpecialEuclideanGroup(2; variant = :right)
     ε = identity_element(M)
     dis = MvNormal([10, 20, 0.1], diagm([0.5, 2.0, 0.1] .^ 2))
     Cpts = [rand(dis) for _ = 1:128]
-    pts = map(c -> exp(M, ε, hat(LieAlgebra(M), c)), Cpts)
+    pts = map(c -> exp(M, ε, LGr.hat(LGr.LieAlgebra(M), c)), Cpts)
     mtree = ApproxManifoldProducts.buildTree_Manellic!(
         M,
         pts;
@@ -430,7 +430,7 @@ end
     )
 
     ##
-    p = exp(M, hat(LieAlgebra(M), [10, 20, 0.1]))
+    p = exp(M, LGr.hat(LGr.LieAlgebra(M), [10, 20, 0.1]))
     y_amp = AMP.evaluate(mtree, p)
     y_pdf = pdf(dis, [10, 20, 0.1])
     # check kde eval is within 20% of true value

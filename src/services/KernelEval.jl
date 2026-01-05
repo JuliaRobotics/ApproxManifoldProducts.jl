@@ -10,7 +10,8 @@ Statistics.mean(m::MvNormalKernel) = m.shim.params         # mean(m.p)
 # Statistics.cov(m::MvNormalKernel) = cov(m.p)     # note also about m.sqrt_iΣ
 Statistics.cov(m::MvNormalKernel) = m.shim.functional.Σ.mat # direct from stored matrix
 Statistics.std(m::MvNormalKernel) = sqrt(cov(m)) # regular sqrt (not of inverse)
-
+# FIXME use MvNormal.pdmatrix for faster access to cov's Cholesky
+sqrt_iΣ(m::MvNormalKernel) = cov(m) |> sqrt |> inv
 
 function Base.show(io::IO, mvk::MvNormalKernel)
     μ = mean(mvk)
@@ -51,11 +52,10 @@ function projectSymPosDef(c::AbstractMatrix)
 end
 
 
-function updateKernelBW(k::MvNormalKernel, _bw, isq_bw = inv(sqrt(_bw)))
+function updateKernelBW(k::MvNormalKernel, _bw; sqrt_iΣ = inv(sqrt(_bw)))
     p = MvNormal(_bw)
-    # sqrt_iΣ = typeof(k.sqrt_iΣ)(isq_bw)
-    sqrt_iΣ = isq_bw
-    return MvNormalKernel(; μ = k.μ, p, sqrt_iΣ, weight = k.weight)
+    # sqrt_iΣ_ = typeof(k.sqrt_iΣ)(sqrt_iΣ)
+    return MvNormalKernel(mean(k), _bw, k.shim.weight)
 end
 updateKernelBW(ekr::MvNormalKernel, ::Nothing) = ekr # avoid ifs for noops
 
@@ -100,7 +100,7 @@ function distanceMalahanobisCoordinates(
     ϵ = identity_element(M, typeof(q))
     X = log(M, ϵ, pq)
     Xc = get_coordinates(M, ϵ, X, basis)
-    return K.sqrt_iΣ * Xc
+    return sqrt_iΣ(K) * Xc
 end
 
 function distanceMalahanobisCoordinates(
@@ -114,7 +114,7 @@ function distanceMalahanobisCoordinates(
     pq = LieGroups.compose(M, i_p, q)
     X = log(M, pq)
     Xc = vee(LieAlgebra(M), X)
-    return K.sqrt_iΣ * Xc
+    return sqrt_iΣ(K) * Xc
 end
 
 function distanceMalahanobisSq(

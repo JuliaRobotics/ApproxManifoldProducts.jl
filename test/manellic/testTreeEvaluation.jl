@@ -6,7 +6,8 @@ using Random
 using LinearAlgebra
 using StaticArrays
 using TensorCast
-using Manifolds
+# using Manifolds
+using LieGroups
 import Rotations as Rot_
 using Distributions
 import ApproxManifoldProducts: ManellicTree, eigenCoords, splitPointsEigen

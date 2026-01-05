@@ -27,7 +27,7 @@ function testEigenCoords(r_C = pi / 3, ax_CC = [SA[5 * randn(); randn()] for _ =
     r_R_ax = _R(r_C)
     # rotate coordinates
     r_CC = map(ax_CC) do ax_C
-        return r_R_ax * ax_C + SA[10; -100]
+        r_R_ax * ax_C + SA[10; -100]
     end
     r_CV = Manifolds.cov(M, r_CC)
     r_R_ax_, L, pidx = ApproxManifoldProducts.eigenCoords(r_CV)
@@ -464,7 +464,7 @@ end
     θs = -0.3:0.01:0.3
 
     grid_points = map(Iterators.product(xs, ys, θs)) do (x, y, θ)
-        return exp(M, ε, hat(M, ε, SVector(x, y, θ)))
+        exp(M, ε, hat(M, ε, SVector(x, y, θ)))
     end
 
     # use_global_coords = true
@@ -499,14 +499,14 @@ end
     # pdf_pqs .*= 15.9672
 
     amp_ps = map(grid_points) do gp
-        return AMP.evaluate(M, kerp, gp)
+        AMP.evaluate(M, kerp, gp)
     end
     amp_qs = map(grid_points) do gp
-        return AMP.evaluate(M, kerq, gp)
+        AMP.evaluate(M, kerq, gp)
     end
 
     amp_pqs = map(grid_points) do gp
-        return AMP.evaluate(M, kerpq, gp)
+        AMP.evaluate(M, kerpq, gp)
     end
 
     amp_bf_pqs = amp_ps .* amp_qs
@@ -542,7 +542,7 @@ end
     gl_kerpq = calcProductGaussians(M, [gl_kerp, gl_kerq])
 
     amp_gl_pqs = map(grid_points) do gp
-        return AMP.evaluate(M, gl_kerpq, gp)
+        AMP.evaluate(M, gl_kerpq, gp)
     end
 
     lines(xs, normalize(pdf_pqs[:, 60, 30]))

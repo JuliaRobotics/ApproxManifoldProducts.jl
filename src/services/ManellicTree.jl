@@ -267,8 +267,11 @@ function splitPointsEigen(
 
     D = manifold_dimension(M)
     ndia = ((D - 1) ÷ 2 + 1) * D
-    # FIXME, consider user provided bandwidth in estimating multisample covariance
-    cv = if ndia < len
+    # use provided bandwidth if available, or try estimate multisample covariance
+    cv = if !isnothing(kernel_bw)
+        bw = kernel_bw
+        return r_CCp, BitVector(ntuple(i -> true, Val(len))), kernel(p, bw)
+    elseif ndia < len
         SMatrix{D, D, Float64}(
             Manifolds.cov(M, r_PP; basis = DefaultLieAlgebraOrthogonalBasis()),
         )
@@ -277,12 +280,9 @@ function splitPointsEigen(
             diagm(diag(Manifolds.cov(M, r_PP; basis = DefaultLieAlgebraOrthogonalBasis()))),
         )
     else
-        # TODO case with user defined bandwidth for faster tree construction
-        bw = if isnothing(kernel_bw)
-            SMatrix{D, D, Float64}(diagm(eps(Float64) * ones(D)))
-        else
-            kernel_bw
-        end
+        # Fall back case
+        @warn "Not enough points to estimate covariance, using identity scaled by eps" maxlog=5
+        bw = SMatrix{D, D, Float64}(diagm(eps(Float64) * ones(D)))
         return r_CCp, BitVector(ntuple(i -> true, Val(len))), kernel(p, bw)
     end
     # S = SymmetricPositiveDefinite(2)
@@ -294,7 +294,7 @@ function splitPointsEigen(
 
     # rotate coordinates
     ax_CCp = map(r_CCp) do r_Cp
-        return ax_R_r * r_Cp
+        ax_R_r * r_Cp
     end
 
     # this is a local test around base point p (not at global 0)
@@ -585,8 +585,8 @@ function getBandwidthSearchBounds(mtree::ManellicTree)
     #FIXME isdefined does not work as expected for mtree.tree_kernels, so using length-1 for now
     # this will break if number of points is not a power of 2. 
     kernels_diag = map(1:(length(mtree.tree_kernels) - 1)) do i
-        # FIXME use cosnolidated getKernelTree instead
-        return diag(cov(mtree.tree_kernels[i]))
+        # FIXME use consolidated getKernelTree instead
+        diag(cov(mtree.tree_kernels[i]))
     end
     lower_diag = minimum(reduce(hcat, kernels_diag); dims = 2)
 

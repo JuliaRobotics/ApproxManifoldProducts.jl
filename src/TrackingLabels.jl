@@ -25,8 +25,9 @@ function Base.show(io::IO, x::DensityProductElements)
     println(io, "  # dims:       ", length(x.inElements[1][1]))
     println(io, "  # out pts:    ", length(x.outElements))
     println(io, "  .outBW[1]~:   ", x.outBW[1] .|> x -> round(x; digits = 5))
-    return println(io, "  .outdatedBW:  ", x.outdatedBW[])
+    println(io, "  .outdatedBW:  ", x.outdatedBW[])
     # println(io)
+    return nothing
 end
 
 Base.show(io::IO, ::MIME"text/plain", x::DensityProductElements) = show(io, x)

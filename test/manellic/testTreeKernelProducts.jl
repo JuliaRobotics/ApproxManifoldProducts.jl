@@ -41,7 +41,7 @@ using JSON3
     θs = -0.3:0.01:0.3
 
     grid_points = map(Iterators.product(xs, ys, θs)) do (x, y, θ)
-        return exp(M, ε, hat(LieAlgebra(M), SVector(x, y, θ), ArrayPartition))
+        exp(M, ε, hat(LieAlgebra(M), SVector(x, y, θ), ArrayPartition))
     end
 
     # use_global_coords = true
@@ -76,14 +76,14 @@ using JSON3
     # pdf_pqs .*= 15.9672
 
     amp_ps = map(grid_points) do gp
-        return AMP.evaluate(M, kerp, gp)
+        AMP.evaluate(M, kerp, gp)
     end
     amp_qs = map(grid_points) do gp
-        return AMP.evaluate(M, kerq, gp)
+        AMP.evaluate(M, kerq, gp)
     end
 
     amp_pqs = map(grid_points) do gp
-        return AMP.evaluate(M, kerpq, gp)
+        AMP.evaluate(M, kerpq, gp)
     end
 
     amp_bf_pqs = amp_ps .* amp_qs

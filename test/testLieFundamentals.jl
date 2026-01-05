@@ -234,7 +234,7 @@ end
     _Σs = map(s -> inv(cov(s)), (p1, p2))
     _Σn = +(_Σs...)
     _Σnμn = mapreduce(+, zip(_Σs, Xcs)) do (s, c)
-        return s * c
+        s * c
     end
     μn = _Σn \ _Σnμn
     Σn = inv(_Σn)

@@ -135,7 +135,7 @@ function calcProductGaussians_flat(
     # calc the covariance weighted delta means of incoming points and covariances
     ΛΔμc = mapreduce(+, zip(Λ_, μ_)) do (s, u)
         Δuvee = vee(LieAlgebra(M), log(M, μ0, u))
-        return s * Δuvee
+        s * Δuvee
     end
 
     # calculate the delta mean

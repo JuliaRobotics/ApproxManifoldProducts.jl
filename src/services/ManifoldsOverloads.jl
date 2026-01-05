@@ -71,8 +71,8 @@ end
 # right Jacobian (Lie Group, originally from ?)
 function Jr(M::AbstractLieGroup, X; order = 5)
     adx = ad(M, X)
-    mapreduce(+, 0:order) do i
-        return (-adx)^i / factorial(i + 1)
+    return mapreduce(+, 0:order) do i
+        (-adx)^i / factorial(i + 1)
     end
 end
 
