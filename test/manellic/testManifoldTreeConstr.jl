@@ -115,6 +115,22 @@ end
     # already sorted list
     pts = [[1.0], [2.0], [4.0], [7.0], [11.0], [16.0], [22.0]]
     bw = [1.0]
+
+
+    # preemptively check splitPoints 
+    begin
+        ax_CCp, mask, knl = splitPointsEigen(
+            M,
+            pts,
+            1/7*ones(length(pts));
+            kernel = AMP.MvNormalKernel,
+            kernel_bw = bw,
+        )
+
+        @test mask[1:4] == BitVector([0,0,0,0])
+        @test mask[5:7] == BitVector([1,1,1])
+    end
+
     mtree = ApproxManifoldProducts.buildTree_Manellic!(
         M,
         pts;

@@ -84,7 +84,7 @@ function getKernelTree(
             # FIXME is a parallel transport needed between different kernel covariances that each exist in different tangent spaces
             mean_bw = Matrix(mean(bws)) # FIXME upgrade to on-manifold mean
             # corrected cov varies from root (only Monte Carlo cov est) to leaves (only selected bandwdith)
-            nC = (1 - λ) * (s -> s.mat)(cov(raw_ker)) + λ * mean_bw
+            nC = (1 - λ) * (cov(raw_ker)) + λ * mean_bw
             # return a new kernel with cov_continuation, of tree kernel type
             kernelType = getfield(ApproxManifoldProducts, HT.name.name)
             kernelType(mean(raw_ker), nC, mtr.weights[currIdx])
@@ -268,10 +268,7 @@ function splitPointsEigen(
     D = manifold_dimension(M)
     ndia = ((D - 1) ÷ 2 + 1) * D
     # use provided bandwidth if available, or try estimate multisample covariance
-    cv = if !isnothing(kernel_bw)
-        bw = kernel_bw
-        return r_CCp, BitVector(ntuple(i -> true, Val(len))), kernel(p, bw)
-    elseif ndia < len
+    cv = if ndia < len
         SMatrix{D, D, Float64}(
             Manifolds.cov(M, r_PP; basis = DefaultLieAlgebraOrthogonalBasis()),
         )
@@ -280,9 +277,18 @@ function splitPointsEigen(
             diagm(diag(Manifolds.cov(M, r_PP; basis = DefaultLieAlgebraOrthogonalBasis()))),
         )
     else
+        SMatrix{D, D, Float64}(zeros(D, D))
+    end
+    # TODO, handle these if-else cases better
+    if isapprox(0.0, norm(cv)) 
         # Fall back case
-        @warn "Not enough points to estimate covariance, using identity scaled by eps" maxlog=5
-        bw = SMatrix{D, D, Float64}(diagm(eps(Float64) * ones(D)))
+        bw = if isnothing(kernel_bw)
+            @warn "Not enough points to estimate covariance" maxlog=5
+            # SMatrix{D, D, Float64}(diagm(eps(Float64) * ones(D)))
+            cv
+        else
+            kernel_bw
+        end
         return r_CCp, BitVector(ntuple(i -> true, Val(len))), kernel(p, bw)
     end
     # S = SymmetricPositiveDefinite(2)
@@ -498,11 +504,11 @@ function buildTree_Manellic!(
     kernel_bw = nothing, # TODO
 ) where {KL <: MvNormalKernel}
     #
-    _μT() = typeof(r_ker[1].μ)
+    _μT() = typeof(mean(r_ker[1]))
     D = manifold_dimension(M)
     CV = SMatrix{D, D, Float64, D * D}(collect(cov(r_ker[1])))
     KLT = getfield(ApproxManifoldProducts, kernel.name.name)
-    KT = KLT(r_ker[1].μ, CV) |> typeof
+    KT = KLT(mean(r_ker[1]), CV) |> typeof
 
     r_PP = SizedVector{N, _μT()}(undef)
 
@@ -510,7 +516,7 @@ function buildTree_Manellic!(
     lkern = SizedVector{N, KL}(undef)
     _workaround_isdef_leafkernel = Set{Int}()
     for i = 1:N
-        r_PP[i] = r_ker[i].μ
+        r_PP[i] = mean(r_ker[i])
         lkern[i] = if isnothing(kernel_bw)
             r_ker[i]
         else

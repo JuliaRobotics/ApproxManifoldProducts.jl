@@ -82,7 +82,7 @@ end
 
     # FIXME use bounds
     lcov, ucov = AMP.getBandwidthSearchBounds(mtree)
-    bw_cov = (ucov.mat + lcov) / 2
+    bw_cov = (ucov + lcov) / 2
     mtree_0 = ApproxManifoldProducts.buildTree_Manellic!(
         M,
         pts;
@@ -179,7 +179,6 @@ end
     ##
 end
 
-# if !(v"1.11" < VERSION < v"1.12.0-beta99")
 
 @testset "Multidimensional LOOCV bandwidth optimization, TranslationGroup(2)" begin
     ##

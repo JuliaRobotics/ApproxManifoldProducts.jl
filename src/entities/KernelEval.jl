@@ -97,9 +97,17 @@ function convert(
 ) where {F,P,Z,S}
 
     _matType(::Type{Distributions.PDMats.PDMat{_F, _M}}) where {_F, _M} = _M
+    _sap(::Type{ArrayPartition{T,_S}}) where {T,_S} = _S
+    _new(s) = S(s)
+    _new(s::ArrayPartition{T,O}) where {T,O} = ArrayPartition(begin
+        S_ = _sap(S)
+        [S_.parameters[i](v) for (i,v) in enumerate(s.x)]
+    end...)
+
+    m = _new(src.shim.params)
 
     MvNormalKernel(
-        S(src.shim.params),
+        m,
         _matType(P)(cov(src.shim.functional)),
         src.shim.weight,
     )
