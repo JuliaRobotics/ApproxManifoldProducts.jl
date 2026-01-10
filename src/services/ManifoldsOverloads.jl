@@ -97,10 +97,13 @@ Inputs:
 - M is a Manifold (must be a Lie group)
 - p is the expansion point on manifold
 - X is a tangent vector which is to be transported
-- d is a tangent vector from a starting point in the direction and distance to transport 
+- d is a tangent vector from a starting point in the direction and distance to transport
 
 Notes
 - Default is transport without curvature estimate provided by upstream Manifolds.jl 
+
+Useful references:
+- https://www.youtube.com/watch?v=MRU2D6sLpU0
 
 See also: [`parallel_transport_curvature_2nd_lie'](@ref), [`Jr`](@ref), `Manifolds.parallel_transport_direction`, `Manifolds.parallel_transport_to`, `Manifolds.parallel_transport_along`
 """
