@@ -168,11 +168,11 @@ function manifoldProduct(
 end
 
 # NOTE, this product does not handle combinations of different partial beliefs properly yet
-function *(PP::AbstractVector{<:MKD{M, B}}) where {M <: MB.AbstractManifold{MB.ℝ}, B}
+function *(PP::AbstractVector{<:ManifoldKernelDensity{M, B}}) where {M <: MB.AbstractManifold{MB.ℝ}, B}
     return manifoldProduct(PP, PP[1].manifold)
 end
 
-function *(P1::MKD{M, B}, P2::MKD{M, B}, P_...) where {M <: MB.AbstractManifold{MB.ℝ}, B}
+function *(P1::ManifoldKernelDensity{M, B}, P2::ManifoldKernelDensity{M, B}, P_...) where {M <: MB.AbstractManifold{MB.ℝ}, B}
     return manifoldProduct([P1; P2; P_...], P1.manifold)
 end
 

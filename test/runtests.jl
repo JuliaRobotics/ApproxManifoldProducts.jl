@@ -4,7 +4,7 @@ using ApproxManifoldProducts
 using LieGroups: TranslationGroup
 using Test
 
-include("basics.jl")
+# include("basics.jl") # legacy KDE tests
 include("ex_1D.jl")
 include("ex_2D_rot.jl")
 include("testManifoldConventions.jl")

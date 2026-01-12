@@ -70,52 +70,7 @@ function _getManifoldFullOrPart(mkd::ManifoldKernelDensity, aspartial::Bool = tr
     end
 end
 
-function Statistics.mean(mkd::ManifoldKernelDensity, aspartial::Bool = true; kwargs...)
-    return mean(
-        _getManifoldFullOrPart(mkd, aspartial),
-        getPoints(mkd, aspartial),
-        GeodesicInterpolation();
-        kwargs...,
-    )
-end
-"""
-    $SIGNATURES
 
-Alias for overloaded `Statistics.mean`.
-"""
-calcMean(mkd::ManifoldKernelDensity, aspartial::Bool = true) = mean(mkd, aspartial)
-
-function Statistics.std(mkd::ManifoldKernelDensity, aspartial::Bool = true; kwargs...)
-    return std(_getManifoldFullOrPart(mkd, aspartial), getPoints(mkd, aspartial); kwargs...)
-end
-function Statistics.var(mkd::ManifoldKernelDensity, aspartial::Bool = true; kwargs...)
-    return var(_getManifoldFullOrPart(mkd, aspartial), getPoints(mkd, aspartial); kwargs...)
-end
-function Statistics.cov(
-    mkd::ManifoldKernelDensity,
-    aspartial::Bool = true;
-    basis::ManifoldsBase.AbstractBasis = DefaultOrthogonalBasis(),
-    kwargs...,
-)
-    return cov(
-        _getManifoldFullOrPart(mkd, aspartial),
-        getPoints(mkd, aspartial);
-        basis,
-        kwargs...,
-    )
-end
-# function Statistics.mean(mkd::ManifoldKernelDensity; kwargs...)
-#   return mean(mkd.manifold, getPoints(mkd); kwargs...)
-# end
-# function Statistics.cov(mkd::ManifoldKernelDensity; kwargs...) 
-#   cov(mkd.manifold, getPoints(mkd); kwargs...)
-# end
-# function Statistics.std(mkd::ManifoldKernelDensity; kwargs...)
-#   return std(mkd.manifold, getPoints(mkd); kwargs...)
-# end
-# function Statistics.var(mkd::ManifoldKernelDensity; kwargs...)
-#   return var(mkd.manifold, getPoints(mkd); kwargs...)
-# end
 
 _makevec(w::AbstractVector) = w
 _makevec(w::Tuple) = [w...]

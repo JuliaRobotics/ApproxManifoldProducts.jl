@@ -204,18 +204,18 @@ end
 # default replace non-partial/non-marginal values
 # Trivial case where no information from destination is kept, only from src.
 function Base.replace(
-    ::ManifoldKernelDensity{M, <:BallTreeDensity, Nothing},
-    src::ManifoldKernelDensity{M, <:BallTreeDensity, Nothing},
-) where {M <: AbstractManifold}
+    ::ManifoldKernelDensity{M, B, Nothing},
+    src::ManifoldKernelDensity{M, B, Nothing},
+) where {M <: AbstractManifold, B}
     #
     return src
 end
 
 # replace dest non-partial with incoming partial values
 function Base.replace(
-    dest::ManifoldKernelDensity{M, <:BallTreeDensity, Nothing},
-    src::ManifoldKernelDensity{M, <:BallTreeDensity, <:AbstractVector},
-) where {M <: AbstractManifold}
+    dest::ManifoldKernelDensity{M, B, Nothing},
+    src::ManifoldKernelDensity{M, B, <:AbstractVector},
+) where {M <: AbstractManifold, B}
     #
     pl = src._partial
     # FIXME what about 
@@ -250,9 +250,9 @@ end
 
 # replace partial/marginal with different incoming partial values
 function Base.replace(
-    dest::ManifoldKernelDensity{M, <:BallTreeDensity, <:AbstractVector},
-    src::ManifoldKernelDensity{M, <:BallTreeDensity, <:AbstractVector},
-) where {M <: AbstractManifold}
+    dest::ManifoldKernelDensity{M, B, <:AbstractVector},
+    src::ManifoldKernelDensity{M, B, <:AbstractVector},
+) where {M <: AbstractManifold, B}
     #
     pl = src._partial
     destPts = getPoints(dest.belief)

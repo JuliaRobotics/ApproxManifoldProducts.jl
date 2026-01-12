@@ -84,7 +84,7 @@ function ManifoldKernelDensity(
 end
 
 # MAYBE deprecate name
-function manikde!(
+function manikde!_legacy(
     M::MB.AbstractManifold,
     vecP::AbstractVector{P},
     u0::P = vecP[1];
@@ -95,7 +95,8 @@ end
 
 #
 
-function manikde!_manellic(
+# manikde!_manellic
+function manikde!(
     M::AbstractManifold,
     pts::AbstractVector;
     bw = diagm(ones(manifold_dimension(M))),
@@ -407,6 +408,55 @@ function antimarginal(
 
     return manikde!(newM, nPts, u0; bw, partial = finalpartial, infoPerCoord = ipc)
 end
+
+
+
+function Statistics.mean(mkd::ManifoldKernelDensity, aspartial::Bool = true; kwargs...)
+    return mean(
+        _getManifoldFullOrPart(mkd, aspartial),
+        getPoints(mkd, aspartial),
+        GeodesicInterpolation();
+        kwargs...,
+    )
+end
+"""
+    $SIGNATURES
+
+Alias for overloaded `Statistics.mean`.
+"""
+calcMean(mkd::ManifoldKernelDensity, aspartial::Bool = true) = mean(mkd, aspartial)
+
+function Statistics.std(mkd::ManifoldKernelDensity, aspartial::Bool = true; kwargs...)
+    return std(_getManifoldFullOrPart(mkd, aspartial), getPoints(mkd, aspartial); kwargs...)
+end
+function Statistics.var(mkd::ManifoldKernelDensity, aspartial::Bool = true; kwargs...)
+    return var(_getManifoldFullOrPart(mkd, aspartial), getPoints(mkd, aspartial); kwargs...)
+end
+function Statistics.cov(
+    mkd::ManifoldKernelDensity,
+    aspartial::Bool = true;
+    basis::ManifoldsBase.AbstractBasis = DefaultOrthogonalBasis(),
+    kwargs...,
+)
+    return cov(
+        _getManifoldFullOrPart(mkd, aspartial),
+        getPoints(mkd, aspartial);
+        basis,
+        kwargs...,
+    )
+end
+# function Statistics.mean(mkd::ManifoldKernelDensity; kwargs...)
+#   return mean(mkd.manifold, getPoints(mkd); kwargs...)
+# end
+# function Statistics.cov(mkd::ManifoldKernelDensity; kwargs...) 
+#   cov(mkd.manifold, getPoints(mkd); kwargs...)
+# end
+# function Statistics.std(mkd::ManifoldKernelDensity; kwargs...)
+#   return std(mkd.manifold, getPoints(mkd); kwargs...)
+# end
+# function Statistics.var(mkd::ManifoldKernelDensity; kwargs...)
+#   return var(mkd.manifold, getPoints(mkd); kwargs...)
+# end
 
 ## =======================================================================================
 ##  deprecate as necessary below
