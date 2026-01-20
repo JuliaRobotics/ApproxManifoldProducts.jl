@@ -50,15 +50,17 @@ struct HomotopyBelief{
   L,
   HL, 
   HT,
+  U <: Union{<:StaticArray, <:PDMats.AbstractPDMat}
 }
     manifold::M
     data::D
     weights::MVector{N, <:Real}  # TODO rename to mixture_weights
-    permute::MVector{N, Int}
+    permute::MVector{N, <:Int}
     leaf_kernels::SizedVector{N, HL}  # TODO rename to trailing
     tree_kernels::SizedVector{N, HT}  # TODO rename to leading
     segments::SizedVector{N, Set{Int}}
     infoPerCoord::Vector{Float64}
+    _unibw::U
     _partial::L
 
     # workaround to overcome bug for StaticArrays `isdefined() != false` issue

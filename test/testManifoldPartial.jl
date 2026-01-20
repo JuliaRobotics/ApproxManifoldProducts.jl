@@ -2,8 +2,8 @@
 using Test
 using ApproxManifoldProducts
 using LieGroups
-using LieGroups: TranslationGroup
 using Manifolds
+
 
 ##
 

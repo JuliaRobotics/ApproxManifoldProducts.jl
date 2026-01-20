@@ -67,7 +67,7 @@ function MvNormalKernel(
     σ::AbstractArray, 
     weight::Real = 1.0
 )
-    @warn "MvNormalKernel is deprecated, use ConcentratedGaussianKernel instead" maxlog=10
+    @warn "MvNormalKernel is deprecated, use ConcentratedGaussianKernel instead [maxlog=10]" maxlog=10
     c_(s::AbstractMatrix) = s
     c_(s::AbstractVector) = diagm(s)
     Σ = c_(σ)

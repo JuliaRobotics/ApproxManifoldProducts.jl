@@ -9,7 +9,7 @@ function ManifoldKernelDensity(
     ::Nothing = nothing,
     u0::P = zeros(manifold_dimension(mani));
     infoPerCoord::AbstractVector{<:Real} = ones(getNumberCoords(mani, u0)),
-) where {M <: MB.AbstractManifold, B <: BallTreeDensity, P}
+) where {M <: MB.AbstractManifold, B <: TreeDensity, P}
     return ManifoldKernelDensity{M, B, Nothing, P}(mani, bel, nothing, u0, infoPerCoord)
 end
 #
@@ -20,7 +20,7 @@ function ManifoldKernelDensity(
     partial::L,
     u0::P = zeros(manifold_dimension(mani));
     infoPerCoord::AbstractVector{<:Real} = ones(getNumberCoords(mani, u0)),
-) where {M <: MB.AbstractManifold, B <: BallTreeDensity, L <: AbstractVector{<:Integer}, P}
+) where {M <: MB.AbstractManifold, B <: TreeDensity, L <: AbstractVector{<:Integer}, P}
     #
     if length(partial) != manifold_dimension(mani)
         # call the constructor direct
@@ -37,7 +37,7 @@ function ManifoldKernelDensity(
     pl_mask::Union{<:BitVector, <:AbstractVector{<:Bool}},
     u0::P = zeros(manifold_dimension(mani));
     infoPerCoord::AbstractVector{<:Real} = ones(getNumberCoords(mani, u0)),
-) where {M <: MB.AbstractManifold, B <: BallTreeDensity, P}
+) where {M <: MB.AbstractManifold, B <: TreeDensity, P}
     return ManifoldKernelDensity(
         mani,
         bel,
@@ -136,7 +136,7 @@ function manikde!(
 
     # reuse (heavy lift parts of) earlier tree build
     # return tree with correct bandwidth
-    return manikde!(M, pts; belmodel = (ignore...) -> updateBandwidths(mtree, best_cov))
+    return manikde!_legacy(M, pts; belmodel = (ignore...) -> updateBandwidths(mtree, best_cov))
 end
 
 ## ==========================================================================================
@@ -224,15 +224,41 @@ function getPoints(
     return _matrixCoordsToPoints(x.manifold, getPoints(x.belief), x._u0)
 end
 
+
 function getPoints(
     x::ManifoldKernelDensity{M, B, L},
     aspartial::Bool = true,
-) where {M <: AbstractManifold, B, L <: AbstractVector{Int}}
+) where {M <: AbstractManifold, B <: ManellicTree, L <: AbstractVector{Int}}
+    #
+    pts = getPoints(x.belief)
+
+    if (L === nothing) && !aspartial
+        error("MKD getPoints aspartial=true but MKD is not partial")
+        return pts
+    end
+
+    Mp, Rp, lkup = getManifoldPartial(x.manifold, x._partial, x._u0)
+
+    vecP = Vector{typeof(x._u0)}(undef, size(pts, 2))
+    for (j,pt) in enumerate(pts)
+        vecP[j] = _projectPartialManifold(M, pt, u0)
+    end
+    return vecP
+
+    # (x.manifold, x._u0)
+    # x._partial
+    # return _matrixCoordsToPoints(M_, pts_, u0_)
+end
+
+function getPoints(
+    x::ManifoldKernelDensity{M, B, L},
+    aspartial::Bool = true,
+) where {M <: AbstractManifold, B <: BallTreeDensity, L <: AbstractVector{Int}}
     #
     pts = getPoints(x.belief)
 
     (M_, pts_, u0_) = if (L !== nothing) && aspartial
-        Mp, Rp = getManifoldPartial(x.manifold, x._partial, x._u0)
+        Mp, Rp, lkup = getManifoldPartial(x.manifold, x._partial, x._u0)
         (Mp, view(pts, x._partial, :), Rp)
     else
         (x.manifold, pts, x._u0)

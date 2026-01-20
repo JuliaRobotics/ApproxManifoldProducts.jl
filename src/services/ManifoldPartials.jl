@@ -78,8 +78,25 @@ function getManifoldPartial(
     offset[] += manifold_dimension(M)
     len = sum(mask)
     repr_p = repr === nothing ? nothing : zeros(T, len)
-    return (TranslationGroup(len), repr_p)
+    # EXPERIMENTAL, use lambda to construct partial lookup
+    return (TranslationGroup(len), repr_p, (prt)->prt[mask])
 end
+# TODO is this function obsolete?
+# function getManifoldPartial(
+#     M::TranslationGroup{Tuple{N}},
+#     partial::AbstractVector{Int},
+#     repr::_PartiableRepresentationFlat{T} = nothing,
+#     offset::Base.RefValue{Int} = Ref(0);
+#     doError::Bool = true,
+# ) where {N, T <: Number}
+#     #
+#     mask = _checkManifoldPartialDims(M, partial, offset, doError)
+#     offset[] += manifold_dimension(M)
+#     len = sum(mask)
+#     repr_p = repr === nothing ? nothing : zeros(T, len)
+#     return (TranslationGroup(len), repr_p)
+# end
+
 
 function getManifoldPartial(
     M::Manifolds.Circle,
@@ -90,7 +107,7 @@ function getManifoldPartial(
 )
     mask = _checkManifoldPartialDims(M, partial, offset, doError)
     offset[] += manifold_dimension(M)
-    return (M, repr)
+    return (M, repr, (prt)->prt[mask])
 end
 
 function getManifoldPartial(
@@ -103,22 +120,7 @@ function getManifoldPartial(
     #
     mask = _checkManifoldPartialDims(M, partial, offset, doError)
     offset[] += manifold_dimension(M)
-    return (M, repr)
-end
-
-function getManifoldPartial(
-    M::TranslationGroup{Tuple{N}},
-    partial::AbstractVector{Int},
-    repr::_PartiableRepresentationFlat{T} = nothing,
-    offset::Base.RefValue{Int} = Ref(0);
-    doError::Bool = true,
-) where {N, T <: Number}
-    #
-    mask = _checkManifoldPartialDims(M, partial, offset, doError)
-    offset[] += manifold_dimension(M)
-    len = sum(mask)
-    repr_p = repr === nothing ? nothing : zeros(T, len)
-    return (TranslationGroup(len), repr_p)
+    return (M, repr, (prt)->prt[mask])
 end
 
 function getManifoldPartial(
@@ -131,7 +133,7 @@ function getManifoldPartial(
     #
     mask = _checkManifoldPartialDims(M, partial, offset, doError)
     offset[] += manifold_dimension(M)
-    return (M, repr)
+    return (M, repr, (prt)->prt[mask])
 end
 
 """
@@ -202,12 +204,12 @@ function getManifoldPartial(
         if any(mask)
             Mp = if repr === nothing
                 # decide if representation should also be updated or left as nothing
-                Mp, = getManifoldPartial(m, partial, nothing, offset; doError = false)
+                Mp,_ , = getManifoldPartial(m, partial, nothing, offset; doError = false)
                 Mp
             else
                 # hard assumption that repr::ArrayPartition to go along with M::ProductManifold
                 # NOTE submanifold_component is the correct way to avoid this assumption
-                Mp, Rp = getManifoldPartial(
+                Mp, Rp,  = getManifoldPartial(
                     m,
                     partial,
                     submanifold_component(repr, i),
@@ -246,19 +248,20 @@ function getManifoldPartial(
     # loop through the ProductManifold components 
     ManiArr = []
     ReprArr = []
+    lookups = []
 
     subgroups = map(LieGroup, PrG.manifold.manifolds, PrG.op.operations)
     for (i, m) in enumerate(subgroups)
         mask = _checkManifoldPartialDims(m, partial, offset, false)
         if any(mask)
-            Mp = if repr === nothing
+            Mp, lkup = if repr === nothing
                 # decide if representation should also be updated or left as nothing
-                Mp, = getManifoldPartial(m, partial, nothing, offset; doError = false)
-                Mp
+                Mp, _, lkup = getManifoldPartial(m, partial, nothing, offset; doError = false)
+                Mp, lkup
             else
                 # hard assumption that repr::ArrayPartition to go along with M::ProductManifold
                 # NOTE submanifold_component is the correct way to avoid this assumption
-                Mp, Rp = getManifoldPartial(
+                Mp, Rp, lkup = getManifoldPartial(
                     m,
                     partial,
                     submanifold_component(PrG, repr, i),
@@ -266,9 +269,10 @@ function getManifoldPartial(
                     doError = false,
                 )
                 push!(ReprArr, Rp)
-                Mp
+                Mp, lkup
             end
             push!(ManiArr, Mp)
+            push!(lookups, lkup)
         else
             offset[] += manifold_dimension(m)
         end
@@ -277,10 +281,11 @@ function getManifoldPartial(
     # trivial case, drop the ProductManifold for single element
     if length(ManiArr) == 1
         repr_p = repr === nothing ? nothing : ReprArr[1]
-        return (ManiArr[1], repr_p)
+        return (ManiArr[1], repr_p, (prt)->prt[1:1])
     elseif 1 < length(ManiArr)
         repr_p = repr === nothing ? nothing : ArrayPartition(ReprArr...)
-        return (ProductLieGroup(ManiArr...), repr_p)
+        lookup = (point) -> ArrayPartition([lookups[j](pt) for (j, pt) in enumerate(point.x)]...)
+        return (ProductLieGroup(ManiArr...), repr_p, lookups)
     end
     return error("partial manifold calculations should not reach here")
 end
