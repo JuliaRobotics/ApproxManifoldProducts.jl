@@ -101,6 +101,7 @@ function manikde!(
     pts::AbstractVector;
     bw = diagm(ones(manifold_dimension(M))),
     algo = Optim.NelderMead(),
+    kw...
 )
     #
 
@@ -136,7 +137,7 @@ function manikde!(
 
     # reuse (heavy lift parts of) earlier tree build
     # return tree with correct bandwidth
-    return manikde!_legacy(M, pts; belmodel = (ignore...) -> updateBandwidths(mtree, best_cov))
+    return manikde!_legacy(M, pts; belmodel = (ignore...) -> updateBandwidths(mtree, best_cov), kw...)
 end
 
 ## ==========================================================================================
@@ -221,7 +222,8 @@ function getPoints(
     x::ManifoldKernelDensity{M, B},
     ::Bool = true,
 ) where {M <: AbstractManifold, B}
-    return _matrixCoordsToPoints(x.manifold, getPoints(x.belief), x._u0)
+    return getPoints(x.belief)
+    # return _matrixCoordsToPoints(x.manifold, getPoints(x.belief), x._u0)
 end
 
 
@@ -239,9 +241,9 @@ function getPoints(
 
     Mp, Rp, lkup = getManifoldPartial(x.manifold, x._partial, x._u0)
 
-    vecP = Vector{typeof(x._u0)}(undef, size(pts, 2))
+    vecP = Vector{typeof(Rp)}(undef, length(pts))
     for (j,pt) in enumerate(pts)
-        vecP[j] = _projectPartialManifold(M, pt, u0)
+        vecP[j] =  lkup(pt)
     end
     return vecP
 

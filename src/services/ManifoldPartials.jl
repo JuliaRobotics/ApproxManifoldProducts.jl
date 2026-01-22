@@ -21,7 +21,16 @@ function _checkManifoldPartialDims(
     doError::Bool = true,
 )
     #
-    mask = 0 .< (partial .- offset[]) .<= manifold_dimension(M)
+    d = manifold_dimension(M)
+    full = 1:d
+    mask = 0 .== 1:d
+    offp = partial .- offset[] 
+    for i in 1:d
+        if full[i] in offp
+            mask[i] = true
+        end
+    end
+    # mask = 0 .< (partial .- offset[]) .<= manifold_dimension(M)
     doError &&
         !any(mask) &&
         error(
@@ -275,18 +284,33 @@ function getManifoldPartial(
             push!(lookups, lkup)
         else
             offset[] += manifold_dimension(m)
+            push!(lookups, (s) -> ())
         end
     end
 
     # trivial case, drop the ProductManifold for single element
-    if length(ManiArr) == 1
-        repr_p = repr === nothing ? nothing : ReprArr[1]
-        return (ManiArr[1], repr_p, (prt)->prt[1:1])
-    elseif 1 < length(ManiArr)
+    # if length(ManiArr) == 1
+    #     repr_p = repr === nothing ? nothing : ReprArr[1]
+    #     return (ManiArr[1], repr_p, (prt)->ArrayPartition(prt[1:1]))
+    # elseif 1 < length(ManiArr)
         repr_p = repr === nothing ? nothing : ArrayPartition(ReprArr...)
-        lookup = (point) -> ArrayPartition([lookups[j](pt) for (j, pt) in enumerate(point.x)]...)
-        return (ProductLieGroup(ManiArr...), repr_p, lookups)
-    end
+        lookup = (point) -> begin
+            elms = []
+            for (j, pt) in enumerate(point.x)
+                s = lookups[j](pt)
+                if s !== ()
+                    push!(elms, s)
+                end
+            end  
+            ArrayPartition(elms...)
+        end
+        rettyp = if length(ManiArr) == 1
+            ManiArr[1]
+        else
+            ProductLieGroup(ManiArr...)
+        end
+        return (rettyp, repr_p, lookup)
+    # end
     return error("partial manifold calculations should not reach here")
 end
 
