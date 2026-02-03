@@ -590,11 +590,16 @@ function getBandwidthSearchBounds(mtree::ManellicTree)
 
     #FIXME isdefined does not work as expected for mtree.tree_kernels, so using length-1 for now
     # this will break if number of points is not a power of 2. 
-    kernels_diag = map(1:(length(mtree.tree_kernels) - 1)) do i
+    
+    lower_diag = diag(cov(mtree.tree_kernels[1]))
+    for i in 2:(length(mtree.tree_kernels) - 1)
         # FIXME use consolidated getKernelTree instead
-        diag(cov(mtree.tree_kernels[i]))
+        if isassigned(mtree.tree_kernels, i)
+            hdg = hcat(lower_diag, diag(cov(mtree.tree_kernels[i])))
+            lower_diag = minimum(hdg; dims = 2)
+        end
+        # lower_diag = minimum(hcat(lower_diag, diag(cov(mtree.tree_kernels[i]))); dims = 2)
     end
-    lower_diag = minimum(reduce(hcat, kernels_diag); dims = 2)
 
     # floors make us feel safe, but hurt when faceplanting
     lower_diag = maximum(hcat(lower_diag, 1e-8 * ones(length(lower_diag))); dims = 2)[:]

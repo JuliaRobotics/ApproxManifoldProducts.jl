@@ -157,10 +157,10 @@ end
     N = 64
 
     pts1 = [1 * randn(2) for _ = 1:N]
-    p1 = ApproxManifoldProducts.manikde!_manellic(M, pts1)
+    p1 = ApproxManifoldProducts.manikde!(M, pts1)
 
     pts2 = [1 * randn(2) for _ = 1:N]
-    p2 = ApproxManifoldProducts.manikde!_manellic(M, pts2)
+    p2 = ApproxManifoldProducts.manikde!(M, pts2)
 
     # test sampling
     lbls = ApproxManifoldProducts.sampleProductSeqGibbsBTLabels(M, [p1.belief; p2.belief])

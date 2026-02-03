@@ -2,6 +2,7 @@
 
 using ApproxManifoldProducts
 using Manifolds
+using LieGroups
 using Test
 
 ##

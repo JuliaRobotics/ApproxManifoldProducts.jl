@@ -20,25 +20,34 @@ DATADIR = joinpath(dirname(@__DIR__), "testdata")
 
 ##
 
+
+@error "FIXME: add test building Manellic tree on edge case where all points are 0 with defined bandwidth"
+
+
 @testset "Manellic basic evaluation test 1D" begin
     ##
 
     M = TranslationGroup(1)
-    pts = [zeros(1) for _ = 1:100]
+    pts = [[randn();] for _ = 1:100]
     bw = ones(1, 1)
+    kType = AMP.MvNormalKernel
     mtree = ApproxManifoldProducts.buildTree_Manellic!(
         M,
         pts;
         kernel_bw = bw,
-        kernel = AMP.MvNormalKernel,
+        kernel = kType,
     )
 
-    @test isapprox(pdf(Normal(0, 1), 0), AMP.evaluate(mtree, SA[0.0;]))
+    @test mtree.tree_kernels[1] isa kType
+    @test mtree.tree_kernels[2] isa kType
+    @test mtree.tree_kernels[3] isa kType
+
+    @test isapprox(pdf(Normal(0, 1), 0), AMP.evaluate(mtree, SA[0.0;]); atol=0.15)
 
     @error "expectedLogL for different number of test points not working yet."
     # AMP.expectedLogL(mtree, [randn(1) for _ in 1:5])
 
-    @show AMP.entropy(mtree)
+    @test 0.5 < AMP.entropy(mtree)
 
     # Vector bw required for backward compat with legacy belief structure
     mtreeV = ApproxManifoldProducts.buildTree_Manellic!(

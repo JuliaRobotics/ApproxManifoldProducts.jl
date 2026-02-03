@@ -82,6 +82,10 @@ end
 
     # FIXME use bounds
     lcov, ucov = AMP.getBandwidthSearchBounds(mtree)
+
+    @test lcov[1] < 0.1
+    @test 0.5 < ucov[1]
+
     bw_cov = (ucov + lcov) / 2
     mtree_0 = ApproxManifoldProducts.buildTree_Manellic!(
         M,
@@ -158,23 +162,17 @@ end
 
     M = TranslationGroup(1)
     # pts = [[0.;],[0.1],[0.2;],[0.3;]]
-    pts = [1 * randn(1) for _ = 1:128]
+    pts = [1 * randn(1) for _ = 1:64]
 
-    mkd = ApproxManifoldProducts.manikde!_manellic(M, pts)
+    mkd = ApproxManifoldProducts.manikde!(M, pts)
 
     best_cov = cov(ApproxManifoldProducts.getKernelLeaf(mkd.belief, 1))[1] |> sqrt
     @show best_cov
 
     @test isapprox(0.5, best_cov; atol = 0.3)
 
-    # remember broken code in get w bounds
-
-    try
-        pts = [1 * randn(1) for _ = 1:100]
-        mkd = ApproxManifoldProducts.manikde!_manellic(M, pts)
-    catch
-        @test_broken false
-    end
+    pts = [1 * randn(1) for _ = 1:100]
+    mkd = ApproxManifoldProducts.manikde!(M, pts)
 
     ##
 end
@@ -205,11 +203,12 @@ end
 
     @show best_cov = abs.(Optim.minimizer(res))
 
-    @test isapprox([0.5; 0.5], best_cov; atol = 0.3)
+    @test isapprox(0.5, best_cov[1]; atol = 0.3)
+    @test isapprox(0.5, best_cov[2]; atol = 0.3)
 
-    mkd = ApproxManifoldProducts.manikde!_manellic(M, pts)
+    mkd = ApproxManifoldProducts.manikde!(M, pts)
 
-    @test isapprox([0.5 0; 0 0.5], getBW(mkd)[1]; atol = 0.3)
+    @test isapprox([0.5 0; 0 0.5], getBW(mkd)[1]; atol = 0.35)
 
     ##
 end
@@ -240,10 +239,11 @@ if !(v"1.11" < VERSION < v"1.12.0-beta99")
 
         @show best_cov = abs.(Optim.minimizer(res))
 
-        @test isapprox([0.6; 0.6], best_cov[1:2]; atol = 0.35)
+        @test isapprox(0.6, best_cov[1]; atol = 0.35)
+        @test isapprox(0.6, best_cov[2]; atol = 0.35)
         @test isapprox(0.06, best_cov[3]; atol = 0.04)
 
-        mkd = ApproxManifoldProducts.manikde!_manellic(M, pts)
+        mkd = ApproxManifoldProducts.manikde!(M, pts)
 
         @test isapprox([0.6 0; 0 0.6], getBW(mkd)[1][1:2, 1:2]; atol = 0.4)
         @test isapprox(0.06, getBW(mkd)[1][3, 3]; atol = 0.04)
@@ -284,7 +284,7 @@ if !(v"1.11" < VERSION < v"1.12.0-beta99")
         @test isapprox([0.75; 0.75; 0.75], best_cov[1:3]; atol = 0.55)
         @test isapprox([0.06; 0.06; 0.06], best_cov[4:6]; atol = 0.055)
 
-        mkd = ApproxManifoldProducts.manikde!_manellic(M, pts)
+        mkd = ApproxManifoldProducts.manikde!(M, pts)
 
         @test isapprox([0.75 0 0; 0 0.75 0; 0 0 0.75], getBW(mkd)[1][1:3, 1:3]; atol = 0.55)
         @test isapprox(

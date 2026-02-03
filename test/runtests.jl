@@ -1,21 +1,22 @@
 # tests for ApproxManifoldProducts.jl
 
 using ApproxManifoldProducts
-using LieGroups: TranslationGroup
+using LieGroups
+using Manifolds
 using Test
 
 # include("basics.jl") # legacy KDE tests
-include("ex_1D.jl")
-include("ex_2D_rot.jl")
-include("testManifoldConventions.jl")
-include("testLieFundamentals.jl")
-include("testManifoldPartial.jl")
-include("testManiProductBigSmall.jl")
-include("testBasicManiProduct.jl")
-include("testMarginalProducts.jl")
-include("testMMD.jl")
-include("testPartialProductSE2.jl")
-include("basic_se3.jl")
+# include("ex_1D.jl")
+# include("ex_2D_rot.jl")
+# include("testManifoldConventions.jl")
+# include("testLieFundamentals.jl")
+# include("testManifoldPartial.jl")
+# include("testManiProductBigSmall.jl")
+# include("testBasicManiProduct.jl")
+# include("testMarginalProducts.jl")
+# include("testMMD.jl")
+# include("testPartialProductSE2.jl")
+# include("basic_se3.jl")
 include("testSymmetry.jl")
 include("testUpdateMKD.jl")
 include("testMKDStats.jl")

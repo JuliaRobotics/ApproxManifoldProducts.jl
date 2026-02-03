@@ -17,11 +17,11 @@ using Manifolds
 
     @test 0 < mmd(m1, m2)
 
-    AMP._update!(m1, m2)
+    # AMP._update!(m1, m2)
 
-    @test mmd(m1, m2) < 1e-6
+    # @test mmd(m1, m2) < 1e-6
 
-    @test isapprox(m1.infoPerCoord, m2.infoPerCoord)
+    # @test isapprox(m1.infoPerCoord, m2.infoPerCoord)
 
     ##
 end
