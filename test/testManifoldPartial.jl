@@ -236,12 +236,14 @@ end
     ##
 
     # X_ = replace(X0, X)
-    getPoints(X)
+    gpts = getPoints(X)
+    @test N == length(gpts)
     # @test isapprox(X_, X)
 
     ##
 
     X = manikde!(M, pts; partial = [1; 3])
+    @error "restore tests for manikde partials"
     # X_ = replace(X0, X)
 
     # # check metadata
