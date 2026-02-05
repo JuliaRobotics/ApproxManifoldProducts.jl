@@ -10,6 +10,8 @@ using Test
 # include("ex_2D_rot.jl")
 # include("testManifoldConventions.jl")
 
+
+
 include("testLieFundamentals.jl")
 # Manellic tree, (on-Manifold Ellipse Ball Tree)
 include("manellic/testManifoldTreeConstr.jl")
@@ -17,16 +19,16 @@ include("manellic/testTreeEvaluation.jl")
 include("testSymmetry.jl")
 include("testUpdateMKD.jl")
 include("testMKDStats.jl")
+include("testMMD.jl")
 include("manellic/testTreeEntropyBandwidth.jl")
+include("basic_se3.jl")
 include("manellic/testMultiscaleLabelSampling.jl")
 include("manellic/testTreeKernelProducts.jl")
 include("testBasicManiProduct.jl")
 include("testManiProductBigSmall.jl")
 # include("testManifoldPartial.jl")
 # include("testMarginalProducts.jl")
-# include("testMMD.jl")
 # include("testPartialProductSE2.jl")
-# include("basic_se3.jl")
 
 
 #
