@@ -504,10 +504,13 @@ function buildTree_Manellic!(
     kernel_bw = nothing, # TODO
 ) where {KL <: MvNormalKernel}
     #
+    @info "HERE" kernel typeof(kernel)
     _μT() = typeof(mean(r_ker[1]))
     D = manifold_dimension(M)
     CV = SMatrix{D, D, Float64, D * D}(collect(cov(r_ker[1])))
-    KLT = getfield(ApproxManifoldProducts, kernel.name.name)
+    _KLT(k) = getfield(ApproxManifoldProducts, k.name.name)
+    _KLT(k::UnionAll) = k
+    KLT = _KLT(kernel)
     KT = KLT(mean(r_ker[1]), CV) |> typeof
 
     r_PP = SizedVector{N, _μT()}(undef)

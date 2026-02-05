@@ -189,3 +189,14 @@ end
 
     ##
 end
+
+
+##
+
+@testset "Wrapper function for multi-scale label sampling version (Gibbs), TranslationGroup(2)" begin
+
+
+
+end
+
+#

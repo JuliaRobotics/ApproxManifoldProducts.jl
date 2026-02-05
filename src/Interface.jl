@@ -48,6 +48,7 @@ end
 
 function makeCoordsFromPoint(G::SpecialEuclideanGroup, pt)
     #TODO - review - Force TR-coordinates on SE(n)
+    # @info "SUBM" G pt
     p = ArrayPartition(ManifoldsBase.submanifold_components(G, pt))
     ϵ = identity_element(G, typeof(p))
     X = log(base_manifold(G), ϵ, p)
