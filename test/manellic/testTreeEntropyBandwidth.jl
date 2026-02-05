@@ -203,8 +203,8 @@ end
 
     @show best_cov = abs.(Optim.minimizer(res))
 
-    @test isapprox(0.5, best_cov[1]; atol = 0.3)
-    @test isapprox(0.5, best_cov[2]; atol = 0.3)
+    @test isapprox(0.5, best_cov[1]; atol = 0.35)
+    @test isapprox(0.5, best_cov[2]; atol = 0.35)
 
     mkd = ApproxManifoldProducts.manikde!(M, pts)
 

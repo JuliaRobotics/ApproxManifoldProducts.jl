@@ -504,7 +504,6 @@ function buildTree_Manellic!(
     kernel_bw = nothing, # TODO
 ) where {KL <: MvNormalKernel}
     #
-    @info "HERE" kernel typeof(kernel)
     _μT() = typeof(mean(r_ker[1]))
     D = manifold_dimension(M)
     CV = SMatrix{D, D, Float64, D * D}(collect(cov(r_ker[1])))

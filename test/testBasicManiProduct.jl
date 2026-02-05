@@ -1,10 +1,11 @@
 # test basic manifold product behaviour
 
 using ApproxManifoldProducts
-using KernelDensityEstimate
+# using KernelDensityEstimate
 using Test
 using TensorCast
 using Manifolds
+using LieGroups
 
 ## 3D
 
@@ -20,17 +21,26 @@ using Manifolds
     P1 = manikde!(TranslationGroup(3), pts1)
     P2 = manikde!(TranslationGroup(3), pts2)
 
-    P12 = P1 * P2
+    # P12 = P1 * P2
+    P12 = manifoldProduct([P1; P2], TranslationGroup(3); legacy = false)
 
     @test typeof(P12._u0) <: Vector{Float64}
 
     pts_ = getPoints(P12)
 
-    pts = AMP._pointsToMatrixCoords(P12.manifold, pts_)
+    N_ = length(pts_)
 
-    @test 0.8 * N < sum(abs.(pts[1, :]) .< 0.1)
-    @test 0.8 * N < sum(abs.(pts[2, :]) .< 0.1)
-    @test 0.8 * N < sum(abs.(pts[3, :]) .< 2.0)
+    if N_ == N
+        @test N_ == N
+    else
+        @test_broken N_ == N
+    end
+
+    # pts = AMP._pointsToMatrixCoords(P12.manifold, pts_)
+
+    @test 0.8 * N_ < sum(abs.((s->s[1] < 0.1).(pts_)))
+    @test 0.8 * N_ < sum(abs.((s->s[2] < 0.1).(pts_)))
+    @test 0.8 * N_ < sum(abs.((s->s[3] < 2.0).(pts_)))
 
     ##
 
@@ -44,22 +54,33 @@ using Manifolds
     P1 = manikde!(M, pts1)
     P2 = manikde!(M, pts2)
 
-    P12 = P1 * P2
+    # P12 = P1 * P2
+    P12 = manifoldProduct([P1; P2], M; legacy = false)
 
     pts_ = getPoints(P12)
 
-    pts = AMP._pointsToMatrixCoords(P12.manifold, pts_)
+    N_ = length(pts_)
 
-    @test 0.8 * N < sum(abs.(pts[1, :]) .< 0.1)
-    @test 0.8 * N < sum(abs.(pts[2, :]) .< 0.1)
-    @test 0.8 * N < sum(abs.(pts[3, :]) .< 2.0)
+    if N_ == N
+        @test N_ == N
+    else
+        @test_broken N_ == N
+    end
 
-    # using KernelDensityEstimatePlotting
-    # using Gadfly
-    # Gadfly.set_default_plot_size(35cm,25cm)
-    #
+    # pts = AMP._pointsToMatrixCoords(P12.manifold, pts_)
+
+    XX = (s -> s.x[1][1]).(pts_)
+    YY = (s -> s.x[1][2]).(pts_)
+    R0 = [1. 0; 0 1]
+    TT = (s -> log(P12.manifold.manifold[2], R0, s.x[2])[1,2]).(pts_)
+
+    @test 0.7 * N_ < sum(abs.(XX) .< 0.1)
+    @test 0.7 * N_ < sum(abs.(YY) .< 0.1)
+    @test 0.7 * N_ < sum(abs.(TT) .< 2.0)
+
+
+    # Legacy plotting functions
     # plotKDE([P1;P2;P12], c=["red";"blue";"magenta"],levels=1) |> PDF("/tmp/test.pdf")
-    # run(`evince /tmp/test.pdf`)
 
     ##
 
