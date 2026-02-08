@@ -118,6 +118,9 @@ function manikde!(
     _cost(σ::AbstractVector) = entropy(mtree, diagm(σ .^ 2)) # reshape(σ,manifold_dimension(M),1))
     _cost(σ::AbstractMatrix) = entropy(mtree, σ .^ 2) # reshape(σ,manifold_dimension(M),1))
 
+    _bw(v::AbstractVector) = v
+    _bw(m::AbstractMatrix) = diag(m)
+
     # optimize for best LOOCV bandwidth
     # FIXME switch to RLM (or other Manopt) techinque instead 
     # set lower and upper bounds for Golden section optimization
@@ -129,7 +132,7 @@ function manikde!(
     else
         res = Optim.optimize(
             _cost,
-            diag(bw), # FIXME Optim API issue, if using bw::matrix then steps not PDMat (NelderMead) 
+            _bw(bw), # FIXME Optim API issue, if using bw::matrix then steps not PDMat (NelderMead) 
             algo,
         )
         diagm(abs.(Optim.minimizer(res)))

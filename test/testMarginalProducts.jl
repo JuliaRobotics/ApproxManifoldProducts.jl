@@ -1,5 +1,6 @@
 
 using Manifolds
+using LieGroups
 using ApproxManifoldProducts
 using TensorCast
 using LinearAlgebra
@@ -59,8 +60,8 @@ end
     ## validate selected labels are working properly, with addEntropy=false
 
     for sidx = 1:N
-        bw1 = getBW(P1)[:, 1] .^ 2
-        bw2 = getBW(P2)[:, 1] .^ 2
+        bw1 = getBW(P1)[1] .^ 2
+        bw2 = getBW(P2)[1] .^ 2
 
         u1 = pts1[sl[sidx][1]]
         u2 = pts2[sl[sidx][2]]

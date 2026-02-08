@@ -57,6 +57,19 @@ function manifoldProduct(
     if !legacy
         beliefs = (s -> s.belief).(ff)
         lbls = ApproxManifoldProducts.sampleProductSeqGibbsBTLabels(mani, beliefs)
+
+        # push final label selections onto selectedLabels
+        resize!(selectedLabels, N)
+        for i = 1:N
+            selectedLabels[i] = Int[]
+            for j = 1:length(ff)
+                # k = length(getPoints(ff[j]))
+                # @info "HERE" i j lbls
+                push!(selectedLabels[i], lbls[i][j])
+            end
+        end
+
+        # FIXME, this collapses duplicate labels without resampling -- i.e. problem length(posterior) <= N
         lbls_ = unique(lbls)
         N_ = length(lbls_)
         weights = 1 / N .* ones(N_)
@@ -67,6 +80,7 @@ function manifoldProduct(
                 weights[i] = weights[i] * length(idxs)
             end
         end
+
         post = ApproxManifoldProducts.calcProductKernelsBTLabels(
             mani,
             beliefs,
