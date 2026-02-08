@@ -53,7 +53,7 @@ end
     # @test isapprox( mean(P12)[1], 0, atol=1 )
     # @test isapprox( mean(P12)[2], 0, atol=1 )
 
-    # @show sl;
+    @show sl;
 
     P12
 

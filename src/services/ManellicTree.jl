@@ -18,11 +18,27 @@ getWeights(mt::ManellicTree) = view(mt.weights, mt.permute)
 # _getright(i::Integer, N) = _getleft(i,N) + 1
 
 # either tree or leaf kernel, if larger than N
-function leftIndex(mt::ManellicTree, krnIdx::Int = 1)
-    return 2 * krnIdx + (2 * krnIdx < length(mt) ? 0 : 1)
-end
+leftIndex(mt::ManellicTree, krnIdx::Int = 1) = childIndices(mt, krnIdx).left
+    # return 2 * krnIdx + (2 * krnIdx < length(mt) ? 0 : 1)
 
-rightIndex(mt::ManellicTree, krnIdx::Int) = leftIndex(mt, krnIdx) + 1
+rightIndex(mt::ManellicTree, krnIdx::Int) = childIndices(mt, krnIdx).right
+    #leftIndex(mt, krnIdx) + 1
+
+# EXPERIMENTAL, untested, likely buggy
+function childIndices(
+    mt::ManellicTree, 
+    krnIdx::Int;
+    mixturedepth::Int = 999,
+)
+    _left = 2 * krnIdx
+    leaves = _left < length(mt)
+    left = _left + (leaves ? 0 : 1)
+    return (;
+        left,
+        right = left + 1, 
+        leaves
+    )
+end
 
 """
     $SIGNATURES

@@ -43,6 +43,58 @@ function testEigenCoords(r_C = pi / 3, ax_CC = [SA[5 * randn(); randn()] for _ =
 end
 
 ##
+
+@testset "belief tree utilities" begin
+   
+    M = LGr.TranslationGroup(1)
+    N = 32
+    pts = [randn(1) for _ = 1:N]
+    weights = ones(N) ./ N
+    KT = AMP.MvNormalKernel
+    KL = AMP.MvNormalKernel
+    lkern = SizedVector{N, KL}(undef)
+    _workaround_isdef_leafkernel = Set{Int}()
+
+    mtree = ApproxManifoldProducts.ManellicTree(
+        M,
+        pts,
+        MVector{N, Float64}(weights),
+        MVector{N, Int}(1:N),
+        lkern,
+        SizedVector{N, KT}(undef),
+        SizedVector{N, Set{Int}}(undef),
+        _workaround_isdef_leafkernel,
+        Set{Int}(),
+    );
+
+    @test 2 == ApproxManifoldProducts.leftIndex(mtree, 1)
+    @test 3 == ApproxManifoldProducts.rightIndex(mtree, 1)
+    
+    @test 4 == ApproxManifoldProducts.leftIndex(mtree, 2)
+    @test 5 == ApproxManifoldProducts.rightIndex(mtree, 2)
+
+    @test 6 == ApproxManifoldProducts.leftIndex(mtree, 3)
+    @test 7 == ApproxManifoldProducts.rightIndex(mtree, 3)
+
+    @test 8 == ApproxManifoldProducts.leftIndex(mtree, 4)
+    @test 9 == ApproxManifoldProducts.rightIndex(mtree, 4)
+
+    @test 10 == ApproxManifoldProducts.leftIndex(mtree, 5)
+    @test 11 == ApproxManifoldProducts.rightIndex(mtree, 5)
+
+    @test 16 == ApproxManifoldProducts.leftIndex(mtree, 8)
+    @test 17 == ApproxManifoldProducts.rightIndex(mtree, 8)
+
+    # children are now leaf nodes
+    @test 33 == ApproxManifoldProducts.leftIndex(mtree, 16)
+    @test 34 == ApproxManifoldProducts.rightIndex(mtree, 16)
+
+    # TBD NOTE, maybe index should be a tuple of (level, node) instead of a single integer, (s=idx*2; (s % N, (s % N) + 1 ))
+
+end
+
+
+##
 @testset "test ManellicTree construction" begin
     ##
 
