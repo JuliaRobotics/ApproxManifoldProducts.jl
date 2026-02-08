@@ -44,7 +44,7 @@ end
 
 ##
 
-@testset "belief tree utilities" begin
+@testset "test Manellic tree utilities w skeleton object" begin
    
     M = LGr.TranslationGroup(1)
     N = 32
@@ -66,7 +66,8 @@ end
         _workaround_isdef_leafkernel,
         Set{Int}(),
     );
-
+    
+    # tree kernel indices
     @test 2 == ApproxManifoldProducts.leftIndex(mtree, 1)
     @test 3 == ApproxManifoldProducts.rightIndex(mtree, 1)
     
@@ -88,6 +89,23 @@ end
     # children are now leaf nodes
     @test 33 == ApproxManifoldProducts.leftIndex(mtree, 16)
     @test 34 == ApproxManifoldProducts.rightIndex(mtree, 16)
+
+    # untested
+    @test 35  == ApproxManifoldProducts.leftIndex(mtree, 17)
+    @test 36 == ApproxManifoldProducts.rightIndex(mtree, 17)
+    # @test 11 == ApproxManifoldProducts.leftIndex(mtree, 5)
+    # @test 12 == ApproxManifoldProducts.rightIndex(mtree, 5)
+    # @test 13 == ApproxManifoldProducts.leftIndex(mtree, 6)
+    # @test 14 == ApproxManifoldProducts.rightIndex(mtree, 6)
+    # # but note these are not assigned
+    # @test 15 == ApproxManifoldProducts.leftIndex(mtree, 7)
+    # @test 16 == ApproxManifoldProducts.rightIndex(mtree, 7)
+
+    # leaf kernel indices
+    @test N + 1 == ApproxManifoldProducts.leftIndex(mtree, floor(Int, N / 2))
+    @test N + 2 == ApproxManifoldProducts.rightIndex(mtree, floor(Int, N / 2))
+    
+    ##
 
     # TBD NOTE, maybe index should be a tuple of (level, node) instead of a single integer, (s=idx*2; (s % N, (s % N) + 1 ))
 
@@ -167,6 +185,7 @@ end
     # already sorted list
     pts = [[1.0], [2.0], [4.0], [7.0], [11.0], [16.0], [22.0]]
     bw = [1.0]
+    N = length(pts)
 
 
     # preemptively check splitPoints 
@@ -183,6 +202,15 @@ end
         @test mask[5:7] == BitVector([1,1,1])
     end
 
+    #
+    #               (1)1:7
+    #              /      \
+    #         (2)1:4       (3)5:7
+    #          /   \       /     \
+    #    (4)1:2  (5)3:4  (6)5:6   (7)7
+    #    /  \    /  \     /  \     /  \
+    #  (8)(9)  (10)(11) (12)(13)  *    *
+    #
     mtree = ApproxManifoldProducts.buildTree_Manellic!(
         M,
         pts;
@@ -190,19 +218,55 @@ end
         kernel = AMP.MvNormalKernel,
     )
 
-    @test 7 == length(intersect(mtree.segments[1], Set(1:7)))
-    @test 4 == length(intersect(mtree.segments[2], Set(1:4)))
-    @test 3 == length(intersect(mtree.segments[3], Set(5:7)))
-    @test 2 == length(intersect(mtree.segments[4], Set(1:2)))
-    @test 2 == length(intersect(mtree.segments[5], Set(3:4)))
-    @test 2 == length(intersect(mtree.segments[6], Set(5:6)))
-
-    @test isapprox(mean(M, pts), mean(mtree.tree_kernels[1]); atol = 1e-6)
+    @test 7 == length(intersect(mtree.segments[1], Set(1:7))) # root is parent to all
+    @test 4 == length(intersect(mtree.segments[2], Set(1:4))) # first left is parent to 1:4
+    @test 3 == length(intersect(mtree.segments[3], Set(5:7))) # first right is parent to 5:7
+    @test 2 == length(intersect(mtree.segments[4], Set(1:2))) # second left is parent to 1:2
+    @test 2 == length(intersect(mtree.segments[5], Set(3:4))) # second right is parent to 3:4
+    @test 2 == length(intersect(mtree.segments[6], Set(5:6))) # third left is parent to 5:6
+    @test !isassigned(mtree.segments, 7)                      # third right is unused
+    
+    @test isapprox(mean(M, pts),      mean(mtree.tree_kernels[1]); atol = 1e-6)
     @test isapprox(mean(M, pts[1:4]), mean(mtree.tree_kernels[2]); atol = 1e-6)
     @test isapprox(mean(M, pts[5:7]), mean(mtree.tree_kernels[3]); atol = 1e-6)
     @test isapprox(mean(M, pts[1:2]), mean(mtree.tree_kernels[4]); atol = 1e-6)
     @test isapprox(mean(M, pts[3:4]), mean(mtree.tree_kernels[5]); atol = 1e-6)
     @test isapprox(mean(M, pts[5:6]), mean(mtree.tree_kernels[6]); atol = 1e-6)
+
+    @test !ApproxManifoldProducts.isLeaf_BTLabel(mtree, 1)
+    @test !ApproxManifoldProducts.isLeaf_BTLabel(mtree, 2)
+    @test !ApproxManifoldProducts.isLeaf_BTLabel(mtree, 3)
+    @test !ApproxManifoldProducts.isLeaf_BTLabel(mtree, 4)
+    @test !ApproxManifoldProducts.isLeaf_BTLabel(mtree, 5)
+    @test !ApproxManifoldProducts.isLeaf_BTLabel(mtree, 6)
+    @test ApproxManifoldProducts.isLeaf_BTLabel(mtree, 7)
+    @test ApproxManifoldProducts.isLeaf_BTLabel(mtree, 8)
+    @test ApproxManifoldProducts.isLeaf_BTLabel(mtree, 9)
+    @test ApproxManifoldProducts.isLeaf_BTLabel(mtree, 10)
+    @test ApproxManifoldProducts.isLeaf_BTLabel(mtree, 11)
+    @test ApproxManifoldProducts.isLeaf_BTLabel(mtree, 12)
+    @test ApproxManifoldProducts.isLeaf_BTLabel(mtree, 13)
+    @test ApproxManifoldProducts.isLeaf_BTLabel(mtree, 14)
+
+    # check leaf nodes
+    @test [1.0;] ≈ mean(ApproxManifoldProducts.getKernelTree(mtree, 8))
+    @test [2.0;] ≈ mean(ApproxManifoldProducts.getKernelTree(mtree, 9))
+    @test [4.0;] ≈ mean(ApproxManifoldProducts.getKernelTree(mtree, 10))
+    @test [7.0;] ≈ mean(ApproxManifoldProducts.getKernelTree(mtree, 11))
+    @test [11.0;] ≈ mean(ApproxManifoldProducts.getKernelTree(mtree, 12))
+    @test [16.0;] ≈ mean(ApproxManifoldProducts.getKernelTree(mtree, 13))
+    @test [22.0;] ≈ mean(ApproxManifoldProducts.getKernelTree(mtree, 14))
+    # 7 is 14
+    @test [22.0;] ≈ mean(ApproxManifoldProducts.getKernelTree(mtree, 7))
+    
+    ##
+
+    @test ApproxManifoldProducts.exists_BTLabel(mtree, floor(Int, N / 2))
+    @test ApproxManifoldProducts.exists_BTLabel(
+        mtree,
+        ApproxManifoldProducts.leftIndex(mtree, floor(Int, N / 2)),
+    )
+    @test !ApproxManifoldProducts.exists_BTLabel(mtree, 2 * N + 1)
 
     ## additional test datasets
 

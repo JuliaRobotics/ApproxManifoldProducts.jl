@@ -23,7 +23,7 @@ using JSON3
 @testset "Product of two Manellic beliefs, Sequential Gibbs, TranslationGroup(1)" begin
     ##
 
-    M = TranslationGroup(1)
+    M = LGr.TranslationGroup(1)
     N = 64
 
     pts1 = [randn(1) .- 1 for _ = 1:N]
@@ -41,22 +41,6 @@ using JSON3
         kernel_bw = [0.1;;],
         kernel = ApproxManifoldProducts.MvNormalKernel,
     )
-
-    ##
-
-    # tree kernel indices
-    @test 2 == ApproxManifoldProducts.leftIndex(p1, 1)
-    @test 3 == ApproxManifoldProducts.rightIndex(p1, 1)
-    # leaf kernel indices
-    @test N + 1 == ApproxManifoldProducts.leftIndex(p1, floor(Int, N / 2))
-    @test N + 2 == ApproxManifoldProducts.rightIndex(p1, floor(Int, N / 2))
-
-    @test ApproxManifoldProducts.exists_BTLabel(p1, floor(Int, N / 2))
-    @test ApproxManifoldProducts.exists_BTLabel(
-        p1,
-        ApproxManifoldProducts.leftIndex(p1, floor(Int, N / 2)),
-    )
-    @test !ApproxManifoldProducts.exists_BTLabel(p1, 2 * N + 1)
 
     ##
 
