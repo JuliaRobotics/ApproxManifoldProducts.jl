@@ -55,14 +55,26 @@ end
 
     @show sl;
 
+    # ensure all posterior product labels are from leaf nodes only
+    sl1 = [s[1] for s in sl]
+    sl2 = [s[2] for s in sl]
+
+    @test all(l -> ApproxManifoldProducts.isLeaf_BTLabel(P1.belief, l), sl1)
+    @test all(l -> ApproxManifoldProducts.isLeaf_BTLabel(P2.belief, l), sl2)
+
+    # # check the sorting of the labels is consistent by rebuilding a shuffled belief
+    # P1_ = manikde!(M, shuffle(pts1); bw = [1; 1.0])
+
+    # @test all(s->s[1] ≈ s[2], zip(getPoints(P1), getPoints(P1_)) )
+
     P12
 
     ## validate selected labels are working properly, with addEntropy=false
 
+    bw1 = getBW(P1)[1] .^ 2
+    bw2 = getBW(P2)[1] .^ 2
     for sidx = 1:N
-        bw1 = getBW(P1)[1] .^ 2
-        bw2 = getBW(P2)[1] .^ 2
-
+        @info "debug" sidx sl[sidx][1] sl[sidx][2] 
         u1 = pts1[sl[sidx][1]]
         u2 = pts2[sl[sidx][2]]
 

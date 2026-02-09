@@ -7,9 +7,9 @@ import Statistics
 using LinearAlgebra
 using StaticArrays
 using TensorCast
-import Manifolds as MF
+using Manifolds
+using LieGroups
 import Rotations as Rot_
-import LieGroups as LGr
 using Distributions
 import ApproxManifoldProducts: ManellicTree, eigenCoords, splitPointsEigen
 
@@ -23,7 +23,7 @@ DATADIR = joinpath(dirname(@__DIR__), "testdata")
 
 # test 
 function testEigenCoords(r_C = pi / 3, ax_CC = [SA[5 * randn(); randn()] for _ = 1:100])
-    M = LGr.TranslationGroup(2)
+    M = TranslationGroup(2)
     _R(α, s = exp(-α * im)) = real(s) * SA[1 0; 0 1] + imag(s) * SA[0 1; -1 0]
     # _R(α) = SA[cos(α) sin(α); -sin(α) cos(α)]
     r_R_ax = _R(r_C)
@@ -35,7 +35,7 @@ function testEigenCoords(r_C = pi / 3, ax_CC = [SA[5 * randn(); randn()] for _ =
     r_R_ax_, L, pidx = ApproxManifoldProducts.eigenCoords(r_CV)
 
     # spot check
-    @show _ax_ERR = log(LGr.SpecialOrthogonalGroup(2), (r_R_ax_') * r_R_ax)[1, 2]
+    @show _ax_ERR = log(SpecialOrthogonalGroup(2), (r_R_ax_') * r_R_ax)[1, 2]
     @show testval = isapprox(0, _ax_ERR; atol = 8 / length(ax_CC))
     @assert testval "Spot check failed on eigen split of manifold points, the estimated point rotation matrix did not match construction. length(ax_CC)=$(length(ax_CC))"
 
@@ -46,7 +46,7 @@ end
 
 @testset "test Manellic tree utilities w skeleton object" begin
    
-    M = LGr.TranslationGroup(1)
+    M = TranslationGroup(1)
     N = 32
     pts = [randn(1) for _ = 1:N]
     weights = ones(N) ./ N
@@ -116,14 +116,14 @@ end
 @testset "test ManellicTree construction" begin
     ##
 
-    M = LGr.TranslationGroup(2)
+    M = TranslationGroup(2)
     α = pi / 3
     r_CC, R, pidx, r_CV = testEigenCoords(α)
     ax_CCp, mask, knl = splitPointsEigen(M, r_CC)
     @test sum(mask) == (length(r_CC) ÷ 2)
     @test knl isa ApproxManifoldProducts.MvNormalKernel
-    Mr = LGr.SpecialOrthogonalGroup(2)
-    @test isapprox(α, LGr.vee(LGr.LieAlgebra(Mr), log(Mr, R))[1]; atol = 0.1)
+    Mr = SpecialOrthogonalGroup(2)
+    @test isapprox(α, vee(LieAlgebra(Mr), log(Mr, R))[1]; atol = 0.1)
 
     ##
 
@@ -178,10 +178,11 @@ end
     ##
 end
 
+
 @testset "ManellicTree construction 1D" begin
     ##
 
-    M = LGr.TranslationGroup(1)
+    M = TranslationGroup(1)
     # already sorted list
     pts = [[1.0], [2.0], [4.0], [7.0], [11.0], [16.0], [22.0]]
     bw = [1.0]
@@ -203,13 +204,13 @@ end
     end
 
     #
-    #               (1)1:7
+    #               {1}1:7
     #              /      \
-    #         (2)1:4       (3)5:7
+    #         {2}1:4       {3}5:7
     #          /   \       /     \
-    #    (4)1:2  (5)3:4  (6)5:6   (7)7
+    #    {4}1:2  {5}3:4  {6}5:6   (7)7
     #    /  \    /  \     /  \     /  \
-    #  (8)(9)  (10)(11) (12)(13)  *    *
+    #   (8)(9) (10)(11) (12)(13)  *    *
     #
     mtree = ApproxManifoldProducts.buildTree_Manellic!(
         M,
@@ -267,6 +268,13 @@ end
         ApproxManifoldProducts.leftIndex(mtree, floor(Int, N / 2)),
     )
     @test !ApproxManifoldProducts.exists_BTLabel(mtree, 2 * N + 1)
+
+
+    ## test sorting of labels is consistent by rebuilding a shuffled belief
+    mtree_ = manikde!(M, shuffle(pts); bw)
+
+    @test all(s->s[1] ≈ s[2], zip(getPoints(mtree), getPoints(mtree_)) )
+
 
     ## additional test datasets
 
@@ -351,6 +359,48 @@ end
     ##
 end
 
+
+@testset "ManellicTree 1D basic and smaller construction as per sorting of points with shuffle" begin
+    ## 
+
+    M = TranslationGroup(1)
+    # pts = [randn(1) for _ = 1:5]
+    pts = [
+        [0.07322299439163212],
+        [2.065271709556179],
+        [-0.21699662409315343],
+        [0.3625358873858872],
+        [-0.7988970559113724],
+    ]
+
+    refperm = sortperm(pts)
+
+    bw = [0.1;]
+    mtree = ApproxManifoldProducts.buildTree_Manellic!(
+        M,
+        pts;
+        kernel_bw = bw,
+        kernel = AMP.MvNormalKernel,
+    )
+
+    shf = shuffle(1:length(pts))
+    mtree_ = ApproxManifoldProducts.buildTree_Manellic!(
+        M,
+        pts[shf];
+        kernel_bw = bw,
+        kernel = AMP.MvNormalKernel,
+    )
+
+    @test all(refperm .== mtree.permute)
+    @test all(refperm .== shf[mtree_.permute])
+    @test all(mtree.permute .== shf[mtree_.permute])
+
+    @error "expand sorting test to trivial TranslateGroup(2) with pts = [[*; 0], ...] producing same mtree.permute"
+    @error "expand sorting test to trivial TranslateGroup(2) with pts = [[0; *], ...] producing same mtree.permute"
+
+end
+
+
 @testset "ManellicTree 1D basic construction and evaluations" begin
     ## 
 
@@ -375,6 +425,16 @@ end
         kernel = AMP.MvNormalKernel,
     )
 
+    mtree.permute
+    shf = shuffle(1:length(pts))
+    mtree_ = ApproxManifoldProducts.buildTree_Manellic!(
+        M,
+        pts[shf];
+        kernel_bw = bw,
+        kernel = AMP.MvNormalKernel,
+    )
+
+
     np = Normal(0, 1)
     h = 0.1
     xx = -5:h:5
@@ -390,7 +450,12 @@ end
     # lines!(xx, yy, color=:blue) # test
 
     # test sorting order of data 
+    refperm = sortperm(pts)
     permref = sortperm(pts; by = s -> getindex(s, 1))
+
+    @test all(refperm .== mtree.permute)
+    @test all(refperm .== shf[mtree_.permute])
+    @test all(mtree.permute .== shf[mtree_.permute])
 
     @test 0 == sum(permref - mtree.permute)
 
@@ -409,13 +474,19 @@ end
     # isapprox(dict[:evaltest_1_dens][5], AMP.evaluate(mtree, [dict[:evaltest_1_at][5]]))
     # eval test ref Normal(0,1)
 
+
+    # check the sorting of the labels is consistent by rebuilding a shuffled belief
+    mtree_ = manikde!(M, shuffle(pts); bw)
+
+    @test all(s->s[1] ≈ s[2], zip(getPoints(mtree), getPoints(mtree_)) )
+
     ##
 end
 
 @testset "Test evaluate MvNormalKernel" begin
     ##
 
-    M = LGr.TranslationGroup(1)
+    M = TranslationGroup(1)
     ker = AMP.MvNormalKernel([0.0], [0.5;;])
     @test isapprox(AMP.evaluate(M, ker, [0.1]), pdf(MvNormal(mean(ker), cov(ker)), [0.1]))
 
@@ -428,7 +499,7 @@ end
         return 1 / (σ * sqrt(2pi)) * s
     end
 
-    M = LGr.CircleGroup(ℝ)
+    M = CircleGroup(ℝ)
     ker = AMP.MvNormalKernel([0.0], [0.1;;])
     @test isapprox(
         AMP.evaluate(M, ker, [0.1]),
@@ -448,28 +519,28 @@ end
     )
 
     ##
-    M = LGr.SpecialEuclideanGroup(2; variant = :right)
+    M = SpecialEuclideanGroup(2; variant = :right)
     ε = identity_element(M)
     Xc = [10, 20, 0.1]
-    p = exp(M, LGr.hat(LGr.LieAlgebra(M), Xc))
+    p = exp(M, hat(LieAlgebra(M), Xc))
     kercov = diagm([0.5, 2.0, 0.1] .^ 2)
     ker = AMP.MvNormalKernel(p, kercov)
     @test isapprox(AMP.evaluate(M, ker, p), pdf(MvNormal(Xc, cov(ker)), Xc))
 
     Xc = [10, 22, -0.1]
-    q = exp(M, LGr.hat(LGr.LieAlgebra(M), Xc))
+    q = exp(M, hat(LieAlgebra(M), Xc))
 
     @test isapprox(pdf(MvNormal(cov(ker)), [0, 0, 0]), AMP.evaluate(M, ker, p))
 
-    X = log(M, LGr.compose(M, inv(M, p), q))
-    Xc_e = LGr.vee(LGr.LieAlgebra(M), X)
+    X = log(M, compose(M, inv(M, p), q))
+    Xc_e = vee(LieAlgebra(M), X)
     pdf_local_coords = pdf(MvNormal(cov(ker)), Xc_e)
 
     @test isapprox(pdf_local_coords, AMP.evaluate(M, ker, q))
 
     delta_c = AMP.distanceMalahanobisCoordinates(M, ker, q)
-    X = log(M, LGr.compose(M, inv(M, p), q))
-    Xc_e = LGr.vee(LGr.LieAlgebra(M), X)
+    X = log(M, compose(M, inv(M, p), q))
+    Xc_e = vee(LieAlgebra(M), X)
     malad_t = Xc_e' * inv(kercov) * Xc_e
     # delta_t = [10, 20, 0.1] - [10, 22, -0.1] 
     @test isapprox(malad_t, delta_c' * delta_c; atol = 1e-10)
@@ -482,7 +553,7 @@ end
 
     # NOTE 'global' distribution would have been 
     X = log(M, mean(ker), q)
-    Xc_e = LGr.vee(LGr.LieAlgebra(M), X)
+    Xc_e = vee(LieAlgebra(M), X)
     pdf_global_coords = pdf(MvNormal(cov(ker)), Xc_e)
 
     ##
@@ -491,11 +562,11 @@ end
 @testset "Basic ManellicTree manifolds construction and evaluations" begin
     ## 
 
-    M = LGr.TranslationGroup(1)
+    M = TranslationGroup(1)
     ε = identity_element(M)
     dis = MvNormal([3.0], diagm([1.0] .^ 2))
     Cpts = [rand(dis) for _ = 1:128]
-    pts = map(c -> exp(M, ε, LGr.hat(LGr.LieAlgebra(M), c)), Cpts)
+    pts = map(c -> exp(M, ε, hat(LieAlgebra(M), c)), Cpts)
     mtree = ApproxManifoldProducts.buildTree_Manellic!(
         M,
         pts;
@@ -504,7 +575,7 @@ end
     )
 
     ##
-    p = exp(M, ε, LGr.hat(LGr.LieAlgebra(M), [3.0]))
+    p = exp(M, ε, hat(LieAlgebra(M), [3.0]))
     y_amp = AMP.evaluate(mtree, p)
 
     y_pdf = pdf(dis, [3.0])
@@ -522,11 +593,11 @@ end
     # lines(first.(ps), ys_amp)
     ##
 
-    M = LGr.SpecialOrthogonalGroup(2)
+    M = SpecialOrthogonalGroup(2)
     ε = identity_element(M)
     dis = MvNormal([0.0], diagm([0.1] .^ 2))
     Cpts = [rand(dis) for _ = 1:128]
-    pts = map(c -> exp(M, LGr.hat(LGr.LieAlgebra(M), c)), Cpts)
+    pts = map(c -> exp(M, hat(LieAlgebra(M), c)), Cpts)
     mtree = ApproxManifoldProducts.buildTree_Manellic!(
         M,
         pts;
@@ -535,7 +606,7 @@ end
     )
 
     ##
-    p = exp(M, ε, LGr.hat(LGr.LieAlgebra(M), [0.1]))
+    p = exp(M, ε, hat(LieAlgebra(M), [0.1]))
     y_amp = AMP.evaluate(mtree, p)
 
     y_pdf = pdf(dis, [0.1])
@@ -543,17 +614,17 @@ end
     @test isapprox(y_amp, y_pdf; atol = 0.5)
 
     ps = [[p] for p = -0.3:0.01:0.3]
-    ys_amp = map(p -> AMP.evaluate(mtree, exp(M, ε, LGr.hat(LGr.LieAlgebra(M), p))), ps)
+    ys_amp = map(p -> AMP.evaluate(mtree, exp(M, ε, hat(LieAlgebra(M), p))), ps)
     ys_pdf = pdf(dis, ps)
 
     # lines(first.(ps), ys_pdf)
     # lines!(first.(ps), ys_amp)
 
-    M = LGr.SpecialEuclideanGroup(2; variant = :right)
+    M = SpecialEuclideanGroup(2; variant = :right)
     ε = identity_element(M)
     dis = MvNormal([10, 20, 0.1], diagm([0.5, 2.0, 0.1] .^ 2))
     Cpts = [rand(dis) for _ = 1:128]
-    pts = map(c -> exp(M, ε, LGr.hat(LGr.LieAlgebra(M), c)), Cpts)
+    pts = map(c -> exp(M, ε, hat(LieAlgebra(M), c)), Cpts)
     mtree = ApproxManifoldProducts.buildTree_Manellic!(
         M,
         pts;
@@ -562,7 +633,7 @@ end
     )
 
     ##
-    p = exp(M, LGr.hat(LGr.LieAlgebra(M), [10, 20, 0.1]))
+    p = exp(M, hat(LieAlgebra(M), [10, 20, 0.1]))
     y_amp = AMP.evaluate(mtree, p)
     y_pdf = pdf(dis, [10, 20, 0.1])
     # check kde eval is within 20% of true value

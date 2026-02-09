@@ -325,6 +325,7 @@ function splitPointsEigen(
     # TODO ALLOW BOTH BALANCED OR UNBALANCED MASK RETRIEVAL, STARTING WITH FORCED MASK BALANCING
     # NOTE, rebalancing reason: deadcenter of covariance is not halfway between points (unconfirmed)
     # rebalance if stochastic nearest estimates fall in wrong mask
+    # see #328 for more details and discussion
     function _flipmask_minormax!(smlmask, bigmask, data; argminmax::Function = argmin)
         N = length(smlmask)
         # move minimum mask points over to imask
@@ -370,10 +371,10 @@ function buildTree_Manellic!(
 
     _kernel_bw = _legacybw(kernel_bw)
 
-    # terminate recursive tree build when all necessary tree kernels have been built
-    if N <= index
-        return mtree
-    end
+    # # terminate recursive tree build when all necessary tree kernels have been built
+    # if N <= index
+    #     return mtree
+    # end
 
     M = mtree.manifold
     # take a slice of data
@@ -391,10 +392,19 @@ function buildTree_Manellic!(
     imask = xor.(mask, true)
 
     # sort the data as 'small' and 'big' elements either side of the eigen split
-    big = view(ido, mask)
-    sml = view(ido, imask)
+    big = view(ido, mask)  |> collect
+    sml = view(ido, imask) |> collect
     # inplace reorder the slice portion of mtree.permute towards accending
-    ido .= SA[sml...; big...]
+    _ido = SA[sml...; big...]
+    # ido .= SA[sml...; big...]
+    for (i,v) in enumerate(_ido)
+        ido[i] = v
+    end
+
+    # terminate recursive tree build when all necessary tree kernels have been built
+    if N <= index
+        return mtree
+    end
 
     npts = high - low + 1
     mid_idx = low + sum(imask) - 1
