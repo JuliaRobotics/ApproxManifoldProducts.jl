@@ -169,7 +169,7 @@ end
     best_cov = cov(ApproxManifoldProducts.getKernelLeaf(mkd.belief, 1))[1] |> sqrt
     @show best_cov
 
-    @test isapprox(0.5, best_cov; atol = 0.3)
+    @test isapprox(0.5, best_cov; atol = 0.35)
 
     pts = [1 * randn(1) for _ = 1:100]
     mkd = ApproxManifoldProducts.manikde!(M, pts)

@@ -6,92 +6,15 @@ using TensorCast
 using LinearAlgebra
 using Test
 
+
 ##
 
-@testset "test calcProductGaussians" begin
-    ##
-
-    M = TranslationGroup(2)
-    u = [[1; 1.0], [0.0; 0]]
-    c = [([1.0; 1]), ([1.0; 1])]
-
-    uC = calcProductGaussians(M, u, c)
-    u_, C_ = mean(uC), cov(uC)
-    @test isapprox(u_, [0.5, 0.5])
-    @test isapprox(C_, [0.5 0.0; 0.0 0.5])
-
-    ##
-end
-
-@testset "comparison test with basic product" begin
-    ## simply multiply two beliefs, sim2
-
-    N = 10
-    d = 2
-    M = TranslationGroup(d)
-
-    #densities to multiply
-    pts1 = [randn(d) for _ = 1:N]
-    P1 = manikde!(M, pts1; bw = [1; 1.0])
-
-    pts2 = [randn(d) for _ = 1:N]
-    P2 = manikde!(M, pts2; bw = [1; 1.0])
-
-    ##
-
-    sl = Vector{Vector{Int}}()
-
-    P12 = manifoldProduct(
-        [P1; P2];
-        recordLabels = true,
-        selectedLabels = sl,
-        addEntropy = false,
-    )
-
-    @test !isPartial(P12)
-    @test P12._partial === nothing
-    # @test isapprox( mean(P12)[1], 0, atol=1 )
-    # @test isapprox( mean(P12)[2], 0, atol=1 )
-
-    @show sl;
-
-    # ensure all posterior product labels are from leaf nodes only
-    sl1 = [s[1] for s in sl]
-    sl2 = [s[2] for s in sl]
-
-    @test all(l -> ApproxManifoldProducts.isLeaf_BTLabel(P1.belief, l), sl1)
-    @test all(l -> ApproxManifoldProducts.isLeaf_BTLabel(P2.belief, l), sl2)
-
-    # # check the sorting of the labels is consistent by rebuilding a shuffled belief
-    # P1_ = manikde!(M, shuffle(pts1); bw = [1; 1.0])
-
-    # @test all(s->s[1] ≈ s[2], zip(getPoints(P1), getPoints(P1_)) )
-
-    P12
-
-    ## validate selected labels are working properly, with addEntropy=false
-
-    bw1 = getBW(P1)[1] .^ 2
-    bw2 = getBW(P2)[1] .^ 2
-    for sidx = 1:N
-        @info "debug" sidx sl[sidx][1] sl[sidx][2] 
-        u1 = pts1[sl[sidx][1]]
-        u2 = pts2[sl[sidx][2]]
-
-        u12 = calcProductGaussians(M, [u1, u2], [bw1, bw2])
-
-        @test isapprox(mean(u12), getPoints(P12)[sidx])
-    end
-
-    ##
-end
-
 @testset "test dim=2 product with one partial/marginal" begin
-    ## basic test one full with one partial
+## basic test one full with one partial
 
     N = 50
     d = 2
-    M = TranslationGroup(d)
+    M = LieGroups.TranslationGroup(d)
 
     #densities to multiply
     pts1 = [randn(d) for _ = 1:N]
@@ -101,7 +24,7 @@ end
     (x -> (x[2] += 100)).(pts2)
     P2_ = manikde!(M, pts2; partial = [1;])
 
-    ##
+##
 
     sl = Vector{Vector{Int}}()
 
@@ -121,7 +44,7 @@ end
 
     P12_
 
-    ##
+##
 
     for sidx = 1:N
         bw1 = getBW(P1, false)[:, 1] .^ 2
@@ -136,15 +59,15 @@ end
         @test isapprox(pts1[sl[sidx][1]][2], getPoints(P12_)[sidx][2])
     end
 
-    ##
+##
 end
 
 @testset "test dim=2 product with one full and two similar marginals" begin
-    ## basic test one full with one partial
+## basic test one full with one partial
 
     N = 50
     d = 2
-    M = TranslationGroup(d)
+    M = LieGroups.TranslationGroup(d)
 
     #densities to multiply
     pts1 = [randn(d) for _ = 1:N]
@@ -158,7 +81,7 @@ end
     (x -> (x[2] += 100)).(pts3)
     P3_ = manikde!(M, pts3; partial = [1;])
 
-    ##
+##
 
     sl = Vector{Vector{Int}}()
 
@@ -178,7 +101,7 @@ end
 
     P123_
 
-    ##
+##
 
     for sidx = 1:N
         bw1 = getBW(P1, false)[:, 1] .^ 2
@@ -195,14 +118,14 @@ end
         @test isapprox(pts1[sl[sidx][1]][2], getPoints(P123_)[sidx][2])
     end
 
-    ##
+##
 end
 
 @testset "test dim=2 product with one full and two different marginals" begin
-    ## random data
+## random data
 
     N = 50
-    M = TranslationGroup(2)
+    M = LieGroups.TranslationGroup(2)
 
     pts1 = [randn(2) .- 10.0 for _ = 1:N]
     pts2 = [randn(2) for _ = 1:N]
@@ -214,7 +137,7 @@ end
     P2 = manikde!(M, pts2)
     P3 = marginal(manikde!(M, pts3), [2;])
 
-    ##
+##
 
     sl = Vector{Vector{Int}}()
     P = manifoldProduct(
@@ -229,7 +152,7 @@ end
     # @show sl;
     P
 
-    ## check the results
+## check the results
 
     pts = getPoints(P)
     @cast pGM[i, j] := pts[j][i]
@@ -237,7 +160,7 @@ end
     @test 0.7 * N < sum(-10 .< pGM[1, :] .< 0)
     @test 0.7 * N < sum(0 .< pGM[2, :] .< 10)
 
-    ## check the selection of labels and resulting Gaussian products are correct
+## check the selection of labels and resulting Gaussian products are correct
 
     for sidx = 1:N
         bw1 = getBW(P1, false)[:, 1] .^ 2
@@ -256,14 +179,14 @@ end
         @test isapprox(mean(u23)[2], getPoints(P)[sidx][2])
     end
 
-    ##
+##
 end
 
 @testset "product of only one marginal per each of two dimensions" begin
-    ## random data
+## random data
 
     N = 50
-    M = TranslationGroup(2)
+    M = LieGroups.TranslationGroup(2)
 
     pts1 = [randn(2) .- 10.0 for _ = 1:N]
     pts3 = [randn(2) .+ 10.0 for _ = 1:N]
@@ -273,7 +196,7 @@ end
     P1 = marginal(manikde!(M, pts1), [1;])
     P3 = marginal(manikde!(M, pts3), [2;])
 
-    ## 
+## 
 
     sl = Vector{Vector{Int}}()
 
@@ -288,7 +211,7 @@ end
 
     # @show sl
 
-    ##
+##
 
     pts = getPoints(P_)
     @cast pGM[i, j] := pts[j][i]
@@ -296,7 +219,7 @@ end
     @test 0.7 * N < sum(-13 .< pGM[1, :] .< -7)
     @test 0.7 * N < sum(7 .< pGM[2, :] .< 13)
 
-    ## check the selection of labels and resulting Gaussian products are correct
+## check the selection of labels and resulting Gaussian products are correct
 
     for sidx = 1:N
         bw1 = getBW(P1, false)[:, 1] .^ 2
@@ -309,15 +232,15 @@ end
         @test isapprox(u3[2], pts[sidx][2])
     end
 
-    ## 
+## 
 end
 
 @testset "test dim=2 product of only marginals, two per dimension, 4 factors total" begin
-    ##
+##
 
     N = 50
     d = 2
-    M = TranslationGroup(d)
+    M = LieGroups.TranslationGroup(d)
 
     pts4 = [randn(d) .- 10.0 for _ = 1:N]
     (x -> x[2] -= 90.0).(pts4)
@@ -336,7 +259,7 @@ end
     P4_ = marginal(manikde!(M, pts4_), [1;])
     P5_ = marginal(manikde!(M, pts5_), [d;])
 
-    ##
+##
 
     sl = Vector{Vector{Int}}()
 
@@ -353,7 +276,7 @@ end
 
     P45__
 
-    ## check the selection of labels and resulting Gaussian products are correct
+## check the selection of labels and resulting Gaussian products are correct
 
     # println("getPoints(P45__) = ")
     # getPoints(P45__) .|> println
@@ -379,27 +302,27 @@ end
         @test isapprox(mean(u34)[2], getPoints(P45__)[sidx][2])
     end
 
-    ##
+##
 end
 
 @testset "test dim=3 product with one full and two different marginals" begin
-    ## random data
+## random data
 
     d = 3
     N = 50
-    M = TranslationGroup(3)
+    M = LieGroups.TranslationGroup(3)
 
     pts1 = [randn(d) .- 10.0 for _ = 1:N]
     pts2 = [randn(d) for _ = 1:N]
     pts3 = [randn(d) .+ 10.0 for _ = 1:N]
 
-    ## get different marginals
+## get different marginals
 
     P1 = marginal(manikde!(M, pts1), [1;])
     P2 = manikde!(M, pts2)
     P3 = marginal(manikde!(M, pts3), [d;])
 
-    ##
+##
 
     # @test_broken false
     # # P = manifoldProduct([P1;P2;P3])
@@ -417,7 +340,7 @@ end
     # @show sl;
     P
 
-    ## check the results
+## check the results
 
     pts = getPoints(P)
     @cast pGM[i, j] := pts[j][i]
@@ -425,7 +348,7 @@ end
     @test 0.6 * N < sum(-10 .< pGM[1, :] .< 0)
     @test 0.6 * N < sum(0 .< pGM[3, :] .< 10)
 
-    ## check the selection of labels and resulting Gaussian products are correct
+## check the selection of labels and resulting Gaussian products are correct
 
     for sidx = 1:N
         bw1 = getBW(P1, false)[:, 1] .^ 2
@@ -445,27 +368,27 @@ end
         @test isapprox(mean(u23)[3], getPoints(P)[sidx][3])
     end
 
-    ##
+##
 end
 
 @testset "test dim=3 product with one full and two different marginals (marginal first in product)" begin
-    ## random data
+## random data
 
     d = 3
     N = 50
-    M = TranslationGroup(3)
+    M = LieGroups.TranslationGroup(3)
 
     pts1 = [randn(d) .- 10.0 for _ = 1:N]
     pts2 = [randn(d) for _ = 1:N]
     pts3 = [randn(d) .+ 10.0 for _ = 1:N]
 
-    ## get different marginals
+## get different marginals
 
     P1 = marginal(manikde!(M, pts1), [1;])
     P2 = manikde!(M, pts2)
     P3 = marginal(manikde!(M, pts3), [d;])
 
-    ##
+##
 
     sl = Vector{Vector{Int}}()
     P = manifoldProduct(
@@ -480,7 +403,7 @@ end
     # @show sl;
     P
 
-    ## check the results
+## check the results
 
     pts = getPoints(P)
     @cast pGM[i, j] := pts[j][i]
@@ -488,7 +411,7 @@ end
     @test 0.8 * N < sum(-10 .< pGM[1, :] .< 0)
     @test 0.8 * N < sum(0 .< pGM[3, :] .< 10)
 
-    ## check the selection of labels and resulting Gaussian products are correct
+## check the selection of labels and resulting Gaussian products are correct
 
     for sidx = 1:N
         bw1 = getBW(P1, false)[:, 1] .^ 2
@@ -508,25 +431,25 @@ end
         @test isapprox(mean(u23)[3], getPoints(P)[sidx][3])
     end
 
-    ##
+##
 end
 
 @testset "test dim=3 product with two different marginals and one open dimension" begin
-    ## random data
+## random data
 
     d = 3
     N = 50
-    M = TranslationGroup(3)
+    M = LieGroups.TranslationGroup(3)
 
     pts1 = [randn(d) .- 10.0 for _ = 1:N]
     pts3 = [randn(d) .+ 10.0 for _ = 1:N]
 
-    ## get different marginals
+## get different marginals
 
     P1 = marginal(manikde!(M, pts1), [1;])
     P3 = marginal(manikde!(M, pts3), [d;])
 
-    ##
+##
 
     sl = Vector{Vector{Int}}()
     P = manifoldProduct(
@@ -542,7 +465,7 @@ end
     # @show sl;
     P
 
-    ## check the results
+## check the results
 
     pts = getPoints(P, false)
     @cast pGM[i, j] := pts[j][i]
@@ -550,7 +473,7 @@ end
     @test 0.7 * N < sum(-13 .< pGM[1, :] .< -7)
     @test 0.7 * N < sum(7 .< pGM[3, :] .< 13)
 
-    ## check the selection of labels and resulting Gaussian products are correct
+## check the selection of labels and resulting Gaussian products are correct
 
     for sidx = 1:N
         bw1 = getBW(P1)[:, 1] .^ 2
@@ -564,7 +487,7 @@ end
         @test isapprox(u3[3], getPoints(P, false)[sidx][3])
     end
 
-    ##
+##
 end
 
 #

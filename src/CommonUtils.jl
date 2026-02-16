@@ -208,37 +208,6 @@ function calcProductGaussians(
     return MvNormalKernel(_μ, _Σ, weight)
 end
 
-function _update!(dst::MN, src::MN) where {MN <: ManifoldKernelDensity}
-    KDE._update!(dst.belief, src.belief)
-    @assert dst._partial == src._partial "AMP._update! can only be done for exactly the same ._partial values in dst and src"
-    setPointsMani!(dst._u0, src._u0)
-    dst.infoPerCoord .= src.infoPerCoord
 
-    return dst
-end
-
-# """
-#     $SIGNATURES
-
-# Once a Gibbs product is available, this function can be used to update the product assuming some change to the input
-# to some or some or all of the input density kernels.
-
-# Notes
-# - This function does not resample a new posterior sample pairing of inputs, only updates with existing 
-# """
-# function _updateMetricTreeDensityProduct( npd0::BallTreeDensity,
-#                                           trees::Array{BallTreeDensity,1},
-#                                           anFcns,
-#                                           anParams;
-#                                           Niter::Int=3,
-#                                           addop::Tuple=(+,),
-#                                           diffop::Tuple=(-,),
-#                                           getMu::Tuple=(getEuclidMu,),
-#                                           getLambda::T4=(getEuclidLambda,),
-#                                           glbs = makeEmptyGbGlb(),
-#                                           addEntropy::Bool=true )
-#   #
-
-# end
 
 #

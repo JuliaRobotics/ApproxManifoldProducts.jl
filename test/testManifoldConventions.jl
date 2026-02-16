@@ -11,7 +11,7 @@ import Rotations as _Rot
     # TODO why this test?
     # This test used to test deprecated SpecialEuclidean(2; vectors = HybridTangentRepresentation())
     # this is the equivelent to make it work in LieGroups.jl
-    M = TranslationGroup(2) × SpecialOrthogonalGroup(2)
+    M = LieGroups.TranslationGroup(2) × SpecialOrthogonalGroup(2)
     G = SpecialEuclideanGroup(2; variant = :right)
     e0 = identity_element(M, ArrayPartition)
 

@@ -31,7 +31,7 @@ function childIndices(
     mixturedepth::Int = 999,
 )
     _left = 2 * krnIdx
-    leaves = _left < length(mt)
+    leaves = length(mt) < _left # ??
     left = _left + (leaves ? 0 : 1)
     return (;
         left,
@@ -299,7 +299,7 @@ function splitPointsEigen(
     if isapprox(0.0, norm(cv)) 
         # Fall back case
         bw = if isnothing(kernel_bw)
-            @warn "Not enough points to estimate covariance" maxlog=5
+            @error "Not enough points to estimate covariance" maxlog=5
             # SMatrix{D, D, Float64}(diagm(eps(Float64) * ones(D)))
             cv
         else
@@ -804,6 +804,8 @@ function calcProductKernelsBTLabels(
     return post
 end
 
+
+# TODO why not use a standardized `getChildren`?
 function generateLabelPoolRecursive(
     proposals::AbstractVector{<:ManellicTree},
     labels_sampled::AbstractVector{<:Integer},
@@ -816,20 +818,20 @@ function generateLabelPoolRecursive(
     for _ = 1:length(proposals)
         push!(child_label_pools, Vector{Int}())
     end
-    for (o, idx) in enumerate(labels_sampled)
+    for (o, sel) in enumerate(labels_sampled)
         isleaf = true
         # add interval of left and right children for next scale label sampling
-        if exists_BTLabel(proposals[o], leftIndex(proposals[o], idx))
-            push!(child_label_pools[o], leftIndex(proposals[o], idx))
+        if exists_BTLabel(proposals[o], leftIndex(proposals[o], sel))
+            push!(child_label_pools[o], leftIndex(proposals[o], sel))
             isleaf = false
         end
-        if exists_BTLabel(proposals[o], rightIndex(proposals[o], idx))
-            push!(child_label_pools[o], rightIndex(proposals[o], idx))
+        if exists_BTLabel(proposals[o], rightIndex(proposals[o], sel))
+            push!(child_label_pools[o], rightIndex(proposals[o], sel))
             isleaf = false
         end
         all_leaves &= isleaf
         if isleaf
-            push!(child_label_pools[o], idx)
+            push!(child_label_pools[o], sel)
         end
     end
 
@@ -852,16 +854,19 @@ function sampleProductSeqGibbsBTLabel(
     MC = 3,
     # pool of sampleable labels
     label_pools::Vector{Vector{Int}} = [[1:1;] for _ in proposals],
-    labels_sampled::Vector{Int} = ones(Int, length(proposals));
+    labels_sampled::Vector{Int} = [rand(label_pools[i]) for i in 1:length(proposals)];
     # multiscale_parents = nothing;
     MAX_RECURSE_DEPTH::Int = 24, # 2^24 is so deep
+    _labelsChoosen::Vector{@NamedTuple{loo::Int64, selected::Vector{Int64}, pool::Vector{Int64}, catp::Vector{Float64}}} = Vector{@NamedTuple{loo::Int64, selected::Vector{Int64}, pool::Vector{Int64}, catp::Vector{Float64}}}()
 )
     #
     # how many incoming proposals
     d = length(proposals)
     gibbsSeq = 1:d
 
+    _trivial_label_pool = all(length.(label_pools) .== 1)
     # pick the next leave-out proposal
+    # TODO, gibbSeq might be different for unbalanced nodes "cross-products" during multiscale
     for _ = 1:MC, O in gibbsSeq
         # on first pass labels_sampled come from parent-recursive as part of multi-scale (i.e. pre-homotopy) operations
         # calc product of Gaussians from currently selected \LOO-proposals
@@ -882,6 +887,19 @@ function sampleProductSeqGibbsBTLabel(
         # update label-distribution of out-proposal from product of selected LOO-proposal components
         p = Categorical(smw)
         labels_sampled[O] = label_pools[O][rand(p)]
+        # slightly heavy memory usage for debugging
+        # _labelsChoosen[label_pools[O]] = O => deepcopy(labels_sampled)
+        push!(_labelsChoosen, (;
+            loo=O,
+            selected=deepcopy(labels_sampled),
+            pool=deepcopy(label_pools[O]),
+            catp=deepcopy(smw),
+        ))
+
+        # don't have to resample if only one label to choose from
+        if _trivial_label_pool && (O == gibbsSeq[end])
+            break
+        end
     end
 
     # construct new label pool for children in multiscale
@@ -889,16 +907,18 @@ function sampleProductSeqGibbsBTLabel(
 
     # recursively call sampling down the multiscale tree ("pyramid") -- aka homotopy
     # limit recursion to MAX_RECURSE_DEPTH
+    # FIXME, final label selection should not be sensitive to being all_leaves.
     if 0 < MAX_RECURSE_DEPTH && !all_leaves
         # @info "Recurse down manellic tree for multiscale product"
-        labels_sampled_copy = deepcopy(labels_sampled)
+        # labels_sampled_copy = deepcopy(labels_sampled)
         labels_sampled = sampleProductSeqGibbsBTLabel(
             M,
             proposals,
             MC,
-            child_label_pools,
-            labels_sampled_copy;
+            child_label_pools;
+            # labels_sampled_copy; # randomly sample from new child pool
             MAX_RECURSE_DEPTH = MAX_RECURSE_DEPTH - 1,
+            _labelsChoosen,
         )
 
         # TODO, [circa 2006, Rudoy & Wolfe] detailed balance (Hastings) by rejecting a multiscale decent given simulated or parallel tempering
@@ -916,15 +936,17 @@ function sampleProductSeqGibbsBTLabels(
     proposals::AbstractVector,
     MC = 3,
     N::Int = round(Int, mean(length.(proposals))), # FIXME use getLength or length of proposal (not getPoints)
-    label_pools = [[1:1;] for _ in proposals],
+    label_pools = [[1:1;] for _ in proposals];
+    _labelsChoosen_pp::Vector{Vector{@NamedTuple{loo::Int64, selected::Vector{Int64}, pool::Vector{Int64}, catp::Vector{Float64}}}} = Vector{Vector{@NamedTuple{loo::Int64, selected::Vector{Int64}, pool::Vector{Int64}, catp::Vector{Float64}}}}(undef, N)
 )
     #
     d = length(proposals)
     posterior_labels = Vector{NTuple{d, Int}}(undef, N)
 
     for i = 1:N
+        _labelsChoosen_pp[i] = Vector{@NamedTuple{loo::Int64, selected::Vector{Int64}, pool::Vector{Int64}, catp::Vector{Float64}}}()
         posterior_labels[i] =
-            tuple(sampleProductSeqGibbsBTLabel(M, proposals, MC, label_pools)...)
+            tuple(sampleProductSeqGibbsBTLabel(M, proposals, MC, label_pools; _labelsChoosen = _labelsChoosen_pp[i])...)
     end
 
     return posterior_labels

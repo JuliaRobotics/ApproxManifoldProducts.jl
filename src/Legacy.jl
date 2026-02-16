@@ -1,5 +1,17 @@
 # legacy content to facilitate transition to AMP
 
+
+
+function _update!(dst::MN, src::MN) where {MN <: ManifoldKernelDensity}
+    KDE._update!(dst.belief, src.belief)
+    @assert dst._partial == src._partial "AMP._update! can only be done for exactly the same ._partial values in dst and src"
+    setPointsMani!(dst._u0, src._u0)
+    dst.infoPerCoord .= src.infoPerCoord
+
+    return dst
+end
+
+
 function _reducePartialManifoldElements(el::Symbol)
     if el == :Euclid
         return TranslationGroup(1)

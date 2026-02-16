@@ -23,7 +23,7 @@ DATADIR = joinpath(dirname(@__DIR__), "testdata")
 
 # test 
 function testEigenCoords(r_C = pi / 3, ax_CC = [SA[5 * randn(); randn()] for _ = 1:100])
-    M = TranslationGroup(2)
+    M = LieGroups.TranslationGroup(2)
     _R(α, s = exp(-α * im)) = real(s) * SA[1 0; 0 1] + imag(s) * SA[0 1; -1 0]
     # _R(α) = SA[cos(α) sin(α); -sin(α) cos(α)]
     r_R_ax = _R(r_C)
@@ -46,7 +46,7 @@ end
 
 @testset "test Manellic tree utilities w skeleton object" begin
    
-    M = TranslationGroup(1)
+    M = LieGroups.TranslationGroup(1)
     N = 32
     pts = [randn(1) for _ = 1:N]
     weights = ones(N) ./ N
@@ -116,7 +116,7 @@ end
 @testset "test ManellicTree construction" begin
     ##
 
-    M = TranslationGroup(2)
+    M = LieGroups.TranslationGroup(2)
     α = pi / 3
     r_CC, R, pidx, r_CV = testEigenCoords(α)
     ax_CCp, mask, knl = splitPointsEigen(M, r_CC)
@@ -182,7 +182,7 @@ end
 @testset "ManellicTree construction 1D" begin
     ##
 
-    M = TranslationGroup(1)
+    M = LieGroups.TranslationGroup(1)
     # already sorted list
     pts = [[1.0], [2.0], [4.0], [7.0], [11.0], [16.0], [22.0]]
     bw = [1.0]
@@ -286,7 +286,7 @@ end
         atol = 1e-6,
     )
         # check permutation
-        M = TranslationGroup(1)
+        M = LieGroups.TranslationGroup(1)
         bw = [1.0]
 
         mtree = ApproxManifoldProducts.buildTree_Manellic!(
@@ -349,7 +349,7 @@ end
     end
 
     #
-    M = TranslationGroup(1)
+    M = LieGroups.TranslationGroup(1)
     pts = [randn(1) for _ = 1:8]
     for i = 1:10
         _pts = pts[shuffle(1:length(pts))]
@@ -363,7 +363,7 @@ end
 @testset "ManellicTree 1D basic and smaller construction as per sorting of points with shuffle" begin
     ## 
 
-    M = TranslationGroup(1)
+    M = LieGroups.TranslationGroup(1)
     # pts = [randn(1) for _ = 1:5]
     pts = [
         [0.07322299439163212],
@@ -404,7 +404,7 @@ end
 @testset "ManellicTree 1D basic construction and evaluations" begin
     ## 
 
-    M = TranslationGroup(1)
+    M = LieGroups.TranslationGroup(1)
     pts = [randn(1) for _ = 1:128]
     mtree = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel = AMP.MvNormalKernel)
 
@@ -415,7 +415,7 @@ end
     json_string = read(joinpath(DATADIR, "manellic_test_data.json"), String)
     dict = JSON3.read(json_string, Dict{Symbol, Vector{Float64}})
 
-    M = TranslationGroup(1)
+    M = LieGroups.TranslationGroup(1)
     pts = [[v;] for v in dict[:evaltest_1_pts]]
     bw = reshape(dict[:evaltest_1_bw], 1, 1)
     mtree = ApproxManifoldProducts.buildTree_Manellic!(
@@ -486,7 +486,7 @@ end
 @testset "Test evaluate MvNormalKernel" begin
     ##
 
-    M = TranslationGroup(1)
+    M = LieGroups.TranslationGroup(1)
     ker = AMP.MvNormalKernel([0.0], [0.5;;])
     @test isapprox(AMP.evaluate(M, ker, [0.1]), pdf(MvNormal(mean(ker), cov(ker)), [0.1]))
 
@@ -499,7 +499,7 @@ end
         return 1 / (σ * sqrt(2pi)) * s
     end
 
-    M = CircleGroup(ℝ)
+    M = LieGroups.CircleGroup(ℝ)
     ker = AMP.MvNormalKernel([0.0], [0.1;;])
     @test isapprox(
         AMP.evaluate(M, ker, [0.1]),
@@ -562,7 +562,7 @@ end
 @testset "Basic ManellicTree manifolds construction and evaluations" begin
     ## 
 
-    M = TranslationGroup(1)
+    M = LieGroups.TranslationGroup(1)
     ε = identity_element(M)
     dis = MvNormal([3.0], diagm([1.0] .^ 2))
     Cpts = [rand(dis) for _ = 1:128]

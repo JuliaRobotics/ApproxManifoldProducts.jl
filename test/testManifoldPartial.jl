@@ -12,15 +12,15 @@ using LinearAlgebra
 
     ##
 
-    M = TranslationGroup(3)
+    M = LieGroups.TranslationGroup(3)
 
-    @test getManifoldPartial(M, [1; 2; 3])[1] == TranslationGroup(3)
-    @test getManifoldPartial(M, [2; 3])[1] == TranslationGroup(2)
+    @test getManifoldPartial(M, [1; 2; 3])[1] == LieGroups.TranslationGroup(3)
+    @test getManifoldPartial(M, [2; 3])[1] == LieGroups.TranslationGroup(2)
 
-    @test getManifoldPartial(M, [1; 2; 3], zeros(3))[1] == TranslationGroup(3)
+    @test getManifoldPartial(M, [1; 2; 3], zeros(3))[1] == LieGroups.TranslationGroup(3)
     @test isapprox(getManifoldPartial(M, [1; 2; 3], zeros(3))[2], zeros(3))
 
-    @test getManifoldPartial(M, [2; 3], zeros(3))[1] == TranslationGroup(2)
+    @test getManifoldPartial(M, [2; 3], zeros(3))[1] == LieGroups.TranslationGroup(2)
     @test isapprox(getManifoldPartial(M, [2; 3], zeros(3))[2], zeros(2))
 
     ##
@@ -56,41 +56,41 @@ end
     ##
 end
 
-@testset "test getManifoldPartial on ProductLieGroup" begin
-    M = TranslationGroup(2) × SpecialOrthogonalGroup(2)
+@testset "test getManifoldPartial on LieGroups.ProductLieGroup" begin
+    M = LieGroups.TranslationGroup(2) × SpecialOrthogonalGroup(2)
 
     @test getManifoldPartial(M, [1; 2; 3])[1] ==
-          TranslationGroup(2) × SpecialOrthogonalGroup(2)
+          LieGroups.TranslationGroup(2) × SpecialOrthogonalGroup(2)
 
-    @test getManifoldPartial(M, [1;])[1] == TranslationGroup(1)
-    @test getManifoldPartial(M, [2;])[1] == TranslationGroup(1)
-    @test getManifoldPartial(M, [1; 2])[1] == TranslationGroup(2)
+    @test getManifoldPartial(M, [1;])[1] == LieGroups.TranslationGroup(1)
+    @test getManifoldPartial(M, [2;])[1] == LieGroups.TranslationGroup(1)
+    @test getManifoldPartial(M, [1; 2])[1] == LieGroups.TranslationGroup(2)
 
     @test getManifoldPartial(M, [3;])[1] == SpecialOrthogonalGroup(2)
 
     @test getManifoldPartial(M, [1; 3])[1] ==
-          ProductLieGroup(TranslationGroup(1), SpecialOrthogonalGroup(2))
+          LieGroups.ProductLieGroup(LieGroups.TranslationGroup(1), SpecialOrthogonalGroup(2))
 
     repr = ArrayPartition([0.0; 0], [1 0; 0 1.0])
 
     @test getManifoldPartial(M, [1; 2; 3], repr)[1] ==
-          TranslationGroup(2) × SpecialOrthogonalGroup(2)
+          LieGroups.TranslationGroup(2) × SpecialOrthogonalGroup(2)
     @test getManifoldPartial(M, [1; 2; 3], repr)[2] == repr
 
-    @test getManifoldPartial(M, [1;], repr)[1] == TranslationGroup(1)
+    @test getManifoldPartial(M, [1;], repr)[1] == LieGroups.TranslationGroup(1)
     @test getManifoldPartial(M, [1;], repr)[2] == [0.0;]
 
-    @test getManifoldPartial(M, [2;], repr)[1] == TranslationGroup(1)
+    @test getManifoldPartial(M, [2;], repr)[1] == LieGroups.TranslationGroup(1)
     @test getManifoldPartial(M, [2;], repr)[2] == [0.0;]
 
-    @test getManifoldPartial(M, [1; 2], repr)[1] == TranslationGroup(2)
+    @test getManifoldPartial(M, [1; 2], repr)[1] == LieGroups.TranslationGroup(2)
     @test getManifoldPartial(M, [1; 2], repr)[2] == [0.0; 0]
 
     @test getManifoldPartial(M, [3;], repr)[1] == SpecialOrthogonalGroup(2)
     @test getManifoldPartial(M, [3;], repr)[2].x[1] == submanifold_component(repr, 2)
 
     @test getManifoldPartial(M, [1; 3], repr)[1] ==
-          ProductLieGroup(TranslationGroup(1), SpecialOrthogonalGroup(2))
+          LieGroups.ProductLieGroup(LieGroups.TranslationGroup(1), SpecialOrthogonalGroup(2))
     r_repr = getManifoldPartial(M, [1; 3], repr)[2]
     @test r_repr isa ArrayPartition
     @test submanifold_component(r_repr, 1) == [0.0;]
@@ -102,34 +102,34 @@ end
 
     @test getManifoldPartial(M, [1; 2; 3])[1] == M
 
-    @test getManifoldPartial(M, [1;])[1] == TranslationGroup(1)
-    @test getManifoldPartial(M, [2;])[1] == TranslationGroup(1)
-    @test getManifoldPartial(M, [1; 2])[1] == TranslationGroup(2)
+    @test getManifoldPartial(M, [1;])[1] == LieGroups.TranslationGroup(1)
+    @test getManifoldPartial(M, [2;])[1] == LieGroups.TranslationGroup(1)
+    @test getManifoldPartial(M, [1; 2])[1] == LieGroups.TranslationGroup(2)
 
     @test getManifoldPartial(M, [3;])[1] == SpecialOrthogonalGroup(2)
 
     @test getManifoldPartial(M, [1; 3])[1] ==
-          ProductLieGroup(TranslationGroup(1), SpecialOrthogonalGroup(2))
+          LieGroups.ProductLieGroup(LieGroups.TranslationGroup(1), SpecialOrthogonalGroup(2))
 
     repr = ArrayPartition([0.0; 0], [1 0; 0 1.0])
 
     @test getManifoldPartial(M, [1; 2; 3], repr)[1] == M
     @test getManifoldPartial(M, [1; 2; 3], repr)[2] == repr
 
-    @test getManifoldPartial(M, [1;], repr)[1] == TranslationGroup(1)
+    @test getManifoldPartial(M, [1;], repr)[1] == LieGroups.TranslationGroup(1)
     @test getManifoldPartial(M, [1;], repr)[2] == [0.0;]
 
-    @test getManifoldPartial(M, [2;], repr)[1] == TranslationGroup(1)
+    @test getManifoldPartial(M, [2;], repr)[1] == LieGroups.TranslationGroup(1)
     @test getManifoldPartial(M, [2;], repr)[2] == [0.0;]
 
-    @test getManifoldPartial(M, [1; 2], repr)[1] == TranslationGroup(2)
+    @test getManifoldPartial(M, [1; 2], repr)[1] == LieGroups.TranslationGroup(2)
     @test getManifoldPartial(M, [1; 2], repr)[2] == [0.0; 0]
 
     @test getManifoldPartial(M, [3;], repr)[1] == SpecialOrthogonalGroup(2)
     @test getManifoldPartial(M, [3;], repr)[2].x[1] == submanifold_component(repr, 2)
 
     @test getManifoldPartial(M, [1; 3], repr)[1] ==
-          ProductLieGroup(TranslationGroup(1), SpecialOrthogonalGroup(2))
+          LieGroups.ProductLieGroup(LieGroups.TranslationGroup(1), SpecialOrthogonalGroup(2))
     r_repr = getManifoldPartial(M, [1; 3], repr)[2]
     @test r_repr isa ArrayPartition
     @test submanifold_component(r_repr, 1) == [0.0;]
@@ -146,13 +146,13 @@ end
     ##
 end
 
-@testset "test getPoints under partial with representation on ProductLieGroup" begin
+@testset "test getPoints under partial with representation on LieGroups.ProductLieGroup" begin
 
     ##
 
     N = 100
     # M = SpecialEuclideanGroup(2; variant = :right)
-    M = TranslationGroup(2) × SpecialOrthogonalGroup(2)
+    M = LieGroups.TranslationGroup(2) × SpecialOrthogonalGroup(2)
     u0 = ArrayPartition([0.0; 0], [1 0; 0 1.0])
 
     pts = [exp(M, u0, hat(LieAlgebra(M), [10 .+ randn(2); randn()])) for i = 1:N]
@@ -165,7 +165,7 @@ end
 
     @test length(p12) == N
     @test length(p12[1]) == 2
-    @test_broken P12.manifold isa TranslationGroup(2)
+    @test_broken P12.manifold isa LieGroups.TranslationGroup(2)
 
     ##
 end
@@ -189,7 +189,7 @@ end
 
         @test length(p12) == N
         @test length(p12[1]) == 2
-        @test_broken P12.manifold isa TranslationGroup(2)
+        @test_broken P12.manifold isa LieGroups.TranslationGroup(2)
     end
 
     ##
@@ -198,7 +198,7 @@ end
 @testset "test marginal of marginal (partial) helper" begin
     ##
 
-    M = TranslationGroup(3)
+    M = LieGroups.TranslationGroup(3)
     pts = [randn(3) for _ = 1:75]
 
     X = manikde!(M, pts; partial = [1; 3])
@@ -212,7 +212,7 @@ end
     end
 
     try
-        M = TranslationGroup(4)
+        M = LieGroups.TranslationGroup(4)
         # check the constructor when only a few points are available
         X = manikde(M, pts; partial = [1; 3; 4])
     catch
@@ -226,7 +226,7 @@ end
     ##
 
     N = 10
-    M = TranslationGroup(3)
+    M = LieGroups.TranslationGroup(3)
     pts0 = [zeros(3) for _ = 1:N]
     X0 = manikde!(M, pts0; bw = diagm(0.001*ones(3)))
 
