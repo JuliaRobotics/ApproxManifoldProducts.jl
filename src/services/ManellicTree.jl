@@ -30,24 +30,64 @@ function childIndices(
     krnIdx::Int;
     mixturedepth::Int = 999,
 )
-    _left = 2 * krnIdx
-    leaves = length(mt) < _left # ??
-    left = _left + (leaves ? 0 : 1)
+    N = length(mt)
+    btleft = 2 * krnIdx
+    # e.g. for N=length(data)=32, left child of 1*2 = 2, and left child of 2*2=4, whose left child is 4*2 = 8, similarly 8*2=16.  
+    #  Now the left child of node 16*2 = 32, which is the first leaf node (but careful with index == N)
+    #  i.e. right child of node 15 is 2*15+1 = 31, so 15's right child (31) is the last nonleaf
+    isleaf = N <= btleft
+    # Before BeliefTreeIndices nonisleaf are [1..N], while isleaf are [N+1..2N].
+    left = btleft + (isleaf ? 1 : 0) 
+    nonleaf_left = isleaf ? -1 : btleft
+    leaf_left = isleaf ? nonleaf_left : -1
+    right = left + 1 
+    nonleaf_right = isleaf ? -1 : nonleaf_left + 1
+    leaf_right = isleaf ? nonleaf_left + 1 : -1
+    # return a pseudo type representing a composite index of the belief tree
+    left_ci = (;
+        nonleaf_left,
+        leaf_left,
+        isleaf,
+        # TBD permuted indices?
+    )
+    right_ci = (;
+        nonleaf_right,
+        leaf_right,
+        isleaf,
+        # TBD permuted indices?
+    )
     return (;
+        left_ci,
+        right_ci,
+        # legacy values below
+        N,
         left,
-        right = left + 1, 
-        leaves
+        right, 
     )
 end
 
 """
     $SIGNATURES
 
-Return leaf kernel associated with input data element `i` (i.e. `permuted=true`).
-Else when set to `permuted=false` return the sorted leaf_kernel `i` (different from unsorted input data number).
+Default returns leaf kernel associated with permuted input data element `i` (i.e. `permuted=true`).
+but returns the leaf_kernel inverse permuted `i` when `permuted=false` (i.e. similar to unsorted input data).
+
+DevNotes:
+- Very bad practice to have duplicate of .data[.permuted] deepcopied into .leaf_kernels
+  - Makes unpermuted lookup really slow among the torrent of other issues.  FIXME
 """
-getKernelLeaf(mt::ManellicTree, i::Int, permuted::Bool = true) =
-    mt.leaf_kernels[permuted ? mt.permute[i] : i]
+function getKernelLeaf(
+    mt::ManellicTree, 
+    i::Int, 
+    permuted::Bool = true
+)
+    invpermute(s::Int) = findfirst(==(s), mt.permute)
+    if permuted
+        return mt.leaf_kernels[i]
+    else
+        return mt.leaf_kernels[invpermute(i)]
+    end
+end
 
 """
     $SIGNATURES
@@ -96,7 +136,8 @@ function getKernelTree(
             # mean bandwidth of all leaf children
             leafIdxs = mtr.segments[currIdx] .|> s -> findfirst(==(s), mtr.permute)
             leafIdxs .+= N
-            bws = [cov(getKernelTree(mtr, lidx, false)) for lidx in leafIdxs]
+            # TBD, why permuted hard false here, maybe because tree nodes not leaves?
+            bws = [cov(getKernelTree(mtr, lidx, false)) for lidx in leafIdxs] 
             # FIXME is a parallel transport needed between different kernel covariances that each exist in different tangent spaces
             mean_bw = Matrix(mean(bws)) # FIXME upgrade to on-manifold mean
             # corrected cov varies from root (only Monte Carlo cov est) to leaves (only selected bandwdith)
@@ -857,7 +898,7 @@ function sampleProductSeqGibbsBTLabel(
     labels_sampled::Vector{Int} = [rand(label_pools[i]) for i in 1:length(proposals)];
     # multiscale_parents = nothing;
     MAX_RECURSE_DEPTH::Int = 24, # 2^24 is so deep
-    _labelsChoosen::Vector{@NamedTuple{loo::Int64, selected::Vector{Int64}, pool::Vector{Int64}, catp::Vector{Float64}}} = Vector{@NamedTuple{loo::Int64, selected::Vector{Int64}, pool::Vector{Int64}, catp::Vector{Float64}}}()
+    _labelsChoosen::Vector{@NamedTuple{loo::Int64, selected::Vector{Int64}, pool::Vector{Vector{Int64}}, catp::Vector{Float64}}} = Vector{@NamedTuple{loo::Int64, selected::Vector{Int64}, pool::Vector{Vector{Int64}}, catp::Vector{Float64}}}()
 )
     #
     # how many incoming proposals
@@ -892,7 +933,7 @@ function sampleProductSeqGibbsBTLabel(
         push!(_labelsChoosen, (;
             loo=O,
             selected=deepcopy(labels_sampled),
-            pool=deepcopy(label_pools[O]),
+            pool=deepcopy(label_pools),
             catp=deepcopy(smw),
         ))
 
@@ -937,14 +978,14 @@ function sampleProductSeqGibbsBTLabels(
     MC = 3,
     N::Int = round(Int, mean(length.(proposals))), # FIXME use getLength or length of proposal (not getPoints)
     label_pools = [[1:1;] for _ in proposals];
-    _labelsChoosen_pp::Vector{Vector{@NamedTuple{loo::Int64, selected::Vector{Int64}, pool::Vector{Int64}, catp::Vector{Float64}}}} = Vector{Vector{@NamedTuple{loo::Int64, selected::Vector{Int64}, pool::Vector{Int64}, catp::Vector{Float64}}}}(undef, N)
+    _labelsChoosen_pp::Vector{Vector{@NamedTuple{loo::Int64, selected::Vector{Int64}, pool::Vector{Vector{Int64}}, catp::Vector{Float64}}}} = Vector{Vector{@NamedTuple{loo::Int64, selected::Vector{Int64}, pool::Vector{Vector{Int64}}, catp::Vector{Float64}}}}(undef, N)
 )
     #
     d = length(proposals)
     posterior_labels = Vector{NTuple{d, Int}}(undef, N)
 
     for i = 1:N
-        _labelsChoosen_pp[i] = Vector{@NamedTuple{loo::Int64, selected::Vector{Int64}, pool::Vector{Int64}, catp::Vector{Float64}}}()
+        _labelsChoosen_pp[i] = Vector{@NamedTuple{loo::Int64, selected::Vector{Int64}, pool::Vector{Vector{Int64}}, catp::Vector{Float64}}}()
         posterior_labels[i] =
             tuple(sampleProductSeqGibbsBTLabel(M, proposals, MC, label_pools; _labelsChoosen = _labelsChoosen_pp[i])...)
     end

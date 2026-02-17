@@ -41,7 +41,7 @@ function manifoldProduct(
     addEntropy::Bool = true,
     recordLabels::Bool = false,
     selectedLabels::Vector{Vector{Int}} = Vector{Vector{Int}}(),
-    _labelsChoosen_pp::Vector{Vector{@NamedTuple{loo::Int64, selected::Vector{Int64}, pool::Vector{Int64}, catp::Vector{Float64}}}} = Vector{Vector{@NamedTuple{loo::Int64, selected::Vector{Int64}, pool::Vector{Int64}, catp::Vector{Float64}}}}(undef, N),
+    _labelsChoosen_pp::Vector{Vector{@NamedTuple{loo::Int64, selected::Vector{Int64}, pool::Vector{Vector{Int64}}, catp::Vector{Float64}}}} = Vector{Vector{@NamedTuple{loo::Int64, selected::Vector{Int64}, pool::Vector{Vector{Int64}}, catp::Vector{Float64}}}}(undef, N),
     _randU = Vector{Float64}(),
     _randN = Vector{Float64}(),
     logger = ConsoleLogger(),

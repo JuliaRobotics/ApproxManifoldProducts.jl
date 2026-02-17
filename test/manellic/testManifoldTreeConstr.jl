@@ -86,13 +86,16 @@ end
     @test 16 == ApproxManifoldProducts.leftIndex(mtree, 8)
     @test 17 == ApproxManifoldProducts.rightIndex(mtree, 8)
 
-    # children are now leaf nodes
+    # children are now leaf nodes (assuming first N=[1..32] are tree kernels, while [33..64] are leaf kernels)
     @test 33 == ApproxManifoldProducts.leftIndex(mtree, 16)
     @test 34 == ApproxManifoldProducts.rightIndex(mtree, 16)
 
-    # untested
     @test 35  == ApproxManifoldProducts.leftIndex(mtree, 17)
     @test 36 == ApproxManifoldProducts.rightIndex(mtree, 17)
+
+    @test 64 == ApproxManifoldProducts.rightIndex(mtree, 31)
+
+
     # @test 11 == ApproxManifoldProducts.leftIndex(mtree, 5)
     # @test 12 == ApproxManifoldProducts.rightIndex(mtree, 5)
     # @test 13 == ApproxManifoldProducts.leftIndex(mtree, 6)
@@ -105,7 +108,7 @@ end
     @test N + 1 == ApproxManifoldProducts.leftIndex(mtree, floor(Int, N / 2))
     @test N + 2 == ApproxManifoldProducts.rightIndex(mtree, floor(Int, N / 2))
     
-    ##
+##
 
     # TBD NOTE, maybe index should be a tuple of (level, node) instead of a single integer, (s=idx*2; (s % N, (s % N) + 1 ))
 
@@ -114,7 +117,7 @@ end
 
 ##
 @testset "test ManellicTree construction" begin
-    ##
+##
 
     M = LieGroups.TranslationGroup(2)
     α = pi / 3
@@ -125,7 +128,7 @@ end
     Mr = SpecialOrthogonalGroup(2)
     @test isapprox(α, vee(LieAlgebra(Mr), log(Mr, R))[1]; atol = 0.1)
 
-    ##
+##
 
     # using GLMakie
     # fig = Figure()
@@ -141,7 +144,7 @@ end
     # plot!(ax, (s->s[1]).(ptsr), (s->s[2]).(ptsr), color=:red)
     # fig
 
-    ## ensure that view of view can update original memory
+## ensure that view of view can update original memory
 
     A = randn(3)
     A_ = view(A, 1:2)
@@ -149,19 +152,25 @@ end
     A__[1] = -100
     @test isapprox(-100, A[1]; atol = 1e-10)
 
-    ##
+##
 
     r_PP = r_CC # shortcut because we are in Euclidean space
     mtree = ApproxManifoldProducts.buildTree_Manellic!(M, r_PP; kernel = AMP.MvNormalKernel)
 
-    ##
+    # test input data vs leaf kernels -- FIXME, yucky duplication of permuted raw data in leaf_kernels[]
+    for i in eachindex(r_PP)
+        @test isapprox(r_PP[i], mean(ApproxManifoldProducts.getKernelLeaf(mtree, i, false)))
+        @test isapprox(r_PP[mtree.permute[i]], mean(ApproxManifoldProducts.getKernelLeaf(mtree, i, true)))
+    end
+
+##
 
     @cast pts[i, d] := r_PP[i][d]
 
     ptsl = pts[mtree.permute[1:50], :]
     ptsr = pts[mtree.permute[51:100], :]
 
-    ##
+##
 
     # fig = Figure()
     # ax = Axis(fig[1,1])
@@ -171,16 +180,16 @@ end
 
     # fig
 
-    ##
+##
 
     AMP.evaluate(mtree, SA[10.0; -101.0])
 
-    ##
+##
 end
 
 
 @testset "ManellicTree construction 1D" begin
-    ##
+##
 
     M = LieGroups.TranslationGroup(1)
     # already sorted list
@@ -260,7 +269,7 @@ end
     # 7 is 14
     @test [22.0;] ≈ mean(ApproxManifoldProducts.getKernelTree(mtree, 7))
     
-    ##
+##
 
     @test ApproxManifoldProducts.exists_BTLabel(mtree, floor(Int, N / 2))
     @test ApproxManifoldProducts.exists_BTLabel(
@@ -270,13 +279,13 @@ end
     @test !ApproxManifoldProducts.exists_BTLabel(mtree, 2 * N + 1)
 
 
-    ## test sorting of labels is consistent by rebuilding a shuffled belief
+## test sorting of labels is consistent by rebuilding a shuffled belief
     mtree_ = manikde!(M, shuffle(pts); bw)
 
     @test all(s->s[1] ≈ s[2], zip(getPoints(mtree), getPoints(mtree_)) )
 
 
-    ## additional test datasets
+## additional test datasets
 
     function testMDEConstr(
         pts::AbstractVector{<:AbstractVector{<:Real}},
@@ -305,7 +314,7 @@ end
         return nothing
     end
 
-    ## for 4 values
+## for 4 values
 
     # manual orders
     testMDEConstr([[0.0;], [1.0], [3.0;], [6.0;]])
@@ -329,7 +338,7 @@ end
         testMDEConstr(pts[shuffle(1:4)])
     end
 
-    ## for 5 values
+## for 5 values
 
     testMDEConstr([[0.0;], [1.0], [3.0;], [6.0;], [10.0;]]; lseg = 1:3, rseg = 4:5)
     testMDEConstr([[0.0;], [1.0], [6.0;], [3.0;], [10.0;]]; lseg = 1:3, rseg = 4:5)
@@ -340,7 +349,7 @@ end
         testMDEConstr(pts[shuffle(1:length(pts))]; lseg = 1:3, rseg = 4:5)
     end
 
-    ## for 7 values
+## for 7 values
 
     # randomized orders for 7 values
     pts = [[0.0;], [1.0], [3.0;], [6.0;], [10.0;], [15.0;], [21.0;]]
@@ -356,12 +365,12 @@ end
         testMDEConstr(_pts; lseg = 1:4, rseg = 5:8)
     end
 
-    ##
+##
 end
 
 
 @testset "ManellicTree 1D basic and smaller construction as per sorting of points with shuffle" begin
-    ## 
+## 
 
     M = LieGroups.TranslationGroup(1)
     # pts = [randn(1) for _ = 1:5]
@@ -402,7 +411,7 @@ end
 
 
 @testset "ManellicTree 1D basic construction and evaluations" begin
-    ## 
+## 
 
     M = LieGroups.TranslationGroup(1)
     pts = [randn(1) for _ = 1:128]
@@ -410,7 +419,7 @@ end
 
     AMP.evaluate(mtree, SA[0.0;])
 
-    ## load know test data test
+## load know test data test
 
     json_string = read(joinpath(DATADIR, "manellic_test_data.json"), String)
     dict = JSON3.read(json_string, Dict{Symbol, Vector{Float64}})
@@ -480,11 +489,11 @@ end
 
     @test all(s->s[1] ≈ s[2], zip(getPoints(mtree), getPoints(mtree_)) )
 
-    ##
+##
 end
 
 @testset "Test evaluate MvNormalKernel" begin
-    ##
+##
 
     M = LieGroups.TranslationGroup(1)
     ker = AMP.MvNormalKernel([0.0], [0.5;;])
@@ -518,7 +527,7 @@ end
         AMP.evaluate(M, ker, [0.0]),
     )
 
-    ##
+##
     M = SpecialEuclideanGroup(2; variant = :right)
     ε = identity_element(M)
     Xc = [10, 20, 0.1]
@@ -556,11 +565,11 @@ end
     Xc_e = vee(LieAlgebra(M), X)
     pdf_global_coords = pdf(MvNormal(cov(ker)), Xc_e)
 
-    ##
+##
 end
 
 @testset "Basic ManellicTree manifolds construction and evaluations" begin
-    ## 
+## 
 
     M = LieGroups.TranslationGroup(1)
     ε = identity_element(M)
@@ -574,7 +583,7 @@ end
         kernel = AMP.MvNormalKernel,
     )
 
-    ##
+##
     p = exp(M, ε, hat(LieAlgebra(M), [3.0]))
     y_amp = AMP.evaluate(mtree, p)
 
@@ -591,7 +600,7 @@ end
 
     # lines!(first.(ps), ys_pdf)
     # lines(first.(ps), ys_amp)
-    ##
+##
 
     M = SpecialOrthogonalGroup(2)
     ε = identity_element(M)
@@ -605,7 +614,7 @@ end
         kernel = AMP.MvNormalKernel,
     )
 
-    ##
+##
     p = exp(M, ε, hat(LieAlgebra(M), [0.1]))
     y_amp = AMP.evaluate(mtree, p)
 
@@ -632,7 +641,7 @@ end
         kernel = AMP.MvNormalKernel,
     )
 
-    ##
+##
     p = exp(M, hat(LieAlgebra(M), [10, 20, 0.1]))
     y_amp = AMP.evaluate(mtree, p)
     y_pdf = pdf(dis, [10, 20, 0.1])
@@ -644,5 +653,5 @@ end
         @test_broken false
     end
 
-    ##
+##
 end

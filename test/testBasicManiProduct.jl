@@ -108,16 +108,16 @@ end
     )
     @test !ApproxManifoldProducts.exists_BTLabel(p1, 2 * N + 1)
 
-##
 
-    # leaves only in binary tree indexing
+## leaves only version
+
+    @info "Leaves only label sampling version (Gibbs), LieGroups.TranslationGroup(1)"
+
+    #leaves only in binary tree indexing
     bt_label_pool = [
         [(N + 1):(2 * N);], # use leaf BT labels from p1 
         [(N + 1):(2 * N);], # use leaf BT labels from p2
     ]
-
-    # leaves only version
-    @info "Leaves only label sampling version (Gibbs), LieGroups.TranslationGroup(1)"
 
     ApproxManifoldProducts.sampleProductSeqGibbsBTLabel(M, [p1; p2], 3, bt_label_pool)
 
@@ -141,7 +141,9 @@ end
 
     @test isapprox(0, mean(ApproxManifoldProducts.getKernelTree(mtr, 1))[1]; atol = 0.75)
 
-    @test all((s -> isapprox(1 / N, s.weight; atol = 1e-6)).(post))
+    @test all((s -> isapprox(1 / N, s.shim.weight; atol = 1e-6)).(post))
+
+##
 
     @info "Multi-scale label sampling version (Gibbs), LieGroups.TranslationGroup(1)"
 
@@ -207,10 +209,10 @@ end
     N = 64
 
     pts1 = [1 * randn(2) for _ = 1:N]
-    p1 = ApproxManifoldProducts.manikde!_manellic(M, pts1)
+    p1 = ApproxManifoldProducts.manikde!(M, pts1)
 
     pts2 = [1 * randn(2) for _ = 1:N]
-    p2 = ApproxManifoldProducts.manikde!_manellic(M, pts2)
+    p2 = ApproxManifoldProducts.manikde!(M, pts2)
 
     # test sampling
     lbls = ApproxManifoldProducts.sampleProductSeqGibbsBTLabels(M, [p1.belief; p2.belief])
@@ -232,7 +234,7 @@ end
         weights,
     ) # ?? was permute=false?
     # check that any duplicates resulted in a height weight
-    @test isapprox(weights, (s -> s.weight).(post); atol = 1e-6)
+    @test isapprox(weights, (s -> s.shim.weight).(post); atol = 1e-6)
 
     # NOTE, resulting tree might not have N number of data points 
     mtr12 = ApproxManifoldProducts.buildTree_Manellic!(M, post)
@@ -255,6 +257,7 @@ end
     pts2 = [randn(d) for _ = 1:N]
     P2 = manikde!(M, pts2; bw = [1; 1.0])
 
+
 ## check basic product of root kernels
 
     tmp_product = ApproxManifoldProducts.calcProductKernelBTLabels(
@@ -269,10 +272,43 @@ end
     # TODO get the mean of pts 1 and mean of pts 2, and check the product mean isapprox
     @test_broken isapprox(mean(tmp_product), [0.0, 0.0], atol = 0.1)
 
+## check candidate child_label_pools
+
+    clp, alv = ApproxManifoldProducts.generateLabelPoolRecursive([P1.belief; P2.belief], [1;1])
+    @test clp == [[2; 3], [2; 3]]
+    @test !alv
+
+    clp, alv = ApproxManifoldProducts.generateLabelPoolRecursive([P1.belief; P2.belief], [2;2])
+    @test clp == [[4; 5], [4; 5]]
+    @test !alv
+
+    clp, alv = ApproxManifoldProducts.generateLabelPoolRecursive([P1.belief; P2.belief], [3;3])
+    @test clp == [[6; 7], [6; 7]]
+    @test !alv
+
+    clp, alv = ApproxManifoldProducts.generateLabelPoolRecursive([P1.belief; P2.belief], [1;2])
+    @test clp == [[2; 3], [4; 5]]
+    @test !alv
+
+    clp, alv = ApproxManifoldProducts.generateLabelPoolRecursive([P1.belief; P2.belief], [3;1])
+    @test clp == [[6; 7], [2; 3]]
+    @test !alv
+
+    clp, alv = ApproxManifoldProducts.generateLabelPoolRecursive([P1.belief; P2.belief], [4;5])
+    @test clp == [[9; 10], [11; 12]]
+    @test !alv
+
+    # (TODO drop duplication) Yuck -- slightly horrible legacy test so that leaf kernels have correct duplicate of the permuted data.
+    for i in 1:N
+        @test isapprox( P1.belief.data[P1.belief.permute[i]], mean(P1.belief.leaf_kernels[i]))
+        @test isapprox( P2.belief.data[P2.belief.permute[i]], mean(P2.belief.leaf_kernels[i]))
+    end
+
+
 ##
 
     sl = Vector{Vector{Int}}()
-    _labelsChoosen_pp = Vector{Vector{@NamedTuple{loo::Int64, selected::Vector{Int64}, pool::Vector{Int64}, catp::Vector{Float64}}}}(undef, N)
+    _labelsChoosen_pp = Vector{Vector{@NamedTuple{loo::Int64, selected::Vector{Int64}, pool::Vector{Vector{Int64}}, catp::Vector{Float64}}}}(undef, N)
 
     P12 = manifoldProduct(
         [P1; P2];
@@ -307,20 +343,31 @@ end
 
 ## validate selected labels are working properly, with addEntropy=false
 
+    uhm = ApproxManifoldProducts.calcProductKernelsBTLabels(
+        M,
+        [P1.belief; P2.belief],
+        [tuple(sl[1]...);],
+        false;
+    ) # ?? was permute=false?
+
+
     bw1 = getBW(P1)[1] .^ 2
     bw2 = getBW(P2)[1] .^ 2
+
+    pts12 = getPoints(P12)[P12.belief.permute]
     for sidx = 1:N
         # @info "debug" sidx sl1[sidx] sl2[sidx] 
-        u1 = pts1[sl1[sidx]]
-        u2 = pts2[sl2[sidx]]
+        u1 = pts1[sl1[sidx] % N]
+        u2 = pts2[sl2[sidx] % N]
 
-        u12 = calcProductGaussians(M, [u1, u2], [bw1, bw2])
+        u12, c12 = calcProductGaussians(M, [u1, u2], [bw1, bw2])
 
-        @test isapprox(mean(u12), getPoints(P12)[sidx])
+        @test isapprox(u12, pts12[sidx])
     end
 
 ##
 end
+
 
 @testset "Basic product for an unbalanced tree with 10 leaves" begin
 ##

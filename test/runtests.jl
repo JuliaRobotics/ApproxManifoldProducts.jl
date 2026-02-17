@@ -5,21 +5,22 @@ using LieGroups
 using Manifolds
 using Test
 
+##
 
 include("testLieFundamentals.jl")
 include("testManifoldConventions.jl")
 # Manellic tree, (on-Manifold Ellipse Ball Tree)
 include("manellic/testManifoldTreeConstr.jl")
-include("testManifoldPartial.jl")
 include("manellic/testTreeEvaluation.jl")
 include("testSymmetry.jl")
 include("testUpdateMKD.jl")
 include("testMKDStats.jl")
 include("testMMD.jl")
-include("manellic/testTreeEntropyBandwidth.jl")
 include("basic_se3.jl")
-include("manellic/testMultiscaleLabelSampling.jl")
+include("manellic/testTreeEntropyBandwidth.jl")
+include("testManifoldPartial.jl")
 include("manellic/testTreeKernelProducts.jl")
+include("manellic/testMultiscaleLabelSampling.jl")
 include("testBasicManiProduct.jl")
 include("testManiProductBigSmall.jl")
 include("testMarginalProducts.jl")
