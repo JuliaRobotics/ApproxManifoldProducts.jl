@@ -332,7 +332,8 @@ end
     _labelsChoosen_pp
 
     # ensure number of products are at least as many as unique label pairs
-    @test length(unique(sl)) <= length(P12)
+    @test length(unique(sl)) <= length(getPoints(P12))
+    # FIXME add test that duplicate sl's increase weights of those kernels in P12
 
     # ensure all posterior product labels are from leaf nodes only
     sl1 = [s[1] for s in sl]

@@ -38,7 +38,7 @@ function directProductGaussianTestHelper(
       
     u1 = pts1[sl1_]
     u2 = pts2[sl2_]
-    @info "beforeprod" u1 u2 bw1 bw2
+    # @info "beforeprod" u1 u2 bw1 bw2
     u12, c12 = calcProductGaussians(M, [u1, u2], [bw1, bw2])
     @test isapprox(mean(uhm[1]), u12)
 
