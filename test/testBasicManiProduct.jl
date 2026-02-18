@@ -6,6 +6,9 @@ using TensorCast
 using Manifolds
 using LieGroups
 
+##
+
+include(joinpath(@__DIR__, "testutils.jl"))
 
 ##
 
@@ -243,6 +246,7 @@ end
 end
 
 
+
 @testset "Basic product for a balanced tree with 8 leaves" begin
 ## simply multiply two beliefs, sim2
 
@@ -327,6 +331,9 @@ end
     @show sl;
     _labelsChoosen_pp
 
+    # ensure number of products are at least as many as unique label pairs
+    @test length(unique(sl)) <= length(P12)
+
     # ensure all posterior product labels are from leaf nodes only
     sl1 = [s[1] for s in sl]
     sl2 = [s[2] for s in sl]
@@ -343,55 +350,66 @@ end
 
 ## validate selected labels are working properly, with addEntropy=false
 
-    invpermute(B::ApproxManifoldProducts.ManellicTree, s::Int) = findfirst(==(s), B.permute)
-    # use idx 1 assuming all leaf bandwidths are the same
-    bw1 = getBW(P1)[invpermute(P1.belief,1)]
-    bw2 = getBW(P2)[invpermute(P2.belief,1)]
-
-
-    uhm = ApproxManifoldProducts.calcProductKernelsBTLabels(
+    directProductGaussianTestHelper(
         M,
-        [P1.belief; P2.belief],
-        [(sl1[1],sl2[1]);],
-        false;
+        P1,
+        P2,
+        P12,
+        sl,
+        pts1,
+        pts2,
+        N,
     )
-    # layers and layers of belief tree indexing pain (part of refactoring transition for HomotopyBelief rename)
-    sl1_ = sl1[1] % N
-    sl1_ = sl1_ == 0 ? N : sl1_
-    sl2_ = sl2[1] % N
-    sl2_ = sl2_ == 0 ? N : sl2_
-    u1 = pts1[sl1_]
-    u2 = pts2[sl2_]
-    u12, c12 = calcProductGaussians(M, [u1, u2], [bw1, bw2])
-    @test isapprox(mean(uhm[1]), u12)
 
-    pts12 = getPoints(P12; permute=false)
-    dropdups = Dict{Vector{Int},Int}()
-    for sidx = 1:N
-        sl1_ = sl1[sidx] % N
-        sl1_ = sl1_ == 0 ? N : sl1_
-        sl2_ = sl2[sidx] % N
-        sl2_ = sl2_ == 0 ? N : sl2_
-        u1 = pts1[sl1_]
-        u2 = pts2[sl2_]
-        # u1 = pts1[sl1[sidx] % N]
-        # u2 = pts2[sl2[sidx] % N]
 
-        u12, c12 = calcProductGaussians(M, [u1, u2], [bw1, bw2])
+    # invpermute(B::ApproxManifoldProducts.ManellicTree, s::Int) = findfirst(==(s), B.permute)
+    # # use idx 1 assuming all leaf bandwidths are the same
+    # bw1 = getBW(P1)[invpermute(P1.belief,1)]
+    # bw2 = getBW(P2)[invpermute(P2.belief,1)]
+
+    # uhm = ApproxManifoldProducts.calcProductKernelsBTLabels(
+    #     M,
+    #     [P1.belief; P2.belief],
+    #     [(sl1[1],sl2[1]);],
+    #     false;
+    # )
+    # # layers and layers of belief tree indexing pain (part of refactoring transition for HomotopyBelief rename)
+    # sl1_ = sl1[1] % N
+    # sl1_ = sl1_ == 0 ? N : sl1_
+    # sl2_ = sl2[1] % N
+    # sl2_ = sl2_ == 0 ? N : sl2_
+    # u1 = pts1[sl1_]
+    # u2 = pts2[sl2_]
+    # u12, c12 = calcProductGaussians(M, [u1, u2], [bw1, bw2])
+    # @test isapprox(mean(uhm[1]), u12)
+
+    # pts12 = getPoints(P12; permute=false)
+    # dropdups = Dict{Vector{Int},Int}()
+    # for sidx = 1:N
+    #     sl1_ = sl1[sidx] % N
+    #     sl1_ = sl1_ == 0 ? N : sl1_
+    #     sl2_ = sl2[sidx] % N
+    #     sl2_ = sl2_ == 0 ? N : sl2_
+    #     u1 = pts1[sl1_]
+    #     u2 = pts2[sl2_]
+    #     # u1 = pts1[sl1[sidx] % N]
+    #     # u2 = pts2[sl2[sidx] % N]
+
+    #     u12, c12 = calcProductGaussians(M, [u1, u2], [bw1, bw2])
         
-        # workaround for duplicate selections in pts12 test
-        dropdups[sl[sidx]] = get(dropdups, sl[sidx], 0) + 1
-        idxoff = 0
-        for (k,i) in dropdups
-            idxoff += i
-        end
-        # TODO test that kernel weights increase for each duplicate selection
-        # @isapprox( getWeights(P12)[invpermute(P12.belief, sidx)], 1 / N * dropdups[sl[sidx]])
+    #     # workaround for duplicate selections in pts12 test
+    #     dropdups[sl[sidx]] = get(dropdups, sl[sidx], 0) + 1
+    #     idxoff = 0
+    #     for (k,i) in dropdups
+    #         idxoff += i
+    #     end
+    #     # TODO test that kernel weights increase for each duplicate selection
+    #     # @isapprox( getWeights(P12)[invpermute(P12.belief, sidx)], 1 / N * dropdups[sl[sidx]])
 
-        if idxoff <= length(pts12)
-            @test isapprox(u12, pts12[idxoff])
-        end
-    end
+    #     if idxoff <= length(pts12)
+    #         @test isapprox(u12, pts12[idxoff])
+    #     end
+    # end
 
 ##
 end

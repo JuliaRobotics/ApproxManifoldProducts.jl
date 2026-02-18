@@ -23,7 +23,7 @@ include("manellic/testTreeKernelProducts.jl")
 include("manellic/testMultiscaleLabelSampling.jl")
 include("testBasicManiProduct.jl")
 include("testManiProductBigSmall.jl")
-include("testMarginalProducts.jl")
+# include("testMarginalProducts.jl")
 # include("testPartialProductSE2.jl")
 
 

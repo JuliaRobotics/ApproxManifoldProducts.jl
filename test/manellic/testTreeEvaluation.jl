@@ -121,3 +121,22 @@ end
 
     ##
 end
+
+
+@testset "Manellic tree evaluation check for NaN" begin
+##
+
+M = LieGroups.TranslationGroup(2)
+u = [0.21651994984010028, 100.1499400950606]
+c = [1.225550648840573 0.24068320456978248; 0.24068320456978248 1.005129493645892]
+
+tmp_product = ApproxManifoldProducts.MvNormalKernel(u, c)
+eval_at_points = [[-0.0590062185192033, -0.15598788922416723],]
+
+smw = ApproxManifoldProducts.evaluateDensityAtPoints(M, tmp_product, eval_at_points, true) # TBD: smw = evaluate(tmp_product, )
+# eval with normalize=true forces sum of evals to be 1, as this is often used for categorical sampling
+@test length(smw) == 1
+@test !isnan(smw[1])
+
+##
+end

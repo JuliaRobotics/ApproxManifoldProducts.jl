@@ -739,7 +739,7 @@ function evaluateDensityAtPoints(
     M::AbstractManifold,
     density,
     eval_at_points,
-    normalize::Bool = true,
+    normalize::Bool = false,
 )
     # evaluate new sampling weights of points in out component
 
@@ -752,8 +752,15 @@ function evaluateDensityAtPoints(
         # δc = distanceMalahanobisCoordinates(M,tmp_product,ev)
     end
 
+    # Note convenience only
     if normalize
-        smw ./= sum(smw)
+        _s = sum(smw)
+        if isapprox(_s, 0.0)
+            #assume L'Hopital or similar
+            smw .= 1 / length(smw)
+        else
+            smw ./= _s
+        end
     end
 
     # return weights

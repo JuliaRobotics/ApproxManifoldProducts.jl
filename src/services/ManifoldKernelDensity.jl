@@ -280,11 +280,11 @@ function getBW(
     asPartial::Bool = true;
     kw...,
 ) where {M, B, L}
-    bw = getBW(x.belief; kw...)
+    bws = getBW(x.belief; kw...)
     if L !== Nothing && asPartial
-        return view(bw, x._partial)
+        return (bw->view(bw, x._partial)).(bws)
     end
-    return bw
+    return bws
 end
 
 # TODO check that partials / marginals are sampled correctly
