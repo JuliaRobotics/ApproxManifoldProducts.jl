@@ -821,8 +821,6 @@ function calcProductKernelBTLabels(
         prop_and_label,
     )
 
-    @info "comp" components permute
-
     # TODO upgrade to tuples
     return calcProductGaussians(M, [components...]; weight)
 end

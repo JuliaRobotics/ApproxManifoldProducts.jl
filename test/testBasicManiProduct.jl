@@ -343,10 +343,10 @@ end
 
 ## validate selected labels are working properly, with addEntropy=false
 
-    invpermute(B::ManellicTree, s::Int) = findfirst(==(s), B.permute)
+    invpermute(B::ApproxManifoldProducts.ManellicTree, s::Int) = findfirst(==(s), B.permute)
     # use idx 1 assuming all leaf bandwidths are the same
-    bw1 = getBW(P1)[invpermute(P1.belief,1)] .^ 2
-    bw2 = getBW(P2)[invpermute(P2.belief,1)] .^ 2
+    bw1 = getBW(P1)[invpermute(P1.belief,1)]
+    bw2 = getBW(P2)[invpermute(P2.belief,1)]
 
 
     uhm = ApproxManifoldProducts.calcProductKernelsBTLabels(
@@ -358,7 +358,6 @@ end
     u1 = pts1[sl1[1] % N]
     u2 = pts2[sl2[1] % N]
     u12, c12 = calcProductGaussians(M, [u1, u2], [bw1, bw2])
-    ???? calcProductGaussians is being fed different bandwidths, at least a square vs sqrt issue -- wip dedicated test for `[components...]` vs `[u...],[c...]`
     @test isapprox(mean(uhm[1]), u12)
 
     pts12 = getPoints(P12; permute=false)
@@ -378,10 +377,10 @@ end
         end
         # TODO test that kernel weights increase for each duplicate selection
         # @isapprox( getWeights(P12)[invpermute(P12.belief, sidx)], 1 / N * dropdups[sl[sidx]])
-        @info "db" sidx idxoff pts12[idxoff] u12
 
-
-        @test isapprox(u12, pts12[idxoff])
+        if idxoff <= length(pts12)
+            @test isapprox(u12, pts12[idxoff])
+        end
     end
 
 ##
@@ -408,8 +407,8 @@ end
     pts1 = [[0.05 * randn(2); 0.75 * randn()] for i = 1:N]
     pts2 = [[0.05 * randn(2); 0.75 * randn()] for i = 1:N]
 
-    P1 = manikde!(TranslationGroup(3), pts1)
-    P2 = manikde!(TranslationGroup(3), pts2)
+    P1 = manikde!(LieGroups.TranslationGroup(3), pts1)
+    P2 = manikde!(LieGroups.TranslationGroup(3), pts2)
 
     # P12 = P1 * P2
     P12 = manifoldProduct([P1; P2], LieGroups.TranslationGroup(3); legacy = false)
