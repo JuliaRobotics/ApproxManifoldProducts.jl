@@ -157,11 +157,16 @@ end
     r_PP = r_CC # shortcut because we are in Euclidean space
     mtree = ApproxManifoldProducts.buildTree_Manellic!(M, r_PP; kernel = AMP.MvNormalKernel)
 
-    # test input data vs leaf kernels -- FIXME, yucky duplication of permuted raw data in leaf_kernels[]
+    # test input data vs leaf kernels
     for i in eachindex(r_PP)
+        @test isapprox(r_PP[i], getPoints(mtree, permute = false)[i])
+        @test isapprox(r_PP[mtree.permute[i]], getPoints(mtree, permute = true)[i])
+        # FIXME, test is useful but underneath is a yucky duplication of permuted raw data in leaf_kernels[]
         @test isapprox(r_PP[i], mean(ApproxManifoldProducts.getKernelLeaf(mtree, i, false)))
         @test isapprox(r_PP[mtree.permute[i]], mean(ApproxManifoldProducts.getKernelLeaf(mtree, i, true)))
     end
+
+    @test all(isapprox.(mtree.weights[mtree.permute], getWeights(mtree, permute = true)))
 
 ##
 

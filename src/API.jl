@@ -36,7 +36,7 @@ function manifoldProduct(
     # partialDimsWorkaround=1:MB.manifold_dimension(mani),
     ndims::Integer = maximum([0; Ndim.(ff)]),
     N::Integer = maximum([0; Npts.(ff)]),
-    u0 = getPoints(ff[1], false)[1],
+    u0 = getPoints(ff[1]; permute = false)[1],
     oldPoints::AbstractVector{P} = [identity_element(mani, typeof(u0)) for i = 1:N],
     addEntropy::Bool = true,
     recordLabels::Bool = false,

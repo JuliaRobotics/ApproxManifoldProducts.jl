@@ -223,19 +223,21 @@ DevNotes
 """
 function getPoints(
     x::ManifoldKernelDensity{M, B},
-    ::Bool = true,
+    ::Bool = true; # aspartial unused
+    permute::Bool = true,
 ) where {M <: AbstractManifold, B}
-    return getPoints(x.belief)
+    return getPoints(x.belief; permute)
     # return _matrixCoordsToPoints(x.manifold, getPoints(x.belief), x._u0)
 end
 
 
 function getPoints(
     x::ManifoldKernelDensity{M, B, L},
-    aspartial::Bool = true,
+    aspartial::Bool = true;
+    permute::Bool = true,
 ) where {M <: AbstractManifold, B <: ManellicTree, L <: AbstractVector{Int}}
     #
-    pts = getPoints(x.belief)
+    pts = getPoints(x.belief; permute)
 
     if (L === nothing) && !aspartial
         error("MKD getPoints aspartial=true but MKD is not partial")
@@ -257,10 +259,11 @@ end
 
 function getPoints(
     x::ManifoldKernelDensity{M, B, L},
-    aspartial::Bool = true,
+    aspartial::Bool = true;
+    permute::Bool = true,
 ) where {M <: AbstractManifold, B <: BallTreeDensity, L <: AbstractVector{Int}}
     #
-    pts = getPoints(x.belief)
+    pts = getPoints(x.belief, permute)
 
     (M_, pts_, u0_) = if (L !== nothing) && aspartial
         Mp, Rp, lkup = getManifoldPartial(x.manifold, x._partial, x._u0)

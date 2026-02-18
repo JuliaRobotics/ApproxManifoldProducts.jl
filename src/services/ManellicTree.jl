@@ -10,9 +10,8 @@
 # number of data points (aka particles) in tree, i.e. N
 Base.length(::ManellicTree{M, D, N}) where {M, D, N} = N
 
-getPoints(mt::ManellicTree) = view(mt.data, mt.permute)
-
-getWeights(mt::ManellicTree) = view(mt.weights, mt.permute)
+getPoints(mt::ManellicTree; permute::Bool = true) = permute ? view(mt.data, mt.permute) : mt.data
+getWeights(mt::ManellicTree; permute::Bool = true) = permute ? view(mt.weights, mt.permute) : mt.weights
 
 # _getleft(i::Integer, N) = 2*i + (2*i < N ? 0 : 1)
 # _getright(i::Integer, N) = _getleft(i,N) + 1
@@ -821,6 +820,8 @@ function calcProductKernelBTLabels(
         pr_lb -> getKernelTree(proposals[pr_lb[1]], pr_lb[2], permute, true),
         prop_and_label,
     )
+
+    @info "comp" components permute
 
     # TODO upgrade to tuples
     return calcProductGaussians(M, [components...]; weight)

@@ -343,26 +343,45 @@ end
 
 ## validate selected labels are working properly, with addEntropy=false
 
+    invpermute(B::ManellicTree, s::Int) = findfirst(==(s), B.permute)
+    # use idx 1 assuming all leaf bandwidths are the same
+    bw1 = getBW(P1)[invpermute(P1.belief,1)] .^ 2
+    bw2 = getBW(P2)[invpermute(P2.belief,1)] .^ 2
+
+
     uhm = ApproxManifoldProducts.calcProductKernelsBTLabels(
         M,
         [P1.belief; P2.belief],
-        [tuple(sl[1]...);],
+        [(sl1[1],sl2[1]);],
         false;
-    ) # ?? was permute=false?
+    )
+    u1 = pts1[sl1[1] % N]
+    u2 = pts2[sl2[1] % N]
+    u12, c12 = calcProductGaussians(M, [u1, u2], [bw1, bw2])
+    ???? calcProductGaussians is being fed different bandwidths, at least a square vs sqrt issue -- wip dedicated test for `[components...]` vs `[u...],[c...]`
+    @test isapprox(mean(uhm[1]), u12)
 
-
-    bw1 = getBW(P1)[1] .^ 2
-    bw2 = getBW(P2)[1] .^ 2
-
-    pts12 = getPoints(P12)[P12.belief.permute]
+    pts12 = getPoints(P12; permute=false)
+    dropdups = Dict{Vector{Int},Int}()
     for sidx = 1:N
         # @info "debug" sidx sl1[sidx] sl2[sidx] 
         u1 = pts1[sl1[sidx] % N]
         u2 = pts2[sl2[sidx] % N]
 
         u12, c12 = calcProductGaussians(M, [u1, u2], [bw1, bw2])
+        
+        # workaround for duplicate selections in pts12 test
+        dropdups[sl[sidx]] = get(dropdups, sl[sidx], 0) + 1
+        idxoff = 0
+        for (k,i) in dropdups
+            idxoff += i
+        end
+        # TODO test that kernel weights increase for each duplicate selection
+        # @isapprox( getWeights(P12)[invpermute(P12.belief, sidx)], 1 / N * dropdups[sl[sidx]])
+        @info "db" sidx idxoff pts12[idxoff] u12
 
-        @test isapprox(u12, pts12[sidx])
+
+        @test isapprox(u12, pts12[idxoff])
     end
 
 ##

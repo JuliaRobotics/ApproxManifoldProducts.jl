@@ -12,7 +12,6 @@ import Rotations as Rot_
 using Distributions
 import ApproxManifoldProducts: ManellicTree, eigenCoords, splitPointsEigen
 using LieGroups
-using LieGroups: TranslationGroup
 
 using Optim
 
@@ -21,6 +20,42 @@ using JSON3
 # DATADIR = joinpath(dirname(@__DIR__),"testdata")
 
 ##
+
+@testset "Utility function signature consistency checks, calcProductGaussians" begin
+##
+
+    M = LieGroups.TranslationGroup(1)
+
+    u1,u2 = [-1.0;], [1.0;]
+    c1,c2 = [4.0;;], [4.0;;]
+    g1 = ApproxManifoldProducts.MvNormalKernel(u1, c1)
+    g2 = ApproxManifoldProducts.MvNormalKernel(u2, c2)
+
+    g = ApproxManifoldProducts.calcProductGaussians(M, [g1; g2])
+    @test isapprox([0.0;], mean(g); atol = 1e-14)
+    @test isapprox([2.0;;], cov(g); atol = 1e-14)
+
+    g_u, g_c = ApproxManifoldProducts.calcProductGaussians(M, [u1, u2], [c1, c2])
+    @test isapprox([0.0;], g_u; atol = 1e-14)
+    @test isapprox([2.0;;], g_c; atol = 1e-14)
+
+    u1,u2 = [-1.0;], [1.0;]
+    c1,c2 = [4.0;;], [9.0;;]
+    g1 = ApproxManifoldProducts.MvNormalKernel(u1, c1)
+    g2 = ApproxManifoldProducts.MvNormalKernel(u2, c2)
+
+    g = ApproxManifoldProducts.calcProductGaussians(M, [g1; g2])
+    @test isapprox([-5 / 13;], mean(g); atol = 1e-14)
+    @test isapprox([36 / 13;;], cov(g); atol = 1e-14)
+
+    g_u, g_c = ApproxManifoldProducts.calcProductGaussians(M, [u1, u2], [c1, c2])
+    @test isapprox([-5 / 13;], g_u; atol = 1e-14)
+    @test isapprox([36 / 13;;], g_c; atol = 1e-14)
+    
+##
+end
+
+
 @testset "Test Product the brute force way, MF.SpecialEuclideanGroup(2; variant = :right)" begin
     M = SpecialEuclideanGroup(2; variant = :right)
     ε = identity_element(M, ArrayPartition)
@@ -153,10 +188,11 @@ using JSON3
     ##
 end
 
+
 @testset "Rotated covariance product major axis checks, MF.TranslationGroup(2)" begin
     ##
 
-    M = TranslationGroup(2)
+    M = LieGroups.TranslationGroup(2)
     ε = identity_element(M)
 
     Xc_p = [0, 0.0]
@@ -218,7 +254,7 @@ end
 @testset "Test utility functions for Gaussian products, MF.TranslationGroup(1)" begin
     ##
 
-    M = TranslationGroup(1)
+    M = LieGroups.TranslationGroup(1)
 
     g1 = ApproxManifoldProducts.MvNormalKernel([-1.0;], [4.0;;])
     g2 = ApproxManifoldProducts.MvNormalKernel([1.0;], [4.0;;])
