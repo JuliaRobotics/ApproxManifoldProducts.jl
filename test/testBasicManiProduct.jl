@@ -355,17 +355,27 @@ end
         [(sl1[1],sl2[1]);],
         false;
     )
-    u1 = pts1[sl1[1] % N]
-    u2 = pts2[sl2[1] % N]
+    # layers and layers of belief tree indexing pain (part of refactoring transition for HomotopyBelief rename)
+    sl1_ = sl1[1] % N
+    sl1_ = sl1_ == 0 ? N : sl1_
+    sl2_ = sl2[1] % N
+    sl2_ = sl2_ == 0 ? N : sl2_
+    u1 = pts1[sl1_]
+    u2 = pts2[sl2_]
     u12, c12 = calcProductGaussians(M, [u1, u2], [bw1, bw2])
     @test isapprox(mean(uhm[1]), u12)
 
     pts12 = getPoints(P12; permute=false)
     dropdups = Dict{Vector{Int},Int}()
     for sidx = 1:N
-        # @info "debug" sidx sl1[sidx] sl2[sidx] 
-        u1 = pts1[sl1[sidx] % N]
-        u2 = pts2[sl2[sidx] % N]
+        sl1_ = sl1[sidx] % N
+        sl1_ = sl1_ == 0 ? N : sl1_
+        sl2_ = sl2[sidx] % N
+        sl2_ = sl2_ == 0 ? N : sl2_
+        u1 = pts1[sl1_]
+        u2 = pts2[sl2_]
+        # u1 = pts1[sl1[sidx] % N]
+        # u2 = pts2[sl2[sidx] % N]
 
         u12, c12 = calcProductGaussians(M, [u1, u2], [bw1, bw2])
         
