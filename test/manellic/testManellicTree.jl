@@ -332,14 +332,14 @@ end
 
     @test isapprox(pdf(MvNormal(cov(ker)), [0, 0, 0]), AMP.evaluate(M, ker, p))
 
-    X = log(M, ε, Manifolds.compose(M, inv(M, p), q))
+    X = log(M, ε, LieGroups.compose(M, inv(M, p), q))
     Xc_e = vee(M, ε, X)
     pdf_local_coords = pdf(MvNormal(cov(ker)), Xc_e)
 
     @test isapprox(pdf_local_coords, AMP.evaluate(M, ker, q))
 
     delta_c = AMP.distanceMalahanobisCoordinates(M, ker, q)
-    X = log(M, ε, Manifolds.compose(M, inv(M, p), q))
+    X = log(M, ε, LieGroups.compose(M, inv(M, p), q))
     Xc_e = vee(M, ε, X)
     malad_t = Xc_e' * inv(kercov) * Xc_e
     # delta_t = [10, 20, 0.1] - [10, 22, -0.1] 
@@ -476,7 +476,7 @@ end
             Xc_e = vee(M, ε, X)
             pdf(MvNormal(cov(kerp)), Xc_e)
         else
-            X = log(M, ε, Manifolds.compose(M, inv(M, p), gp))
+            X = log(M, ε, LieGroups.compose(M, inv(M, p), gp))
             Xc_e = vee(M, ε, X)
             pdf(MvNormal(cov(kerp)), Xc_e)
         end
@@ -488,7 +488,7 @@ end
             Xc_e = vee(M, ε, X)
             pdf(MvNormal(cov(kerq)), Xc_e)
         else
-            X = log(M, ε, Manifolds.compose(M, inv(M, q), gp))
+            X = log(M, ε, LieGroups.compose(M, inv(M, q), gp))
             Xc_e = vee(M, ε, X)
             pdf(MvNormal(cov(kerq)), Xc_e)
         end
