@@ -11,7 +11,6 @@ using Manifolds
 using LieGroups
 import Rotations as Rot_
 using Distributions
-import ApproxManifoldProducts: ManellicTree, eigenCoords, splitPointsEigen
 
 using Optim
 
@@ -22,7 +21,7 @@ using JSON3
 DATADIR = joinpath(dirname(@__DIR__), "testdata")
 
 # test 
-function testEigenCoords(r_C = pi / 3, ax_CC = [SA[5 * randn(); randn()] for _ = 1:100])
+function testEigenCoords!(r_C = pi / 3, ax_CC = [SA[5 * randn(); randn()] for _ = 1:100])
     M = LieGroups.TranslationGroup(2)
     _R(α, s = exp(-α * im)) = real(s) * SA[1 0; 0 1] + imag(s) * SA[0 1; -1 0]
     # _R(α) = SA[cos(α) sin(α); -sin(α) cos(α)]
@@ -32,7 +31,7 @@ function testEigenCoords(r_C = pi / 3, ax_CC = [SA[5 * randn(); randn()] for _ =
         r_R_ax * ax_C + SA[10; -100]
     end
     r_CV = Statistics.cov(M, r_CC)
-    r_R_ax_, L, pidx = ApproxManifoldProducts.eigenCoords(r_CV)
+    r_R_ax_, L, pidx = ApproxManifoldProducts.eigenCoords!(r_CV)
 
     # spot check
     @show _ax_ERR = log(SpecialOrthogonalGroup(2), (r_R_ax_') * r_R_ax)[1, 2]
@@ -121,8 +120,8 @@ end
 
     M = LieGroups.TranslationGroup(2)
     α = pi / 3
-    r_CC, R, pidx, r_CV = testEigenCoords(α)
-    ax_CCp, mask, knl = splitPointsEigen(M, r_CC)
+    r_CC, R, pidx, r_CV = testEigenCoords!(α)
+    ax_CCp, mask, knl = ApproxManifoldProducts.splitPointsEigen(M, r_CC)
     @test sum(mask) == (length(r_CC) ÷ 2)
     @test knl isa ApproxManifoldProducts.MvNormalKernel
     Mr = SpecialOrthogonalGroup(2)
@@ -201,11 +200,13 @@ end
     pts = [[1.0], [2.0], [4.0], [7.0], [11.0], [16.0], [22.0]]
     bw = [1.0]
     N = length(pts)
-
-
+    
     # preemptively check splitPoints 
     begin
-        ax_CCp, mask, knl = splitPointsEigen(
+        
+        @test isapprox([9.0;], Statistics.mean(pts))
+        
+        ax_CCp, mask, knl = ApproxManifoldProducts.splitPointsEigen(
             M,
             pts,
             1/7*ones(length(pts));
@@ -225,6 +226,7 @@ end
     #    {4}1:2  {5}3:4  {6}5:6   (7)7
     #    /  \    /  \     /  \     /  \
     #   (8)(9) (10)(11) (12)(13)  *    *
+    #    1  2    3  4     5  6
     #
     mtree = ApproxManifoldProducts.buildTree_Manellic!(
         M,

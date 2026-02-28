@@ -10,7 +10,7 @@ import Manifolds as MF
 import LieGroups as LGr
 import Rotations as Rot_
 using Distributions
-import ApproxManifoldProducts: ManellicTree, eigenCoords, splitPointsEigen
+import ApproxManifoldProducts: ManellicTree, splitPointsEigen
 
 using Optim
 
@@ -20,7 +20,7 @@ using JSON3
 
 ##
 
-@testset "Product of two Manellic beliefs, Sequential Gibbs, TranslationGroup(1)" begin
+@testset "Product of two Manellic beliefs, Sequential Gibbs, LieGroups.TranslationGroup(1)" begin
     ##
 
     M = LGr.TranslationGroup(1)
@@ -51,7 +51,7 @@ using JSON3
     ]
 
     # leaves only version
-    @info "Leaves only label sampling version (Gibbs), TranslationGroup(1)"
+    @info "Leaves only label sampling version (Gibbs), LieGroups.TranslationGroup(1)"
 
     ApproxManifoldProducts.sampleProductSeqGibbsBTLabel(M, [p1; p2], 3, bt_label_pool)
 
@@ -77,7 +77,7 @@ using JSON3
 
     @test all((s -> isapprox(1 / N, s.shim.weight; atol = 1e-6)).(post))
 
-    @info "Multi-scale label sampling version (Gibbs), TranslationGroup(1)"
+    @info "Multi-scale label sampling version (Gibbs), LieGroups.TranslationGroup(1)"
 
     # test label pool creation
     child_label_pools, all_leaves =
@@ -134,10 +134,10 @@ end
 # YY = ApproxManifoldProducts.evaluate.(Ref(p2), XX)
 # lines!((s->s[1]).(XX),YY, color=:red)
 
-@testset "Multi-scale label sampling version (Gibbs), TranslationGroup(2)" begin
+@testset "Multi-scale label sampling version (Gibbs), LieGroups.TranslationGroup(2)" begin
     ##
 
-    M = TranslationGroup(2)
+    M = LieGroups.TranslationGroup(2)
     N = 64
 
     pts1 = [1 * randn(2) for _ = 1:N]
@@ -177,7 +177,7 @@ end
 
 ##
 
-@testset "Wrapper function for multi-scale label sampling version (Gibbs), TranslationGroup(2)" begin
+@testset "Wrapper function for multi-scale label sampling version (Gibbs), LieGroups.TranslationGroup(2)" begin
 
 
 

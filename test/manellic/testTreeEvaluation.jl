@@ -10,7 +10,7 @@ using TensorCast
 using LieGroups
 import Rotations as Rot_
 using Distributions
-import ApproxManifoldProducts: ManellicTree, eigenCoords, splitPointsEigen
+import ApproxManifoldProducts: ManellicTree, splitPointsEigen
 
 using Optim
 
@@ -27,7 +27,7 @@ DATADIR = joinpath(dirname(@__DIR__), "testdata")
 @testset "Manellic basic evaluation test 1D" begin
     ##
 
-    M = TranslationGroup(1)
+    M = LieGroups.TranslationGroup(1)
     pts = [[randn();] for _ = 1:100]
     bw = ones(1, 1)
     kType = AMP.MvNormalKernel
@@ -80,7 +80,7 @@ end
     json_string = read(joinpath(DATADIR, "manellic_test_data.json"), String)
     dict = JSON3.read(json_string, Dict{Symbol, Vector{Float64}})
 
-    M = TranslationGroup(1)
+    M = LieGroups.TranslationGroup(1)
     pts = [[v;] for v in dict[:evaltest_1_pts]]
     bw = reshape(dict[:evaltest_1_bw], 1, 1)
     mtree = ApproxManifoldProducts.buildTree_Manellic!(

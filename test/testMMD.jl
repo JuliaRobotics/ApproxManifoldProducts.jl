@@ -30,7 +30,7 @@ const AMP = ApproxManifoldProducts
 
         res = MVector(0.0)
 
-        AMP.mmd!(TranslationGroup(1), res, P, Q; bw = [0.001])
+        AMP.mmd!(LieGroups.TranslationGroup(1), res, P, Q; bw = [0.001])
 
         checkGrid[i, j] = res[1]
         push!(df, (offsets[i], res[1]))
@@ -63,7 +63,7 @@ end
 
         res = zeros(1)
 
-        AMP.mmd!(TranslationGroup(2), res, P, Q; bw = [0.001])
+        AMP.mmd!(LieGroups.TranslationGroup(2), res, P, Q; bw = [0.001])
 
         checkGrid[i, j] = res[1]
         push!(df, (offsets[i], res[1]))

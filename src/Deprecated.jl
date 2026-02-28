@@ -1,6 +1,16 @@
 
 
 
+# # deprecated as legacy and replaced by previously called manikde!_manellic
+# function manikde!(
+#     M::MB.AbstractManifold,
+#     vecP::AbstractVector{P},
+#     u0::P = vecP[1];
+#     kw...,
+# ) where {P}
+#     return ManifoldKernelDensity(M, vecP, u0; kw...)
+# end
+
 
 # """
 #     $SIGNATURES

@@ -294,3 +294,6 @@ end
 end
 
 #
+
+
+@error "Add a test to ensure a points from a 1D tree can be reconstructed as a 2->1* partial and also produces the same tree structure"

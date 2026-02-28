@@ -116,7 +116,7 @@ function getKernelTree(
     mtr::ManellicTree{M, D, N, HL, HT},
     currIdx::Int,
     # must return sorted given name signature "Tree"
-    permuted = false,
+    permuted::Bool = false,
     cov_continuation::Bool = false,
 ) where {M, D, N, HL, HT}
     #
@@ -278,7 +278,10 @@ Base.show(io::IO, ::MIME"text/plain", mt::ManellicTree) = show(io, mt)
 
 
 # covariance eigen decomposition and sort ascending
-function eigenCoords(f_CVp::AbstractMatrix)
+function eigenCoords!(
+    _f_CVp::AbstractMatrix;
+    partial::Union{Nothing, AbstractVector{<:Integer}} = nothing,
+)
     function _decomp(evc::AbstractMatrix, evl::AbstractVector, _toflip::Bool = det(evc) < 0)
         pidx = _toflip ? sortperm(evl; rev = true) : 1:length(evl)
         Q = evc[:, pidx]
@@ -286,13 +289,49 @@ function eigenCoords(f_CVp::AbstractMatrix)
         return Q, L, pidx
     end
 
-    E = eigen(f_CVp)
+    # # FIXME embed partial dimensions inside the full non-partial covariance. 
+    # _forcemutable(s::AbstractMatrix) = Matrix(s)
+    # _f_CVp = _partialCovToDefault!(partial, _forcemutable(f_CVp))
+
+
+    E = eigen(_f_CVp)
     f_Q_ax, Λ, pidx = _decomp(E.vectors, E.values)
     # largest variance is on coord `dim = pidx[end]`
     # derotate cloud for easy split
     # swap points order left and right of split
     return f_Q_ax, Λ, pidx
 end
+
+function _rotateCoordsPartial(
+    M::AbstractLieGroup,
+    r_CCp::AbstractVector,
+    ax_R_r::AbstractMatrix;
+    partial::Union{Nothing, AbstractVector{<:Integer}} = nothing,
+)
+    _unrollpartial(::Nothing) = LinearAlgebra.I
+    _unrollpartial(p::AbstractVector{<:Integer}) = begin
+        m = zeros(Int,manifold_dimension(M))
+        m[p] .= 1
+        return m
+    end
+    _unrollpartial(p::ArrayPartition) = error("TODO _unrollpartial for ArrayPartition")
+    # _setdiff(X, partial::Nothing) = X
+    # _setdiff(X, partial::AbstractVector{<:Integer}) = setdiff(X, partial)
+    # remove Nans
+    P = _unrollpartial(partial)
+    ax_R_r_p = _partialCovToDefault!(partial, similar(ax_R_r))
+    _toset = ax_R_r_p .== 1
+    ax_R_r_p[_toset] .= ax_R_r[_toset]
+
+    # rotate coordinates
+    return map(r_CCp) do r_Cp
+        r_Cp_p = _partialCovToDefault!(partial, similar(r_Cp))
+        _toset = r_Cp_p .== 1
+        r_Cp_p[_toset] .= r_Cp[_toset]
+        ax_R_r_p * r_Cp_p
+    end
+end
+
 
 """
     $SIGNATURES
@@ -310,16 +349,16 @@ function splitPointsEigen(
     weights::AbstractVector{<:Real} = ones(length(r_PP)); # FIXME, make static vector unless large
     kernel = MvNormalKernel,
     kernel_bw = nothing,
+    partial::Union{Nothing, AbstractVector{<:Integer}} = nothing,
 ) where {P <: AbstractArray}
     #
     len = length(r_PP)
 
     # important, covariance is calculated around mean of points, which enables log to avoid singularities
-    # do calculations around mean point on manifold, i.e. support Riemannian
+    # do calculations around mean point on manifold, i.e. towards Riemannian
     p = mean(M, r_PP)
-
-    r_XXp = log.(Ref(M), Ref(p), r_PP) # FIXME replace with on-manifold distance
-    r_CCp = vee.(Ref(LieAlgebra(M)), r_XXp)
+    r_XXp = log.(Ref(M), Ref(p), r_PP)      # FIXME replace with on-manifold distance
+    r_CCp = vee.(Ref(LieAlgebra(M)), r_XXp) # TODO, remove LieGroup/LieAlgebra restriction 
 
     D = manifold_dimension(M)
     ndia = ((D - 1) ÷ 2 + 1) * D
@@ -351,13 +390,14 @@ function splitPointsEigen(
     # @info "COV" cv LinearAlgebra.isposdef(cv) Manifolds.check_point(S,cv) len
 
     # expecting largest variation on coord dimension `pidx[end]`
-    r_R_ax, Λ, pidx = eigenCoords(cv)
+    r_R_ax, Λ, pidx = eigenCoords!(cv; partial)
     ax_R_r = r_R_ax'
 
     # rotate coordinates
     ax_CCp = map(r_CCp) do r_Cp
         ax_R_r * r_Cp
     end
+    # TODO ax_CCp = _rotateCoordsPartial(M,r_CCp,ax_R_r;partial,)
 
     # this is a local test around base point p (not at global 0)
     mask = 0 .<= (ax_CCp .|> s -> s[1])
@@ -403,6 +443,7 @@ function buildTree_Manellic!(
     kernel = MvNormal,
     kernel_bw = nothing,
     leaf_size = 1,
+    partial::Union{Nothing, AbstractVector{<:Integer}} = nothing,
 ) where {MT, D, N}
     #
     _legacybw(s::Nothing) = s
@@ -428,6 +469,7 @@ function buildTree_Manellic!(
         view(mtree.weights, ido);
         kernel,
         kernel_bw = _kernel_bw,
+        partial,
     )
     imask = xor.(mask, true)
 
@@ -509,6 +551,7 @@ function buildTree_Manellic!(
     weights::AbstractVector{<:Real} = ones(N) .* (1 / N),
     kernel = MvNormalKernel,
     kernel_bw = nothing, # TODO
+    partial::Union{Nothing, AbstractVector{<:Integer}} = nothing,
 ) where {P <: AbstractArray}
     #
     D = manifold_dimension(M)
@@ -553,6 +596,7 @@ function buildTree_Manellic!(
         N; # to end of data
         kernel,
         kernel_bw,
+        partial,
     )
 
     # manual reset leaves in the order discovered
@@ -822,7 +866,7 @@ function calcProductKernelBTLabels(
         push!(prop_and_label, (s, labels_sampled[s]))
     end
     # get raw kernels from tree, also as tree_kernel type
-    # NOTE DO COVARIANCE CONTINUATION CORRECTION FOR DEPTH OF TREE KERNELS
+    # TODO COVARIANCE CONTINUATION CORRECTION FOR DEPTH OF TREE KERNELS
     components = map(
         pr_lb -> getKernelTree(proposals[pr_lb[1]], pr_lb[2], permute, true),
         prop_and_label,

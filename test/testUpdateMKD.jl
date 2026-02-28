@@ -2,12 +2,13 @@
 using Test
 using ApproxManifoldProducts
 using Manifolds
+using LieGroups
 
 ##
 @testset "test updating of beliefs" begin
     ##
 
-    M = TranslationGroup(2)
+    M = LieGroups.TranslationGroup(2)
 
     pts = [randn(2) for _ = 1:100]
     m1 = manikde!(M, pts)

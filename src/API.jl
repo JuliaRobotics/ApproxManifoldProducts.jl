@@ -56,6 +56,18 @@ function manifoldProduct(
         return (makeCopy ? x -> deepcopy(x) : x -> x)(ff[1])
     end
 
+    partialDimMask = Vector{BitVector}(undef, length(ff))
+    for (k, md) in enumerate(ff)
+        partialDimMask[k] = ones(Int, ndims) .== 1
+        if isPartial(md)
+            for i = 1:ndims
+                if !(i in md._partial)
+                    partialDimMask[k][i] = false
+                end
+            end
+        end
+    end
+
     if !legacy
         beliefs = (s -> s.belief).(ff)
         lbls = ApproxManifoldProducts.sampleProductSeqGibbsBTLabels(
@@ -140,17 +152,6 @@ function manifoldProduct(
         end
 
         _ff = map(x -> x.belief, ff)
-        partialDimMask = Vector{BitVector}(undef, length(ff))
-        for (k, md) in enumerate(ff)
-            partialDimMask[k] = ones(Int, ndims) .== 1
-            if isPartial(md)
-                for i = 1:ndims
-                    if !(i in md._partial)
-                        partialDimMask[k][i] = false
-                    end
-                end
-            end
-        end
 
         ndims = maximum([0; Ndim.(_ff)])
         Ndens = length(_ff)

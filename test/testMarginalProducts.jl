@@ -26,17 +26,40 @@ include(joinpath(@__DIR__, "testutils.jl"))
     P1 = manikde!(M, pts1)
 
     pts2 = [randn(d) for _ = 1:N]
-    (x -> (x[2] += 100)).(pts2)
+    (x -> (x[2] += NaN)).(pts2) # 100 offset is a decoy to induce errors in case these values are used anywhere
     P2_ = manikde!(M, pts2; partial = [1;])
+    # TODO, if this were SE2 -> partial=ArrayPartition((2,),(1,)) which replaces legacy [1,3] 
+
+
+## check bandwidths of partial belief
+
+    @test isapprox( 0.0, getBW(P2_, false)[1][1,2]; atol = 1e-10)
+    @test isapprox( 1.0, getBW(P2_, false)[1][2,2]; atol = 1e-10)
+    @test isapprox( 0.0, getBW(P2_, false)[1][2,1]; atol = 1e-10)
+
+## need tests for partial kernel products
+
+        # tmp_product = calcProductKernelBTLabels(
+        #     M,
+        #     proposals,
+        #     labels_sampled,
+        #     O,
+        #     gibbsSeq;
+        #     permute = false,
+        # )
 
 ##
 
+
     sl = Vector{Vector{Int}}()
+    _labelsChoosen_pp = Vector{Vector{@NamedTuple{loo::Int64, selected::Vector{Int64}, pool::Vector{Vector{Int64}}, catp::Vector{Float64}}}}(undef, N)
+
 
     P12_ = manifoldProduct(
         [P1; P2_];
         recordLabels = true,
         selectedLabels = sl,
+        _labelsChoosen_pp,
         addEntropy = false,
     )
 

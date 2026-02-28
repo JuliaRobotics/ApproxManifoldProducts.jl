@@ -83,24 +83,14 @@ function ManifoldKernelDensity(
     return ManifoldKernelDensity(M, bel, partial, u0, infoPerCoord)
 end
 
-# MAYBE deprecate name
-function manikde!_legacy(
-    M::MB.AbstractManifold,
-    vecP::AbstractVector{P},
-    u0::P = vecP[1];
-    kw...,
-) where {P}
-    return ManifoldKernelDensity(M, vecP, u0; kw...)
-end
 
-#
-
-# manikde!_manellic
+# previously manikde!_manellic
 function manikde!(
     M::AbstractManifold,
     pts::AbstractVector;
     bw = diagm(ones(manifold_dimension(M))),
     algo = Optim.NelderMead(),
+    partial::Union{Nothing, AbstractVector{<:Integer}} = nothing,
     kw...
 )
     #
@@ -110,16 +100,20 @@ function manikde!(
         pts;
         kernel_bw = bw,
         kernel = AMP.MvNormalKernel,
+        partial,
     )
+
+    # mask bw for partially excluded dimensions -- assumed 1.0 from legacy but...
+    __partialCovToDefault!(s) = _partialCovToDefault!(partial, s)
 
     # Cost function to optimize
     # avoid rebuilding tree at each optim iteration!!!
-    _cost(σ::Real) = entropy(mtree, [σ^2;;]) # reshape(σ,manifold_dimension(M),1))
-    _cost(σ::AbstractVector) = entropy(mtree, diagm(σ .^ 2)) # reshape(σ,manifold_dimension(M),1))
-    _cost(σ::AbstractMatrix) = entropy(mtree, σ .^ 2) # reshape(σ,manifold_dimension(M),1))
+    _cost(σ::Real) =           entropy(mtree,       [σ^2;;]                 )
+    _cost(σ::AbstractVector) = entropy(mtree, diagm(__partialCovToDefault!(σ .^ 2)))
+    _cost(σ::AbstractMatrix) = entropy(mtree,       __partialCovToDefault!(σ ^ 2)  )
 
-    _bw(v::AbstractVector) = v
-    _bw(m::AbstractMatrix) = diag(m)
+    _bw(v::AbstractVector) = __partialCovToDefault!(v)
+    _bw(m::AbstractMatrix) = _bw(diag(m))
 
     # optimize for best LOOCV bandwidth
     # FIXME switch to RLM (or other Manopt) techinque instead 
@@ -137,15 +131,48 @@ function manikde!(
         )
         diagm(abs.(Optim.minimizer(res)))
     end
+    __partialCovToDefault!(best_cov)
 
     # reuse (heavy lift parts of) earlier tree build
     # return tree with correct bandwidth
-    return manikde!_legacy(M, pts; belmodel = (ignore...) -> updateBandwidths(mtree, best_cov), kw...)
+    # return manikde!_legacy(M, pts; belmodel = (ignore...) -> updateBandwidths(mtree, best_cov), partial, kw...)
+    ManifoldKernelDensity(
+        M, 
+        pts, 
+        pts[1]; 
+        belmodel = (ignore...) -> updateBandwidths(mtree, best_cov), 
+        partial, 
+        kw...
+    )
 end
 
 ## ==========================================================================================
 ## a few utilities
 ## ==========================================================================================
+
+
+
+# partial (i.e. active) coordinate dimensions are left unchanged, while inactive 
+# dimensions are set to default values (1.0 for variances, 0.0 for covariances)
+_partialCovToDefault!(::Nothing, s) = s
+function _partialCovToDefault!(p::AbstractVector{<:Integer}, v::AbstractVector)
+    mask = ones(Int, length(v)) .== 1
+    mask[p] .= false
+    v[mask] .= 1.0
+    return v
+end
+function _partialCovToDefault!(p::AbstractVector{<:Integer}, m::AbstractMatrix)
+    for i in axes(m, 1)
+        for j in axes(m, 2)
+            if !(i in p) || !(j in p)
+                # default values for inactive elements of covariance matrix
+                m[i,j] = i == j ? 1.0 : 0.0
+            end
+            # else leave row and column unchanged
+        end
+    end
+    return m
+end
 
 function _getFieldPartials(
     mkd::ManifoldKernelDensity{M, B, Nothing},
@@ -160,20 +187,22 @@ function _getFieldPartials(
     field::Function,
     aspartial::Bool = true,
 ) where {M, B}
+    _length(x::AbstractMatrix) = length(diag(x))
+    _length(x::AbstractVector) = length(x)
     val = field(mkd)
-    if aspartial && (length(val) == length(mkd._partial))
+    if aspartial && (_length(val) == length(mkd._partial))
         return val
-    elseif !aspartial && (length(val) == length(mkd._partial))
+    elseif !aspartial && (_length(val) == length(mkd._partial))
         val_ = zeros(manifold_dimension(mkd.manifold))
         val_[mkd._partial] .= val
         return val_
-    elseif aspartial && (length(val) == manifold_dimension(mkd.manifold))
+    elseif aspartial && (_length(val) == manifold_dimension(mkd.manifold))
         return val[mkd._partial]
-    elseif !aspartial && (length(val) == manifold_dimension(mkd.manifold))
+    elseif !aspartial && (_length(val) == manifold_dimension(mkd.manifold))
         return val
     else
         error(
-            "unknown size MKD.$(field) with partial length=$(length(mkd._partial)) vs length=$(length(val)) --- and value=$val",
+            "unknown size MKD.$(field) with partial length=$(length(mkd._partial)) vs length=$(_length(val)) --- and value=$val",
         )
     end
 end
@@ -183,7 +212,7 @@ function getInfoPerCoord(mkd::ManifoldKernelDensity, aspartial::Bool = true)
 end
 
 function getBandwidth(mkd::ManifoldKernelDensity, aspartial::Bool = true)
-    return _getFieldPartials(mkd, x -> getBW(x)[:, 1], aspartial)
+    return _getFieldPartials(mkd, x -> getBW(x)[1], aspartial)
 end
 
 # internal workaround function for building partial submanifold dimensions, must be upgraded/standarized

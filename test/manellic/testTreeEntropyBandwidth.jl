@@ -9,7 +9,7 @@ using TensorCast
 using LieGroups
 import Rotations as Rot_
 using Distributions
-import ApproxManifoldProducts: ManellicTree, eigenCoords, splitPointsEigen
+import ApproxManifoldProducts: ManellicTree, splitPointsEigen
 
 using Optim
 
@@ -20,7 +20,7 @@ using JSON3
 @testset "Manellic tree kernel bandwidth 1D LOO evaluation/entropy checks" begin
     ##
 
-    M = TranslationGroup(1)
+    M = LieGroups.TranslationGroup(1)
 
     pt = [[0.0;], [1.0;], [2.0;], [3.0;]]
     _m_ = ApproxManifoldProducts.buildTree_Manellic!(
@@ -59,7 +59,7 @@ end
 @testset "Manellic tree bandwidth optimization 1D section search" begin
     ##
 
-    M = TranslationGroup(1)
+    M = LieGroups.TranslationGroup(1)
     # pts = [[0.;],[0.1],[0.2;],[0.3;]]
     pts = [1 * randn(1) for _ = 1:64]
 
@@ -160,7 +160,7 @@ end
 @testset "Manellic tree all up construction with bandwith optimization" begin
     ##
 
-    M = TranslationGroup(1)
+    M = LieGroups.TranslationGroup(1)
     # pts = [[0.;],[0.1],[0.2;],[0.3;]]
     pts = [1 * randn(1) for _ = 1:64]
 
@@ -178,10 +178,10 @@ end
 end
 
 
-@testset "Multidimensional LOOCV bandwidth optimization, TranslationGroup(2)" begin
+@testset "Multidimensional LOOCV bandwidth optimization, LieGroups.TranslationGroup(2)" begin
     ##
 
-    M = TranslationGroup(2)
+    M = LieGroups.TranslationGroup(2)
     pts = [1 * randn(2) for _ = 1:64]
 
     bw = [1.0; 1.0]
@@ -304,7 +304,7 @@ end
 ##
 # # using GLMakie
 
-# M = TranslationGroup(1)
+# M = LieGroups.TranslationGroup(1)
 
 # __pts = [1*randn(1) for _ in 1:64] 
 
