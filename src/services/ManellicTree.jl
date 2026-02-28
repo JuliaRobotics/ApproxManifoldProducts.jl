@@ -315,20 +315,30 @@ function _rotateCoordsPartial(
         return m
     end
     _unrollpartial(p::ArrayPartition) = error("TODO _unrollpartial for ArrayPartition")
-    # _setdiff(X, partial::Nothing) = X
-    # _setdiff(X, partial::AbstractVector{<:Integer}) = setdiff(X, partial)
-    # remove Nans
     P = _unrollpartial(partial)
-    ax_R_r_p = _partialCovToDefault!(partial, similar(ax_R_r))
-    _toset = ax_R_r_p .== 1
-    ax_R_r_p[_toset] .= ax_R_r[_toset]
+    _ax_R_r = MMatrix{size(ax_R_r)...}(ax_R_r)
+    # remove Nans
+    for i in axes(_ax_R_r, 1)
+        for j in axes(_ax_R_r, 2)
+            if !isnothing(partial) && (!(i in P) || !(j in P))
+                # default values for inactive elements of rotation matrix
+                _ax_R_r[i,j] = i == j ? 1.0 : 0.0
+            end
+            # else leave row and column unchanged
+        end
+    end
 
     # rotate coordinates
     return map(r_CCp) do r_Cp
-        r_Cp_p = _partialCovToDefault!(partial, similar(r_Cp))
-        _toset = r_Cp_p .== 1
-        r_Cp_p[_toset] .= r_Cp[_toset]
-        ax_R_r_p * r_Cp_p
+        _r_Cp = MVector{length(r_Cp)}(r_Cp)
+        for j in length(_r_Cp)
+            if !isnothing(partial) && !(j in P)
+                # default values for inactive coordinates
+                _r_Cp[j] = 0.0
+            end
+            # else leave coordinate unchanged
+        end
+        _ax_R_r * _r_Cp
     end
 end
 
@@ -394,10 +404,10 @@ function splitPointsEigen(
     ax_R_r = r_R_ax'
 
     # rotate coordinates
-    ax_CCp = map(r_CCp) do r_Cp
-        ax_R_r * r_Cp
-    end
-    # TODO ax_CCp = _rotateCoordsPartial(M,r_CCp,ax_R_r;partial,)
+    # ax_CCp = map(r_CCp) do r_Cp
+    #     ax_R_r * r_Cp
+    # end
+    ax_CCp = _rotateCoordsPartial(M,r_CCp,ax_R_r;partial,)
 
     # this is a local test around base point p (not at global 0)
     mask = 0 .<= (ax_CCp .|> s -> s[1])

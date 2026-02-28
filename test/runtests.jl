@@ -19,6 +19,7 @@ include("testMMD.jl")
 include("basic_se3.jl")
 include("manellic/testTreeEntropyBandwidth.jl")
 include("testManifoldPartial.jl")
+# density products
 include("manellic/testTreeKernelProducts.jl")
 include("manellic/testMultiscaleLabelSampling.jl")
 include("testBasicManiProduct.jl")
