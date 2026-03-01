@@ -23,7 +23,7 @@ function directProductGaussianTestHelper(
 
     sl1 = [s[1] for s in sl]
     sl2 = [s[2] for s in sl]
-    # layers and layers of belief tree indexing pain (part of refactoring transition for HomotopyBelief rename)
+    # layers and layers of belief tree indexing pain (part of refactoring transition for HomotopyDensity rename)
     sl1_ = sl1[1] % N
     sl1_ = sl1_ == 0 ? N : sl1_
     sl2_ = sl2[1] % N

@@ -147,7 +147,7 @@ end
 end
 
 
-@testset "test replace overloads full and partial/marginal" begin
+@testset "test replace (not replace!) overloads full and partial/marginal" begin
     ##
 
     N = 10
@@ -221,17 +221,38 @@ end
 #
 
 
-@testset "Similar tree from reconstruct 1D as a partial 2->[x *] partial" begin
-    
-@test_broken false
+@testset "Tree reconstruction of 1D data as a either 2->[x *] or [* y] partials" begin
+##
 
-end
+    # test lifted from (non-partial) tree construction test file
+    M = LieGroups.TranslationGroup(2)
+    # already sorted list
+    pts = [[1.0; NaN], [2.0; NaN], [4.0; NaN], [7.0], [11.0; NaN], [16.0; NaN], [22.0; NaN]]
+    bw = [1.0; 0.0]
+    N = length(pts)
+
+    # preemptively check splitPoints 
+    # begin
+        
+    #     ax_CCp, mask, knl = ApproxManifoldProducts.splitPointsEigen(
+    #         M,
+    #         pts,
+    #         1/7*ones(length(pts));
+    #         kernel = AMP.MvNormalKernel,
+    #         kernel_bw = bw,
+    #         partial = [1;]
+    #     )
+
+    #     @test mask[1:4] == BitVector([0,0,0,0])
+    #     @test mask[5:7] == BitVector([1,1,1])
+    # end
+
+##
+
+    @test_broken false
 
 
-@testset "Similar tree from reconstruct 1D as a partial 2->[* y] partial" begin
-    
-@test_broken false
-
+##
 end
 
 @testset "test getPoints under partial with representation on LieGroups.ProductLieGroup" begin

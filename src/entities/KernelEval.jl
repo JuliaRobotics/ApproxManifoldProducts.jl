@@ -3,9 +3,13 @@ abstract type AbstractKernel end
 
 
 ## FIXME, export
-# export HomotopyBeliefKernel, ConcentratedGaussianKernel
+# export DensityKernel, ConcentratedGaussianKernel
 
-@kwdef struct HomotopyBeliefKernel{K, T} <: AbstractKernel
+@kwdef struct DensityKernel{
+    partial, # partial info for compiler, usually a value e.g. nothing or (1,3)
+    K, # kernel info for compiler
+    T  # additional parameters
+} <: AbstractKernel
     """ Mixture/nonparametric weight value """
     weight::Float64 = 1.0
     """ functional basis such as RBF/MvNormal, Epanechnikov, (wavelet basis) etc. """
@@ -14,11 +18,32 @@ abstract type AbstractKernel end
     params::T = nothing
 end
 
+# helper constructor for common case without partials
+DensityKernel{partial}(;
+    weight::Float64,
+    functional::K,
+    params::T, 
+    # partial::P = nothing,
+) where {
+    partial,
+    K,
+    T
+} = DensityKernel{
+    partial,
+    K,
+    T
+}(;
+    weight,
+    functional,
+    params
+)
+
 const ConcentratedGaussianKernel(;
     weight=1.0,
     p=SVector(0.0),  # center/expansion point on the manifold
-    devmat=SMatrix{1,1}(1.0)
-) = HomotopyBeliefKernel(;
+    devmat=SMatrix{1,1}(1.0),
+    partial::P = nothing,
+) where P <: Union{Nothing, <:Tuple} = DensityKernel{partial}(;
     weight, 
     functional=MvNormal(devmat^2), # NOTE, find inverse Cholesky in MvNormal structure
     params=p,
@@ -30,7 +55,7 @@ const ConcentratedGaussianKernel(;
 
 ## LEGACY BELOW
 
-struct MvNormalKernel{T <: HomotopyBeliefKernel} <: AbstractKernel
+struct MvNormalKernel{T <: DensityKernel} <: AbstractKernel
     shim::T
 end
 
@@ -65,7 +90,8 @@ import Base: getproperty
 function MvNormalKernel(
     μ::AbstractArray, 
     σ::AbstractArray, 
-    weight::Real = 1.0
+    weight::Real = 1.0;
+    partial = nothing
 )
     @warn "MvNormalKernel is deprecated, use ConcentratedGaussianKernel instead [maxlog=10]" maxlog=10
     c_(s::AbstractMatrix) = s
@@ -74,27 +100,29 @@ function MvNormalKernel(
     _c = projectSymPosDef(Σ)
     functional = MvNormal(_c)
     MvNormalKernel(
-        ConcentratedGaussianKernel(
+        ConcentratedGaussianKernel(;
             weight = float(weight),
             p = μ,
             devmat = sqrt(cov(functional)),
+            partial,
         )
     )
 end
 
 
-MvNormalKernel(; μ, p::MvNormal, weight = 1.0) = MvNormalKernel(μ, cov(p), weight)
+MvNormalKernel(; μ, p::MvNormal, weight = 1.0, partial = nothing) = MvNormalKernel(μ, cov(p), weight; partial)
 
 
 function convert(
     ::Type{MvNormalKernel{
-        ApproxManifoldProducts.HomotopyBeliefKernel{
+        ApproxManifoldProducts.DensityKernel{
+            L,
             MvNormal{F,P,Z},
             S
         }
     }},
     src::MvNormalKernel,
-) where {F,P,Z,S}
+) where {L,F,P,Z,S}
 
     _matType(::Type{Distributions.PDMats.PDMat{_F, _M}}) where {_F, _M} = _M
     _sap(::Type{ArrayPartition{T,_S}}) where {T,_S} = _S
@@ -109,7 +137,8 @@ function convert(
     MvNormalKernel(
         m,
         _matType(P)(cov(src.shim.functional)),
-        src.shim.weight,
+        src.shim.weight;
+        partial = L
     )
 end
 

@@ -276,23 +276,30 @@ end
 Base.show(io::IO, ::MIME"text/plain", mt::ManellicTree) = show(io, mt)
 
 
+_forcemutable(s::MMatrix) = s
+_forcemutable(s::AbstractMatrix) = MMatrix{size(s)...}(s)
+_forcemutable(s::MVector) = s
+_forcemutable(s::AbstractVector) = MVector{length(s)}(s)
 
 # covariance eigen decomposition and sort ascending
 function eigenCoords!(
-    _f_CVp::AbstractMatrix;
+    f_CVp::AbstractMatrix;
     partial::Union{Nothing, AbstractVector{<:Integer}} = nothing,
 )
-    function _decomp(evc::AbstractMatrix, evl::AbstractVector, _toflip::Bool = det(evc) < 0)
+    function _decomp(
+        evc::AbstractMatrix, 
+        evl::AbstractVector, 
+        _toflip::Bool = det(evc) < 0
+    )
         pidx = _toflip ? sortperm(evl; rev = true) : 1:length(evl)
         Q = evc[:, pidx]
         L = diagm(evl[pidx])
+        # FIXME, handle partials -- i.e. embed in larger matrices
         return Q, L, pidx
     end
 
-    # # FIXME embed partial dimensions inside the full non-partial covariance. 
-    # _forcemutable(s::AbstractMatrix) = Matrix(s)
-    # _f_CVp = _partialCovToDefault!(partial, _forcemutable(f_CVp))
-
+    # FIXME embed partial dimensions inside the full non-partial covariance.
+    _f_CVp = _partialCovToDefault!(partial, _forcemutable(f_CVp))
 
     E = eigen(_f_CVp)
     f_Q_ax, Λ, pidx = _decomp(E.vectors, E.values)
@@ -316,7 +323,7 @@ function _rotateCoordsPartial(
     end
     _unrollpartial(p::ArrayPartition) = error("TODO _unrollpartial for ArrayPartition")
     P = _unrollpartial(partial)
-    _ax_R_r = MMatrix{size(ax_R_r)...}(ax_R_r)
+    _ax_R_r = _forcemutable(ax_R_r)
     # remove Nans
     for i in axes(_ax_R_r, 1)
         for j in axes(_ax_R_r, 2)
@@ -330,7 +337,7 @@ function _rotateCoordsPartial(
 
     # rotate coordinates
     return map(r_CCp) do r_Cp
-        _r_Cp = MVector{length(r_Cp)}(r_Cp)
+        _r_Cp = _forcemutable(r_Cp)
         for j in length(_r_Cp)
             if !isnothing(partial) && !(j in P)
                 # default values for inactive coordinates
@@ -407,7 +414,7 @@ function splitPointsEigen(
     # ax_CCp = map(r_CCp) do r_Cp
     #     ax_R_r * r_Cp
     # end
-    ax_CCp = _rotateCoordsPartial(M,r_CCp,ax_R_r;partial,)
+    ax_CCp = _rotateCoordsPartial(M, r_CCp, ax_R_r; partial)
 
     # this is a local test around base point p (not at global 0)
     mask = 0 .<= (ax_CCp .|> s -> s[1])
