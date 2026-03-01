@@ -93,16 +93,32 @@ function MvNormalKernel(
     weight::Real = 1.0;
     partial = nothing
 )
-    @warn "MvNormalKernel is deprecated, use ConcentratedGaussianKernel instead [maxlog=10]" maxlog=10
-    c_(s::AbstractMatrix) = s
-    c_(s::AbstractVector) = diagm(s)
-    Σ = c_(σ)
+    @warn "MvNormalKernel is deprecated, use ConcentratedGaussianKernel instead, barr partial [maxlog=10]" maxlog=10
+    _μ(s::AbstractArray, _p::Nothing) = s
+    _μ(s::AbstractVector, _p::Tuple) = begin
+        _s = _forcemutable(s)
+        _s[setdiff(1:length(s), _p)] .= NaN
+        return _s
+    end
+    _μ(s::AbstractMatrix, _p::Tuple) = begin
+        _s = _forcemutable(s)
+        itr = setdiff(1:length(s), _p)
+        _s[itr, :] .= NaN
+        _s[:, itr] .= NaN
+        return _s
+    end
+    c_(s::AbstractMatrix, _p::Nothing) = s
+    c_(s::AbstractVector, _p::Nothing) = diagm(s)    
+    c_(s::AbstractMatrix, _p::Tuple) = _partialCovToDefault!(_p,_forcemutable(s))
+    c_(s::AbstractVector, _p::Tuple) = diagm(_partialCovToDefault!(_p,_forcemutable(s)))
+    # TODO _forcestatic
+    Σ = c_(σ, partial)
     _c = projectSymPosDef(Σ)
     functional = MvNormal(_c)
     MvNormalKernel(
         ConcentratedGaussianKernel(;
             weight = float(weight),
-            p = μ,
+            p = _μ(μ, partial),
             devmat = sqrt(cov(functional)),
             partial,
         )

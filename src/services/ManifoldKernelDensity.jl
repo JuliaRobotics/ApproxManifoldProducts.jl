@@ -155,13 +155,13 @@ end
 # partial (i.e. active) coordinate dimensions are left unchanged, while inactive 
 # dimensions are set to default values (1.0 for variances, 0.0 for covariances)
 _partialCovToDefault!(::Nothing, s) = s
-function _partialCovToDefault!(p::AbstractVector{<:Integer}, v::AbstractVector)
+function _partialCovToDefault!(p::Union{<:Tuple, <:AbstractVector{<:Integer}}, v::AbstractVector)
     mask = ones(Int, length(v)) .== 1
     mask[p] .= false
     v[mask] .= 1.0
     return v
 end
-function _partialCovToDefault!(p::AbstractVector{<:Integer}, m::AbstractMatrix)
+function _partialCovToDefault!(p::Union{<:Tuple, <:AbstractVector{<:Integer}}, m::AbstractMatrix)
     for i in axes(m, 1)
         for j in axes(m, 2)
             if !(i in p) || !(j in p)

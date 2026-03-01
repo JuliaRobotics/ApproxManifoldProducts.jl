@@ -448,8 +448,11 @@ function splitPointsEigen(
 
     weight = sum(weights)
 
+    # kernels explicitly change to partial definition via tuples (for clarity during development) 
+    _tuple(p::Nothing) = p
+    _tuple(p::AbstractVector{<:Integer}) = tuple(p...)
     # return rotated coordinates and split mask
-    return ax_CCp, mask, kernel(p, cv, weight)
+    return ax_CCp, mask, kernel(p, cv, weight; partial=_tuple(partial))
 end
 
 function buildTree_Manellic!(

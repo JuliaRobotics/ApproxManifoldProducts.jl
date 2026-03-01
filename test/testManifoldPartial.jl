@@ -232,20 +232,20 @@ end
     N = length(pts)
 
     # preemptively check splitPoints 
-    # begin
+    begin
         
-    #     ax_CCp, mask, knl = ApproxManifoldProducts.splitPointsEigen(
-    #         M,
-    #         pts,
-    #         1/7*ones(length(pts));
-    #         kernel = AMP.MvNormalKernel,
-    #         kernel_bw = bw,
-    #         partial = [1;]
-    #     )
+        ax_CCp, mask, knl = ApproxManifoldProducts.splitPointsEigen(
+            M,
+            pts,
+            1/7*ones(length(pts));
+            kernel = AMP.MvNormalKernel,
+            kernel_bw = bw,
+            partial = [1;]
+        )
 
-    #     @test mask[1:4] == BitVector([0,0,0,0])
-    #     @test mask[5:7] == BitVector([1,1,1])
-    # end
+        @test mask[1:4] == BitVector([0,0,0,0])
+        @test mask[5:7] == BitVector([1,1,1])
+    end
 
 ##
 
