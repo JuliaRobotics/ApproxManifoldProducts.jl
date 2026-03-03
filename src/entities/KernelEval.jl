@@ -91,7 +91,7 @@ function MvNormalKernel(
     μ::AbstractArray, 
     σ::AbstractArray, 
     weight::Real = 1.0;
-    partial = nothing
+    partial::Union{Nothing, <:Tuple} = nothing
 )
     @warn "MvNormalKernel is deprecated, use ConcentratedGaussianKernel instead, barr partial [maxlog=10]" maxlog=10
     _μ(s::AbstractArray, _p::Nothing) = s

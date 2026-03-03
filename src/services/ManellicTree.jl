@@ -281,6 +281,10 @@ _forcemutable(s::AbstractMatrix) = MMatrix{size(s)...}(s)
 _forcemutable(s::MVector) = s
 _forcemutable(s::AbstractVector) = MVector{length(s)}(s)
 
+# kernels explicitly change to partial definition via tuples (for clarity during development) 
+_tuple(p::Nothing) = p
+_tuple(p::AbstractVector{<:Integer}) = tuple(p...)
+
 # covariance eigen decomposition and sort ascending
 function eigenCoords!(
     f_CVp::AbstractMatrix;
@@ -322,12 +326,12 @@ function _rotateCoordsPartial(
         return m
     end
     _unrollpartial(p::ArrayPartition) = error("TODO _unrollpartial for ArrayPartition")
-    P = _unrollpartial(partial)
+    _ = _unrollpartial(partial) # FIXME
     _ax_R_r = _forcemutable(ax_R_r)
     # remove Nans
     for i in axes(_ax_R_r, 1)
         for j in axes(_ax_R_r, 2)
-            if !isnothing(partial) && (!(i in P) || !(j in P))
+            if !isnothing(partial) && (!(i in partial) || !(j in partial))
                 # default values for inactive elements of rotation matrix
                 _ax_R_r[i,j] = i == j ? 1.0 : 0.0
             end
@@ -338,8 +342,8 @@ function _rotateCoordsPartial(
     # rotate coordinates
     return map(r_CCp) do r_Cp
         _r_Cp = _forcemutable(r_Cp)
-        for j in length(_r_Cp)
-            if !isnothing(partial) && !(j in P)
+        for j in 1:length(_r_Cp)
+            if !isnothing(partial) && !(j in partial)
                 # default values for inactive coordinates
                 _r_Cp[j] = 0.0
             end
@@ -417,7 +421,7 @@ function splitPointsEigen(
     ax_CCp = _rotateCoordsPartial(M, r_CCp, ax_R_r; partial)
 
     # this is a local test around base point p (not at global 0)
-    mask = 0 .<= (ax_CCp .|> s -> s[1])
+    mask = 0 .<= (ax_CCp .|> (s -> isnothing(partial) ? s[1] : s[partial[1]]))
 
     # TODO ALLOW BOTH BALANCED OR UNBALANCED MASK RETRIEVAL, STARTING WITH FORCED MASK BALANCING
     # NOTE, rebalancing reason: deadcenter of covariance is not halfway between points (unconfirmed)
@@ -448,9 +452,6 @@ function splitPointsEigen(
 
     weight = sum(weights)
 
-    # kernels explicitly change to partial definition via tuples (for clarity during development) 
-    _tuple(p::Nothing) = p
-    _tuple(p::AbstractVector{<:Integer}) = tuple(p...)
     # return rotated coordinates and split mask
     return ax_CCp, mask, kernel(p, cv, weight; partial=_tuple(partial))
 end
@@ -525,6 +526,7 @@ function buildTree_Manellic!(
                 kernel,
                 kernel_bw = _kernel_bw,
                 leaf_size,
+                partial,
             )
         end
         if rgt != high
@@ -537,6 +539,7 @@ function buildTree_Manellic!(
                 kernel,
                 kernel_bw = _kernel_bw,
                 leaf_size,
+                partial,
             )
         end
     end
@@ -584,7 +587,7 @@ function buildTree_Manellic!(
 
     lCV = _legacybw(kernel_bw)
 
-    lknlT = kernel(r_PP[1], lCV) |> typeof
+    lknlT = kernel(r_PP[1], lCV; partial = _tuple(partial)) |> typeof
 
     # kernel scale
 
@@ -592,7 +595,8 @@ function buildTree_Manellic!(
     lkern = SizedVector{N, lknlT}(undef)
     _workaround_isdef_leafkernel = Set{Int}()
     for i = 1:N
-        lkern[i] = kernel(r_PP[i], lCV)
+        nkr = kernel(r_PP[i], lCV; partial = _tuple(partial))
+        lkern[i] = nkr
         push!(_workaround_isdef_leafkernel, i + N)
     end
 

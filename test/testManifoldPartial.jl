@@ -4,13 +4,14 @@ using ApproxManifoldProducts
 using LieGroups
 using Manifolds
 using LinearAlgebra
+using Random
 
 
 ##
 
 @testset "test getManifoldPartial on Euclidean(N)" begin
 
-    ##
+##
 
     M = LieGroups.TranslationGroup(3)
 
@@ -23,12 +24,12 @@ using LinearAlgebra
     @test getManifoldPartial(M, [2; 3], zeros(3))[1] == LieGroups.TranslationGroup(2)
     @test isapprox(getManifoldPartial(M, [2; 3], zeros(3))[2], zeros(2))
 
-    ##
+##
 end
 
 @testset "test getManifoldPartial on Circle()" begin
 
-    ##
+##
 
     M = Circle()
 
@@ -38,12 +39,12 @@ end
     @test getManifoldPartial(M, [1], [0;])[1] == Circle()
     @test getManifoldPartial(M, [1], [0;])[2] == [0]
 
-    ##
+##
 end
 
 @testset "test getManifoldPartial on Rotations(2)" begin
 
-    ##
+##
 
     M = Manifolds.Rotations(2)
 
@@ -53,7 +54,7 @@ end
     @test getManifoldPartial(M, [1], [1 0; 0 1])[1] == Manifolds.Rotations(2)
     @test getManifoldPartial(M, [1], [1 0; 0 1])[2] == [1 0; 0 1]
 
-    ##
+##
 end
 
 @testset "test getManifoldPartial on LieGroups.ProductLieGroup" begin
@@ -138,17 +139,17 @@ end
 
 @testset "Reminder, getManifoldPartial on Sphere(2) [TBD]" begin
 
-    ##
+##
 
     @error "Must fix Sphere(2) partial test"
     @test_broken false
 
-    ##
+##
 end
 
 
 @testset "test replace (not replace!) overloads full and partial/marginal" begin
-    ##
+##
 
     N = 10
     M = LieGroups.TranslationGroup(3)
@@ -158,14 +159,14 @@ end
     pts = [randn(3) for _ = 1:N]
     X = manikde!(M, pts)
 
-    ##
+##
 
     # X_ = replace(X0, X)
     gpts = getPoints(X)
     @test N == length(gpts)
     # @test isapprox(X_, X)
 
-    ##
+##
 
     X = manikde!(M, pts; partial = [1; 3])
     @error "restore tests for manikde partials"
@@ -215,49 +216,15 @@ end
     # @test !isPartial(X_np)
     # @test isapprox(X_np.infoPerCoord, [2; 2; 1])
 
-    ##
+##
 end
 
 #
 
 
-@testset "Tree reconstruction of 1D data as a either 2->[x *] or [* y] partials" begin
-##
-
-    # test lifted from (non-partial) tree construction test file
-    M = LieGroups.TranslationGroup(2)
-    # already sorted list
-    pts = [[1.0; NaN], [2.0; NaN], [4.0; NaN], [7.0], [11.0; NaN], [16.0; NaN], [22.0; NaN]]
-    bw = [1.0; 0.0]
-    N = length(pts)
-
-    # preemptively check splitPoints 
-    begin
-        
-        ax_CCp, mask, knl = ApproxManifoldProducts.splitPointsEigen(
-            M,
-            pts,
-            1/7*ones(length(pts));
-            kernel = AMP.MvNormalKernel,
-            kernel_bw = bw,
-            partial = [1;]
-        )
-
-        @test mask[1:4] == BitVector([0,0,0,0])
-        @test mask[5:7] == BitVector([1,1,1])
-    end
+@testset "test getPoints of marginal with representation on LieGroups.ProductLieGroup" begin
 
 ##
-
-    @test_broken false
-
-
-##
-end
-
-@testset "test getPoints under partial with representation on LieGroups.ProductLieGroup" begin
-
-    ##
 
     N = 100
     # M = SpecialEuclideanGroup(2; variant = :right)
@@ -276,12 +243,12 @@ end
     @test length(p12[1]) == 2
     @test_broken P12.manifold isa LieGroups.TranslationGroup(2)
 
-    ##
+##
 end
 
-@testset "test getPoints under partial with representation on SE2" begin
+@testset "test getPoints of marginal with representation on SE2" begin
 
-    ##
+##
 
     N = 100
     M = SpecialEuclideanGroup(2; variant = :right)
@@ -301,11 +268,111 @@ end
         @test_broken P12.manifold isa LieGroups.TranslationGroup(2)
     end
 
-    ##
+##
+end
+
+
+
+@testset "Tree reconstruction of 1D data as a either 2->[x *] or [* y] partials" begin
+##
+
+    # test lifted from (non-partial) tree construction test file
+    M = LieGroups.TranslationGroup(2)
+    # already sorted list
+    pts = [[1.0; NaN], [2.0; NaN], [4.0; NaN], [7.0; NaN], [11.0; NaN], [16.0; NaN], [22.0; NaN]]
+    bw = [1.0; 0.0]
+    N = length(pts)
+
+    # preemptively check splitPoints 
+    begin
+        
+        ax_CCp, mask, knl = ApproxManifoldProducts.splitPointsEigen(
+            M,
+            pts,
+            1/7*ones(length(pts));
+            kernel = AMP.MvNormalKernel,
+            kernel_bw = bw,
+            partial = [1;]
+        )
+
+        @test mask[1:4] == BitVector([0,0,0,0])
+        @test mask[5:7] == BitVector([1,1,1])
+    end
+
+    mtree = ApproxManifoldProducts.buildTree_Manellic!(
+        M,
+        pts;
+        kernel_bw = bw,
+        kernel = AMP.MvNormalKernel,
+        partial = [1;]
+    )
+
+##
+
+    @test mtree.permute == [1, 2, 3, 4, 5, 6, 7]
+    @test 9.0 ≈ mean(ApproxManifoldProducts.getKernelTree(mtree, 1))[1]
+    @test isnan(mean(ApproxManifoldProducts.getKernelTree(mtree, 1))[2])
+
+## shuffle
+
+    perm = shuffle(1:length(pts))
+    mtree = ApproxManifoldProducts.buildTree_Manellic!(
+        M,
+        pts[perm];
+        kernel_bw = bw,
+        kernel = AMP.MvNormalKernel,
+        partial = [1;]
+    )
+
+    @test_broken mtree.permute == perm
+    @test 9.0 ≈ mean(ApproxManifoldProducts.getKernelTree(mtree, 1))[1]
+    @test isnan(mean(ApproxManifoldProducts.getKernelTree(mtree, 1))[2])
+
+##
+
+    # test lifted from (non-partial) tree construction test file
+    M = LieGroups.TranslationGroup(2)
+    # already sorted list
+    pts = [[NaN; 1.0], [NaN; 2.0], [NaN; 4.0], [NaN; 7.0], [NaN; 11.0], [NaN; 16.0], [NaN; 22.0]]
+    bw = [0.0; 1.0]
+    N = length(pts)
+
+    # preemptively check splitPoints 
+    begin
+        
+        ax_CCp, mask, knl = ApproxManifoldProducts.splitPointsEigen(
+            M,
+            pts,
+            1/7*ones(length(pts));
+            kernel = AMP.MvNormalKernel,
+            kernel_bw = bw,
+            partial = [2;]
+        )
+
+        @test mask[1:4] == BitVector([0,0,0,0])
+        @test mask[5:7] == BitVector([1,1,1])
+    end
+
+    mtree = ApproxManifoldProducts.buildTree_Manellic!(
+        M,
+        pts;
+        kernel_bw = bw,
+        kernel = AMP.MvNormalKernel,
+        partial = [2;]
+    )
+
+##
+
+    @test mtree.permute == [1, 2, 3, 4, 5, 6, 7]
+    @test isnan(mean(ApproxManifoldProducts.getKernelTree(mtree, 1))[1])
+    @test 9.0 ≈ mean(ApproxManifoldProducts.getKernelTree(mtree, 1))[2]
+
+
+##
 end
 
 @testset "test marginal of marginal (partial) helper" begin
-    ##
+##
 
     M = LieGroups.TranslationGroup(3)
     pts = [randn(3) for _ = 1:75]
@@ -328,7 +395,7 @@ end
         @test_broken false
     end
 
-    ##
+##
 end
 
 ##
