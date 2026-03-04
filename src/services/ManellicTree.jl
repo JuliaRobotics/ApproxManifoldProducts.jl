@@ -142,8 +142,10 @@ function getKernelTree(
             # corrected cov varies from root (only Monte Carlo cov est) to leaves (only selected bandwdith)
             nC = (1 - λ) * (cov(raw_ker)) + λ * mean_bw
             # return a new kernel with cov_continuation, of tree kernel type
+            # FIXME, remember partial information
             kernelType = getfield(ApproxManifoldProducts, HT.name.name)
-            kernelType(mean(raw_ker), nC, mtr.weights[currIdx])
+            partial = _getpartial(raw_ker)
+            kernelType(mean(raw_ker), nC, mtr.weights[currIdx]; partial)
         else
             raw_ker
         end
@@ -275,15 +277,6 @@ end
 
 Base.show(io::IO, ::MIME"text/plain", mt::ManellicTree) = show(io, mt)
 
-
-_forcemutable(s::MMatrix) = s
-_forcemutable(s::AbstractMatrix) = MMatrix{size(s)...}(s)
-_forcemutable(s::MVector) = s
-_forcemutable(s::AbstractVector) = MVector{length(s)}(s)
-
-# kernels explicitly change to partial definition via tuples (for clarity during development) 
-_tuple(p::Nothing) = p
-_tuple(p::AbstractVector{<:Integer}) = tuple(p...)
 
 # covariance eigen decomposition and sort ascending
 function eigenCoords!(
@@ -579,7 +572,7 @@ function buildTree_Manellic!(
     #
     D = manifold_dimension(M)
     CV = SMatrix{D, D, Float64, D * D}(diagm(ones(D)))
-    tknlT = kernel(r_PP[1], CV) |> typeof
+    tknlT = kernel(r_PP[1], CV; partial=_tuple(partial)) |> typeof
 
     _legacybw(s::AbstractMatrix) = s
     _legacybw(s::AbstractVector) = diagm(s)
@@ -636,6 +629,7 @@ function buildTree_Manellic!(
     weights::AbstractVector{<:Real} = ones(N) .* (1 / N),
     kernel = KL,
     kernel_bw = nothing, # TODO
+    # partial = ??? TBD -- it should already be in the kernels
 ) where {KL <: MvNormalKernel}
     #
     _μT() = typeof(mean(r_ker[1]))

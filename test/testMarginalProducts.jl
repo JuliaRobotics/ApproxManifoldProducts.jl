@@ -14,39 +14,88 @@ include(joinpath(@__DIR__, "testutils.jl"))
 
 ##
 
+
+@testset "Partial kernel product with LieGroups.TranslationGroup" begin
+##
+
+    d = 2
+    M = LieGroups.TranslationGroup(d)
+    partial = (1)
+
+    u = [[1.0; NaN], [0.0; NaN]]
+    c = [([1.0; Inf]), ([1.0; Inf])]
+
+    
+    @test getManifoldPartial(M, [partial...])[1] isa typeof(LieGroups.TranslationGroup(1))
+    @error "expand test for return tuple of getManifoldPartial"
+    @test 1 == manifold_dimension(getManifoldPartial(M, [partial...])[1])
+
+    k1 = ApproxManifoldProducts.MvNormalKernel(u[1], diagm(c[1]); partial=(1,))
+    k2 = ApproxManifoldProducts.MvNormalKernel(u[2], diagm(c[2]); partial=(1,))
+
+    uC = calcProductGaussians(M, [k1; k2])
+
+    u_, C_ = mean(uC), cov(uC)
+    @test isapprox(u_, [0.5,])
+    @test isapprox(C_, [0.5;;])
+
+
+##
+end
+
 @testset "test dim=2 product with one partial/marginal" begin
 ## basic test one full with one partial
 
-    N = 50
     d = 2
     M = LieGroups.TranslationGroup(d)
+    N = 50
+    partial = [1;]
 
     #densities to multiply
     pts1 = [randn(d) for _ = 1:N]
-    P1 = manikde!(M, pts1)
-
+    
     pts2 = [randn(d) for _ = 1:N]
     (x -> (x[2] += NaN)).(pts2) # 100 offset is a decoy to induce errors in case these values are used anywhere
-    P2_ = manikde!(M, pts2; partial = [1;])
     # TODO, if this were SE2 -> partial=ArrayPartition((2,),(1,)) which replaces legacy [1,3] 
+
+
+##
+
+    mtree = ApproxManifoldProducts.buildTree_Manellic!(
+        M,
+        pts2;
+        kernel_bw = [1.0; 0.0],
+        kernel = AMP.MvNormalKernel,
+        partial,
+    )
+
+    @test !isnothing(ApproxManifoldProducts._getpartial(ApproxManifoldProducts.getKernelTree(mtree, 1)))
+    @test !isnothing(ApproxManifoldProducts._getpartial(ApproxManifoldProducts.getKernelLeaf(mtree, N)))
 
 
 ## check bandwidths of partial belief
 
+    P1 = manikde!(M, pts1)
+    P2_ = manikde!(M, pts2; partial)
+
     @test isapprox( 0.0, getBW(P2_, false)[1][1,2]; atol = 1e-10)
-    @test isapprox( 1.0, getBW(P2_, false)[1][2,2]; atol = 1e-10)
+    @test isapprox( Inf, getBW(P2_, false)[1][2,2]; atol = 1e-10)
     @test isapprox( 0.0, getBW(P2_, false)[1][2,1]; atol = 1e-10)
+
 
 ## need tests for partial kernel products
 
-        # tmp_product = calcProductKernelBTLabels(
-        #     M,
-        #     proposals,
-        #     labels_sampled,
-        #     O,
-        #     gibbsSeq;
-        #     permute = false,
-        # )
+    @test isnothing(ApproxManifoldProducts._getpartial(ApproxManifoldProducts.getKernelTree(P1.belief,1)))
+    @test !isnothing(ApproxManifoldProducts._getpartial(ApproxManifoldProducts.getKernelTree(P2_.belief,1)))
+
+    tmp_product = ApproxManifoldProducts.calcProductKernelBTLabels(
+        M,
+        [P1.belief, P2_.belief],
+        [1;1],
+        1,
+        1:2;
+        permute = false,
+    )
 
 ##
 

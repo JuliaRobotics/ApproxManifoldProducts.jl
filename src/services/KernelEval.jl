@@ -13,12 +13,17 @@ Statistics.std(m::MvNormalKernel) = sqrt(cov(m)) # regular sqrt (not of inverse)
 # FIXME use MvNormal.pdmatrix for faster access to cov's Cholesky
 sqrt_iΣ(m::MvNormalKernel) = cov(m) |> sqrt |> inv
 
-function Base.show(io::IO, mvk::MvNormalKernel)
+function Base.show(
+    io::IO, 
+    mvk::MvNormalKernel{<:DensityKernel{partial}}
+) where partial
     μ = mean(mvk)
     Σ2 = cov(mvk)
     # Σ=sqrt(Σ2)
     d = size(Σ2, 1)
-    print(io, "MvNormalKernel(d=", d)
+    print(io, "MvNormalKernel")
+    print(io, "(d=", d)
+    print(io, isnothing(partial) ? "" : "*->$partial")
     print(io, ",μ=", round.(μ; digits = 3))
     print(io, ",Σ^2=[", round(Σ2[1]; digits = 3))
     if 1 < d
@@ -36,7 +41,6 @@ function Base.show(io::IO, mvk::MvNormalKernel)
 end
 
 Base.show(io::IO, ::MIME"text/plain", mvk::MvNormalKernel) = show(io, mvk)
-
 
 
 ## =============================================================================

@@ -1,23 +1,21 @@
 # Common Utils
 
-function resid2DLinear(μ, mus, Lambdas; diffop::Function = -)  # '-' exploits EuclideanManifold commutativity a-b = b-a
-    # dμ = broadcast(diffop, μ, mus)  # mus .- μ  ## μ .\ mus
-    # @show round.(dμ, digits=4)
-    # ret = sum( Lambdas.*dμ )
-    r = map((mu, lam) -> diffop(μ[], mu) * lam, mus, Lambdas)
-    return sum(r)
-end
+_forcemutable(s::MMatrix) = s
+_forcemutable(s::AbstractMatrix) = MMatrix{size(s)...}(s)
+_forcemutable(s::MVector) = s
+_forcemutable(s::AbstractVector) = MVector{length(s)}(s)
 
-function solveresid2DLinear!(res, x, mus, Lambdas; diffop::Function = -)::Nothing
-    res[1] = resid2DLinear(x, mus, Lambdas; diffop = diffop)
-    return nothing
-end
+# kernels explicitly change to partial definition via tuples (for clarity during development) 
+_tuple(p::Nothing) = p
+_tuple(p::AbstractVector{<:Integer}) = tuple(p...)
 
-# import ApproxManifoldProducts: resid2DLinear, solveresid2DLinear
-function solveresid2DLinear(res, x, mus, Lambdas; diffop::Function = -)::Float64
-    solveresid2DLinear!(res, x, mus, Lambdas; diffop = diffop)
-    return res[1]
-end
+_getpartial(::MvNormalKernel{<:DensityKernel{partial}}) where partial = partial
+_getpartial(  ::Nothing, s::AbstractArray) = s
+_getpartial(_pr::Tuple, v::AbstractVector) = view(v, SVector(_pr...))
+_getpartial(_pr::Tuple, v::AbstractMatrix) = view(v, SVector(_pr...), SVector(_pr...))
+_getpartial(_pr::Tuple, m::AbstractManifold) = getManifoldPartial(m, [_pr...])
+
+
 
 """
     $SIGNATURES
@@ -189,20 +187,28 @@ DevNotes
 """
 function calcProductGaussians(
     M::AbstractManifold,
-    kernels::Union{<:AbstractVector{K}, NTuple{N, K}};
+    kernels::Union{
+        <:AbstractVector{<:MvNormalKernel{<:DensityKernel{partial}}}, 
+        <:NTuple{N, <:MvNormalKernel{<:DensityKernel{partial}}}
+    };
     μ0 = nothing,
     weight::Real = 1.0,
     do_transport_correction::Bool = true,
-) where {N, K <: MvNormalKernel}
+) where {N, partial}
+
+    __getprt(s) = _getpartial(partial, s)
+
+    # EXPERIMENTAL, product of partials
+    M_ = __getprt(M)[1]
+    μ_ = (s->__getprt(mean(s))).(kernels) # This is a ArrayPartition which IS DEFINITELY ON MANIFOLD (we dispatch on mean)
+    Σ_ = (s->__getprt(cov( s))).(kernels) # .|> s -> s.mat  # on tangent
     # CHECK this should be on-manifold for points
-    μ_ = mean.(kernels) # This is a ArrayPartition which IS DEFINITELY ON MANIFOLD (we dispatch on mean)
-    Σ_ = cov.(kernels) # .|> s -> s.mat  # on tangent
 
     # parallel transport needed for covariances from different tangent spaces
     _μ, _Σ = if isnothing(μ0)
-        calcProductGaussians(M, μ_, Σ_; do_transport_correction)
+        calcProductGaussians(M_, μ_, Σ_; do_transport_correction)
     else
-        calcProductGaussians(M, μ_, Σ_; μ0, do_transport_correction)
+        calcProductGaussians(M_, μ_, Σ_; μ0, do_transport_correction)
     end
 
     return MvNormalKernel(_μ, _Σ, weight)

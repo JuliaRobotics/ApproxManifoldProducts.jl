@@ -1,6 +1,25 @@
 # legacy content to facilitate transition to AMP
 
 
+function resid2DLinear(μ, mus, Lambdas; diffop::Function = -)  # '-' exploits EuclideanManifold commutativity a-b = b-a
+    # dμ = broadcast(diffop, μ, mus)  # mus .- μ  ## μ .\ mus
+    # @show round.(dμ, digits=4)
+    # ret = sum( Lambdas.*dμ )
+    r = map((mu, lam) -> diffop(μ[], mu) * lam, mus, Lambdas)
+    return sum(r)
+end
+
+function solveresid2DLinear!(res, x, mus, Lambdas; diffop::Function = -)::Nothing
+    res[1] = resid2DLinear(x, mus, Lambdas; diffop = diffop)
+    return nothing
+end
+
+# import ApproxManifoldProducts: resid2DLinear, solveresid2DLinear
+function solveresid2DLinear(res, x, mus, Lambdas; diffop::Function = -)::Float64
+    solveresid2DLinear!(res, x, mus, Lambdas; diffop = diffop)
+    return res[1]
+end
+
 
 function _update!(dst::MN, src::MN) where {MN <: ManifoldKernelDensity}
     KDE._update!(dst.belief, src.belief)

@@ -166,7 +166,7 @@ function _partialCovToDefault!(p::Union{<:Tuple, <:AbstractVector{<:Integer}}, m
         for j in axes(m, 2)
             if !(i in p) || !(j in p)
                 # default values for inactive elements of covariance matrix
-                m[i,j] = i == j ? 1.0 : 0.0
+                m[i,j] = i == j ? Inf : 0.0
             end
             # else leave row and column unchanged
         end

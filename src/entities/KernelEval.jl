@@ -41,11 +41,11 @@ DensityKernel{partial}(;
 const ConcentratedGaussianKernel(;
     weight=1.0,
     p=SVector(0.0),  # center/expansion point on the manifold
-    devmat=SMatrix{1,1}(1.0),
+    covmat=SMatrix{1,1}(1.0),
     partial::P = nothing,
 ) where P <: Union{Nothing, <:Tuple} = DensityKernel{partial}(;
     weight, 
-    functional=MvNormal(devmat^2), # NOTE, find inverse Cholesky in MvNormal structure
+    functional=MvNormal(covmat), # NOTE, find inverse Cholesky in MvNormal structure
     params=p,
 )
 
@@ -114,12 +114,11 @@ function MvNormalKernel(
     # TODO _forcestatic
     Σ = c_(σ, partial)
     _c = projectSymPosDef(Σ)
-    functional = MvNormal(_c)
     MvNormalKernel(
         ConcentratedGaussianKernel(;
             weight = float(weight),
             p = _μ(μ, partial),
-            devmat = sqrt(cov(functional)),
+            covmat = _c, # cov(MvNormal(_c)),
             partial,
         )
     )
