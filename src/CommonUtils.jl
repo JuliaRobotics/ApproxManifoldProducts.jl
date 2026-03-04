@@ -10,11 +10,11 @@ _tuple(p::Nothing) = p
 _tuple(p::AbstractVector{<:Integer}) = tuple(p...)
 
 _getpartial(::MvNormalKernel{<:DensityKernel{partial}}) where partial = partial
-_getpartial(  ::Nothing, s::AbstractArray) = s
+_getpartial(  ::Nothing, s) = s
 _getpartial(_pr::Tuple, v::AbstractVector) = view(v, SVector(_pr...))
 _getpartial(_pr::Tuple, v::AbstractMatrix) = view(v, SVector(_pr...), SVector(_pr...))
-_getpartial(_pr::Tuple, m::AbstractManifold) = getManifoldPartial(m, [_pr...])
-
+_getpartial(_pr::Tuple, m::AbstractManifold) = getManifoldPartial(m, [_pr...])[1]
+_getpartial(partial::AbstractVector{<:Int}, s) = _getpartial(_tuple(partial), s)
 
 
 """
@@ -199,7 +199,7 @@ function calcProductGaussians(
     __getprt(s) = _getpartial(partial, s)
 
     # EXPERIMENTAL, product of partials
-    M_ = __getprt(M)[1]
+    M_ = __getprt(M)
     μ_ = (s->__getprt(mean(s))).(kernels) # This is a ArrayPartition which IS DEFINITELY ON MANIFOLD (we dispatch on mean)
     Σ_ = (s->__getprt(cov( s))).(kernels) # .|> s -> s.mat  # on tangent
     # CHECK this should be on-manifold for points
