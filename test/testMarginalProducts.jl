@@ -62,10 +62,15 @@ include(joinpath(@__DIR__, "testutils.jl"))
 ##
 
     u_, C_ = mean(uC), cov(uC)
-    @test false && isapprox(u_, [0.5,])
-    @test false && isapprox(C_, [0.5;;])
-    # , cov(uC)
+    @test isapprox(u_[1], 0.5)
+    @test isnan(u_[2])
+    @test isapprox(C_[1,1], 0.5)
+    @test isapprox(C_[2,2], Inf)
+    @test isapprox(C_[1,2], 0.0)
+    @test isapprox(C_[2,1], 0.0)
 
+    @test_broken !isnothing(ApproxManifoldProducts._getprl(uC))
+    @test_broken  (1,) == isnothing(ApproxManifoldProducts._getprl(uC))
 
 
 ##
@@ -97,8 +102,8 @@ end
         partial,
     )
 
-    @test !isnothing(ApproxManifoldProducts._getpartial(ApproxManifoldProducts.getKernelTree(mtree, 1)))
-    @test !isnothing(ApproxManifoldProducts._getpartial(ApproxManifoldProducts.getKernelLeaf(mtree, N)))
+    @test !isnothing(ApproxManifoldProducts._getprl(ApproxManifoldProducts.getKernelTree(mtree, 1)))
+    @test !isnothing(ApproxManifoldProducts._getprl(ApproxManifoldProducts.getKernelLeaf(mtree, N)))
 
 
 ## check bandwidths of partial belief
@@ -113,8 +118,8 @@ end
 
 ## need tests for partial kernel products
 
-    @test isnothing(ApproxManifoldProducts._getpartial(ApproxManifoldProducts.getKernelTree(P1.belief,1)))
-    @test !isnothing(ApproxManifoldProducts._getpartial(ApproxManifoldProducts.getKernelTree(P2_.belief,1)))
+    @test isnothing(ApproxManifoldProducts._getprl(ApproxManifoldProducts.getKernelTree(P1.belief,1)))
+    @test !isnothing(ApproxManifoldProducts._getprl(ApproxManifoldProducts.getKernelTree(P2_.belief,1)))
 
     tmp_product = ApproxManifoldProducts.calcProductKernelBTLabels(
         M,
@@ -125,9 +130,8 @@ end
         permute = false,
     )
 
-    @error "calcProduct with partial should still return full dim Manifold, but with partial elements as best able"
-    @test false
-
+    @test 2 == length(mean(tmp_product))
+    @test isnothing(ApproxManifoldProducts._getprl(tmp_product))
 
     # TODO evaluate(M, tmp_product, [0.0])
 
