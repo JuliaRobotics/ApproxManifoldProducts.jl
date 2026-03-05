@@ -9,13 +9,59 @@ _forcemutable(s::AbstractVector) = MVector{length(s)}(s)
 _tuple(p::Nothing) = p
 _tuple(p::AbstractVector{<:Integer}) = tuple(p...)
 
-_getpartial(::MvNormalKernel{<:DensityKernel{partial}}) where partial = partial
+_makevec(w::AbstractVector) = w
+_makevec(w::Tuple) = [w...]
+
+_getprl(::MvNormalKernel{<:DensityKernel{partial}}) where partial = partial
 _getpartial(  ::Nothing, s) = s
 _getpartial(_pr::Tuple, v::AbstractVector) = view(v, SVector(_pr...))
 _getpartial(_pr::Tuple, v::AbstractMatrix) = view(v, SVector(_pr...), SVector(_pr...))
-_getpartial(_pr::Tuple, m::AbstractManifold) = getManifoldPartial(m, [_pr...])[1]
+_getpartial(_pr::Tuple, m::AbstractManifold) = getManifoldPartial(m, _makevec(_pr))[1]
 _getpartial(partial::AbstractVector{<:Int}, s) = _getpartial(_tuple(partial), s)
 
+_viewprl(s::AbstractArray, partial::Nothing) = s
+_viewprl(s::AbstractArray, partial::Tuple) = _viewprl(s, _makevec(partial))
+_viewprl(s::AbstractVector, partial::AbstractVector) = view(s, partial)
+_viewprl(s::AbstractMatrix, partial::AbstractVector) = view(s, partial, partial)
+
+
+function _invs(
+    Σ_::Union{<:AbstractVector{S}, <:NTuple{N, S}}; 
+    partials::Union{<:AbstractVector, <:Tuple}
+) where {N, S <: AbstractMatrix{<:Real}}
+    d = size(Σ_[1])[1]
+    infs = diagm(MVector{d}([Inf for _ in 1:d]))
+    Λs = [deepcopy(infs) for _ in 1:length(Σ_)]
+    for (i,s) in enumerate(Σ_)
+        dst = _viewprl(Λs[i], partials[i]) 
+        dst .= inv(_viewprl(s, partials[i]))
+    end
+    return Λs
+end
+
+function _mean(
+    M::AbstractManifold, 
+    v::Union{<:AbstractVector{P}, <:NTuple{N, P}}; 
+    partials::Union{<:AbstractVector, <:Tuple}
+) where {N, P <: AbstractArray}
+    # hack during dev testing
+    if all(isnothing.(partials))
+        return mean(M, _makevec(v))
+    elseif P <: AbstractVector
+        d = manifold_dimension(M)
+        mn = MVector{d}([0.0 for _ in 1:d])
+        cu = MVector{d}([0 for _ in 1:d])
+        for (s,pl) in zip(v,partials)
+            _mn = _viewprl(mn, pl)
+            _mn .+= _viewprl(s, pl)
+            _cu = _viewprl(cu, pl)
+            _cu .+= 1
+        end
+        return mn ./ cu
+    else
+        error("TODO calc partial mean of non-vector manifold types $(M), v isa $(typeof(v)), given $(partials)")
+    end
+end
 
 """
     $SIGNATURES
@@ -70,31 +116,89 @@ end
 
 
 
-_makevec(w::AbstractVector) = w
-_makevec(w::Tuple) = [w...]
-
 function calcProductGaussians_flat(
     M::AbstractManifold,
     μ_::Union{<:AbstractVector{P}, <:NTuple{N, P}}, # point type commonly known as P (actually on-manifold)
     Σ_::Union{<:AbstractVector{S}, <:NTuple{N, S}};
-    μ0 = mean(M, _makevec(μ_)), # Tangent space reference around the evenly weighted mean of incoming points
-    Λ_ = inv.(Σ_),
+    μ0 = nothing, #mean(M, _makevec(μ_)), # Tangent space reference around the evenly weighted mean of incoming points
+    Λ_ = nothing, #inv.(Σ_),
     weight::Real = 1.0,
+    partials::Union{<:AbstractVector, <:Tuple} = [nothing for _ in 1:length(μ_)],
     do_transport_correction::Bool = true,
 ) where {N, P <: AbstractArray, S <: AbstractMatrix{<:Real}}
-    # calc sum of covariances  
-    Λ = +(Λ_...)
-
-    # calc the covariance weighted delta means of incoming points and covariances
-    ΛΔμc = mapreduce(+, zip(Λ_, μ_)) do (s, u)
-        Δuvee = vee(LieAlgebra(M), log(M, μ0, u))
-        s * Δuvee
+    # resolve partial reductions when summing "incomplete" inverse covariance matrices
+    function _sumprecisionpartials(S)
+        if all(isnothing.(partials))
+            _S = +(S...)
+            return _S, length(μ_)*ones(Int,size(S[1],1))
+        end
+        s1 = _forcemutable(S[1])
+        _S = similar(s1)
+        fill!(_S, 0.0)
+        prlm = zeros(Int,size(_S,1))
+        for (s,pl) in zip(S,partials)
+            _S_ = _viewprl(_S, pl)
+            _S_ .+= _viewprl(s, pl)
+            for i in pl
+                prlm[i] += 1
+            end
+        end
+        # set any untouched precision variances to Inf
+        imask = prlm .== 0
+        __S = view(_S, imask, imask)
+        for i in 1:length(sum(imask))
+            __S[i,i] = Inf
+        end
+        # return summed precions and partialmask
+        return _S, prlm
     end
 
-    # calculate the delta mean
-    Δμc = Λ \ ΛΔμc
 
-    return Δμc, inv(Λ)
+    # _μ0
+    # _Λ_
+    _μ0 = isnothing(μ0) ? _mean(M, μ_; partials) : μ0
+    _Λ_ = isnothing(Λ_) ? _invs(Σ_; partials) : Λ_ 
+    # prepare an emply destination template matrix
+    tmpl = _forcemutable(similar(_μ0))
+    fill!(tmpl, 0)
+
+    # calc sum of inv covariances while honoring partials
+    Λ, prlm = _sumprecisionpartials(_Λ_)
+
+    # do the actual Guassian product while stepping around the partials
+    # calc the covariance weighted delta means of incoming points and covariances
+    ΛΔμc = mapreduce(+, zip(_Λ_, μ_, partials)) do (s, u, pl)
+        if isnothing(pl)
+            Δuvee = vee(LieAlgebra(M), log(M, _μ0, u))
+            s * Δuvee
+        else
+            M_, rp_, fnc_ = getManifoldPartial(M, _makevec(pl))
+            _μ0_ = fnc_(_μ0)
+            _u_ = fnc_(u)
+            _Δuvee = vee(LieAlgebra(M_), log(M_, _μ0_, _u_))
+            tmp = deepcopy(tmpl)
+            _tmp = _viewprl(tmp, pl)
+            _s = _viewprl(s, pl)
+            _tmp .= _s * _Δuvee
+            tmp
+        end
+    end
+
+    # prepare partial-aware product mean containers
+    plmask = 0 .< prlm
+    _Λ = view(Λ, plmask, plmask)
+    _ΛΔμc = view(ΛΔμc, plmask)
+    _Δμc = zeros(length(ΛΔμc))
+    __Δμc = view(_Δμc, plmask)
+    # in-place calculate the delta mean
+    __Δμc .= _Λ \ _ΛΔμc
+
+    Σr = inv(Matrix(Λ))
+    for i in (1:length(prlm))[prlm .== 0]
+        Σr[i,i] = Inf # likely better to have /Lambda have 0s on partials instead
+    end
+    # return the full dimension product mean and covariance (with honored partials)
+    return _Δμc, Σr
 end
 
 """
@@ -118,34 +222,43 @@ function calcProductGaussians(
     M::AbstractManifold,
     μ_::Union{<:AbstractVector{P}, <:NTuple{N, P}}, # point type commonly known as P (actually on-manifold)
     Σ_::Union{<:AbstractVector{S}, <:NTuple{N, S}};
-    μ0 = mean(M, _makevec(μ_)), # Tangent space reference around the evenly weighted mean of incoming points
-    Λ_ = inv.(Σ_),
-    weight::Real = 1.0,
+    μ0 = nothing, # Tangent space reference around the evenly weighted mean of incoming points
+    Λ_ = nothing,
+    partials::Union{<:AbstractVector, <:Tuple} = [nothing for _ in 1:length(μ_)],
     do_transport_correction::Bool = true,
+    weight::Real = 1.0,
 ) where {N, P <: AbstractArray, S <: AbstractMatrix{<:Real}}
+    # step 0, resolve partials
+    # Tangent space reference around the evenly weighted mean of incoming points
+
+    _μ0 = isnothing(μ0) ? _mean(M, μ_; partials) : μ0
+    _Λ_ = isnothing(Λ_) ? _invs(Σ_; partials) : Λ_ # FIXME resolve partials issues 
+
     # step 1, basic/naive Gaussian product (ignoring disjointed covariance coordinates) 
-    Δμn, Σn = calcProductGaussians_flat(M, μ_, Σ_; μ0, Λ_, weight)
-    Δμ = exp(M, μ0, hat(M, μ0, Δμn))
+    Δμn, Σn = calcProductGaussians_flat(M, μ_, Σ_; μ0=_μ0, Λ_=_Λ_, weight, partials)
+    # correction on basis μ0 to account for the fact that the product mean is not actually at the tangent space origin (μ0) of the incoming covariances
+    Δμ = exp(M, _μ0, hat(M, _μ0, Δμn))
 
     # for development and testing cases return without doing transport
-    do_transport_correction ? nothing : (return Δμ, Σn)
+    # FIXME partials skips parallel transport correction #330
+    do_transport_correction && all(isnothing.(partials)) ? nothing : (return Δμ, Σn)
 
     # first transport (push forward) covariances to common coordinates
     # see [Ge, van Goor, Mahony, 2024]
     iΔμ = inv(M, Δμ)
     μi_ = map(u -> LieGroups.compose(M, iΔμ, u), μ_)
-    μi_̂ = map(u -> log(M, μ0, u), μi_)
-    # μi = map(u->vee(M,μ0,u), μi_̂ )
+    μi_̂ = map(u -> log(M, _μ0, u), μi_)
+    # μi = map(u->vee(M,_μ0,u), μi_̂ )
     Ji = ApproxManifoldProducts.parallel_transport_curvature_2nd_lie.(Ref(M), μi_̂)
     iJi = inv.(Ji)
     Σi_hat = map((J, S) -> J * S * (J'), iJi, Σ_)
 
     # Reset step to absorb extended μ+ coordinates into kernel on-manifold μ 
-    # consider using Δμ in place of μ0
+    # consider using Δμ in place of _μ0
     Δμplusc, Σdiam =
-        ApproxManifoldProducts.calcProductGaussians_flat(M, μi_, Σi_hat; μ0, weight)
-    Δμplus_̂ = hat(M, μ0, Δμplusc)
-    Δμplus = exp(M, μ0, Δμplus_̂)
+        ApproxManifoldProducts.calcProductGaussians_flat(M, μi_, Σi_hat; μ0=_μ0, weight)
+    Δμplus_̂ = hat(M, _μ0, Δμplusc)
+    Δμplus = exp(M, _μ0, Δμplus_̂)
     μ_plus = LieGroups.compose(M, Δμ, Δμplus)
     Jμ = ApproxManifoldProducts.parallel_transport_curvature_2nd_lie(M, Δμplus_̂)
     Σ_plus = Jμ * Σdiam * (Jμ')
@@ -159,20 +272,22 @@ end
 function calcProductGaussians(
     M::AbstractManifold,
     μ_::Union{<:AbstractVector{P}, <:NTuple{N, P}},
-    Σ_::Union{<:AbstractVector{S}, <:NTuple{N, S}};
-    dim::Integer = manifold_dimension(M),
-    Λ_ = map(s -> diagm(1.0 ./ s), Σ_),
-    weight::Real = 1.0,
-    do_transport_correction::Bool = true,
+    Σ_::Union{<:AbstractVector{S}, <:NTuple{N, S}},
+    w...;
+    partials::AbstractVector = [nothing for _ in 1:length(μ_)],
+    kw...,
 ) where {N, P, S <: AbstractVector}
+    if isnothing(eltype(partials))
+        error("diagonal case for calcProductGaussian partial support is TODO")
+    end
     return calcProductGaussians(
         M,
-        [MvNormalKernel(p, C) for (p, C) in zip(μ_, Σ_)];
-        # dim, 
-        do_transport_correction,
-    ) # , Λ_
-end # , Λ_
-#
+        [MvNormalKernel(p, C) for (p, C) in zip(μ_, Σ_)], # add necessary partial information here
+        w...;
+        kw...
+    )
+end
+
 
 """
     $SIGNATURES
@@ -197,19 +312,26 @@ function calcProductGaussians(
 ) where {N, partial}
 
     __getprt(s) = _getpartial(partial, s)
+    _getmat(s::AbstractMatrix) = s
 
     # EXPERIMENTAL, product of partials
-    M_ = __getprt(M)
-    μ_ = (s->__getprt(mean(s))).(kernels) # This is a ArrayPartition which IS DEFINITELY ON MANIFOLD (we dispatch on mean)
-    Σ_ = (s->__getprt(cov( s))).(kernels) # .|> s -> s.mat  # on tangent
+    # FIXME
+    # M_ = __getprt(M)
+    # μ_ = (s->__getprt(mean(s))).(kernels) # This is a ArrayPartition which IS DEFINITELY ON MANIFOLD (we dispatch on mean)
+    # Σ_ = (s->__getprt(cov( s))).(kernels) # .|> s -> s.mat  # on tangent
+    μ_ = mean.(kernels)
+    Σ_ = (s->_getmat(cov(s))).(kernels) # on tangent
+    partials = _getprl.(kernels)
     # CHECK this should be on-manifold for points
 
     # parallel transport needed for covariances from different tangent spaces
     _μ, _Σ = if isnothing(μ0)
-        calcProductGaussians(M_, μ_, Σ_; do_transport_correction)
+        calcProductGaussians(M, μ_, Σ_; partials, do_transport_correction)
     else
-        calcProductGaussians(M_, μ_, Σ_; μ0, do_transport_correction)
+        calcProductGaussians(M, μ_, Σ_; μ0, partials, do_transport_correction)
     end
+
+    # FIXME, inflate any partial results
 
     return MvNormalKernel(_μ, _Σ, weight)
 end

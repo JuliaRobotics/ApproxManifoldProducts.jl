@@ -1,3 +1,4 @@
+##
 
 using Test
 using LieGroups
@@ -240,8 +241,10 @@ end
     Σn = inv(_Σn)
 
 
-    # verify calcProductGaussians utility function
+## verify calcProductGaussians utility function
     p̂ = calcProductGaussians(M, (p1, p2); μ0 = ε, do_transport_correction = false)
+
+##
 
     @test isapprox(μn, vee(M, ε, log(M, ε, mean(p̂))))
 

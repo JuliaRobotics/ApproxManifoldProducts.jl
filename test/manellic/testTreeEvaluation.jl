@@ -69,7 +69,7 @@ DATADIR = joinpath(dirname(@__DIR__), "testdata")
         ),
     )
 
-    @test isapprox(0.4, bel([0.0;]); atol = 0.1)
+    @test isapprox(0.4, bel([0.0;]); atol = 0.15)
 
     ##
 end

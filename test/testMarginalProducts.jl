@@ -20,7 +20,7 @@ include(joinpath(@__DIR__, "testutils.jl"))
 
     d = 2
     M = LieGroups.TranslationGroup(d)
-    partial = (1)
+    partial = (1,)
 
     u = [[1.0; NaN], [0.0; NaN]]
     c = [([1.0; Inf]), ([1.0; Inf])]
@@ -29,15 +29,43 @@ include(joinpath(@__DIR__, "testutils.jl"))
     @test getManifoldPartial(M, [partial...])[1] isa typeof(LieGroups.TranslationGroup(1))
     @error "expand test for return tuple of getManifoldPartial"
     @test 1 == manifold_dimension(getManifoldPartial(M, [partial...])[1])
+ 
+ 
+    u_ = ApproxManifoldProducts._mean(M, u; partials=(partial, partial))
+
+    @test isapprox(0.5, u_[1])
+    @test isnan(u_[2])
 
     k1 = ApproxManifoldProducts.MvNormalKernel(u[1], diagm(c[1]); partial=(1,))
     k2 = ApproxManifoldProducts.MvNormalKernel(u[2], diagm(c[2]); partial=(1,))
 
+
+## calculate extended Gaussian correction term beyond the naive mean, here testing with partials 
+    Δμn, Σn = ApproxManifoldProducts.calcProductGaussians_flat(
+        M, u, diagm.(c);
+        partials = [partial, partial]
+    )
+
+    @test isapprox(0.0, Δμn[1])
+    @test isapprox(0.0, Δμn[2])
+    @test isapprox(0.5, Σn[1, 1])
+    @test isapprox(Inf, Σn[2, 2])
+    @test isapprox(0.0, Σn[1, 2])
+    @test isapprox(0.0, Σn[2, 1])
+    
+
+
+##
+
     uC = calcProductGaussians(M, [k1; k2])
 
+##
+
     u_, C_ = mean(uC), cov(uC)
-    @test isapprox(u_, [0.5,])
-    @test isapprox(C_, [0.5;;])
+    @test false && isapprox(u_, [0.5,])
+    @test false && isapprox(C_, [0.5;;])
+    # , cov(uC)
+
 
 
 ##
@@ -96,6 +124,12 @@ end
         1:2;
         permute = false,
     )
+
+    @error "calcProduct with partial should still return full dim Manifold, but with partial elements as best able"
+    @test false
+
+
+    # TODO evaluate(M, tmp_product, [0.0])
 
 ##
 

@@ -144,7 +144,7 @@ function getKernelTree(
             # return a new kernel with cov_continuation, of tree kernel type
             # FIXME, remember partial information
             kernelType = getfield(ApproxManifoldProducts, HT.name.name)
-            partial = _getpartial(raw_ker)
+            partial = _getprl(raw_ker)
             kernelType(mean(raw_ker), nC, mtr.weights[currIdx]; partial)
         else
             raw_ker
