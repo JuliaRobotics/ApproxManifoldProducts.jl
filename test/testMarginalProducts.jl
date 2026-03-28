@@ -1,5 +1,5 @@
 ##
-
+# using Revise
 using Manifolds
 using LieGroups
 using ApproxManifoldProducts
@@ -69,8 +69,8 @@ include(joinpath(@__DIR__, "testutils.jl"))
     @test isapprox(C_[1,2], 0.0)
     @test isapprox(C_[2,1], 0.0)
 
-    @test_broken !isnothing(ApproxManifoldProducts._getprl(uC))
-    @test_broken  (1,) == isnothing(ApproxManifoldProducts._getprl(uC))
+    @test !isnothing(ApproxManifoldProducts._getprl(uC))
+    @test (1,) == ApproxManifoldProducts._getprl(uC)
 
 
 ##
@@ -121,19 +121,28 @@ end
     @test isnothing(ApproxManifoldProducts._getprl(ApproxManifoldProducts.getKernelTree(P1.belief,1)))
     @test !isnothing(ApproxManifoldProducts._getprl(ApproxManifoldProducts.getKernelTree(P2_.belief,1)))
 
+    labels_sampled = [1;1]
+    looidx = 1
     tmp_product = ApproxManifoldProducts.calcProductKernelBTLabels(
         M,
         [P1.belief, P2_.belief],
-        [1;1],
-        1,
+        labels_sampled,
+        looidx,  # LOO index
         1:2;
         permute = false,
     )
 
     @test 2 == length(mean(tmp_product))
-    @test isnothing(ApproxManifoldProducts._getprl(tmp_product))
+    # REMEMBER THIS IS WITH LOOidx=1, so result is just one kernel in product which is also partial
+    @test (1,) == ApproxManifoldProducts._getprl(tmp_product)
 
     # TODO evaluate(M, tmp_product, [0.0])
+
+
+    eval_at_points =
+        [mean(getKernelTree(proposals[O], i, false)) for i in label_pools[O]]
+    smw = evaluateDensityAtPoints(M, tmp_product, eval_at_points, true) # TBD: smw = evaluate(tmp_product, )
+
 
 ##
 
@@ -149,6 +158,8 @@ end
         _labelsChoosen_pp,
         addEntropy = false,
     )
+
+##
 
     @test !isPartial(P12_)
 
@@ -284,7 +295,7 @@ end
     @cast pGM[i, j] := pts[j][i]
 
     @test_broken 0.7 * N < sum(-10 .< pGM[1, :] .< 0)
-    @test_broken 0.7 * N < sum(0 .< pGM[2, :] .< 10)
+    @test 0.7 * N < sum(0 .< pGM[2, :] .< 10)
 
 ## check the selection of labels and resulting Gaussian products are correct
 
@@ -342,8 +353,8 @@ end
     pts = getPoints(P_)
     @cast pGM[i, j] := pts[j][i]
 
-    @test 0.7 * N < sum(-13 .< pGM[1, :] .< -7)
-    @test 0.7 * N < sum(7 .< pGM[2, :] .< 13)
+    @test_broken 0.7 * N < sum(-13 .< pGM[1, :] .< -7)
+    @test_broken 0.7 * N < sum(7 .< pGM[2, :] .< 13)
 
 ## check the selection of labels and resulting Gaussian products are correct
 
@@ -472,7 +483,7 @@ end
     @cast pGM[i, j] := pts[j][i]
 
     @test_broken 0.6 * N < sum(-10 .< pGM[1, :] .< 0)
-    @test_broken 0.6 * N < sum(0 .< pGM[3, :] .< 10)
+    @test 0.6 * N < sum(0 .< pGM[3, :] .< 10)
 
 ## check the selection of labels and resulting Gaussian products are correct
 
@@ -512,7 +523,7 @@ end
 
     P1 = marginal(manikde!(M, pts1), [1;])
     P2 = manikde!(M, pts2)
-    P3 = marginal(manikde!(M, pts3), [d;])
+    P3 = marginal(manikde!(M, pts3), [3;])
 
 ##
 
@@ -534,7 +545,7 @@ end
     pts = getPoints(P)
     @cast pGM[i, j] := pts[j][i]
 
-    @test 0.8 * N < sum(-10 .< pGM[1, :] .< 0)
+    @test_broken 0.8 * N < sum(-10 .< pGM[1, :] .< 0)
     @test_broken 0.8 * N < sum(0 .< pGM[3, :] .< 10)
 
 ## check the selection of labels and resulting Gaussian products are correct

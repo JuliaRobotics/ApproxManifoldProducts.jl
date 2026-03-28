@@ -871,15 +871,15 @@ Calculate one product of proposal kernels, as defined  BTLabels.
 function calcProductKernelBTLabels(
     M::AbstractManifold,
     proposals::AbstractVector,
-    labels_sampled,
-    LOOidx::Union{Int, Nothing} = nothing,
-    gibbsSeq = 1:length(proposals);
+    labels_sampled::AbstractVector{<:Integer},
+    looidx::Union{Int, Nothing} = nothing,
+    gibbsSeq::AbstractVector{<:Integer} = 1:length(proposals);
     permute::Bool = true, # true because signature is BTLabels
     weight::Real = 1.0,
 )
     # select a density label from the other proposals
     prop_and_label = Tuple{Int, Int}[]
-    for s in setdiff(gibbsSeq, isnothing(LOOidx) ? Int[] : Int[LOOidx;])
+    for s in setdiff(gibbsSeq, isnothing(looidx) ? Int[] : Int[looidx;])
         # tuple of which leave-one-out-proposal and its new latest label selection
         push!(prop_and_label, (s, labels_sampled[s]))
     end
@@ -960,7 +960,7 @@ Notes:
 function sampleProductSeqGibbsBTLabel(
     M::AbstractManifold,
     proposals::AbstractVector{<:ManellicTree},
-    MC = 3,
+    MC::Int = 3,
     # pool of sampleable labels
     label_pools::Vector{Vector{Int}} = [[1:1;] for _ in proposals],
     labels_sampled::Vector{Int} = [rand(label_pools[i]) for i in 1:length(proposals)];
@@ -992,6 +992,11 @@ function sampleProductSeqGibbsBTLabel(
         eval_at_points =
             [mean(getKernelTree(proposals[O], i, false)) for i in label_pools[O]]
         smw = evaluateDensityAtPoints(M, tmp_product, eval_at_points, true) # TBD: smw = evaluate(tmp_product, )
+
+        @info "CATEGORICAL BANG" O smw
+        @show label_pools
+        @show labels_sampled
+        @show eval_at_points
 
         # update label-distribution of out-proposal from product of selected LOO-proposal components
         p = Categorical(smw)
@@ -1043,7 +1048,7 @@ Base.length(mkd::ManifoldKernelDensity) = Ndim(mkd.belief)
 function sampleProductSeqGibbsBTLabels(
     M::AbstractManifold,
     proposals::AbstractVector,
-    MC = 3,
+    MC::Int = 3,
     N::Int = round(Int, mean(length.(proposals))), # FIXME use getLength or length of proposal (not getPoints)
     label_pools = [[1:1;] for _ in proposals];
     _labelsChoosen_pp::Vector{Vector{@NamedTuple{loo::Int64, selected::Vector{Int64}, pool::Vector{Vector{Int64}}, catp::Vector{Float64}}}} = Vector{Vector{@NamedTuple{loo::Int64, selected::Vector{Int64}, pool::Vector{Vector{Int64}}, catp::Vector{Float64}}}}(undef, N)

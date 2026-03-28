@@ -25,7 +25,7 @@ include("manellic/testMultiscaleLabelSampling.jl")
 include("testBasicManiProduct.jl")
 include("testManiProductBigSmall.jl")
 # tests for partials and partial products
-# include("testMarginalProducts.jl")
+include("testMarginalProducts.jl")
 # include("testPartialProductSE2.jl")
 
 
