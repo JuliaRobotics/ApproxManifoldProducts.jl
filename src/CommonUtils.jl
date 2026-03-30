@@ -204,7 +204,7 @@ end
 """
     $SIGNATURES
 
-Calculate covariance weighted mean as product of incoming Gaussian points ``μ_`` and coordinate covariances ``Σ_``.
+Calculate covariance weighted mean as product of incoming Gaussian points `μ_` and coordinate covariances `Σ_`.
 
 Notes
 - Return both weighted mean and new covariance (teh congruent product)
