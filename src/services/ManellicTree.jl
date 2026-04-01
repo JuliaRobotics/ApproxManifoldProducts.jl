@@ -804,7 +804,6 @@ function evaluateDensityAtPoints(
     normalize::Bool = false,
 )
     # evaluate new sampling weights of points in out component
-
     # TODO use agnostic-Dual tree or MonteCarloDualTree evaluation
     # vector for storing resulting weights
     smw = zeros(length(eval_at_points))
@@ -873,13 +872,13 @@ function calcProductKernelBTLabels(
     proposals::AbstractVector,
     labels_sampled::AbstractVector{<:Integer},
     looidx::Union{Int, Nothing} = nothing,
-    gibbsSeq::AbstractVector{<:Integer} = 1:length(proposals);
+    propIdxs_Gibbs::AbstractVector{<:Integer} = 1:length(proposals);
     permute::Bool = true, # true because signature is BTLabels
     weight::Real = 1.0,
 )
     # select a density label from the other proposals
     prop_and_label = Tuple{Int, Int}[]
-    for s in setdiff(gibbsSeq, isnothing(looidx) ? Int[] : Int[looidx;])
+    for s in setdiff(propIdxs_Gibbs, isnothing(looidx) ? Int[] : Int[looidx;])
         # tuple of which leave-one-out-proposal and its new latest label selection
         push!(prop_and_label, (s, labels_sampled[s]))
     end
@@ -971,47 +970,48 @@ function sampleProductSeqGibbsBTLabel(
     #
     # how many incoming proposals
     d = length(proposals)
-    gibbsSeq = 1:d
+    propIdxs_Gibbs = 1:d
 
     _trivial_label_pool = all(length.(label_pools) .== 1)
     # pick the next leave-out proposal
     # TODO, gibbSeq might be different for unbalanced nodes "cross-products" during multiscale
-    for _ = 1:MC, O in gibbsSeq
+    for _burn = 1:MC, lvout_idx in propIdxs_Gibbs
         # on first pass labels_sampled come from parent-recursive as part of multi-scale (i.e. pre-homotopy) operations
         # calc product of Gaussians from currently selected \LOO-proposals
-        tmp_product = calcProductKernelBTLabels(
+        lvin_product_tmp = calcProductKernelBTLabels(
             M,
             proposals,
             labels_sampled,
-            O,
-            gibbsSeq;
+            lvout_idx,
+            propIdxs_Gibbs;
             permute = false,
         )
-
-        # evaluate new weights for set of points from LOO proposal means
-        eval_at_points =
-            [mean(getKernelTree(proposals[O], i, false)) for i in label_pools[O]]
-        smw = evaluateDensityAtPoints(M, tmp_product, eval_at_points, true) # TBD: smw = evaluate(tmp_product, )
-
-        @info "CATEGORICAL BANG" O smw
-        @show label_pools
-        @show labels_sampled
-        @show eval_at_points
+        
+        # to find leave-out (LO) resample weights, evaluate leave-in (LI) mean against temporary leavein_product kernel
+        lvout_centers = [mean(getKernelTree(proposals[lvout_idx], i, false)) for i in label_pools[lvout_idx]]
+        # if lvout_centers are partial, then only evaluate with partial lvin_product_tmp
+        lvout_prl = _getprl(getKernelTree(proposals[lvout_idx], label_pools[lvout_idx][1], false))
+        lvin_product_tmp_partial = _mergepartials(lvin_product_tmp, lvout_prl)
+        # @info "FOR LEAVE-IN TEMP PROD KERNEL" (lvout_idx, propIdxs_Gibbs)
+        # @show lvin_product_tmp_partial
+        # @show lvout_centers'
+        resample_weights = evaluateDensityAtPoints(M, lvin_product_tmp, lvout_centers, true)
+        # @show resample_weights'
 
         # update label-distribution of out-proposal from product of selected LOO-proposal components
-        p = Categorical(smw)
-        labels_sampled[O] = label_pools[O][rand(p)]
-        # slightly heavy memory usage for debugging
-        # _labelsChoosen[label_pools[O]] = O => deepcopy(labels_sampled)
+        p = Categorical(resample_weights)
+        labels_sampled[lvout_idx] = label_pools[lvout_idx][rand(p)]
+        # slightly heavy memory usage to aid DX
+        # _labelsChoosen[label_pools[lvout_idx]] = lvout_idx => deepcopy(labels_sampled)
         push!(_labelsChoosen, (;
-            loo=O,
-            selected=deepcopy(labels_sampled),
-            pool=deepcopy(label_pools),
-            catp=deepcopy(smw),
+            loo = lvout_idx,
+            selected = deepcopy(labels_sampled),
+            pool = deepcopy(label_pools),
+            catp = deepcopy(resample_weights),
         ))
 
         # don't have to resample if only one label to choose from
-        if _trivial_label_pool && (O == gibbsSeq[end])
+        if _trivial_label_pool && ( lvout_idx == propIdxs_Gibbs[end])
             break
         end
     end

@@ -139,9 +139,6 @@ end
     # TODO evaluate(M, tmp_product, [0.0])
 
 
-    eval_at_points =
-        [mean(getKernelTree(proposals[O], i, false)) for i in label_pools[O]]
-    smw = evaluateDensityAtPoints(M, tmp_product, eval_at_points, true) # TBD: smw = evaluate(tmp_product, )
 
 
 ##

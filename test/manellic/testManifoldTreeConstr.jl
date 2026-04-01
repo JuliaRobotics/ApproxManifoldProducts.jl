@@ -44,7 +44,7 @@ end
 ##
 
 @testset "test Manellic tree utilities w skeleton object" begin
-   
+##
     M = LieGroups.TranslationGroup(1)
     N = 32
     pts = [randn(1) for _ = 1:N]
@@ -414,6 +414,7 @@ end
     @error "expand sorting test to trivial TranslateGroup(2) with pts = [[*; 0], ...] producing same mtree.permute"
     @error "expand sorting test to trivial TranslateGroup(2) with pts = [[0; *], ...] producing same mtree.permute"
 
+##
 end
 
 
@@ -430,6 +431,8 @@ end
 
     json_string = read(joinpath(DATADIR, "manellic_test_data.json"), String)
     dict = JSON3.read(json_string, Dict{Symbol, Vector{Float64}})
+
+##
 
     M = LieGroups.TranslationGroup(1)
     pts = [[v;] for v in dict[:evaltest_1_pts]]

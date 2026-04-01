@@ -7,6 +7,7 @@ _forcemutable(s::AbstractVector) = MVector{length(s)}(s)
 
 # kernels explicitly change to partial definition via tuples (for clarity during development) 
 _tuple(p::Nothing) = p
+_tuple(p::Tuple) = p
 _tuple(p::AbstractVector{<:Integer}) = tuple(p...)
 
 _makevec(w::AbstractVector) = w
@@ -138,6 +139,7 @@ function calcProductGaussians_flat(
         prlm = zeros(Int,size(_S,1))
         for (s,pl) in zip(S,partials)
             _S_ = _viewprl(_S, pl)
+            # @show _S_ pl
             _S_ .+= _viewprl(s, pl)
             for i in pl
                 prlm[i] += 1
@@ -314,15 +316,14 @@ DevNotes
 function calcProductGaussians(
     M::AbstractManifold,
     kernels::Union{
-        <:AbstractVector{<:MvNormalKernel{<:DensityKernel{partial}}}, 
-        <:NTuple{N, <:MvNormalKernel{<:DensityKernel{partial}}}
+        <:AbstractVector{<:MvNormalKernel{<:DensityKernel}}, # FIXME, product of components with different partials???
+        <:NTuple{N, <:MvNormalKernel{<:DensityKernel}}
     };
     μ0 = nothing,
     weight::Real = 1.0,
     do_transport_correction::Bool = true,
-) where {N, partial}
-    @info "calcProductGaussians kernels"
-    __getprt(s) = _getpartial(partial, s)
+) where {N}
+    # __getprt(s) = _getpartial(partial, s)
     _getmat(s::AbstractMatrix) = s
 
     # EXPERIMENTAL, product of partials
