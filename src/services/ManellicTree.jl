@@ -967,7 +967,17 @@ function sampleProductSeqGibbsBTLabel(
     MAX_RECURSE_DEPTH::Int = 24, # 2^24 is so deep
     _labelsChoosen::Vector{@NamedTuple{loo::Int64, selected::Vector{Int64}, pool::Vector{Vector{Int64}}, catp::Vector{Float64}}} = Vector{@NamedTuple{loo::Int64, selected::Vector{Int64}, pool::Vector{Vector{Int64}}, catp::Vector{Float64}}}()
 )
-    #
+    # apply further partials to existing kernel
+    _intersect(a::Nothing,::Nothing) = a
+    _intersect(::Nothing, b) = b
+    _intersect(a, ::Nothing) = a
+    _intersect(a, b) = tuple(intersect(a,b)...)
+    _mergepartials(k::MvNormalKernel, prl) = begin
+        prlA = _getprl(k)
+        prlB = _tuple(prl)
+        partial_ = _intersect(prlA, prlB)
+        MvNormalKernel(mean(k), cov(k); partial = partial_)
+    end
     # how many incoming proposals
     d = length(proposals)
     propIdxs_Gibbs = 1:d
@@ -991,11 +1001,11 @@ function sampleProductSeqGibbsBTLabel(
         lvout_centers = [mean(getKernelTree(proposals[lvout_idx], i, false)) for i in label_pools[lvout_idx]]
         # if lvout_centers are partial, then only evaluate with partial lvin_product_tmp
         lvout_prl = _getprl(getKernelTree(proposals[lvout_idx], label_pools[lvout_idx][1], false))
-        # lvin_product_tmp_partial = _mergepartials(lvin_product_tmp, lvout_prl)
+        lvin_product_tmp_partial = _mergepartials(lvin_product_tmp, lvout_prl)
         # @info "FOR LEAVE-IN TEMP PROD KERNEL" (lvout_idx, propIdxs_Gibbs)
         # @show lvin_product_tmp_partial
         # @show lvout_centers'
-        resample_weights = evaluateDensityAtPoints(M, lvin_product_tmp, lvout_centers, true)
+        resample_weights = evaluateDensityAtPoints(M, lvin_product_tmp_partial, lvout_centers, true)
         # @show resample_weights'
 
         # update label-distribution of out-proposal from product of selected LOO-proposal components
