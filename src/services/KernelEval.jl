@@ -126,7 +126,7 @@ function distanceMalahanobisCoordinates(
 end
 
 function distanceMalahanobisSq(
-    M::AbstractManifold,
+    M::Union{<:AbstractManifold, <:AbstractLieGroup},
     K::AbstractKernel,
     q,
     basis = DefaultOrthogonalBasis(),
@@ -136,16 +136,17 @@ function distanceMalahanobisSq(
     return δc' * δc
 end
 
-function distanceMalahanobisSq(
-    M::AbstractLieGroup,
-    K::AbstractKernel,
-    q,
-    # basis=DefaultOrthogonalBasis()
-)
-    δc = distanceMalahanobisCoordinates(M, K, q)
-    # return inner(M, p, X, X) # did not work as inner gave almost 2x the answer?
-    return δc' * δc
-end
+# function distanceMalahanobisSq(
+#     M::AbstractLieGroup,
+#     K::AbstractKernel,
+#     q,
+#     basis=DefaultOrthogonalBasis();
+#     partial::Union{Nothing,<:Tuple} = nothing,
+# )
+#     δc = distanceMalahanobisCoordinates(M, K, q)
+#     # return inner(M, p, X, X) # did not work as inner gave almost 2x the answer?
+#     return δc' * δc
+# end
 
 function _distance(
     M::AbstractManifold,
