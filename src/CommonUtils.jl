@@ -248,7 +248,7 @@ function calcProductGaussians(
     # Tangent space reference around the evenly weighted mean of incoming points
 
     _μ0 = isnothing(μ0) ? _mean(M, μ_; partials) : μ0
-    _Λ_ = isnothing(Λ_) ? _invs(Σ_; partials) : Λ_ # FIXME resolve partials issues 
+    _Λ_ = isnothing(Λ_) ? _invs(Σ_; partials) : Λ_
 
     # step 1, basic/naive Gaussian product (ignoring disjointed covariance coordinates) 
     Δμn, Σn, prlm = calcProductGaussians_flat(M, μ_, Σ_; μ0=_μ0, Λ_=_Λ_, weight, partials)

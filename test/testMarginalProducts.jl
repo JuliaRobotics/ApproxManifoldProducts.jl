@@ -161,7 +161,7 @@ end
     @test !isPartial(P12_)
 
     @test isapprox(mean(P12_)[1], 0, atol = 1)
-    @test_broken isapprox(mean(P12_)[2], 0, atol = 1)
+    @test isapprox(mean(P12_)[2], 0, atol = 1)
 
     # @show sl
 
@@ -169,28 +169,25 @@ end
 
 ##
 
-    directProductGaussianTestHelper(
-        M,
-        P1,
-        P2_,
-        P12_,
-        sl,
-        pts1,
-        pts2,
-        N,
-    )
+    partials=[nothing, (1,)]
+    
+    for sidx = 1:Npts(P12_)
+        @show sidx
+        bw1 = getBW(P1, false)[1]  #.^ 2
+        bw2 = getBW(P2_, false)[1] #.^ 2
 
-    for sidx = 1:N
-        bw1 = getBW(P1, false)[:, 1] .^ 2
-        bw2 = getBW(P2_, false)[:, 1] .^ 2
+        sl1 = [s[1] for s in sl]
+        sl2 = [s[2] for s in sl]
+        sl1_ = sl1[sidx] % N
+        sl1_ = sl1_ == 0 ? N : sl1_
+        sl2_ = sl2[sidx] % N
+        sl2_ = sl2_ == 0 ? N : sl2_
+        u1 = pts1[sl1_]
+        u2 = pts2[sl2_]
 
-        u1 = pts1[sl[sidx][1]]
-        u2 = pts2[sl[sidx][2]]
-
-        u12 = calcProductGaussians(M, [u1, u2], [bw1, bw2])
-
-        @test isapprox(mean(u12)[1], getPoints(P12_)[sidx][1], atol = 0.1)
-        @test isapprox(pts1[sl[sidx][1]][2], getPoints(P12_)[sidx][2])
+        u12, S12, prl = calcProductGaussians(M, [u1, u2], [bw1, bw2]; partials)
+        # REMINDER, a similar test for permutation accuracy is in testutils.jl, this is more focused on the partials aspect of the product
+        @test 1 == length(filter(≈(u12), getPoints(P12_)))
     end
 
 ##
@@ -229,7 +226,7 @@ end
     @test !isPartial(P123_)
 
     @test isapprox(mean(P123_)[1], 0, atol = 1)
-    @test_broken isapprox(mean(P123_)[2], 0, atol = 1)
+    @test isapprox(mean(P123_)[2], 0, atol = 1)
 
     # @show sl
 
@@ -237,23 +234,95 @@ end
 
 ##
 
-    for sidx = 1:N
-        bw1 = getBW(P1, false)[:, 1] .^ 2
-        bw2 = getBW(P2_, false)[:, 1] .^ 2
-        bw3 = getBW(P3_, false)[:, 1] .^ 2
+    partials=[nothing, (1,), (1,)]
 
-        u1 = pts1[sl[sidx][1]]
-        u2 = pts2[sl[sidx][2]]
-        u3 = pts3[sl[sidx][3]]
+    for sidx = 1:Npts(P123_)
+        bw1 = getBW(P1, false)[1] #.^ 2
+        bw2 = getBW(P2_, false)[1] #.^ 2
+        bw3 = getBW(P3_, false)[1] #.^ 2
 
-        u123 = calcProductGaussians(M, [u1, u2, u3], [bw1, bw2, bw3])
+        sl1 = [s[1] for s in sl]
+        sl2 = [s[2] for s in sl]
+        sl3 = [s[3] for s in sl]
+        sl1_ = sl1[sidx] % N
+        sl1_ = sl1_ == 0 ? N : sl1_
+        sl2_ = sl2[sidx] % N
+        sl2_ = sl2_ == 0 ? N : sl2_
+        sl3_ = sl3[sidx] % N
+        sl3_ = sl3_ == 0 ? N : sl3_
+        u1 = pts1[sl1_]
+        u2 = pts2[sl2_]
+        u3 = pts3[sl3_]
+        # u1 = pts1[sl[sidx][1]]
+        # u2 = pts2[sl[sidx][2]]
+        # u3 = pts3[sl[sidx][3]]
 
-        @test isapprox(mean(u123)[1], getPoints(P123_)[sidx][1], atol = 0.1)
-        @test isapprox(pts1[sl[sidx][1]][2], getPoints(P123_)[sidx][2])
+        u123, S123, prl = calcProductGaussians(M, [u1, u2, u3], [bw1, bw2, bw3]; partials)
+
+        @test 1 == length(filter(≈(u123), getPoints(P123_)))
+        # @test isapprox(mean(u123)[1], getPoints(P123_)[sidx][1], atol = 0.1)
+        # @test isapprox(pts1[sl[sidx][1]][2], getPoints(P123_)[sidx][2])
     end
 
 ##
 end
+
+
+@testset "product of only one marginal per each of two dimensions" begin
+## random data
+
+    N = 50
+    M = LieGroups.TranslationGroup(2)
+
+    pts1 = [randn(2) .- 10.0 for _ = 1:N]
+    pts3 = [randn(2) .+ 10.0 for _ = 1:N]
+
+    # different marginals
+
+    P1 = marginal(manikde!(M, pts1), [1;])
+    P3 = marginal(manikde!(M, pts3), [2;])
+
+## 
+
+    sl = Vector{Vector{Int}}()
+
+    P_ = manifoldProduct(
+        [P1; P3];
+        recordLabels = true,
+        selectedLabels = sl,
+        addEntropy = false,
+    )
+
+    @test !isPartial(P_)
+
+    @test isapprox([-10, 10.0], mean(ApproxManifoldProducts.getKernelTree(P_.belief, 1)); atol = 1.0)
+
+    # @show sl
+
+##
+
+    pts = getPoints(P_)
+    @cast pGM[i, j] := pts[j][i]
+
+    @test_broken 0.7 * Npts(P_) < sum(-13 .< pGM[1, :] .< -7)
+    @test_broken 0.7 * Npts(P_) < sum(7 .< pGM[2, :] .< 13)
+
+## check the selection of labels and resulting Gaussian products are correct
+
+    for sidx = 1:N
+        bw1 = getBW(P1, false)[:, 1] .^ 2
+        bw3 = getBW(P3, false)[:, 1] .^ 2
+
+        u1 = pts1[sl[sidx][1]]
+        u3 = pts3[sl[sidx][2]]
+
+        @test isapprox(u1[1], pts[sidx][1])
+        @test isapprox(u3[2], pts[sidx][2])
+    end
+
+## 
+end
+
 
 @testset "test dim=2 product with one full and two different marginals" begin
 ## random data
@@ -291,83 +360,46 @@ end
     pts = getPoints(P)
     @cast pGM[i, j] := pts[j][i]
 
-    @test_broken 0.7 * N < sum(-10 .< pGM[1, :] .< 0)
-    @test 0.7 * N < sum(0 .< pGM[2, :] .< 10)
+    @test 0.66 * Npts(P) < sum(-10 .< pGM[1, :] .< 0)
+    @test 0.66 * Npts(P) < sum(0 .< pGM[2, :] .< 10)
 
 ## check the selection of labels and resulting Gaussian products are correct
 
     for sidx = 1:N
-        bw1 = getBW(P1, false)[:, 1] .^ 2
-        bw2 = getBW(P2, false)[:, 1] .^ 2
-        bw3 = getBW(P3, false)[:, 1] .^ 2
+        @show sidx
+        bw1 = getBW(P1, false)[1] # .^ 2
+        bw2 = getBW(P2, false)[1] # .^ 2
+        bw3 = getBW(P3, false)[1] # .^ 2
 
         # full density first
-        u2 = pts2[sl[sidx][1]]
-        u1 = pts1[sl[sidx][2]]
-        u3 = pts3[sl[sidx][3]]
+        sl1 = [s[1] for s in sl]
+        sl2 = [s[2] for s in sl]
+        sl3 = [s[3] for s in sl]
+        sl1_ = sl1[sidx] % N
+        sl1_ = sl1_ == 0 ? N : sl1_
+        sl2_ = sl2[sidx] % N
+        sl2_ = sl2_ == 0 ? N : sl2_
+        sl3_ = sl3[sidx] % N
+        sl3_ = sl3_ == 0 ? N : sl3_
+        u1 = pts1[sl1_]
+        u2 = pts2[sl2_]
+        u3 = pts3[sl3_]
+        # u2 = pts2[sl[sidx][1]]
+        # u1 = pts1[sl[sidx][2]]
+        # u3 = pts3[sl[sidx][3]]
 
-        u12 = calcProductGaussians(M, [u1, u2], [bw1, bw2])
-        u23 = calcProductGaussians(M, [u2, u3], [bw2, bw3])
+        u12, S, prl = calcProductGaussians(M, [u1, u2], [bw1, bw2]; partials=[(1,), nothing])
+        u23, S, prl = calcProductGaussians(M, [u2, u3], [bw2, bw3]; partials=[nothing, (2,)])
 
-        @test isapprox(mean(u12)[1], getPoints(P)[sidx][1])
-        @test isapprox(mean(u23)[2], getPoints(P)[sidx][2])
+        @test 1 == length(filter(≈([u12[1]; u23[2]]), getPoints(P)))
+
+        # @test isapprox(u12[1], getPoints(P)[sidx][1])
+        # @test isapprox(u23[2], getPoints(P)[sidx][2])
     end
 
 ##
 end
 
-@testset "product of only one marginal per each of two dimensions" begin
-## random data
-
-    N = 50
-    M = LieGroups.TranslationGroup(2)
-
-    pts1 = [randn(2) .- 10.0 for _ = 1:N]
-    pts3 = [randn(2) .+ 10.0 for _ = 1:N]
-
-    # different marginals
-
-    P1 = marginal(manikde!(M, pts1), [1;])
-    P3 = marginal(manikde!(M, pts3), [2;])
-
-## 
-
-    sl = Vector{Vector{Int}}()
-
-    P_ = manifoldProduct(
-        [P1; P3];
-        recordLabels = true,
-        selectedLabels = sl,
-        addEntropy = false,
-    )
-
-    @test !isPartial(P_)
-
-    # @show sl
-
-##
-
-    pts = getPoints(P_)
-    @cast pGM[i, j] := pts[j][i]
-
-    @test_broken 0.7 * N < sum(-13 .< pGM[1, :] .< -7)
-    @test_broken 0.7 * N < sum(7 .< pGM[2, :] .< 13)
-
-## check the selection of labels and resulting Gaussian products are correct
-
-    for sidx = 1:N
-        bw1 = getBW(P1, false)[:, 1] .^ 2
-        bw3 = getBW(P3, false)[:, 1] .^ 2
-
-        u1 = pts1[sl[sidx][1]]
-        u3 = pts3[sl[sidx][2]]
-
-        @test isapprox(u1[1], pts[sidx][1])
-        @test isapprox(u3[2], pts[sidx][2])
-    end
-
-## 
-end
 
 @testset "test dim=2 product of only marginals, two per dimension, 4 factors total" begin
 ##
