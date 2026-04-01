@@ -148,18 +148,23 @@ function calcProductGaussians_flat(
         prlm = zeros(Int,size(_S,1))
         for (s,pl) in zip(S,partials)
             _S_ = _viewprl(_S, pl)
-            # @show _S_ pl
             _S_ .+= _viewprl(s, pl)
-            for i in pl
-                prlm[i] += 1
+            if isnothing(pl)
+                prlm .+= 1
+            else
+                for i in pl
+                    prlm[i] += 1
+                end
             end
         end
         # set any untouched precision variances to Inf
         imask = prlm .== 0
-        __S = view(_S, imask, imask)
-        for i in 1:length(sum(imask))
-            __S[i,i] = Inf
-        end
+        if 0 < sum(imask)
+            __S = view(_S, imask, imask)
+            for i in 1:length(sum(imask))
+                __S[i,i] = Inf
+            end
+         end
         # return summed precions and partialmask
         return _S, prlm
     end
