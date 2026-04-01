@@ -277,8 +277,7 @@ function calcProductGaussians(
     return μ_plus, Σ_plus, prlm
 end
 
-# additional support case where covariances are passed as diagonal-only vectors 
-# still pass nothing, to avoid stack overflow.  Only Λ_ is needed further
+# REMEMBER, this is an additional dispatch case for covariances passed as diagonal vectors 
 function calcProductGaussians(
     M::AbstractManifold,
     μ_::Union{<:AbstractVector{P}, <:NTuple{N, P}},
@@ -287,7 +286,8 @@ function calcProductGaussians(
     partials::AbstractVector = [nothing for _ in 1:length(μ_)],
     kw...,
 ) where {N, P, S <: AbstractVector}
-    error("calcProductGaussians excessive wrapper?")
+    # error("calcProductGaussians excessive wrapper?")
+        # still pass nothing, to avoid stack overflow.  Only Λ_ is needed further
     if isnothing(eltype(partials))
         error("diagonal case for calcProductGaussian partial support is TODO")
     end

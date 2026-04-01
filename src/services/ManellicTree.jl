@@ -906,7 +906,7 @@ function calcProductKernelsBTLabels(
     post = Vector{T}(undef, N)
 
     for (i, lbs) in enumerate(N_lbl_sets)
-        post[i] = calcProductKernelBTLabels(M, proposals, lbs; permute, weight = weights[i])
+        post[i] = calcProductKernelBTLabels(M, proposals, _makevec(lbs); permute, weight = weights[i])
     end
 
     return post
