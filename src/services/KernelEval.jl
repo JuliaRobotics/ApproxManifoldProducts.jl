@@ -107,8 +107,12 @@ function distanceMalahanobisCoordinates(
     ϵ = identity_element(M, typeof(q))
     X = log(M, ϵ, pq)
     Xc = get_coordinates(M, ϵ, X, basis)
-    # FIXME do partials like in AbstractLieGroup version
-    return sqrt_iΣ(K) * Xc
+
+    partial = _getprl(K)
+    _Xc = _getpartial(partial, Xc)
+    s_iΣ = _sqrt_iΣ(K)
+    return s_iΣ * _Xc
+    # return sqrt_iΣ(K) * Xc
 end
 
 function distanceMalahanobisCoordinates(
@@ -122,7 +126,10 @@ function distanceMalahanobisCoordinates(
     pq = LieGroups.compose(M, i_p, q)
     X = log(M, pq)
     Xc = vee(LieAlgebra(M), X)
-    return sqrt_iΣ(K) * Xc
+    partial = _getprl(K)
+    _Xc = _getpartial(partial, Xc)
+    s_iΣ = _sqrt_iΣ(K)
+    return s_iΣ * _Xc
 end
 
 function distanceMalahanobisSq(

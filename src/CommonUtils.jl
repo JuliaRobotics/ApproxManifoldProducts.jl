@@ -1,5 +1,7 @@
 # Common Utils
 
+## weird internal functions for handling partials as vectors or tuples of coordinate indices.
+
 _forcemutable(s::MMatrix) = s
 _forcemutable(s::AbstractMatrix) = MMatrix{size(s)...}(s)
 _forcemutable(s::MVector) = s
@@ -13,7 +15,9 @@ _tuple(p::AbstractVector{<:Integer}) = tuple(p...)
 _makevec(w::AbstractVector) = w
 _makevec(w::Tuple) = [w...]
 
+_getprl(::DensityKernel{L}) where L = L
 _getprl(::MvNormalKernel{<:DensityKernel{partial}}) where partial = partial
+
 _getpartial(  ::Nothing, s) = s
 _getpartial(_pr::Tuple, v::AbstractVector) = view(v, SVector(_pr...))
 _getpartial(_pr::Tuple, v::AbstractMatrix) = view(v, SVector(_pr...), SVector(_pr...))
@@ -25,6 +29,11 @@ _viewprl(s::AbstractArray, partial::Tuple) = _viewprl(s, _makevec(partial))
 _viewprl(s::AbstractVector, partial::AbstractVector) = view(s, partial)
 _viewprl(s::AbstractMatrix, partial::AbstractVector) = view(s, partial, partial)
 
+# FIXME, better general solution for sqrt_iΣ (especially for partials) is needed
+_sqrt_iΣ(k::MvNormalKernel{<:DensityKernel{L}}) where {L} = inv(sqrt(_getpartial(L, cov(k))))
+_sqrt_iΣ(k::MvNormalKernel{<:DensityKernel{Nothing}}) = sqrt_iΣ(k)
+
+## ---------------------
 
 function _invs(
     Σ_::Union{<:AbstractVector{S}, <:NTuple{N, S}}; 
