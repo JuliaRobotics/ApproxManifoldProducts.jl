@@ -65,12 +65,15 @@ updateKernelBW(ekr::MvNormalKernel, ::Nothing) = ekr # avoid ifs for noops
 
 function evaluate(
     M::AbstractManifold,
-    ekr::MvNormalKernel,
+    ekr::MvNormalKernel{<:DensityKernel{partial}},
     p, # on manifold point
-)
-    #
-    dim = manifold_dimension(M)
-    nscl = 1 / sqrt((2 * pi)^dim * det(cov(ekr)))
+) where partial
+    _manidim(::Nothing) = manifold_dimension(M)
+    _manidim(::Tuple) = _manidim(nothing) - length(partial)
+    dim_ = _manidim(partial)
+    cov_ = _getpartial(partial, cov(ekr))
+    nscl = 1 / sqrt((2 * pi)^dim_ * det(cov_))
+    # @info "evaluate kernel" partial dim_ nscl
     return nscl * ker(M, ekr, p, 0.5, distanceMalahanobisSq)
 end
 
@@ -104,6 +107,7 @@ function distanceMalahanobisCoordinates(
     ϵ = identity_element(M, typeof(q))
     X = log(M, ϵ, pq)
     Xc = get_coordinates(M, ϵ, X, basis)
+    # FIXME do partials like in AbstractLieGroup version
     return sqrt_iΣ(K) * Xc
 end
 
@@ -111,7 +115,7 @@ function distanceMalahanobisCoordinates(
     M::AbstractLieGroup,
     K::AbstractKernel,
     q,
-    # basis=DefaultOrthogonalBasis()
+    _basis = nothing,
 )
     p = mean(K)
     i_p = inv(M, p)
@@ -165,5 +169,5 @@ ker(
     p,
     q,
     sigma::Real = 0.001,
-    distFnc = (_M, _p, _q) -> distance(_M, _p, _q)^2,
+    distFnc::Function = (_M, _p, _q) -> distance(_M, _p, _q)^2,
 ) = exp(-sigma * distFnc(M, p, q)) # _distance(M,p,q) # 
