@@ -114,7 +114,7 @@ function MvNormalKernel(
     # TODO _forcestatic
     Σ = c_(σ, partial)
     _c = projectSymPosDef(Σ)
-    MvNormalKernel(
+    return MvNormalKernel(
         ConcentratedGaussianKernel(;
             weight = float(weight),
             p = _μ(μ, partial),

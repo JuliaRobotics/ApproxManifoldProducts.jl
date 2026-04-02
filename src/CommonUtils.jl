@@ -33,6 +33,40 @@ _viewprl(s::AbstractMatrix, partial::AbstractVector) = view(s, partial, partial)
 _sqrt_iΣ(k::MvNormalKernel{<:DensityKernel{L}}) where {L} = inv(sqrt(_getpartial(L, cov(k))))
 _sqrt_iΣ(k::MvNormalKernel{<:DensityKernel{Nothing}}) = sqrt_iΣ(k)
 
+# apply further partials to existing kernel, i.e. intersect with existing partials if they exist, otherwise just apply new partial
+_intersect(a::Nothing,::Nothing) = a
+_intersect(::Nothing, b) = b
+_intersect(a, ::Nothing) = a
+_intersect(a, b) = tuple(intersect(a,b)...)
+_intersectpartials(k::MvNormalKernel, prl) = begin
+    prlA = _getprl(k)
+    prlB = _tuple(prl)
+    partial_ = _intersect(prlA, prlB)
+    MvNormalKernel(mean(k), cov(k); partial = partial_)
+end
+
+function _mergepartials(
+    M::AbstractManifold,
+    partials::AbstractVector
+)
+    d = manifold_dimension(M)
+    prlm = zeros(Int,d)
+    for pl in partials
+        if isnothing(pl)
+            prlm .+= 1
+        else
+            for i in pl
+                prlm[i] += 1
+            end
+        end
+    end
+    partial = findall(!iszero, prlm)
+    if length(partial) != d
+        return tuple(partial...)
+    end
+    return nothing
+end
+
 ## ---------------------
 
 function _invs(
@@ -145,6 +179,7 @@ function calcProductGaussians_flat(
         s1 = _forcemutable(S[1])
         _S = similar(s1)
         fill!(_S, 0.0)
+        # duplicating in new _mergepartials function, WIP
         prlm = zeros(Int,size(_S,1))
         for (s,pl) in zip(S,partials)
             _S_ = _viewprl(_S, pl)
@@ -337,7 +372,6 @@ function calcProductGaussians(
     weight::Real = 1.0,
     do_transport_correction::Bool = true,
 ) where {N}
-    # __getprt(s) = _getpartial(partial, s)
     _getmat(s::AbstractMatrix) = s
 
     # EXPERIMENTAL, product of partials
@@ -349,17 +383,13 @@ function calcProductGaussians(
     Σ_ = (s->_getmat(cov(s))).(kernels) # on tangent
     partials = _getprl.(kernels)
     # CHECK this should be on-manifold for points
-    
     # parallel transport needed for covariances from different tangent spaces
     _μ, _Σ, ipc = calcProductGaussians(M, μ_, Σ_; μ0, partials, do_transport_correction)
-    
-    _tuplenothing(s::Nothing) = s
-    _tuplenothing(v::AbstractVector) = tuple(v...)
     
     # FIXME, inflate any partial results
     _partial = findall(!iszero, ipc)
     __partial = length(_partial) == manifold_dimension(M) ? nothing : _partial
-    return MvNormalKernel(_μ, _Σ, weight; partial=_tuplenothing(__partial))
+    return MvNormalKernel(_μ, _Σ, weight; partial=_tuple(__partial))
 end
 
 

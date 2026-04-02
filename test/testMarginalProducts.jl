@@ -172,7 +172,7 @@ end
     partials=[nothing, (1,)]
     
     for sidx = 1:Npts(P12_)
-        @show sidx
+        
         bw1 = getBW(P1, false)[1]  #.^ 2
         bw2 = getBW(P2_, false)[1] #.^ 2
 
@@ -279,10 +279,33 @@ end
 
     # different marginals
 
-    P1 = marginal(manikde!(M, pts1), [1;])
-    P3 = marginal(manikde!(M, pts3), [2;])
+    l1 = [1;]
+    l3 = [2;]
+    partials = [l1, l3]
+    P1_ = manikde!(M, pts1)
+    P3_ = manikde!(M, pts3)
+    P1 = marginal(P1_, l1)
+    P3 = marginal(P3_, l3)
 
-## 
+    @test isPartial(P1)
+    @test isPartial(P3)
+
+    @test (1,) == ApproxManifoldProducts._getprl(P1.belief.leaf_kernels[1])
+    @test (1,) == ApproxManifoldProducts._getprl(P1.belief.tree_kernels[1])
+
+    @test (2,) == ApproxManifoldProducts._getprl(P3.belief.leaf_kernels[1])
+    @test (2,) == ApproxManifoldProducts._getprl(P3.belief.tree_kernels[1])
+
+## check marginal kernel products
+
+    p1 = ApproxManifoldProducts.getKernelTree(P1.belief, 1)
+    p3 = ApproxManifoldProducts.getKernelTree(P3.belief, 1)
+
+    mvn = calcProductGaussians(M, [p1, p3])
+
+    @test isnothing(ApproxManifoldProducts._getprl(mvn))
+
+##
 
     sl = Vector{Vector{Int}}()
 
@@ -295,29 +318,40 @@ end
 
     @test !isPartial(P_)
 
-    @test isapprox([-10, 10.0], mean(ApproxManifoldProducts.getKernelTree(P_.belief, 1)); atol = 1.0)
-
-    # @show sl
-
+    
 ##
 
+    @test isapprox([-10, 10.0], mean(ApproxManifoldProducts.getKernelTree(P_.belief, 1)); atol = 1.0)
+    
     pts = getPoints(P_)
     @cast pGM[i, j] := pts[j][i]
 
-    @test_broken 0.7 * Npts(P_) < sum(-13 .< pGM[1, :] .< -7)
-    @test_broken 0.7 * Npts(P_) < sum(7 .< pGM[2, :] .< 13)
+    @test 0.7 * Npts(P_) < sum(-13 .< pGM[1, :] .< -7)
+    @test 0.7 * Npts(P_) < sum(7 .< pGM[2, :] .< 13)
 
 ## check the selection of labels and resulting Gaussian products are correct
 
     for sidx = 1:N
-        bw1 = getBW(P1, false)[:, 1] .^ 2
-        bw3 = getBW(P3, false)[:, 1] .^ 2
+        bw1 = getBW(P1, false)[1] #.^ 2
+        bw3 = getBW(P3, false)[1] #.^ 2
 
-        u1 = pts1[sl[sidx][1]]
-        u3 = pts3[sl[sidx][2]]
+        sl1 = [s[1] for s in sl]
+        sl3 = [s[2] for s in sl]
+        sl1_ = sl1[sidx] % N
+        sl1_ = sl1_ == 0 ? N : sl1_
+        sl3_ = sl3[sidx] % N
+        sl3_ = sl3_ == 0 ? N : sl3_
+        u1 = pts1[sl1_]
+        u3 = pts3[sl3_]
+        # u1 = pts1[sl[sidx][1]]
+        # u3 = pts3[sl[sidx][2]]
 
-        @test isapprox(u1[1], pts[sidx][1])
-        @test isapprox(u3[2], pts[sidx][2])
+        u13, S13, prlc = calcProductGaussians(M, [u1, u3], [bw1, bw3]; partials)
+        @test [1,1] == prlc
+        @test 1 == length(filter(≈(u13), getPoints(P_)))
+
+        @test isapprox(-10.0, u1[1]; atol = 4.0)
+        @test isapprox(10.0, u3[2]; atol = 4.0)
     end
 
 ## 
@@ -335,10 +369,12 @@ end
     pts3 = [randn(2) .+ 10.0 for _ = 1:N]
 
     # get different marginals
-
-    P1 = marginal(manikde!(M, pts1), [1;])
+    l1 = [1;]
+    l3 = [2;]
+    partials = [l1, nothing, l3]
+    P1 = marginal(manikde!(M, pts1), l1)
     P2 = manikde!(M, pts2)
-    P3 = marginal(manikde!(M, pts3), [2;])
+    P3 = marginal(manikde!(M, pts3), l3)
 
 ##
 
@@ -366,7 +402,7 @@ end
 ## check the selection of labels and resulting Gaussian products are correct
 
     for sidx = 1:N
-        @show sidx
+        
         bw1 = getBW(P1, false)[1] # .^ 2
         bw2 = getBW(P2, false)[1] # .^ 2
         bw3 = getBW(P3, false)[1] # .^ 2

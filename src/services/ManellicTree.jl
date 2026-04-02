@@ -388,6 +388,7 @@ function splitPointsEigen(
     else
         SMatrix{D, D, Float64}(zeros(D, D))
     end
+
     # TODO, handle these if-else cases better
     if isapprox(0.0, norm(cv)) 
         # Fall back case
@@ -402,7 +403,6 @@ function splitPointsEigen(
     end
     # S = SymmetricPositiveDefinite(2)
     # @info "COV" cv LinearAlgebra.isposdef(cv) Manifolds.check_point(S,cv) len
-
     # expecting largest variation on coord dimension `pidx[end]`
     r_R_ax, Λ, pidx = eigenCoords!(cv; partial)
     ax_R_r = r_R_ax'
@@ -901,9 +901,12 @@ function calcProductKernelsBTLabels(
     weights = 1 / length(N_lbl_sets) .* ones(length(N_lbl_sets)),
 )
     #
-    T = typeof(getKernelTree(proposals[1], 1))
+    # partials = getKernelTree.(proposals, Ref(1)) .|> _getprl
+    # @show _mergepartials(M, partials)
+    # T = typeof(getKernelTree(proposals[1], 1)) # FIXME FIXME FIXME for products of partials, not just [1]
     N = length(N_lbl_sets)
-    post = Vector{T}(undef, N)
+    # FIXME sort out type stability
+    post = Vector{MvNormalKernel}(undef, N) 
 
     for (i, lbs) in enumerate(N_lbl_sets)
         post[i] = calcProductKernelBTLabels(M, proposals, _makevec(lbs); permute, weight = weights[i])
@@ -968,16 +971,6 @@ function sampleProductSeqGibbsBTLabel(
     _labelsChoosen::Vector{@NamedTuple{loo::Int64, selected::Vector{Int64}, pool::Vector{Vector{Int64}}, catp::Vector{Float64}}} = Vector{@NamedTuple{loo::Int64, selected::Vector{Int64}, pool::Vector{Vector{Int64}}, catp::Vector{Float64}}}()
 )
     # apply further partials to existing kernel
-    _intersect(a::Nothing,::Nothing) = a
-    _intersect(::Nothing, b) = b
-    _intersect(a, ::Nothing) = a
-    _intersect(a, b) = tuple(intersect(a,b)...)
-    _mergepartials(k::MvNormalKernel, prl) = begin
-        prlA = _getprl(k)
-        prlB = _tuple(prl)
-        partial_ = _intersect(prlA, prlB)
-        MvNormalKernel(mean(k), cov(k); partial = partial_)
-    end
     # how many incoming proposals
     d = length(proposals)
     propIdxs_Gibbs = 1:d
@@ -1001,7 +994,7 @@ function sampleProductSeqGibbsBTLabel(
         lvout_centers = [mean(getKernelTree(proposals[lvout_idx], i, false)) for i in label_pools[lvout_idx]]
         # if lvout_centers are partial, then only evaluate with partial lvin_product_tmp
         lvout_prl = _getprl(getKernelTree(proposals[lvout_idx], label_pools[lvout_idx][1], false))
-        lvin_product_tmp_partial = _mergepartials(lvin_product_tmp, lvout_prl)
+        lvin_product_tmp_partial = _intersectpartials(lvin_product_tmp, lvout_prl)
         # @info "FOR LEAVE-IN TEMP PROD KERNEL" (lvout_idx, propIdxs_Gibbs)
         # @show lvin_product_tmp_partial
         # @show lvout_centers'
