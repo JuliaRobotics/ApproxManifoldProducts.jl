@@ -994,7 +994,7 @@ function sampleProductSeqGibbsBTLabel(
         lvout_centers = [mean(getKernelTree(proposals[lvout_idx], i, false)) for i in label_pools[lvout_idx]]
         # if lvout_centers are partial, then only evaluate with partial lvin_product_tmp
         lvout_prl = _getprl(getKernelTree(proposals[lvout_idx], label_pools[lvout_idx][1], false))
-        lvin_product_tmp_partial = _intersectpartials(lvin_product_tmp, lvout_prl)
+        lvin_product_tmp_partial = _intersectpartials(M, lvin_product_tmp, lvout_prl)
         # @info "FOR LEAVE-IN TEMP PROD KERNEL" (lvout_idx, propIdxs_Gibbs)
         # @show lvin_product_tmp_partial
         # @show lvout_centers'

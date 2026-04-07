@@ -91,22 +91,27 @@ function MvNormalKernel(
     μ::AbstractArray, 
     σ::AbstractArray, 
     weight::Real = 1.0;
-    partial::Union{Nothing, <:Tuple} = nothing
+    partial::Union{Nothing, <:Tuple} = nothing,
+    partl_cb::Union{Nothing, <:Function} = nothing,
 )
     @warn "MvNormalKernel is deprecated, use ConcentratedGaussianKernel instead, barr partial [maxlog=10]" maxlog=10
-    _μ(s::AbstractArray, _p::Nothing) = s
-    _μ(s::AbstractVector, _p::Tuple) = begin
+    _μ(s::AbstractArray, _p::Nothing, pf::Union{Nothing, <:Function}) = s
+    _μ(s::AbstractVector, _p::Tuple, pf::Nothing) = begin
+        # FIXME, cannot assume straight coordinate partial indexing works for all array{1}'s
         _s = _forcemutable(s)
         _s[setdiff(1:length(s), _p)] .= NaN
         return _s
     end
-    _μ(s::AbstractMatrix, _p::Tuple) = begin
+    _μ(s::AbstractMatrix, _p::Tuple, pf::Nothing) = begin
+        # HACK BY ASSUMING CALLER SOLVED MATRIX CASE??? OR FUNCTION DISPATCH???
         _s = _forcemutable(s)
-        itr = setdiff(1:length(s), _p)
+        # FIXME ON FIRE, this does not work for Matrices!!!!
+        itr = setdiff(1:length(s), _p) 
         _s[itr, :] .= NaN
         _s[:, itr] .= NaN
         return _s
     end
+    _μ(s::AbstractArray, _p::Tuple, pf::Function) = pf(s)
     c_(s::AbstractMatrix, _p::Nothing) = s
     c_(s::AbstractVector, _p::Nothing) = diagm(s)    
     c_(s::AbstractMatrix, _p::Tuple) = _partialCovToDefault!(_p,_forcemutable(s))
@@ -117,7 +122,7 @@ function MvNormalKernel(
     return MvNormalKernel(
         ConcentratedGaussianKernel(;
             weight = float(weight),
-            p = _μ(μ, partial),
+            p = _μ(μ, partial, partl_cb),
             covmat = _c, # cov(MvNormal(_c)),
             partial,
         )
@@ -125,7 +130,7 @@ function MvNormalKernel(
 end
 
 
-MvNormalKernel(; μ, p::MvNormal, weight = 1.0, partial = nothing) = MvNormalKernel(μ, cov(p), weight; partial)
+MvNormalKernel(; μ, p::MvNormal, weight = 1.0, partial = nothing, kw...) = MvNormalKernel(μ, cov(p), weight; partial, kw...)
 
 
 function convert(

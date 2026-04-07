@@ -1,111 +1,5 @@
 # Common Utils
 
-## weird internal functions for handling partials as vectors or tuples of coordinate indices.
-
-_forcemutable(s::MMatrix) = s
-_forcemutable(s::AbstractMatrix) = MMatrix{size(s)...}(s)
-_forcemutable(s::MVector) = s
-_forcemutable(s::AbstractVector) = MVector{length(s)}(s)
-
-# kernels explicitly change to partial definition via tuples (for clarity during development) 
-_tuple(p::Nothing) = p
-_tuple(p::Tuple) = p
-_tuple(p::AbstractVector{<:Integer}) = tuple(p...)
-
-_makevec(w::AbstractVector) = w
-_makevec(w::Tuple) = [w...]
-
-_getprl(::DensityKernel{L}) where L = L
-_getprl(::MvNormalKernel{<:DensityKernel{partial}}) where partial = partial
-
-_getpartial(  ::Nothing, s) = s
-_getpartial(_pr::Tuple, v::AbstractVector) = view(v, SVector(_pr...))
-_getpartial(_pr::Tuple, v::AbstractMatrix) = view(v, SVector(_pr...), SVector(_pr...))
-_getpartial(_pr::Tuple, m::AbstractManifold) = getManifoldPartial(m, _makevec(_pr))[1]
-_getpartial(partial::AbstractVector{<:Int}, s) = _getpartial(_tuple(partial), s)
-
-_viewprl(s::AbstractArray, partial::Nothing) = s
-_viewprl(s::AbstractArray, partial::Tuple) = _viewprl(s, _makevec(partial))
-_viewprl(s::AbstractVector, partial::AbstractVector) = view(s, partial)
-_viewprl(s::AbstractMatrix, partial::AbstractVector) = view(s, partial, partial)
-
-# FIXME, better general solution for sqrt_iΣ (especially for partials) is needed
-_sqrt_iΣ(k::MvNormalKernel{<:DensityKernel{L}}) where {L} = inv(sqrt(_getpartial(L, cov(k))))
-_sqrt_iΣ(k::MvNormalKernel{<:DensityKernel{Nothing}}) = sqrt_iΣ(k)
-
-# apply further partials to existing kernel, i.e. intersect with existing partials if they exist, otherwise just apply new partial
-_intersect(a::Nothing,::Nothing) = a
-_intersect(::Nothing, b) = b
-_intersect(a, ::Nothing) = a
-_intersect(a, b) = tuple(intersect(a,b)...)
-_intersectpartials(k::MvNormalKernel, prl) = begin
-    prlA = _getprl(k)
-    prlB = _tuple(prl)
-    partial_ = _intersect(prlA, prlB)
-    MvNormalKernel(mean(k), cov(k); partial = partial_)
-end
-
-function _mergepartials(
-    M::AbstractManifold,
-    partials::AbstractVector
-)
-    d = manifold_dimension(M)
-    prlm = zeros(Int,d)
-    for pl in partials
-        if isnothing(pl)
-            prlm .+= 1
-        else
-            for i in pl
-                prlm[i] += 1
-            end
-        end
-    end
-    partial = findall(!iszero, prlm)
-    if length(partial) != d
-        return tuple(partial...)
-    end
-    return nothing
-end
-
-## ---------------------
-
-function _invs(
-    Σ_::Union{<:AbstractVector{S}, <:NTuple{N, S}}; 
-    partials::Union{<:AbstractVector, <:Tuple}
-) where {N, S <: AbstractMatrix{<:Real}}
-    d = size(Σ_[1])[1]
-    infs = diagm(MVector{d}([Inf for _ in 1:d]))
-    Λs = [deepcopy(infs) for _ in 1:length(Σ_)]
-    for (i,s) in enumerate(Σ_)
-        dst = _viewprl(Λs[i], partials[i]) 
-        dst .= inv(_viewprl(s, partials[i]))
-    end
-    return Λs
-end
-
-function _mean(
-    M::AbstractManifold, 
-    v::Union{<:AbstractVector{P}, <:NTuple{N, P}}; 
-    partials::Union{<:AbstractVector, <:Tuple}
-) where {N, P <: AbstractArray}
-    # hack during dev testing
-    if all(isnothing.(partials))
-        return mean(M, _makevec(v))
-    elseif P <: AbstractVector
-        d = manifold_dimension(M)
-        mn = MVector{d}([0.0 for _ in 1:d])
-        cu = MVector{d}([0 for _ in 1:d])
-        for (s,pl) in zip(v,partials)
-            _mn = _viewprl(mn, pl)
-            _mn .+= _viewprl(s, pl)
-            _cu = _viewprl(cu, pl)
-            _cu .+= 1
-        end
-        return mn ./ cu
-    else
-        error("TODO calc partial mean of non-vector manifold types $(M), v isa $(typeof(v)), given $(partials)")
-    end
-end
 
 """
     $SIGNATURES
@@ -147,15 +41,6 @@ function updateProductSample(
     pts[:, smplIdx] = destMu
 
     return manikde!(pts, manifolds)
-end
-
-# TODO this should be a public method relating to getManifold
-function _getManifoldFullOrPart(mkd::ManifoldKernelDensity, aspartial::Bool = true)
-    if aspartial && isPartial(mkd)
-        getManifoldPartial(mkd.manifold, mkd._partial)
-    else
-        mkd.manifold
-    end
 end
 
 

@@ -12,19 +12,48 @@ function ManifoldKernelDensity(
 ) where {M <: MB.AbstractManifold, B <: TreeDensity, P}
     return ManifoldKernelDensity{M, B, Nothing, P}(mani, bel, nothing, u0, infoPerCoord)
 end
-#
+
 
 function ManifoldKernelDensity(
     mani::M,
     bel::B,
-    partial::L,
+    partial_::L,
     u0::P = zeros(manifold_dimension(mani));
     infoPerCoord::AbstractVector{<:Real} = ones(getNumberCoords(mani, u0)),
 ) where {M <: MB.AbstractManifold, B <: TreeDensity, L <: AbstractVector{<:Integer}, P}
     #
+    partial = _tuple(partial_)
     if length(partial) != manifold_dimension(mani)
-        # call the constructor direct
-        return ManifoldKernelDensity{M, B, L, P}(mani, bel, partial, u0, infoPerCoord)
+        # TODO, assuming there are tree and leaf nodes at [1]...
+        # @show getKernelTree(bel, 1)
+
+        _tkT() = _intersectpartials(mani, getKernelTree(bel, 1), partial) |> typeof
+        _lkT() = _intersectpartials(mani, getKernelLeaf(bel, 1), partial) |> typeof
+        tree_kernels  = SizedVector{length(bel.tree_kernels), _tkT()}(undef)
+        # leaf_kernels  = SizedVector{length(bel.leaf_kernels), _lkT()}(undef)
+        # tkm = (s->isassigned(bel.tree_kernels, s)).(1:length(bel.tree_kernels))
+        # lkm = (s->isassigned(bel.leaf_kernels, s)).(1:length(bel.leaf_kernels))
+        # tree_kernels_ = view(tree_kernels, tkm)
+        # leaf_kernels_ = view(leaf_kernels, lkm)
+        # tree_kernels_ .= _intersectpartials.(view(bel.tree_kernels, tkm), Ref(partial))
+        # leaf_kernels_ .= _intersectpartials.(view(bel.leaf_kernels, lkm), Ref(partial))
+        # # FIXME update belief to have correct partials
+        # bel_ = ManellicTree(
+        #     bel.manifold,
+        #     bel.data,
+        #     bel.weights,
+        #     bel.permute,
+        #     leaf_kernels,
+        #     tree_kernels,
+        #     bel.segments,
+        #     bel._workaround_isdef_leafkernel,
+        #     bel._workaround_isdef_treekernel,
+        # )
+
+        # # call the constructor direct
+        # # TODO remove _makevec on partials, here and everywhere really.
+        # return ManifoldKernelDensity{M, typeof(bel_), L, P}(mani, bel_, _makevec(partial), u0, infoPerCoord)
+        return ManifoldKernelDensity{M, B, L, P}(mani, bel, partial_, u0, infoPerCoord)
     else
         # full manifold, therefore equivalent to L::Nothing
         return ManifoldKernelDensity(mani, bel, nothing, u0; infoPerCoord = infoPerCoord)

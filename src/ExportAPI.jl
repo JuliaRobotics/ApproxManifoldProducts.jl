@@ -31,3 +31,6 @@ export getInfoPerCoord, getBandwidth
 export antimarginal
 
 export mmd!, mmd
+
+# partial specific functions
+export getManifoldPartial

@@ -260,13 +260,11 @@ end
 
     P12 = marginal(P, [1; 2])
 
-    @test_broken begin
-        p12 = getPoints(P12)
+    p12 = getPoints(P12)
 
-        @test length(p12) == N
-        @test length(p12[1]) == 2
-        @test_broken P12.manifold isa LieGroups.TranslationGroup(2)
-    end
+    @test length(p12) == N
+    @test length(p12[1]) == 2
+    @test_broken P12.manifold isa LieGroups.TranslationGroup(2)
 
 ##
 end
