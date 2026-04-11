@@ -246,6 +246,7 @@ function MvNormalKernel(
     c_(s::AbstractVector, _p::Nothing) = diagm(s)    
     c_(s::AbstractMatrix, _p::Tuple) = _partialCovToDefault!(_p,_forcemutable(s))
     c_(s::AbstractVector, _p::Tuple) = diagm(_partialCovToDefault!(_p,_forcemutable(s)))
+
     # TODO _forcestatic
     Σ = c_(σ, partial)
     _c = projectSymPosDef(Σ)

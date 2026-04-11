@@ -145,7 +145,9 @@ function getKernelTree(
             # FIXME, remember partial information
             kernelType = getfield(ApproxManifoldProducts, HT.name.name)
             partial = _getprl(raw_ker)
-            kernelType(mean(raw_ker), nC, mtr.weights[currIdx]; partial)
+            μ = mean(raw_ker)
+            M_, reprl, partl_cb = getManifoldPartial(mtr.manifold, _tuple(partial), μ)
+            kernelType(μ, nC, mtr.weights[currIdx]; partial, partl_cb)
         else
             raw_ker
         end

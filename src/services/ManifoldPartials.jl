@@ -61,14 +61,20 @@ _intersect(a, b) = tuple(intersect(a,b)...)
 function _intersectpartials(
     M::AbstractManifold, 
     k::MvNormalKernel, 
-    prl::Union{Nothing, <:Tuple, <:AbstractVector{<:Int}}
+    prl::Union{Nothing, <:Tuple, <:AbstractVector{<:Int}},
+    _partl_cb::Union{Nothing, <:Function} = nothing,
 )
     prlA = _getprl(k)
     prlB = _tuple(prl)
     partial = _intersect(prlA, prlB)
     μ = mean(k) # this is on-manifold
     Σ2 = cov(k) # this is on tangent
-    plM, plrep, partl_cb = getManifoldPartial(M, _makevec(partial), μ)
+    partl_cb = if !isnothing(partial) && isnothing(_partl_cb)
+        plM, plrep, partl_cb_ = getManifoldPartial(M, partial, μ)
+        partl_cb_
+    else
+        _partl_cb
+    end
     return MvNormalKernel(
         μ, 
         Σ2; 

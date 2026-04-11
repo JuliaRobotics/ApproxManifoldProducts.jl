@@ -274,7 +274,9 @@ function calcProductGaussians(
     # FIXME, inflate any partial results
     _partial = findall(!iszero, ipc)
     __partial = length(_partial) == manifold_dimension(M) ? nothing : _partial
-    return MvNormalKernel(_μ, _Σ, weight; partial=_tuple(__partial))
+    __partial_ = _tuple(__partial)
+    M_, reprl, partl_cb = getManifoldPartial(M, __partial_, _μ)
+    return MvNormalKernel(_μ, _Σ, weight; partial=__partial_, partl_cb)
 end
 
 

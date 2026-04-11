@@ -36,8 +36,11 @@ include(joinpath(@__DIR__, "testutils.jl"))
     @test isapprox(0.5, u_[1])
     @test isnan(u_[2])
 
-    k1 = ApproxManifoldProducts.MvNormalKernel(u[1], diagm(c[1]); partial=(1,))
-    k2 = ApproxManifoldProducts.MvNormalKernel(u[2], diagm(c[2]); partial=(1,))
+##
+    M_, repr, partl_cb = getManifoldPartial(M, partial)
+
+    k1 = ApproxManifoldProducts.MvNormalKernel(u[1], diagm(c[1]); partial=(1,), partl_cb)
+    k2 = ApproxManifoldProducts.MvNormalKernel(u[2], diagm(c[2]); partial=(1,), partl_cb)
 
 
 ## calculate extended Gaussian correction term beyond the naive mean, here testing with partials 
@@ -236,6 +239,8 @@ end
 
     @test isPartial(P1)
     @test isPartial(P3)
+
+##
 
     @test (1,) == ApproxManifoldProducts._getprl(P1.belief.leaf_kernels[1])
     @test (1,) == ApproxManifoldProducts._getprl(P1.belief.tree_kernels[1])
