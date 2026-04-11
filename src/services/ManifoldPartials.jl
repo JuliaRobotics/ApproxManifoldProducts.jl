@@ -156,11 +156,11 @@ end
 
 function _checkManifoldPartialDims(
     M::AbstractManifold,
-    partial::AbstractVector{Int},
+    partial_::Union{<:AbstractVector{Int}, <:Tuple},
     offset::Base.RefValue{Int},
     doError::Bool = true,
 )
-    #
+    partial = _tuple(partial_)
     d = manifold_dimension(M)
     full = 1:d
     mask = 0 .== 1:d
@@ -188,11 +188,11 @@ _getReprPartial(M::MB.AbstractManifold, ::Nothing, w...; kw...) = nothing
 function _getReprPartial(
     M::MB.AbstractManifold,
     repr::AbstractVector{T},
-    partial::AbstractVector{Int}, # total partial from user over all Factors
+    partial_::Union{<:AbstractVector{Int}, <:Tuple}, # total partial from user over all Factors
     offset::Base.RefValue{Int} = Ref(0),
-    mask::BitVector = _checkManifoldPartialDims(M, partial, offset, doError),
+    mask::BitVector = _checkManifoldPartialDims(M, partial_, offset, doError),
 ) where {T <: Number}
-    #
+    partial = _tuple(partial_)
     ret = zeros(T, sum(mask))
     for (i, p) in enumerate(partial .- offset)
         ret[i] = repr[p]
@@ -232,17 +232,18 @@ end
 
 function getManifoldPartial(
     M::Union{<:Manifolds.Euclidean{Tuple{N}}, <:TranslationGroup},
-    partial::AbstractVector{Int},
+    partial_::Union{<:AbstractVector{Int}, <:Tuple},
     repr::_PartiableRepresentationFlat{T} = nothing,
     offset::Base.RefValue{Int} = Ref(0);
     doError::Bool = true,
 ) where {N, T <: Number}
+    partial = _tuple(partial_)
     mask = _checkManifoldPartialDims(M, partial, offset, doError)
     offset[] += manifold_dimension(M)
     len = sum(mask)
     repr_p = repr === nothing ? nothing : zeros(T, len)
     # EXPERIMENTAL, use lambda to construct partial lookup
-    return (TranslationGroup(len), repr_p, (prt)->prt[mask])
+    return (TranslationGroup(len), repr_p, (prt)->view(prt,mask))
 end
 # TODO is this function obsolete?
 # function getManifoldPartial(
@@ -270,7 +271,7 @@ function getManifoldPartial(
 )
     mask = _checkManifoldPartialDims(M, partial, offset, doError)
     offset[] += manifold_dimension(M)
-    return (M, repr, (prt)->prt[mask])
+    return (M, repr, (prt)->view(prt,mask))
 end
 
 function getManifoldPartial(
@@ -283,7 +284,7 @@ function getManifoldPartial(
     #
     mask = _checkManifoldPartialDims(M, partial, offset, doError)
     offset[] += manifold_dimension(M)
-    return (M, repr, (prt)->prt[mask])
+    return (M, repr, (prt)->view(prt,mask))
 end
 
 function getManifoldPartial(
@@ -296,7 +297,7 @@ function getManifoldPartial(
     #
     mask = _checkManifoldPartialDims(M, partial, offset, doError)
     offset[] += manifold_dimension(M)
-    return (M, repr, (prt)->prt[mask])
+    return (M, repr, (prt)->view(prt,mask))
 end
 
 
@@ -337,13 +338,13 @@ function getManifoldPartial(
     offset[] += manifold_dimension(M)
     partial = _tuple(partial_)
     if partial == (1,)
-        return (LieGroups.TranslationGroup(1), SVector(0.0,), (prt)->prt[1:1,3])
+        return (LieGroups.TranslationGroup(1), SVector(0.0,), (prt)->view(prt,1:1,3))
     elseif partial == (2,)
-        return (LieGroups.TranslationGroup(1), SVector(0.0,), (prt)->prt[2:2,3])
+        return (LieGroups.TranslationGroup(1), SVector(0.0,), (prt)->view(prt,2:2,3))
     elseif partial == (1, 2)
-        return (LieGroups.TranslationGroup(2), SVector(0.0, 0.0), (prt)->prt[1:2,3])
+        return (LieGroups.TranslationGroup(2), SVector(0.0, 0.0), (prt)->view(prt,1:2,3))
     elseif partial == (3,)
-        return (LieGroups.SpecialOrthogonalGroup(2), repr, (prt)->prt[1:2,1:2])
+        return (LieGroups.SpecialOrthogonalGroup(2), repr, (prt)->view(prt,1:2,1:2))
     else
         error("SpecialEuclideanGroup(2) partial dimensions $partial not implemented yet")
     end

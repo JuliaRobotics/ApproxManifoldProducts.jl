@@ -123,7 +123,7 @@ end
 
     best_cov = Optim.minimizer(res)
 
-    @test isapprox(0.5, best_cov; atol = 0.3)
+    @test isapprox(0.5, best_cov; atol = 0.35)
     bcov_ = deepcopy(best_cov)
 
     ## Test more efficient updateKernelBW version

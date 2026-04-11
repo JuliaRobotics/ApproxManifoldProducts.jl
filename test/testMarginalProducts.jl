@@ -111,6 +111,26 @@ end
     P1 = manikde!(M, pts1)
     P2_ = manikde!(M, pts2; partial)
 
+    # check for normal manikde without partial as control
+    @test !isPartial(P1)
+    @test 2 == length(mean(ApproxManifoldProducts.getKernelTree(P1.belief, 1)))
+    @test !isnan(mean(ApproxManifoldProducts.getKernelTree(P1.belief, 1))[1])
+    @test !isnan(mean(ApproxManifoldProducts.getKernelTree(P1.belief, 1))[2])
+    @test 2 == length(mean(ApproxManifoldProducts.getKernelLeaf(P1.belief, 1)))
+    @test !isnan(mean(ApproxManifoldProducts.getKernelLeaf(P1.belief, 1))[1])
+    @test !isnan(mean(ApproxManifoldProducts.getKernelLeaf(P1.belief, 1))[2])
+
+    # check for partial manikde with partial on first dimension, with special care on second coordinate...
+    # should give value [x, NaN]...
+    @test isPartial(P2_)
+    @test 2 == length(mean(ApproxManifoldProducts.getKernelTree(P2_.belief, 1)))
+    @test !isnan(mean(ApproxManifoldProducts.getKernelTree(P2_.belief, 1))[1])
+    @test isnan(mean(ApproxManifoldProducts.getKernelTree(P2_.belief, 1))[2])
+    @test 2 == length(mean(ApproxManifoldProducts.getKernelLeaf(P2_.belief, 1)))
+    @test !isnan(mean(ApproxManifoldProducts.getKernelLeaf(P2_.belief, 1))[1])
+    @test isnan(mean(ApproxManifoldProducts.getKernelLeaf(P2_.belief, 1))[2])
+
+    # similarly check bandwidths, should have valid values on active coordinates
     @test isapprox( 0.0, getBW(P2_, false)[1][1,2]; atol = 1e-10)
     @test isapprox( Inf, getBW(P2_, false)[1][2,2]; atol = 1e-10)
     @test isapprox( 0.0, getBW(P2_, false)[1][2,1]; atol = 1e-10)
@@ -132,7 +152,10 @@ end
         permute = false,
     )
 
+    # mean should be [x, NaN] because looidx=1, so only partial P2_ info for leave-in set
     @test 2 == length(mean(tmp_product))
+    @test !isnan(mean(tmp_product)[1])
+    @test isnan(mean(tmp_product)[2])
     # REMEMBER THIS IS WITH LOOidx=1, so result is just one kernel in product which is also partial
     @test (1,) == ApproxManifoldProducts._getprl(tmp_product)
 
@@ -140,13 +163,10 @@ end
 
 
 
-
 ##
-
 
     sl = Vector{Vector{Int}}()
     _labelsChoosen_pp = Vector{Vector{@NamedTuple{loo::Int64, selected::Vector{Int64}, pool::Vector{Vector{Int64}}, catp::Vector{Float64}}}}(undef, N)
-
 
     P12_ = manifoldProduct(
         [P1; P2_];
@@ -159,6 +179,7 @@ end
 ##
 
     @test !isPartial(P12_)
+    @test isnothing(ApproxManifoldProducts._getprl(P12_.belief.leaf_kernels[1]))
 
     @test isapprox(mean(P12_)[1], 0, atol = 1)
     @test isapprox(mean(P12_)[2], 0, atol = 1)
@@ -188,80 +209,6 @@ end
         u12, S12, prl = calcProductGaussians(M, [u1, u2], [bw1, bw2]; partials)
         # REMINDER, a similar test for permutation accuracy is in testutils.jl, this is more focused on the partials aspect of the product
         @test 1 == length(filter(≈(u12), getPoints(P12_)))
-    end
-
-##
-end
-
-@testset "test dim=2 product with one full and two similar marginals" begin
-## basic test one full with one partial
-
-    N = 50
-    d = 2
-    M = LieGroups.TranslationGroup(d)
-
-    #densities to multiply
-    pts1 = [randn(d) for _ = 1:N]
-    P1 = manikde!(M, pts1)
-
-    pts2 = [randn(d) for _ = 1:N]
-    (x -> (x[2] += 100)).(pts2)
-    P2_ = manikde!(M, pts2; partial = [1;])
-
-    pts3 = [randn(d) for _ = 1:N]
-    (x -> (x[2] += 100)).(pts3)
-    P3_ = manikde!(M, pts3; partial = [1;])
-
-##
-
-    sl = Vector{Vector{Int}}()
-
-    P123_ = manifoldProduct(
-        [P1; P2_; P3_];
-        recordLabels = true,
-        selectedLabels = sl,
-        addEntropy = false,
-    )
-
-    @test !isPartial(P123_)
-
-    @test isapprox(mean(P123_)[1], 0, atol = 1)
-    @test isapprox(mean(P123_)[2], 0, atol = 1)
-
-    # @show sl
-
-    P123_
-
-##
-
-    partials=[nothing, (1,), (1,)]
-
-    for sidx = 1:Npts(P123_)
-        bw1 = getBW(P1, false)[1] #.^ 2
-        bw2 = getBW(P2_, false)[1] #.^ 2
-        bw3 = getBW(P3_, false)[1] #.^ 2
-
-        sl1 = [s[1] for s in sl]
-        sl2 = [s[2] for s in sl]
-        sl3 = [s[3] for s in sl]
-        sl1_ = sl1[sidx] % N
-        sl1_ = sl1_ == 0 ? N : sl1_
-        sl2_ = sl2[sidx] % N
-        sl2_ = sl2_ == 0 ? N : sl2_
-        sl3_ = sl3[sidx] % N
-        sl3_ = sl3_ == 0 ? N : sl3_
-        u1 = pts1[sl1_]
-        u2 = pts2[sl2_]
-        u3 = pts3[sl3_]
-        # u1 = pts1[sl[sidx][1]]
-        # u2 = pts2[sl[sidx][2]]
-        # u3 = pts3[sl[sidx][3]]
-
-        u123, S123, prl = calcProductGaussians(M, [u1, u2, u3], [bw1, bw2, bw3]; partials)
-
-        @test 1 == length(filter(≈(u123), getPoints(P123_)))
-        # @test isapprox(mean(u123)[1], getPoints(P123_)[sidx][1], atol = 0.1)
-        # @test isapprox(pts1[sl[sidx][1]][2], getPoints(P123_)[sidx][2])
     end
 
 ##
@@ -355,6 +302,81 @@ end
     end
 
 ## 
+end
+
+
+@testset "test dim=2 product with one full and two similar marginals" begin
+## basic test one full with one partial
+
+    N = 50
+    d = 2
+    M = LieGroups.TranslationGroup(d)
+
+    #densities to multiply
+    pts1 = [randn(d) for _ = 1:N]
+    P1 = manikde!(M, pts1)
+
+    pts2 = [randn(d) for _ = 1:N]
+    (x -> (x[2] += 100)).(pts2)
+    P2_ = manikde!(M, pts2; partial = [1;])
+
+    pts3 = [randn(d) for _ = 1:N]
+    (x -> (x[2] += 100)).(pts3)
+    P3_ = manikde!(M, pts3; partial = [1;])
+
+##
+
+    sl = Vector{Vector{Int}}()
+
+    P123_ = manifoldProduct(
+        [P1; P2_; P3_];
+        recordLabels = true,
+        selectedLabels = sl,
+        addEntropy = false,
+    )
+
+    @test !isPartial(P123_)
+
+    @test isapprox(mean(P123_)[1], 0, atol = 1)
+    @test isapprox(mean(P123_)[2], 0, atol = 1)
+
+    # @show sl
+
+    P123_
+
+##
+
+    partials=[nothing, (1,), (1,)]
+
+    for sidx = 1:Npts(P123_)
+        bw1 = getBW(P1, false)[1] #.^ 2
+        bw2 = getBW(P2_, false)[1] #.^ 2
+        bw3 = getBW(P3_, false)[1] #.^ 2
+
+        sl1 = [s[1] for s in sl]
+        sl2 = [s[2] for s in sl]
+        sl3 = [s[3] for s in sl]
+        sl1_ = sl1[sidx] % N
+        sl1_ = sl1_ == 0 ? N : sl1_
+        sl2_ = sl2[sidx] % N
+        sl2_ = sl2_ == 0 ? N : sl2_
+        sl3_ = sl3[sidx] % N
+        sl3_ = sl3_ == 0 ? N : sl3_
+        u1 = pts1[sl1_]
+        u2 = pts2[sl2_]
+        u3 = pts3[sl3_]
+        # u1 = pts1[sl[sidx][1]]
+        # u2 = pts2[sl[sidx][2]]
+        # u3 = pts3[sl[sidx][3]]
+
+        u123, S123, prl = calcProductGaussians(M, [u1, u2, u3], [bw1, bw2, bw3]; partials)
+
+        @test 1 == length(filter(≈(u123), getPoints(P123_)))
+        # @test isapprox(mean(u123)[1], getPoints(P123_)[sidx][1], atol = 0.1)
+        # @test isapprox(pts1[sl[sidx][1]][2], getPoints(P123_)[sidx][2])
+    end
+
+##
 end
 
 

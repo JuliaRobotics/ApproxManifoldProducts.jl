@@ -70,6 +70,13 @@ function evaluate(
 ) where partial
     _manidim(::Nothing) = manifold_dimension(M)
     _manidim(::Tuple) = _manidim(nothing) - length(partial)
+
+    #FIXME ON FIRE, confirm points from kernel match the manifold in presence of partials, else scale cant be guaranteed
+    if length(mean(ekr)) != manifold_dimension(M)
+        @error "FIXME, trying to evaluate kernel with mean of different dimension than the manifold, isa partials/marginal?" M partial mean(ekr) p maxlog=20
+    end
+
+    # ASSUMPTION, MvNormalKernel is always full dim and is reduced during computation to any partial/marginal info
     dim_ = _manidim(partial)
     cov_ = _getpartial(partial, cov(ekr))
     nscl = 1 / sqrt((2 * pi)^dim_ * det(cov_))
@@ -117,16 +124,22 @@ end
 
 function distanceMalahanobisCoordinates(
     M::AbstractLieGroup,
-    K::AbstractKernel,
+    K::MvNormalKernel{<:DensityKernel{partial}},
     q,
     _basis = nothing,
-)
+) where partial
+    
+    M_, repr, cb  = getManifoldPartial(M, partial)
+    # 26Q2, super important, kernel K as partial, mean should be full dimensional and possible NaNs off-partial
     p = mean(K)
+    if length(p) != manifold_dimension(M) || length(q) != manifold_dimension(M)
+        @error "distanceMalahanobisCoordinates does not compute when manifold dimension differs from the input points, likely a partials mismatch earlier in the stack?" M partial p q maxlog=20
+    end
+    
     i_p = inv(M, p)
     pq = LieGroups.compose(M, i_p, q)
     X = log(M, pq)
     Xc = vee(LieAlgebra(M), X)
-    partial = _getprl(K)
     _Xc = _getpartial(partial, Xc)
     s_iΣ = _sqrt_iΣ(K)
     return s_iΣ * _Xc
@@ -179,3 +192,134 @@ ker(
     sigma::Real = 0.001,
     distFnc::Function = (_M, _p, _q) -> distance(_M, _p, _q)^2,
 ) = exp(-sigma * distFnc(M, p, q)) # _distance(M,p,q) # 
+
+
+
+## ======================= LEGACY BELOW ==================================
+
+
+# import Base: getproperty
+# function Base.getproperty(k::MvNormalKernel, f::Symbol)
+#     if f === :sqrt_iΣ
+#         # super slow and hacky, but only legacy.  WIP replacing
+#         cov(k) |> inv |> sqrt
+#     else
+#         return getproperty(k.shim, f)
+#     end
+# end
+
+
+function MvNormalKernel(
+    μ::AbstractArray, 
+    σ::AbstractArray, 
+    weight::Real = 1.0;
+    partial::Union{Nothing, <:Tuple} = nothing,
+    partl_cb::Union{Nothing, <:Function} = nothing,
+)
+    @warn "MvNormalKernel is deprecated, use ConcentratedGaussianKernel instead, barr partial [maxlog=10]" maxlog=10
+    _μ(s::AbstractArray, _p::Nothing, pf::Union{Nothing, <:Function}) = s
+    _μ(s::AbstractVector, _p::Tuple, pf::Nothing) = begin
+        # FIXME, cannot assume straight coordinate partial indexing works for all array{1}'s
+        _s = _forcemutable(s)
+        _s[setdiff(1:length(s), _p)] .= NaN
+        return _s
+    end
+    _μ(s::AbstractMatrix, _p::Tuple, pf::Nothing) = begin
+        # HACK BY ASSUMING CALLER SOLVED MATRIX CASE??? OR FUNCTION DISPATCH???
+        _s = _forcemutable(s)
+        # FIXME ON FIRE, this does not work for Matrices!!!!
+        itr = setdiff(1:length(s), _p) 
+        _s[itr, :] .= NaN
+        _s[:, itr] .= NaN
+        return _s
+    end
+    _μ(s::AbstractArray, _p::Tuple, pf::Function) = pf(s) # required for non-trivial points, eg SO/SE have more complicated representations
+    c_(s::AbstractMatrix, _p::Nothing) = s
+    c_(s::AbstractVector, _p::Nothing) = diagm(s)    
+    c_(s::AbstractMatrix, _p::Tuple) = _partialCovToDefault!(_p,_forcemutable(s))
+    c_(s::AbstractVector, _p::Tuple) = diagm(_partialCovToDefault!(_p,_forcemutable(s)))
+    # TODO _forcestatic
+    Σ = c_(σ, partial)
+    _c = projectSymPosDef(Σ)
+    return MvNormalKernel(
+        ConcentratedGaussianKernel(;
+            weight = float(weight),
+            p = _μ(μ, partial, partl_cb),
+            covmat = _c, # cov(MvNormal(_c)),
+            partial,
+        )
+    )
+end
+
+
+MvNormalKernel(; μ, p::MvNormal, weight = 1.0, partial = nothing, kw...) = MvNormalKernel(μ, cov(p), weight; partial, kw...)
+
+
+function convert(
+    ::Type{MvNormalKernel{
+        ApproxManifoldProducts.DensityKernel{
+            L,
+            MvNormal{F,P,Z},
+            S
+        }
+    }},
+    src::MvNormalKernel,
+) where {L,F,P,Z,S}
+
+    _matType(::Type{Distributions.PDMats.PDMat{_F, _M}}) where {_F, _M} = _M
+    _sap(::Type{ArrayPartition{T,_S}}) where {T,_S} = _S
+    _new(s) = S(s)
+    _new(s::ArrayPartition{T,O}) where {T,O} = ArrayPartition(begin
+        S_ = _sap(S)
+        [S_.parameters[i](v) for (i,v) in enumerate(s.x)]
+    end...)
+
+    m = _new(src.shim.params)
+
+    MvNormalKernel(
+        m,
+        _matType(P)(cov(src.shim.functional)),
+        src.shim.weight;
+        partial = L
+    )
+end
+
+
+# function MvNormalKernel(
+#     μ::AbstractArray, 
+#     σ::AbstractArray, 
+#     weight::Real = 1.0
+# )
+#     c_(s::AbstractMatrix) = s
+#     c_(s::AbstractVector) = diagm(s)
+#     Σ = c_(σ)
+#     _c = projectSymPosDef(Σ)
+#     p = MvNormal(_c)
+#     # NOTE, TBD, why not sqrt(inv(p.Σ)), this had an issue seemingly internal to PDMat.chol which breaks an already forced SymPD matrix to again be not SymPD???
+#     sqrt_iΣ = sqrt(inv(_c))
+#     return MvNormalKernel(; μ, p, sqrt_iΣ, weight = float(weight))
+# end
+
+
+
+# case for identical types not requiring any conversions
+function Base.convert(
+    ::Type{T},
+    src::T,
+) where {T <: MvNormalKernel}
+    return src
+end
+
+
+# # case for different types requiring conversion
+# function Base.convert(
+#     ::Type{MvNormalKernel{T}},
+#     src::MvNormalKernel,
+# ) where {T}
+#     #
+#     _matType(::Type{Distributions.PDMats.PDMat{_F, _M}}) where {_F, _M} = _M
+#     μ = convert(P, src.μ) # P(src.μ)
+#     p = MvNormal(_matType(M)(cov(src.p)))
+#     # sqrt_iΣ = iM(src.sqrt_iΣ)
+#     return MvNormalKernel(μ, p, src.weight)
+# end
