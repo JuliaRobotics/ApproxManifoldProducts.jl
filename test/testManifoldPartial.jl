@@ -58,6 +58,8 @@ end
 end
 
 @testset "test getManifoldPartial on LieGroups.ProductLieGroup" begin
+##
+
     M = LieGroups.TranslationGroup(2) × SpecialOrthogonalGroup(2)
 
     @test getManifoldPartial(M, [1; 2; 3])[1] ==
@@ -96,9 +98,13 @@ end
     @test r_repr isa ArrayPartition
     @test submanifold_component(r_repr, 1) == [0.0;]
     @test submanifold_component(r_repr, 2) == [1 0; 0 1.0]
+
+##
 end
 
 @testset "test getManifoldPartial on SpecialEuclideanGroup(2; variant = :right)" begin
+##
+
     M = SpecialEuclideanGroup(2; variant = :right)
 
     @test getManifoldPartial(M, [1; 2; 3])[1] == M
@@ -135,6 +141,8 @@ end
     @test r_repr isa ArrayPartition
     @test submanifold_component(r_repr, 1) == [0.0;]
     @test submanifold_component(r_repr, 2) == [1 0; 0 1.0]
+
+##
 end
 
 @testset "Reminder, getManifoldPartial on Sphere(2) [TBD]" begin
@@ -233,7 +241,11 @@ end
 
     pts = [exp(M, u0, hat(LieAlgebra(M), [10 .+ randn(2); randn()])) for i = 1:N]
 
+##
+
     P = manikde!(M, pts)
+
+##
 
     P12 = marginal(P, [1; 2])
 
@@ -280,6 +292,8 @@ end
     pts = [[1.0; NaN], [2.0; NaN], [4.0; NaN], [7.0; NaN], [11.0; NaN], [16.0; NaN], [22.0; NaN]]
     bw = [1.0; 0.0]
     N = length(pts)
+    partial = [1;]
+    M_, reprl, partl_cb = ApproxManifoldProducts.getManifoldPartial(M, partial, pts[1])
 
     # preemptively check splitPoints 
     begin
@@ -290,7 +304,8 @@ end
             1/7*ones(length(pts));
             kernel = AMP.MvNormalKernel,
             kernel_bw = bw,
-            partial = [1;]
+            partial,
+            partl_cb,
         )
 
         @test mask[1:4] == BitVector([0,0,0,0])
@@ -334,6 +349,8 @@ end
     pts = [[NaN; 1.0], [NaN; 2.0], [NaN; 4.0], [NaN; 7.0], [NaN; 11.0], [NaN; 16.0], [NaN; 22.0]]
     bw = [0.0; 1.0]
     N = length(pts)
+    partial = [2;]
+    M_, reprl, partl_cb = ApproxManifoldProducts.getManifoldPartial(M, partial, pts[1])
 
     # preemptively check splitPoints 
     begin
@@ -344,7 +361,8 @@ end
             1/7*ones(length(pts));
             kernel = AMP.MvNormalKernel,
             kernel_bw = bw,
-            partial = [2;]
+            partial,
+            partl_cb,
         )
 
         @test mask[1:4] == BitVector([0,0,0,0])
@@ -356,7 +374,8 @@ end
         pts;
         kernel_bw = bw,
         kernel = AMP.MvNormalKernel,
-        partial = [2;]
+        partial,
+        partl_cb,
     )
 
 ##

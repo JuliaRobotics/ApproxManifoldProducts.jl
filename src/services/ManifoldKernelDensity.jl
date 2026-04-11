@@ -9,6 +9,7 @@ function ManifoldKernelDensity(
     ::Nothing = nothing,
     u0::P = zeros(manifold_dimension(mani));
     infoPerCoord::AbstractVector{<:Real} = ones(getNumberCoords(mani, u0)),
+    partl_cb::Nothing = nothing,
 ) where {M <: MB.AbstractManifold, B <: TreeDensity, P}
     return ManifoldKernelDensity{M, B, Nothing, P}(mani, bel, nothing, u0, infoPerCoord)
 end
@@ -20,8 +21,12 @@ function ManifoldKernelDensity(
     partial_::L,
     u0::P = zeros(manifold_dimension(mani));
     infoPerCoord::AbstractVector{<:Real} = ones(getNumberCoords(mani, u0)),
+    partl_cb::Union{Nothing, <:Function} = nothing,
 ) where {M <: MB.AbstractManifold, B <: TreeDensity, L <: AbstractVector{<:Integer}, P}
     #
+    if isnothing(partl_cb)
+        @warn "WIP partl_cb on MKD constructor helper" maxlog=100
+    end
     partial = _tuple(partial_)
     if length(partial) != manifold_dimension(mani)
         # TODO, assuming there are tree and leaf nodes at [1]...
@@ -67,6 +72,7 @@ function ManifoldKernelDensity(
     u0::P = zeros(manifold_dimension(mani));
     infoPerCoord::AbstractVector{<:Real} = ones(getNumberCoords(mani, u0)),
 ) where {M <: MB.AbstractManifold, B <: TreeDensity, P}
+    @warn "This constructor is not recommended, as partials have changed somewhat -- possibly erroneous code here..." maxlog=100
     return ManifoldKernelDensity(
         mani,
         bel,
@@ -81,6 +87,7 @@ function ManifoldKernelDensity(
     vecP::AbstractVector{P},
     u0 = vecP[1]; # vecP[1]
     partial::L = nothing,
+    partl_cb::Union{Nothing, <:Function} = nothing,
     infoPerCoord::AbstractVector{<:Real} = ones(getNumberCoords(M, u0)),
     dims::Int = manifold_dimension(M),
     bw::Union{<:AbstractVector{<:Real}, <:AbstractMatrix{<:Real}, Nothing} = nothing,
@@ -124,12 +131,18 @@ function manikde!(
 )
     #
 
+    # NOTE, search for double-truth tag#NM345LKjoi4u$%#k90DSDFGd09D
+    #  legacy constructors resulted in creating this duplicate partial callbacks, 
+    #  but worried eventual manifold point reprs won't match (FIXME)
+    M_, reprl, partl_cb = getManifoldPartial(M, partial, pts[1])
+
     mtree = ApproxManifoldProducts.buildTree_Manellic!(
         M,
         pts;
         kernel_bw = bw,
         kernel = AMP.MvNormalKernel,
         partial,
+        partl_cb,
     )
 
     # mask bw for partially excluded dimensions -- assumed 1.0 from legacy but...
@@ -169,8 +182,9 @@ function manikde!(
         M, 
         pts, 
         pts[1]; 
-        belmodel = (ignore...) -> updateBandwidths(mtree, best_cov), 
+        belmodel = (ignore...) -> updateBandwidths(mtree, best_cov; partl_cb), 
         partial, 
+        partl_cb,
         kw...
     )
 end
@@ -444,21 +458,10 @@ function marginal(
     dims::AbstractVector{<:Integer},
 ) where {M <: AbstractManifold, B}
     #
-    ldims::Vector{Int} = collect(dims)
+    ldims::Vector{Int} = _makevec(_intersect(x._partial, collect(dims)))
     return ManifoldKernelDensity(x.manifold, x.belief, ldims, x._u0)
 end
 
-function marginal(
-    x::ManifoldKernelDensity{M, B, L},
-    dims::AbstractVector{<:Integer},
-) where {M <: AbstractManifold, B, L <: AbstractVector{<:Integer}}
-    #
-    ldims::Vector{Int} = intersect(x._partial, dims)
-    return ManifoldKernelDensity(x.manifold, x.belief, ldims, x._u0)
-end
-# manis = convert(Tuple, x.manifold)
-# partMani = _reducePartialManifoldElements(manis[dims])
-# pts = getPoints(x)
 
 """
     $SIGNATURES

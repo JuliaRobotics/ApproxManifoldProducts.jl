@@ -1,5 +1,77 @@
 
 
+# # TODO, deprecate convert approach and using constructor helpers instead
+# function convert(
+#     ::Type{MvNormalKernel{
+#         ApproxManifoldProducts.DensityKernel{
+#             L,
+#             MvNormal{F,P,Z},
+#             S
+#         }
+#     }},
+#     src::MvNormalKernel,
+# ) where {L,F,P,Z,S}
+
+#     _matType(::Type{Distributions.PDMats.PDMat{_F, _M}}) where {_F, _M} = _M
+#     _sap(::Type{ArrayPartition{T,_S}}) where {T,_S} = _S
+#     _new(s) = S(s)
+#     _new(s::ArrayPartition{T,O}) where {T,O} = ArrayPartition(begin
+#         S_ = _sap(S)
+#         [S_.parameters[i](v) for (i,v) in enumerate(s.x)]
+#     end...)
+
+#     m = _new(src.shim.params)
+
+#     MvNormalKernel(
+#         m,
+#         _matType(P)(cov(src.shim.functional)),
+#         src.shim.weight;
+#         partial = L,
+#         # partl_cb,
+#     )
+# end
+
+
+# function MvNormalKernel(
+#     μ::AbstractArray, 
+#     σ::AbstractArray, 
+#     weight::Real = 1.0
+# )
+#     c_(s::AbstractMatrix) = s
+#     c_(s::AbstractVector) = diagm(s)
+#     Σ = c_(σ)
+#     _c = projectSymPosDef(Σ)
+#     p = MvNormal(_c)
+#     # NOTE, TBD, why not sqrt(inv(p.Σ)), this had an issue seemingly internal to PDMat.chol which breaks an already forced SymPD matrix to again be not SymPD???
+#     sqrt_iΣ = sqrt(inv(_c))
+#     return MvNormalKernel(; μ, p, sqrt_iΣ, weight = float(weight))
+# end
+
+# # case for different types requiring conversion
+# function Base.convert(
+#     ::Type{MvNormalKernel{T}},
+#     src::MvNormalKernel,
+# ) where {T}
+#     #
+#     _matType(::Type{Distributions.PDMats.PDMat{_F, _M}}) where {_F, _M} = _M
+#     μ = convert(P, src.μ) # P(src.μ)
+#     p = MvNormal(_matType(M)(cov(src.p)))
+#     # sqrt_iΣ = iM(src.sqrt_iΣ)
+#     return MvNormalKernel(μ, p, src.weight)
+# end
+
+# function marginal(
+#     x::ManifoldKernelDensity{M, B, L},
+#     dims::AbstractVector{<:Integer},
+# ) where {M <: AbstractManifold, B, L <: AbstractVector{<:Integer}}
+#     #
+#     ldims::Vector{Int} = intersect(x._partial, dims)
+#     return ManifoldKernelDensity(x.manifold, x.belief, ldims, x._u0)
+# end
+# # manis = convert(Tuple, x.manifold)
+# # partMani = _reducePartialManifoldElements(manis[dims])
+# # pts = getPoints(x)
+
 # @kwdef struct MvNormalKernel{P, T, M, iM} <: AbstractKernel
 #     """ On-manifold point representing center (mean) of the MvNormal distribution """
 #     μ::P

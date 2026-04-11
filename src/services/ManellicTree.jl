@@ -364,6 +364,7 @@ function splitPointsEigen(
     kernel = MvNormalKernel,
     kernel_bw = nothing,
     partial::Union{Nothing, AbstractVector{<:Integer}} = nothing,
+    partl_cb::Union{Nothing, <:Function} = nothing,
 ) where {P <: AbstractArray}
     #
     len = length(r_PP)
@@ -446,7 +447,7 @@ function splitPointsEigen(
     weight = sum(weights)
 
     # return rotated coordinates and split mask
-    return ax_CCp, mask, kernel(p, cv, weight; partial=_tuple(partial))
+    return ax_CCp, mask, kernel(p, cv, weight; partial=_tuple(partial), partl_cb)
 end
 
 function buildTree_Manellic!(
@@ -458,6 +459,7 @@ function buildTree_Manellic!(
     kernel_bw = nothing,
     leaf_size = 1,
     partial::Union{Nothing, AbstractVector{<:Integer}} = nothing,
+    partl_cb::Union{Nothing, <:Function} = nothing,
 ) where {MT, D, N}
     #
     _legacybw(s::Nothing) = s
@@ -484,6 +486,7 @@ function buildTree_Manellic!(
         kernel,
         kernel_bw = _kernel_bw,
         partial,
+        partl_cb,
     )
     imask = xor.(mask, true)
 
@@ -520,6 +523,7 @@ function buildTree_Manellic!(
                 kernel_bw = _kernel_bw,
                 leaf_size,
                 partial,
+                partl_cb,
             )
         end
         if rgt != high
@@ -533,12 +537,16 @@ function buildTree_Manellic!(
                 kernel_bw = _kernel_bw,
                 leaf_size,
                 partial,
+                partl_cb,
             )
         end
     end
 
     if index < N
-        _knl = convert(eltype(mtree.tree_kernels), knl)
+        tkT = eltype(mtree.tree_kernels)
+        # TBD, maybe a constructor instead?
+        _knl = tkT(knl; partl_cb)
+        # _knl = convert(tkT, knl)
         # set tree kernel
         mtree.tree_kernels[index] = _knl
         push!(mtree._workaround_isdef_treekernel, index)
@@ -568,11 +576,18 @@ function buildTree_Manellic!(
     kernel = MvNormalKernel,
     kernel_bw = nothing, # TODO
     partial::Union{Nothing, AbstractVector{<:Integer}} = nothing,
+    partl_cb::Union{Nothing, <:Function} = nothing,
 ) where {P <: AbstractArray}
     #
     D = manifold_dimension(M)
     CV = SMatrix{D, D, Float64, D * D}(diagm(ones(D)))
-    tknlT = kernel(r_PP[1], CV; partial=_tuple(partial)) |> typeof
+    prlcb = if isnothing(partl_cb) && !isnothing(partial)
+        M_, reprl, cb = getManifoldPartial(M, partial)
+        cb
+    else
+        partl_cb
+    end
+    tknlT = kernel(r_PP[1], CV; partial=_tuple(partial), partl_cb=prlcb) |> typeof
 
     _legacybw(s::AbstractMatrix) = s
     _legacybw(s::AbstractVector) = diagm(s)
@@ -580,7 +595,7 @@ function buildTree_Manellic!(
 
     lCV = _legacybw(kernel_bw)
 
-    lknlT = kernel(r_PP[1], lCV; partial = _tuple(partial)) |> typeof
+    lknlT = kernel(r_PP[1], lCV; partial = _tuple(partial), partl_cb=prlcb) |> typeof
 
     # kernel scale
 
@@ -588,12 +603,12 @@ function buildTree_Manellic!(
     lkern = SizedVector{N, lknlT}(undef)
     _workaround_isdef_leafkernel = Set{Int}()
     for i = 1:N
-        nkr = kernel(r_PP[i], lCV; partial = _tuple(partial))
+        nkr = kernel(r_PP[i], lCV; partial = _tuple(partial), partl_cb=prlcb)
         lkern[i] = nkr
         push!(_workaround_isdef_leafkernel, i + N)
     end
 
-    mtree = ManellicTree(
+    _mtree = ManellicTree(
         M,
         r_PP,
         MVector{N, Float64}(weights),
@@ -607,13 +622,14 @@ function buildTree_Manellic!(
 
     #
     tosort_leaves = buildTree_Manellic!(
-        mtree,
+        _mtree,
         1, # start at root
         1, # spanning all data
         N; # to end of data
         kernel,
         kernel_bw,
         partial,
+        partl_cb = prlcb,
     )
 
     # manual reset leaves in the order discovered
@@ -683,7 +699,11 @@ function buildTree_Manellic!(
     return tosort_leaves
 end
 
-function updateBandwidths(mtr::ManellicTree{M, D, N, HL}, bws) where {M, D, N, HL}
+function updateBandwidths(
+    mtr::ManellicTree{M, D, N, HL}, 
+    bws;
+    partl_cb::Union{Nothing, <:Function} = nothing,
+) where {M, D, N, HL}
     #
     _getBW(s::Float64, ::Int) = [s;;]
     _getBW(s::AbstractVector{<:Real}, ::Int) = s
@@ -692,7 +712,8 @@ function updateBandwidths(mtr::ManellicTree{M, D, N, HL}, bws) where {M, D, N, H
 
     _leaf_kernels = SizedVector{N, HL}(undef)
     for (i, lk) in enumerate(mtr.leaf_kernels)
-        _leaf_kernels[i] = updateKernelBW(lk, _getBW(bws, i))
+        nkl = MvNormalKernel(lk; Σ = _getBW(bws, i), partl_cb)
+        _leaf_kernels[i] = nkl # updateKernelBW(lk, _getBW(bws, i))
     end
     return ManellicTree(
         mtr.manifold,
