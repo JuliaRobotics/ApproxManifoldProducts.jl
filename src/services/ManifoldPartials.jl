@@ -70,7 +70,7 @@ function _intersectpartials(
     μ = mean(k) # this is on-manifold
     Σ2 = cov(k) # this is on tangent
     partl_cb = if !isnothing(partial) && isnothing(_partl_cb)
-        plM, plrep, partl_cb_ = getManifoldPartial(M, partial, μ)
+        plM, plrep, partl_cb_ = getManifoldPartial(M, partial, μ; doError = false)
         partl_cb_
     else
         _partl_cb

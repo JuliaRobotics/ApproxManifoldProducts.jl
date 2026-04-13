@@ -1018,17 +1018,19 @@ function sampleProductSeqGibbsBTLabel(
         # if lvout_centers are partial, then only evaluate with partial lvin_product_tmp
         lvout_prl = _getprl(getKernelTree(proposals[lvout_idx], label_pools[lvout_idx][1], false))
         lvin_product_tmp_partial = _intersectpartials(M, lvin_product_tmp, lvout_prl)
-        # @info "FOR LEAVE-IN TEMP PROD KERNEL" (lvout_idx, propIdxs_Gibbs)
-        # @show lvin_product_tmp_partial
-        # @show lvout_centers'
-        resample_weights = evaluateDensityAtPoints(M, lvin_product_tmp_partial, lvout_centers, true)
-        # @show resample_weights'
 
-        # update label-distribution of out-proposal from product of selected LOO-proposal components
-        p = Categorical(resample_weights)
-        labels_sampled[lvout_idx] = label_pools[lvout_idx][rand(p)]
+        # overcome case where no partial overlap exists
+        resample_weights = if 0 < length(_getprl(lvin_product_tmp_partial))
+            resample_weights = evaluateDensityAtPoints(M, lvin_product_tmp_partial, lvout_centers, true)
+            # update label-distribution of out-proposal from product of selected LOO-proposal components
+            p = Categorical(resample_weights)
+            labels_sampled[lvout_idx] = label_pools[lvout_idx][rand(p)]
+            resample_weights
+        else
+            NaN*ones(length(lvout_centers))
+        end
+
         # slightly heavy memory usage to aid DX
-        # _labelsChoosen[label_pools[lvout_idx]] = lvout_idx => deepcopy(labels_sampled)
         push!(_labelsChoosen, (;
             loo = lvout_idx,
             selected = deepcopy(labels_sampled),
