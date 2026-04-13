@@ -993,6 +993,10 @@ function sampleProductSeqGibbsBTLabel(
     MAX_RECURSE_DEPTH::Int = 24, # 2^24 is so deep
     _labelsChoosen::Vector{@NamedTuple{loo::Int64, selected::Vector{Int64}, pool::Vector{Vector{Int64}}, catp::Vector{Float64}}} = Vector{@NamedTuple{loo::Int64, selected::Vector{Int64}, pool::Vector{Vector{Int64}}, catp::Vector{Float64}}}()
 )
+    # local helpers for partials either vec or nothing
+    _leng(s::Nothing) = 0
+    _leng(s::Union{<:AbstractVector{<:Integer}, <:Tuple}) = length(s)
+
     # apply further partials to existing kernel
     # how many incoming proposals
     d = length(proposals)
@@ -1020,7 +1024,7 @@ function sampleProductSeqGibbsBTLabel(
         lvin_product_tmp_partial = _intersectpartials(M, lvin_product_tmp, lvout_prl)
 
         # overcome case where no partial overlap exists
-        resample_weights = if 0 < length(_getprl(lvin_product_tmp_partial))
+        resample_weights = if 0 < _leng(_getprl(lvin_product_tmp_partial))
             resample_weights = evaluateDensityAtPoints(M, lvin_product_tmp_partial, lvout_centers, true)
             # update label-distribution of out-proposal from product of selected LOO-proposal components
             p = Categorical(resample_weights)

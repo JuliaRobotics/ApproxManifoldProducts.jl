@@ -1,5 +1,39 @@
 
 
+# TODO is this function obsolete?
+# function getManifoldPartial(
+#     M::TranslationGroup{Tuple{N}},
+#     partial::AbstractVector{Int},
+#     repr::_PartiableRepresentationFlat{T} = nothing,
+#     offset::Base.RefValue{Int} = Ref(0);
+#     doError::Bool = true,
+# ) where {N, T <: Number}
+#     #
+#     mask = _checkManifoldPartialDims(M, partial, offset, doError)
+#     offset[] += manifold_dimension(M)
+#     len = sum(mask)
+#     repr_p = repr === nothing ? nothing : zeros(T, len)
+#     return (TranslationGroup(len), repr_p)
+# end
+
+# function getManifoldPartial(M::AbstractLieGroup, 
+#                             partial::AbstractVector{<:Integer}, 
+#                             repr::_PartiableRepresentation=nothing,
+#                             offset::Base.RefValue{<:Integer}=Ref(0);
+#                             doError::Bool=true )
+#   #
+#   # mask the desired coordinate dimensions
+#   mask = _checkManifoldPartialDims(M,partial,offset, doError)
+
+#   if sum(mask) == manifold_dimension(M)
+#     # asking for all coordinate dimensions as offered by M
+#     return (M,repr)
+#   end
+#   # recursion may need to branch for ProductManifold
+#   # Note loss of the Group operation information at this time
+#   getManifoldPartial(M.manifold, partial, repr, offset, doError=doError)
+# end
+
 # # TODO, deprecate convert approach and using constructor helpers instead
 # function convert(
 #     ::Type{MvNormalKernel{

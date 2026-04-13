@@ -251,26 +251,11 @@ function getManifoldPartial(
     # EXPERIMENTAL, use lambda to construct partial lookup
     return (TranslationGroup(len), repr_p, (prt)->view(prt,mask))
 end
-# TODO is this function obsolete?
-# function getManifoldPartial(
-#     M::TranslationGroup{Tuple{N}},
-#     partial::AbstractVector{Int},
-#     repr::_PartiableRepresentationFlat{T} = nothing,
-#     offset::Base.RefValue{Int} = Ref(0);
-#     doError::Bool = true,
-# ) where {N, T <: Number}
-#     #
-#     mask = _checkManifoldPartialDims(M, partial, offset, doError)
-#     offset[] += manifold_dimension(M)
-#     len = sum(mask)
-#     repr_p = repr === nothing ? nothing : zeros(T, len)
-#     return (TranslationGroup(len), repr_p)
-# end
 
 
 function getManifoldPartial(
     M::Manifolds.Circle,
-    partial::AbstractVector{Int},
+    partial::Union{<:AbstractVector{<:Int}, <:Tuple},
     repr::_PartiableRepresentation = nothing,
     offset::Base.RefValue{Int} = Ref(0);
     doError::Bool = true,
@@ -282,7 +267,7 @@ end
 
 function getManifoldPartial(
     M::Manifolds.Rotations{TypeParameter{Tuple{2}}},
-    partial::AbstractVector{<:Int},
+    partial::Union{<:AbstractVector{<:Int}, <:Tuple},
     repr::_PartiableRepresentation = nothing,
     offset::Base.RefValue{Int} = Ref(0);
     doError::Bool = true,
@@ -295,7 +280,7 @@ end
 
 function getManifoldPartial(
     M::typeof(SpecialOrthogonalGroup(2)),
-    partial::AbstractVector{<:Int},
+    partial::Union{<:AbstractVector{<:Int}, <:Tuple},
     repr::_PartiableRepresentation = nothing,
     offset::Base.RefValue{Int} = Ref(0);
     doError::Bool = true,
@@ -306,7 +291,7 @@ function getManifoldPartial(
     return (M, repr, (prt)->view(prt,mask))
 end
 
-
+# near duplicate case for different repr ArrayPartition vs AbstractMatrix
 function getManifoldPartial(
     M::typeof(SpecialEuclideanGroup(2; variant = :right)),
     partial::AbstractVector{Int},
@@ -331,7 +316,7 @@ function getManifoldPartial(
         )
     end
 end
-
+# near duplicate case for different repr ArrayPartition vs AbstractMatrix
 function getManifoldPartial(
     M::typeof(LieGroups.SpecialEuclideanGroup(2; variant = :right)),
     partial_::Union{<:AbstractVector{<:Int}, <:Tuple},
@@ -356,28 +341,10 @@ function getManifoldPartial(
     end
 end
 
-# function getManifoldPartial(M::AbstractLieGroup, 
-#                             partial::AbstractVector{<:Integer}, 
-#                             repr::_PartiableRepresentation=nothing,
-#                             offset::Base.RefValue{<:Integer}=Ref(0);
-#                             doError::Bool=true )
-#   #
-#   # mask the desired coordinate dimensions
-#   mask = _checkManifoldPartialDims(M,partial,offset, doError)
-
-#   if sum(mask) == manifold_dimension(M)
-#     # asking for all coordinate dimensions as offered by M
-#     return (M,repr)
-#   end
-#   # recursion may need to branch for ProductManifold
-#   # Note loss of the Group operation information at this time
-#   getManifoldPartial(M.manifold, partial, repr, offset, doError=doError)
-# end
-
 
 function getManifoldPartial(
     PrG::LieGroup{ℝ, <:ProductGroupOperation, <:ProductManifold},
-    partial::AbstractVector{Int},
+    partial::Union{<:AbstractVector{<:Int}, <:Tuple},
     repr::_PartiableRepresentationProduct = nothing,
     offset::Base.RefValue{Int} = Ref(0);
     doError::Bool = true,
@@ -497,7 +464,7 @@ Related
 """
 function getManifoldPartial(
     M::ProductManifold,
-    partial::AbstractVector{Int},
+    partial::Union{<:AbstractVector{<:Int}, <:Tuple},
     repr::_PartiableRepresentationProduct = nothing,
     offset::Base.RefValue{Int} = Ref(0);
     doError::Bool = true,
