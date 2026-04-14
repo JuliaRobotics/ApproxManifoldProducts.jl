@@ -27,7 +27,7 @@ function updateProductSample(
 
     @inbounds @fastmath @simd for dim = 1:Ndim
         for j = 1:Ndens
-            calclambdas[dim, j] = 1.0 / getBW(proposals[j])[dim, labels[j]]
+            calclambdas[dim, j] = 1.0 / (getBW(proposals[j]) .^ 2)[dim, labels[j]]
             calcmu[dim, j] = getPoints(proposals[j])[dim, labels[j]]
         end
         destCov = getLambda(calclambdas)

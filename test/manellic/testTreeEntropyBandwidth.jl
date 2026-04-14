@@ -208,7 +208,7 @@ end
 
     mkd = ApproxManifoldProducts.manikde!(M, pts)
 
-    @test isapprox([0.5 0; 0 0.5], getBW(mkd)[1]; atol = 0.35)
+    @test isapprox([0.5 0; 0 0.5], getBW(mkd)[1] .^2; atol = 0.35)
 
     ##
 end
@@ -245,8 +245,8 @@ if !(v"1.11" < VERSION < v"1.12.0-beta99")
 
         mkd = ApproxManifoldProducts.manikde!(M, pts)
 
-        @test isapprox([0.6 0; 0 0.6], getBW(mkd)[1][1:2, 1:2]; atol = 0.4)
-        @test isapprox(0.06, getBW(mkd)[1][3, 3]; atol = 0.04)
+        @test isapprox([0.6 0; 0 0.6], getBW(mkd)[1][1:2, 1:2] .^2; atol = 0.4)
+        @test isapprox(0.06, getBW(mkd)[1][3, 3] .^2; atol = 0.04)
 
         ##
     end
@@ -286,10 +286,10 @@ if !(v"1.11" < VERSION < v"1.12.0-beta99")
 
         mkd = ApproxManifoldProducts.manikde!(M, pts)
 
-        @test isapprox([0.75 0 0; 0 0.75 0; 0 0 0.75], getBW(mkd)[1][1:3, 1:3]; atol = 0.55)
+        @test isapprox([0.75 0 0; 0 0.75 0; 0 0 0.75], getBW(mkd)[1][1:3, 1:3] .^2; atol = 0.55)
         @test isapprox(
             [0.07 0 0; 0 0.07 0; 0 0 0.07],
-            getBW(mkd)[1][4:6, 4:6];
+            getBW(mkd)[1][4:6, 4:6] .^2;
             atol = 0.055,
         )
 

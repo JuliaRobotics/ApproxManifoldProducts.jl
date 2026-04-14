@@ -197,8 +197,8 @@ end
     
     for sidx = 1:Npts(P12_)
         
-        bw1 = getBW(P1, false)[1]  #.^ 2
-        bw2 = getBW(P2_, false)[1] #.^ 2
+        bw1 = getBW(P1, false)[1]  .^ 2
+        bw2 = getBW(P2_, false)[1] .^ 2
 
         sl1 = [s[1] for s in sl]
         sl2 = [s[2] for s in sl]
@@ -284,8 +284,8 @@ end
 ## check the selection of labels and resulting Gaussian products are correct
 
     for sidx = 1:N
-        bw1 = getBW(P1, false)[1] #.^ 2
-        bw3 = getBW(P3, false)[1] #.^ 2
+        bw1 = getBW(P1, false)[1] .^ 2
+        bw3 = getBW(P3, false)[1] .^ 2
 
         sl1 = [s[1] for s in sl]
         sl3 = [s[2] for s in sl]
@@ -354,9 +354,9 @@ end
     partials=[nothing, (1,), (1,)]
 
     for sidx = 1:Npts(P123_)
-        bw1 = getBW(P1, false)[1] #.^ 2
-        bw2 = getBW(P2_, false)[1] #.^ 2
-        bw3 = getBW(P3_, false)[1] #.^ 2
+        bw1 = getBW(P1, false)[1] .^ 2
+        bw2 = getBW(P2_, false)[1] .^ 2
+        bw3 = getBW(P3_, false)[1] .^ 2
 
         sl1 = [s[1] for s in sl]
         sl2 = [s[2] for s in sl]
@@ -432,9 +432,9 @@ end
 
     for sidx = 1:N
         
-        bw1 = getBW(P1, false)[1] # .^ 2
-        bw2 = getBW(P2, false)[1] # .^ 2
-        bw3 = getBW(P3, false)[1] # .^ 2
+        bw1 = getBW(P1, false)[1]  .^ 2
+        bw2 = getBW(P2, false)[1]  .^ 2
+        bw3 = getBW(P3, false)[1]  .^ 2
 
         # full density first
         sl1 = [s[1] for s in sl]
@@ -527,10 +527,10 @@ end
 
     # sidx = 1
     for sidx = 1:N
-        bw1 = getBW(P4,  false)[1] # .^ 2
-        bw2 = getBW(P4_, false)[1] # .^ 2
-        bw3 = getBW(P5,  false)[1] # .^ 2
-        bw4 = getBW(P5_, false)[1] # .^ 2
+        bw1 = getBW(P4,  false)[1]  .^ 2
+        bw2 = getBW(P4_, false)[1]  .^ 2
+        bw3 = getBW(P5,  false)[1]  .^ 2
+        bw4 = getBW(P5_, false)[1]  .^ 2
 
         sl1 = [s[1] for s in sl]
         sl2 = [s[2] for s in sl]
@@ -627,9 +627,9 @@ end
 ## check the selection of labels and resulting Gaussian products are correct
 
     for sidx = 1:N
-        bw1 = getBW(P1, false)[1] # .^ 2
-        bw2 = getBW(P2, false)[1] # .^ 2
-        bw3 = getBW(P3, false)[1] # .^ 2
+        bw1 = getBW(P1, false)[1]  .^ 2
+        bw2 = getBW(P2, false)[1]  .^ 2
+        bw3 = getBW(P3, false)[1]  .^ 2
 
         # full density first
         sl1 = [s[1] for s in sl]
@@ -706,9 +706,9 @@ end
 ## check the selection of labels and resulting Gaussian products are correct
 
     for sidx = 1:N
-        bw1 = getBW(P1, false)[1] # .^ 2
-        bw2 = getBW(P2, false)[1] # .^ 2
-        bw3 = getBW(P3, false)[1] # .^ 2
+        bw1 = getBW(P1, false)[1]  .^ 2
+        bw2 = getBW(P2, false)[1]  .^ 2
+        bw3 = getBW(P3, false)[1]  .^ 2
 
         # full density first
         sl1 = [s[1] for s in sl]
@@ -784,8 +784,8 @@ end
         pts_ = getPoints(P, false)
 
         for sidx = 1:N
-            bw1 = getBW(P1)[1] # .^ 2
-            bw3 = getBW(P3)[1] # .^ 2
+            bw1 = getBW(P1)[1]  .^ 2
+            bw3 = getBW(P3)[1]  .^ 2
 
             # full density first
             sl1 = [s[1] for s in sl]

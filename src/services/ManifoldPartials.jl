@@ -21,6 +21,8 @@ const _PartiableRepresentation = Union{
 ## weird internal functions for handling partials as vectors or tuples of coordinate indices.
 
 # FIXME, a better solution is needed for sqrt_iΣ, especially for partials.
+_sqrt_Σ(k::MvNormalKernel{<:DensityKernel{L}}) where {L} = _getpartial(L, sqrt_Σ(k))
+_sqrt_Σ(k::MvNormalKernel{<:DensityKernel{Nothing}}) = sqrt_Σ(k)
 _sqrt_iΣ(k::MvNormalKernel{<:DensityKernel{L}}) where {L} = inv(sqrt(_getpartial(L, cov(k))))
 _sqrt_iΣ(k::MvNormalKernel{<:DensityKernel{Nothing}}) = sqrt_iΣ(k)
 

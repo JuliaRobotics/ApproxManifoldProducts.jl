@@ -424,7 +424,7 @@ function Base.show(io::IO, mkd::ManifoldKernelDensity{M, B, L, P}) where {M, B, 
     printstyled(io, isPartial(mkd) ? "* --> $(length(mkd._partial))" : ""; bold = true)
     println(io)
     println(io, "  prtl:   ", mkd._partial)
-    bw = getBW(mkd.belief)[:, 1]
+    bw = (getBW(mkd.belief).^2)[:, 1]
     pvec = isPartial(mkd) ? mkd._partial : collect(1:length(bw))
     println(io, "  bws:   ", getBandwidth(mkd, true) |> x -> _round(x; digits = 4)) # .|> x->round(x,digits=4))
     println(io, "  ipc:   ", getInfoPerCoord(mkd, true) .|> x -> round(x; digits = 4))

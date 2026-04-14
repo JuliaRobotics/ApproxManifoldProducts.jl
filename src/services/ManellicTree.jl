@@ -265,7 +265,7 @@ function Base.show(io::IO, mt::ManellicTree{M, D, N, TK}) where {M, D, N, TK}
             printstyled(
                 io,
                 "         bw   :    ",
-                round.(getBW(mt)[1][:]'; digits = 3);
+                round.((getBW(mt).^2)[1][:]'; digits = 3);
                 color = :light_black,
             )
             println(io)

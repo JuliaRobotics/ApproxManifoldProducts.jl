@@ -9,8 +9,10 @@
 Statistics.mean(m::MvNormalKernel) = m.shim.params         # mean(m.p)
 # Statistics.cov(m::MvNormalKernel) = cov(m.p)     # note also about m.sqrt_iΣ
 Statistics.cov(m::MvNormalKernel) = m.shim.functional.Σ.mat # direct from stored matrix
-Statistics.std(m::MvNormalKernel) = sqrt(cov(m)) # regular sqrt (not of inverse)
+# TODO, drop the diagm on std here
+Statistics.std(m::MvNormalKernel) = diagm(std(m.shim.functional)) # sqrt(cov(m)) # regular sqrt (not of inverse)
 # FIXME use MvNormal.pdmatrix for faster access to cov's Cholesky
+sqrt_Σ(m::MvNormalKernel) = std(m)
 sqrt_iΣ(m::MvNormalKernel) = cov(m) |> sqrt |> inv
 
 function Base.show(

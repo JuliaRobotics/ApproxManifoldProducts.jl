@@ -58,7 +58,6 @@ end
 
 BW[findfirst(CV .== maximum(CV))]
 
-# getBW(kde!(pts))[1,1]
 
 ## do the same with
 

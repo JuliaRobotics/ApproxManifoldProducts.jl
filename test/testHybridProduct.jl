@@ -36,6 +36,7 @@ KDE.setForceEvalDirect!(true)
     @test getBW(marginal(pq, [1;]))[1, 1] == getBW(pq)[1, 1]
     @test getBW(marginal(pq, [2;]))[1, 1] == getBW(pq)[2, 1]
 
+    # should this be .^2?
     @test 0 < getBW(pq)[1, 1] < 10.0
     @test 0 < getBW(pq)[2, 1] < 1.5
 end

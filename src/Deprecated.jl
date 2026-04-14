@@ -1,5 +1,29 @@
 
 
+# # can only do for Array, not view
+# function _setProductElements!(mdp::DensityProductElements{D}, 
+#                               prd::BallTreeDensity)
+#   #
+#   # also set the bandwidth
+#   dim = Ndim(prd)
+#   resize!(mdp.outBW, dim)
+
+#   npts = Npts(prd)
+#   for i in 1:
+#     mdp.outBW[:,i] .= getBW(prd)[:,1] # fix for all elements
+#   end
+
+#   # set kernel center elements
+#   resize!(mdp.outElements, )
+#   for i in 1:Npts(prd)
+#     resize!(mdp.outElements[i], dim)
+#     mdp.outElements[i][:] .= getPoints(prd, i)
+#   end
+
+#   #
+#   nothing
+# end
+
 # TODO is this function obsolete?
 # function getManifoldPartial(
 #     M::TranslationGroup{Tuple{N}},
