@@ -385,8 +385,10 @@ function splitPointsEigen(
             Manifolds.cov(M, r_PP; basis = DefaultLieAlgebraOrthogonalBasis()),
         )
     elseif 1 < len <= ndia
+        di = diag(Manifolds.cov(M, r_PP; basis = DefaultLieAlgebraOrthogonalBasis()))
+        sc = eps(Float64) # maximum(di) 
         SMatrix{D, D, Float64}(
-            diagm(diag(Manifolds.cov(M, r_PP; basis = DefaultLieAlgebraOrthogonalBasis()))),
+            diagm(di .+ ones(length(di)) * sc),
         )
     else
         SMatrix{D, D, Float64}(zeros(D, D))
