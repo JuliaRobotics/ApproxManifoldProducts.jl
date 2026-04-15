@@ -3,6 +3,25 @@
 ## helper functions to contruct MKD objects
 ## ==========================================================================================
 
+Ndim(x::ManifoldKernelDensity, w...; kw...) = Ndim(x.belief, w...; kw...)
+Npts(x::ManifoldKernelDensity, w...; kw...) = Npts(x.belief, w...; kw...)
+
+getWeights(x::ManifoldKernelDensity, w...; kw...) = getWeights(x.belief, w...; kw...)
+
+# getKDERange(x::ManifoldKernelDensity, w...; kw...) = getKDERange(x.belief, w...; kw...)
+# function getKDERange(x::AbstractVector{<:ManifoldKernelDensity}, w...; kw...)
+#     return getKDERange((s -> s.belief).(x), w...; kw...)
+# end
+# getKDEMax(x::ManifoldKernelDensity, w...; kw...) = getKDEMax(x.belief, w...; kw...)
+# getKDEMean(x::ManifoldKernelDensity, w...; kw...) = getKDEMean(x.belief, w...; kw...)
+# getKDEfit(x::ManifoldKernelDensity, w...; kw...) = getKDEfit(x.belief, w...; kw...)
+
+kld(x::ManifoldKernelDensity, w...; kw...) = kld(x.belief, w...; kw...)
+minkld(x::ManifoldKernelDensity, w...; kw...) = minkld(x.belief, w...; kw...)
+
+(x::ManifoldKernelDensity)(w...; kw...) = x.belief(w...; kw...)
+
+
 function ManifoldKernelDensity(
     mani::M,
     bel::B,
@@ -82,43 +101,6 @@ function ManifoldKernelDensity(
     )
 end
 
-function ManifoldKernelDensity(
-    M::MB.AbstractManifold,
-    vecP::AbstractVector{P},
-    u0 = vecP[1]; # vecP[1]
-    partial::L = nothing,
-    partl_cb::Union{Nothing, <:Function} = nothing,
-    infoPerCoord::AbstractVector{<:Real} = ones(getNumberCoords(M, u0)),
-    dims::Int = manifold_dimension(M),
-    bw::Union{<:AbstractVector{<:Real}, <:AbstractMatrix{<:Real}, Nothing} = nothing,
-    belmodel::Function = (a, b, aF, dF) ->
-        KernelDensityEstimate.kde!(a, collect(b), aF, dF), # collect(b) but error length(::Nothing)
-) where {P, L}
-    #
-    # FIXME obsolete
-    arr = Matrix{Float64}(undef, dims, length(vecP))
-
-    for j = 1:length(vecP)
-        arr[:, j] = makeCoordsFromPoint(M, vecP[j])
-    end
-
-    # FIXME ON FIRE REMOVE LEGACY
-    manis = _manifoldtuple(M)
-    # find or have the bandwidth
-    _bw = isnothing(bw) ? getKDEManifoldBandwidths(arr, manis) : bw
-    # NOTE workaround for partials and user did not specify a bw
-    if isnothing(bw) && !isnothing(partial)
-        mask = ones(Int, length(_bw)) .== 1
-        mask[partial] .= false
-        _bw[mask] .= 1.0
-    end
-    # FIXME ON FIRE REMOVE LEGACY
-    addopT, diffopT, _, _ = buildHybridManifoldCallbacks(manis)
-    bel = belmodel(arr, _bw, addopT, diffopT)
-    # bel = KernelDensityEstimate.kde!(arr, collect(_bw), addopT, diffopT)
-    return ManifoldKernelDensity(M, bel, partial, u0, infoPerCoord)
-end
-
 
 # previously manikde!_manellic
 function manikde!(
@@ -130,10 +112,6 @@ function manikde!(
     kw...
 )
     #
-
-    # NOTE, search for double-truth tag#NM345LKjoi4u$%#k90DSDFGd09D
-    #  legacy constructors resulted in creating this duplicate partial callbacks, 
-    #  but worried eventual manifold point reprs won't match (FIXME)
     M_, reprl, partl_cb = getManifoldPartial(M, partial, pts[1])
 
     mtree = ApproxManifoldProducts.buildTree_Manellic!(
@@ -175,18 +153,21 @@ function manikde!(
     end
     __partialCovToDefault!(best_cov)
 
-    # reuse (heavy lift parts of) earlier tree build
+    bel = updateBandwidths(mtree, best_cov; partl_cb)
+    infoPerCoord = ones(getNumberCoords(M, pts[1]))
     # return tree with correct bandwidth
-    # return manikde!_legacy(M, pts; belmodel = (ignore...) -> updateBandwidths(mtree, best_cov), partial, kw...)
-    ManifoldKernelDensity(
-        M, 
-        pts, 
-        pts[1]; 
-        belmodel = (ignore...) -> updateBandwidths(mtree, best_cov; partl_cb), 
-        partial, 
-        partl_cb,
-        kw...
-    )
+    return ManifoldKernelDensity(M, bel, partial, pts[1], infoPerCoord)
+    # # reuse (heavy lift parts of) earlier tree build
+    # # return manikde!_legacy(M, pts; belmodel = (ignore...) -> updateBandwidths(mtree, best_cov), partial, kw...)
+    # ManifoldKernelDensity(
+    #     M, 
+    #     pts, 
+    #     pts[1]; 
+    #     belmodel = (ignore...) -> updateBandwidths(mtree, best_cov; partl_cb), 
+    #     partial, 
+    #     partl_cb,
+    #     kw...
+    # )
 end
 
 ## ==========================================================================================
@@ -258,20 +239,6 @@ function getBandwidth(mkd::ManifoldKernelDensity, aspartial::Bool = true)
     return _getFieldPartials(mkd, x -> getBW(x)[1], aspartial)
 end
 
-# internal workaround function for building partial submanifold dimensions, must be upgraded/standarized
-function _buildManifoldPartial(fullM::MB.AbstractManifold, partial_coord_dims)
-    #
-    # temporary workaround during Manifolds.jl integration
-    manif = _manifoldtuple(fullM)[partial_coord_dims]
-    # 
-    newMani = MB.AbstractManifold[]
-    for me in manif
-        push!(newMani, _reducePartialManifoldElements(me))
-    end
-
-    # assume independent dimensions for definition, ONLY USED AS DECORATOR AT THIS TIME, FIXME
-    return ProductManifold(newMani...)
-end
 
 """
     $SIGNATURES
@@ -329,23 +296,6 @@ function getPoints(
     # return _matrixCoordsToPoints(M_, pts_, u0_)
 end
 
-function getPoints(
-    x::ManifoldKernelDensity{M, B, L},
-    aspartial::Bool = true;
-    permute::Bool = true,
-) where {M <: AbstractManifold, B <: BallTreeDensity, L <: AbstractVector{Int}}
-    #
-    pts = getPoints(x.belief, permute)
-
-    (M_, pts_, u0_) = if (L !== nothing) && aspartial
-        Mp, Rp, lkup = getManifoldPartial(x.manifold, x._partial, x._u0)
-        (Mp, view(pts, x._partial, :), Rp)
-    else
-        (x.manifold, pts, x._u0)
-    end
-
-    return _matrixCoordsToPoints(M_, pts_, u0_)
-end
 
 function getBW(
     x::ManifoldKernelDensity{M, B, L},
@@ -540,28 +490,6 @@ function Statistics.cov(
         kwargs...,
     )
 end
-# function Statistics.mean(mkd::ManifoldKernelDensity; kwargs...)
-#   return mean(mkd.manifold, getPoints(mkd); kwargs...)
-# end
-# function Statistics.cov(mkd::ManifoldKernelDensity; kwargs...) 
-#   cov(mkd.manifold, getPoints(mkd); kwargs...)
-# end
-# function Statistics.std(mkd::ManifoldKernelDensity; kwargs...)
-#   return std(mkd.manifold, getPoints(mkd); kwargs...)
-# end
-# function Statistics.var(mkd::ManifoldKernelDensity; kwargs...)
-#   return var(mkd.manifold, getPoints(mkd); kwargs...)
-# end
 
-## =======================================================================================
-##  deprecate as necessary below
-## =======================================================================================
-
-function Base.convert(
-    ::Type{B},
-    mkd::ManifoldKernelDensity{M, B},
-) where {M, B <: BallTreeDensity}
-    return mkd.belief
-end
 
 #

@@ -1,5 +1,157 @@
 
 
+
+# function ManifoldKernelDensity(
+#     M::MB.AbstractManifold,
+#     vecP::AbstractVector{P},
+#     u0 = vecP[1]; # vecP[1]
+#     partial::L = nothing,
+#     partl_cb::Union{Nothing, <:Function} = nothing,
+#     infoPerCoord::AbstractVector{<:Real} = ones(getNumberCoords(M, u0)),
+#     dims::Int = manifold_dimension(M),
+#     bw::Union{<:AbstractVector{<:Real}, <:AbstractMatrix{<:Real}, Nothing} = nothing,
+#     belmodel::Function = (a, b, aF, dF) ->
+#         KernelDensityEstimate.kde!(a, collect(b), aF, dF), # collect(b) but error length(::Nothing)
+# ) where {P, L}
+#     #
+#     # FIXME obsolete
+#     arr = Matrix{Float64}(undef, dims, length(vecP))
+
+#     for j = 1:length(vecP)
+#         arr[:, j] = makeCoordsFromPoint(M, vecP[j])
+#     end
+
+#     # FIXME ON FIRE REMOVE LEGACY
+#     manis = _manifoldtuple(M)
+#     # find or have the bandwidth
+#     _bw = isnothing(bw) ? getKDEManifoldBandwidths(arr, manis) : bw
+#     # NOTE workaround for partials and user did not specify a bw
+#     if isnothing(bw) && !isnothing(partial)
+#         mask = ones(Int, length(_bw)) .== 1
+#         mask[partial] .= false
+#         _bw[mask] .= 1.0
+#     end
+#     # FIXME ON FIRE REMOVE LEGACY
+#     addopT, diffopT, _, _ = buildHybridManifoldCallbacks(manis)
+#     bel = belmodel(arr, _bw, addopT, diffopT)
+#     # bel = KernelDensityEstimate.kde!(arr, collect(_bw), addopT, diffopT)
+#     return ManifoldKernelDensity(M, bel, partial, u0, infoPerCoord)
+# end
+
+# internal workaround function for building partial submanifold dimensions, must be upgraded/standarized
+# function _buildManifoldPartial(fullM::MB.AbstractManifold, partial_coord_dims)
+#     #
+#     # temporary workaround during Manifolds.jl integration
+#     manif = _manifoldtuple(fullM)[partial_coord_dims]
+#     # 
+#     newMani = MB.AbstractManifold[]
+#     for me in manif
+#         push!(newMani, _reducePartialManifoldElements(me))
+#     end
+
+#     # assume independent dimensions for definition, ONLY USED AS DECORATOR AT THIS TIME, FIXME
+#     return ProductManifold(newMani...)
+# end
+
+# function Statistics.mean(mkd::ManifoldKernelDensity; kwargs...)
+#   return mean(mkd.manifold, getPoints(mkd); kwargs...)
+# end
+# function Statistics.cov(mkd::ManifoldKernelDensity; kwargs...) 
+#   cov(mkd.manifold, getPoints(mkd); kwargs...)
+# end
+# function Statistics.std(mkd::ManifoldKernelDensity; kwargs...)
+#   return std(mkd.manifold, getPoints(mkd); kwargs...)
+# end
+# function Statistics.var(mkd::ManifoldKernelDensity; kwargs...)
+#   return var(mkd.manifold, getPoints(mkd); kwargs...)
+# end
+
+# function Base.convert(
+#     ::Type{B},
+#     mkd::ManifoldKernelDensity{M, B},
+# ) where {M, B <: BallTreeDensity}
+#     return mkd.belief
+# end
+
+# """
+# Likely new bug see KDE #70 
+# """
+# function _buildDensityProductElements(
+#     XX::AbstractVector{B};
+#     outName::Symbol = :product,
+#     inNames::Union{<:AbstractVector{Symbol}, NTuple{D, Symbol}} = [
+#         Symbol("belief$i") for i = 1:length(XX)
+#     ],
+#     inFctNames::Union{<:AbstractVector{Symbol}, NTuple{D, Symbol}} = [
+#         Symbol("factor$i") for i = 1:length(XX)
+#     ],
+#     _glbs = KDE.makeEmptyGbGlb(; recordChoosen = true),
+#     product::B = *(XX; glbs = _glbs, addEntropy = false),
+# ) where {B <: BallTreeDensity, D}
+#     #
+
+#     npts = Npts(product)
+#     ndim = Ndim(product)
+#     ndens = length(XX)
+
+#     # pts = getPoints(product)
+#     # @cast outArr[j][i] := pts[i,j]
+#     outArr = [getPoints(product, i) for i = 1:npts]
+#     bw = [getBW(product)[:, i] for i = 1:npts]
+#     lblComb = [zeros(Int, ndens) for i = 1:npts]
+
+#     # restructure points for incoming densities
+#     # indens = (XX...,)
+#     XXarr = [([getPoints(x, i) for i = 1:Npts(x)]) for x in XX]
+#     BWarr = [([getBW(x)[:, i] for i = 1:Npts(x)]) for x in XX]
+
+#     # build the object
+#     mdp = DensityProductElements(
+#         outArr,
+#         bw,
+#         outName,
+#         Ref(true),
+#         lblComb,
+#         (XXarr...,),
+#         (BWarr...,),
+#         (inNames...,),
+#         (inFctNames...,),
+#         Channel{Pair{Int, Int}}(100),
+#     )
+
+#     # set the labels selections used for current product
+#     if length(XX) == 1
+#         resize!(mdp.lblCombinations, npts)
+#         for i = 1:npts
+#             resize!(mdp.lblCombinations[i], 1)
+#             mdp.lblCombinations[i][1] = i
+#         end
+#     else
+#         _setLabelCombinations!(mdp, _glbs.labelsChoosen)
+#     end
+
+#     return mdp
+# end
+
+
+# function getPoints(
+#     x::ManifoldKernelDensity{M, B, L},
+#     aspartial::Bool = true;
+#     permute::Bool = true,
+# ) where {M <: AbstractManifold, B <: BallTreeDensity, L <: AbstractVector{Int}}
+#     #
+#     pts = getPoints(x.belief, permute)
+
+#     (M_, pts_, u0_) = if (L !== nothing) && aspartial
+#         Mp, Rp, lkup = getManifoldPartial(x.manifold, x._partial, x._u0)
+#         (Mp, view(pts, x._partial, :), Rp)
+#     else
+#         (x.manifold, pts, x._u0)
+#     end
+
+#     return _matrixCoordsToPoints(M_, pts_, u0_)
+# end
+
 # # can only do for Array, not view
 # function _setProductElements!(mdp::DensityProductElements{D}, 
 #                               prd::BallTreeDensity)

@@ -65,65 +65,7 @@ end
 
 ##
 
-"""
-Likely new bug see KDE #70 
-"""
-function _buildDensityProductElements(
-    XX::AbstractVector{B};
-    outName::Symbol = :product,
-    inNames::Union{<:AbstractVector{Symbol}, NTuple{D, Symbol}} = [
-        Symbol("belief$i") for i = 1:length(XX)
-    ],
-    inFctNames::Union{<:AbstractVector{Symbol}, NTuple{D, Symbol}} = [
-        Symbol("factor$i") for i = 1:length(XX)
-    ],
-    _glbs = KDE.makeEmptyGbGlb(; recordChoosen = true),
-    product::B = *(XX; glbs = _glbs, addEntropy = false),
-) where {B <: BallTreeDensity, D}
-    #
 
-    npts = Npts(product)
-    ndim = Ndim(product)
-    ndens = length(XX)
-
-    # pts = getPoints(product)
-    # @cast outArr[j][i] := pts[i,j]
-    outArr = [getPoints(product, i) for i = 1:npts]
-    bw = [getBW(product)[:, i] for i = 1:npts]
-    lblComb = [zeros(Int, ndens) for i = 1:npts]
-
-    # restructure points for incoming densities
-    # indens = (XX...,)
-    XXarr = [([getPoints(x, i) for i = 1:Npts(x)]) for x in XX]
-    BWarr = [([getBW(x)[:, i] for i = 1:Npts(x)]) for x in XX]
-
-    # build the object
-    mdp = DensityProductElements(
-        outArr,
-        bw,
-        outName,
-        Ref(true),
-        lblComb,
-        (XXarr...,),
-        (BWarr...,),
-        (inNames...,),
-        (inFctNames...,),
-        Channel{Pair{Int, Int}}(100),
-    )
-
-    # set the labels selections used for current product
-    if length(XX) == 1
-        resize!(mdp.lblCombinations, npts)
-        for i = 1:npts
-            resize!(mdp.lblCombinations[i], 1)
-            mdp.lblCombinations[i][1] = i
-        end
-    else
-        _setLabelCombinations!(mdp, _glbs.labelsChoosen)
-    end
-
-    return mdp
-end
 
 function _recalcProductKernel(mdp::DensityProductElements, idx::Int)
     #

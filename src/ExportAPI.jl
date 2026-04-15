@@ -22,13 +22,13 @@ export
     isPartial,
     calcProductGaussians
 
-export getPoints, getBW, Ndim, Npts
+export getPoints, getBW, Ndim, Npts, getWeights
 export getKDERange, getKDEMax, getKDEMean, getKDEfit
 export sample, rand, resample, kld, minkld
 export calcMean
 export mean, cov, std, var
 export getInfoPerCoord, getBandwidth
-export antimarginal
+export marginal, antimarginal
 
 export mmd!, mmd
 
