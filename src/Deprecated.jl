@@ -1,4 +1,277 @@
 
+
+# # can only do for Array, not view
+# function _setProductElements!(mdp::DensityProductElements{D}, 
+#                               prd::BallTreeDensity)
+#   #
+#   # also set the bandwidth
+#   dim = Ndim(prd)
+#   resize!(mdp.outBW, dim)
+
+#   npts = Npts(prd)
+#   for i in 1:
+#     mdp.outBW[:,i] .= getBW(prd)[:,1] # fix for all elements
+#   end
+
+#   # set kernel center elements
+#   resize!(mdp.outElements, )
+#   for i in 1:Npts(prd)
+#     resize!(mdp.outElements[i], dim)
+#     mdp.outElements[i][:] .= getPoints(prd, i)
+#   end
+
+#   #
+#   nothing
+# end
+
+# TODO is this function obsolete?
+# function getManifoldPartial(
+#     M::TranslationGroup{Tuple{N}},
+#     partial::AbstractVector{Int},
+#     repr::_PartiableRepresentationFlat{T} = nothing,
+#     offset::Base.RefValue{Int} = Ref(0);
+#     doError::Bool = true,
+# ) where {N, T <: Number}
+#     #
+#     mask = _checkManifoldPartialDims(M, partial, offset, doError)
+#     offset[] += manifold_dimension(M)
+#     len = sum(mask)
+#     repr_p = repr === nothing ? nothing : zeros(T, len)
+#     return (TranslationGroup(len), repr_p)
+# end
+
+# function getManifoldPartial(M::AbstractLieGroup, 
+#                             partial::AbstractVector{<:Integer}, 
+#                             repr::_PartiableRepresentation=nothing,
+#                             offset::Base.RefValue{<:Integer}=Ref(0);
+#                             doError::Bool=true )
+#   #
+#   # mask the desired coordinate dimensions
+#   mask = _checkManifoldPartialDims(M,partial,offset, doError)
+
+#   if sum(mask) == manifold_dimension(M)
+#     # asking for all coordinate dimensions as offered by M
+#     return (M,repr)
+#   end
+#   # recursion may need to branch for ProductManifold
+#   # Note loss of the Group operation information at this time
+#   getManifoldPartial(M.manifold, partial, repr, offset, doError=doError)
+# end
+
+# # TODO, deprecate convert approach and using constructor helpers instead
+# function convert(
+#     ::Type{MvNormalKernel{
+#         ApproxManifoldProducts.DensityKernel{
+#             L,
+#             MvNormal{F,P,Z},
+#             S
+#         }
+#     }},
+#     src::MvNormalKernel,
+# ) where {L,F,P,Z,S}
+
+#     _matType(::Type{Distributions.PDMats.PDMat{_F, _M}}) where {_F, _M} = _M
+#     _sap(::Type{ArrayPartition{T,_S}}) where {T,_S} = _S
+#     _new(s) = S(s)
+#     _new(s::ArrayPartition{T,O}) where {T,O} = ArrayPartition(begin
+#         S_ = _sap(S)
+#         [S_.parameters[i](v) for (i,v) in enumerate(s.x)]
+#     end...)
+
+#     m = _new(src.shim.params)
+
+#     MvNormalKernel(
+#         m,
+#         _matType(P)(cov(src.shim.functional)),
+#         src.shim.weight;
+#         partial = L,
+#         # partl_cb,
+#     )
+# end
+
+
+# function MvNormalKernel(
+#     μ::AbstractArray, 
+#     σ::AbstractArray, 
+#     weight::Real = 1.0
+# )
+#     c_(s::AbstractMatrix) = s
+#     c_(s::AbstractVector) = diagm(s)
+#     Σ = c_(σ)
+#     _c = projectSymPosDef(Σ)
+#     p = MvNormal(_c)
+#     # NOTE, TBD, why not sqrt(inv(p.Σ)), this had an issue seemingly internal to PDMat.chol which breaks an already forced SymPD matrix to again be not SymPD???
+#     sqrt_iΣ = sqrt(inv(_c))
+#     return MvNormalKernel(; μ, p, sqrt_iΣ, weight = float(weight))
+# end
+
+# # case for different types requiring conversion
+# function Base.convert(
+#     ::Type{MvNormalKernel{T}},
+#     src::MvNormalKernel,
+# ) where {T}
+#     #
+#     _matType(::Type{Distributions.PDMats.PDMat{_F, _M}}) where {_F, _M} = _M
+#     μ = convert(P, src.μ) # P(src.μ)
+#     p = MvNormal(_matType(M)(cov(src.p)))
+#     # sqrt_iΣ = iM(src.sqrt_iΣ)
+#     return MvNormalKernel(μ, p, src.weight)
+# end
+
+# function marginal(
+#     x::ManifoldKernelDensity{M, B, L},
+#     dims::AbstractVector{<:Integer},
+# ) where {M <: AbstractManifold, B, L <: AbstractVector{<:Integer}}
+#     #
+#     ldims::Vector{Int} = intersect(x._partial, dims)
+#     return ManifoldKernelDensity(x.manifold, x.belief, ldims, x._u0)
+# end
+# # manis = convert(Tuple, x.manifold)
+# # partMani = _reducePartialManifoldElements(manis[dims])
+# # pts = getPoints(x)
+
+# @kwdef struct MvNormalKernel{P, T, M, iM} <: AbstractKernel
+#     """ On-manifold point representing center (mean) of the MvNormal distribution """
+#     μ::P
+#     """ Zero-mean normal distribution with covariance """
+#     p::MvNormal{T, M}
+#     # TDB might already be covered in p.Σ.chol but having issues with SymPD (not particular to this AMP repo)
+#     """ Manually maintained square root concentration matrix for faster compute, TODO likely duplicate of existing Distrubtions.jl functionality. """
+#     sqrt_iΣ::iM = sqrt(inv(cov(p)))
+#     """ Nonparametric weight value """
+#     weight::Float64 = 1.0
+# end
+
+
+# # deprecated as legacy and replaced by previously called manikde!_manellic
+# function manikde!(
+#     M::MB.AbstractManifold,
+#     vecP::AbstractVector{P},
+#     u0::P = vecP[1];
+#     kw...,
+# ) where {P}
+#     return ManifoldKernelDensity(M, vecP, u0; kw...)
+# end
+
+
+# """
+#     $SIGNATURES
+
+# Once a Gibbs product is available, this function can be used to update the product assuming some change to the input
+# to some or some or all of the input density kernels.
+
+# Notes
+# - This function does not resample a new posterior sample pairing of inputs, only updates with existing 
+# """
+# function _updateMetricTreeDensityProduct( npd0::BallTreeDensity,
+#                                           trees::Array{BallTreeDensity,1},
+#                                           anFcns,
+#                                           anParams;
+#                                           Niter::Int=3,
+#                                           addop::Tuple=(+,),
+#                                           diffop::Tuple=(-,),
+#                                           getMu::Tuple=(getEuclidMu,),
+#                                           getLambda::T4=(getEuclidLambda,),
+#                                           glbs = makeEmptyGbGlb(),
+#                                           addEntropy::Bool=true )
+#   #
+
+# end
+
+
+
+# # default replace non-partial/non-marginal values
+# # Trivial case where no information from destination is kept, only from src.
+# function Base.replace(
+#     ::ManifoldKernelDensity{M, B, Nothing},
+#     src::ManifoldKernelDensity{M, B, Nothing},
+# ) where {M <: AbstractManifold, B}
+#     #
+#     return src
+# end
+
+# # replace dest non-partial with incoming partial values
+# function Base.replace(
+#     dest::ManifoldKernelDensity{M, B, Nothing},
+#     src::ManifoldKernelDensity{M, B, <:AbstractVector},
+# ) where {M <: AbstractManifold, B}
+#     #
+#     pl = src._partial
+#     # FIXME what about 
+#     destPts = getPoints(dest.belief)
+#     # get source partial points only 
+#     newPts = getPoints(src.belief)
+#     @assert size(destPts, 2) <= size(newPts, 2) "MKD replace currently requires the number of points to be the same, dest=$(size(destPts,2)), src=$(size(newPts,2))"
+#     # TODO use eachindex or axes instead of 1:size
+#     for i = 1:size(destPts, 2)
+#         destPts[pl, i] .= newPts[pl, i]
+#     end
+#     # and new bandwidth
+#     oldBw = getBW(dest.belief)[:, 1]
+#     oldBw[pl] .= getBW(src.belief)[pl, 1]
+
+#     # finaly update the belief with a new container
+#     newBel = kde!(destPts, oldBw)
+
+#     # also set the metadata values
+#     ipc = deepcopy(dest.infoPerCoord)
+#     ipc[pl] .= src.infoPerCoord[pl]
+
+#     # and _u0 point is a bit more tricky
+#     c0 = collect(vee(dest.manifold, dest._u0, log(dest.manifold, dest._u0, dest._u0)))
+#     c_ = vee(dest.manifold, dest._u0, log(dest.manifold, dest._u0, src._u0))
+#     c0[pl] .= c_[pl]
+#     u0 = exp(dest.manifold, dest._u0, hat(dest.manifold, dest._u0, c0))
+
+#     # return the update destimation ManifoldKernelDensity object
+#     return ManifoldKernelDensity(dest.manifold, newBel, nothing, u0; infoPerCoord = ipc)
+# end
+
+# # replace partial/marginal with different incoming partial values
+# function Base.replace(
+#     dest::ManifoldKernelDensity{M, B, <:AbstractVector},
+#     src::ManifoldKernelDensity{M, B, <:AbstractVector},
+# ) where {M <: AbstractManifold, B}
+#     #
+#     pl = src._partial
+#     destPts = getPoints(dest.belief)
+#     # get source partial points only 
+#     newPts = getPoints(src.belief)
+#     @assert size(newPts, 2) == size(destPts, 2) "this replace currently requires the number of points to be the same, dest=$(size(destPts,2)), src=$(size(newPts,2))"
+#     for i = 1:size(destPts, 2)
+#         destPts[pl, i] .= newPts[pl, i]
+#     end
+#     # and new bandwidth
+#     oldBw = getBW(dest.belief)[:, 1]
+#     oldBw[pl] .= getBW(src.belief)[pl, 1]
+
+#     # finaly update the belief with a new container
+#     newBel = kde!(destPts, oldBw)
+
+#     # also set the metadata values
+#     ipc = deepcopy(dest.infoPerCoord)
+#     ipc[pl] .= src.infoPerCoord[pl]
+
+#     # and _u0 point is a bit more tricky
+#     c0 = vee(dest.manifold, dest._u0, log(dest.manifold, dest._u0, dest._u0))
+#     c_ = vee(dest.manifold, dest._u0, log(dest.manifold, dest._u0, src._u0))
+#     c0[pl] .= c_[pl]
+#     u0 = exp(dest.manifold, dest._u0, hat(dest.manifold, dest._u0, c0))
+
+#     # and update the partial information
+#     pl_ = union(dest._partial, pl)
+
+#     # return the update destimation ManifoldKernelDensity object
+#     if length(pl_) == manifold_dimension(dest.manifold)
+#         # no longer a partial/marginal
+#         return ManifoldKernelDensity(dest.manifold, newBel, nothing, u0; infoPerCoord = ipc)
+#     else
+#         # still a partial
+#         return ManifoldKernelDensity(dest.manifold, newBel, pl_, u0; infoPerCoord = ipc)
+#     end
+# end
+
+
 ## ======================================================================================================
 ## Remove below before v0.10
 ## ======================================================================================================

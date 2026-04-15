@@ -9,22 +9,56 @@ function ManifoldKernelDensity(
     ::Nothing = nothing,
     u0::P = zeros(manifold_dimension(mani));
     infoPerCoord::AbstractVector{<:Real} = ones(getNumberCoords(mani, u0)),
-) where {M <: MB.AbstractManifold, B <: BallTreeDensity, P}
+    partl_cb::Nothing = nothing,
+) where {M <: MB.AbstractManifold, B <: TreeDensity, P}
     return ManifoldKernelDensity{M, B, Nothing, P}(mani, bel, nothing, u0, infoPerCoord)
 end
-#
+
 
 function ManifoldKernelDensity(
     mani::M,
     bel::B,
-    partial::L,
+    partial_::L,
     u0::P = zeros(manifold_dimension(mani));
     infoPerCoord::AbstractVector{<:Real} = ones(getNumberCoords(mani, u0)),
-) where {M <: MB.AbstractManifold, B <: BallTreeDensity, L <: AbstractVector{<:Integer}, P}
+    partl_cb::Union{Nothing, <:Function} = nothing,
+) where {M <: MB.AbstractManifold, B <: TreeDensity, L <: AbstractVector{<:Integer}, P}
     #
+    if isnothing(partl_cb)
+        @warn "WIP partl_cb on MKD constructor helper" maxlog=100
+    end
+    partial = _tuple(partial_)
     if length(partial) != manifold_dimension(mani)
+        # TODO, assuming there are tree and leaf nodes at [1]...
+        # @show getKernelTree(bel, 1)
+
+        _tkT() = _intersectpartials(mani, getKernelTree(bel, 1), partial) |> typeof
+        _lkT() = _intersectpartials(mani, getKernelLeaf(bel, 1), partial) |> typeof
+        tree_kernels  = SizedVector{length(bel.tree_kernels), _tkT()}(undef)
+        leaf_kernels  = SizedVector{length(bel.leaf_kernels), _lkT()}(undef)
+        tkm = (s->isassigned(bel.tree_kernels, s)).(1:length(bel.tree_kernels))
+        lkm = (s->isassigned(bel.leaf_kernels, s)).(1:length(bel.leaf_kernels))
+        tree_kernels_ = view(tree_kernels, tkm)
+        leaf_kernels_ = view(leaf_kernels, lkm)
+        tree_kernels_ .= _intersectpartials.(Ref(mani), view(bel.tree_kernels, tkm), Ref(partial), partl_cb)
+        leaf_kernels_ .= _intersectpartials.(Ref(mani), view(bel.leaf_kernels, lkm), Ref(partial), partl_cb)
+        # FIXME update belief to have correct partials
+        bel_ = ManellicTree(
+            bel.manifold,
+            bel.data,
+            bel.weights,
+            bel.permute,
+            leaf_kernels,
+            tree_kernels,
+            bel.segments,
+            bel._workaround_isdef_leafkernel,
+            bel._workaround_isdef_treekernel,
+        )
+
         # call the constructor direct
-        return ManifoldKernelDensity{M, B, L, P}(mani, bel, partial, u0, infoPerCoord)
+        # TODO remove _makevec on partials, here and everywhere really.
+        return ManifoldKernelDensity{M, typeof(bel_), L, P}(mani, bel_, _makevec(partial), u0, infoPerCoord)
+        # return ManifoldKernelDensity{M, B, L, P}(mani, bel, partial_, u0, infoPerCoord)
     else
         # full manifold, therefore equivalent to L::Nothing
         return ManifoldKernelDensity(mani, bel, nothing, u0; infoPerCoord = infoPerCoord)
@@ -37,7 +71,8 @@ function ManifoldKernelDensity(
     pl_mask::Union{<:BitVector, <:AbstractVector{<:Bool}},
     u0::P = zeros(manifold_dimension(mani));
     infoPerCoord::AbstractVector{<:Real} = ones(getNumberCoords(mani, u0)),
-) where {M <: MB.AbstractManifold, B <: BallTreeDensity, P}
+) where {M <: MB.AbstractManifold, B <: TreeDensity, P}
+    @warn "This constructor is not recommended, as partials have changed somewhat -- possibly erroneous code here..." maxlog=100
     return ManifoldKernelDensity(
         mani,
         bel,
@@ -52,6 +87,7 @@ function ManifoldKernelDensity(
     vecP::AbstractVector{P},
     u0 = vecP[1]; # vecP[1]
     partial::L = nothing,
+    partl_cb::Union{Nothing, <:Function} = nothing,
     infoPerCoord::AbstractVector{<:Real} = ones(getNumberCoords(M, u0)),
     dims::Int = manifold_dimension(M),
     bw::Union{<:AbstractVector{<:Real}, <:AbstractMatrix{<:Real}, Nothing} = nothing,
@@ -83,38 +119,43 @@ function ManifoldKernelDensity(
     return ManifoldKernelDensity(M, bel, partial, u0, infoPerCoord)
 end
 
-# MAYBE deprecate name
+
+# previously manikde!_manellic
 function manikde!(
-    M::MB.AbstractManifold,
-    vecP::AbstractVector{P},
-    u0::P = vecP[1];
-    kw...,
-) where {P}
-    return ManifoldKernelDensity(M, vecP, u0; kw...)
-end
-
-#
-
-function manikde!_manellic(
     M::AbstractManifold,
     pts::AbstractVector;
     bw = diagm(ones(manifold_dimension(M))),
     algo = Optim.NelderMead(),
+    partial::Union{Nothing, AbstractVector{<:Integer}} = nothing,
+    kw...
 )
     #
+
+    # NOTE, search for double-truth tag#NM345LKjoi4u$%#k90DSDFGd09D
+    #  legacy constructors resulted in creating this duplicate partial callbacks, 
+    #  but worried eventual manifold point reprs won't match (FIXME)
+    M_, reprl, partl_cb = getManifoldPartial(M, partial, pts[1])
 
     mtree = ApproxManifoldProducts.buildTree_Manellic!(
         M,
         pts;
         kernel_bw = bw,
         kernel = AMP.MvNormalKernel,
+        partial,
+        partl_cb,
     )
+
+    # mask bw for partially excluded dimensions -- assumed 1.0 from legacy but...
+    __partialCovToDefault!(s) = _partialCovToDefault!(partial, s)
 
     # Cost function to optimize
     # avoid rebuilding tree at each optim iteration!!!
-    _cost(σ::Real) = entropy(mtree, [σ^2;;]) # reshape(σ,manifold_dimension(M),1))
-    _cost(σ::AbstractVector) = entropy(mtree, diagm(σ .^ 2)) # reshape(σ,manifold_dimension(M),1))
-    _cost(σ::AbstractMatrix) = entropy(mtree, σ .^ 2) # reshape(σ,manifold_dimension(M),1))
+    _cost(σ::Real) =           entropy(mtree,       [σ^2;;]                 )
+    _cost(σ::AbstractVector) = entropy(mtree, diagm(__partialCovToDefault!(σ .^ 2)))
+    _cost(σ::AbstractMatrix) = entropy(mtree,       __partialCovToDefault!(σ ^ 2)  )
+
+    _bw(v::AbstractVector) = __partialCovToDefault!(v)
+    _bw(m::AbstractMatrix) = _bw(diag(m))
 
     # optimize for best LOOCV bandwidth
     # FIXME switch to RLM (or other Manopt) techinque instead 
@@ -127,20 +168,54 @@ function manikde!_manellic(
     else
         res = Optim.optimize(
             _cost,
-            diag(bw), # FIXME Optim API issue, if using bw::matrix then steps not PDMat (NelderMead) 
+            _bw(bw), # FIXME Optim API issue, if using bw::matrix then steps not PDMat (NelderMead) 
             algo,
         )
         diagm(abs.(Optim.minimizer(res)))
     end
+    __partialCovToDefault!(best_cov)
 
     # reuse (heavy lift parts of) earlier tree build
     # return tree with correct bandwidth
-    return manikde!(M, pts; belmodel = (ignore...) -> updateBandwidths(mtree, best_cov))
+    # return manikde!_legacy(M, pts; belmodel = (ignore...) -> updateBandwidths(mtree, best_cov), partial, kw...)
+    ManifoldKernelDensity(
+        M, 
+        pts, 
+        pts[1]; 
+        belmodel = (ignore...) -> updateBandwidths(mtree, best_cov; partl_cb), 
+        partial, 
+        partl_cb,
+        kw...
+    )
 end
 
 ## ==========================================================================================
 ## a few utilities
 ## ==========================================================================================
+
+
+
+# partial (i.e. active) coordinate dimensions are left unchanged, while inactive 
+# dimensions are set to default values (1.0 for variances, 0.0 for covariances)
+_partialCovToDefault!(::Nothing, s) = s
+function _partialCovToDefault!(p::Union{<:Tuple, <:AbstractVector{<:Integer}}, v::AbstractVector)
+    mask = ones(Int, length(v)) .== 1
+    mask[p] .= false
+    v[mask] .= 1.0
+    return v
+end
+function _partialCovToDefault!(p::Union{<:Tuple, <:AbstractVector{<:Integer}}, m::AbstractMatrix)
+    for i in axes(m, 1)
+        for j in axes(m, 2)
+            if !(i in p) || !(j in p)
+                # default values for inactive elements of covariance matrix
+                m[i,j] = i == j ? Inf : 0.0
+            end
+            # else leave row and column unchanged
+        end
+    end
+    return m
+end
 
 function _getFieldPartials(
     mkd::ManifoldKernelDensity{M, B, Nothing},
@@ -155,20 +230,22 @@ function _getFieldPartials(
     field::Function,
     aspartial::Bool = true,
 ) where {M, B}
+    _length(x::AbstractMatrix) = length(diag(x))
+    _length(x::AbstractVector) = length(x)
     val = field(mkd)
-    if aspartial && (length(val) == length(mkd._partial))
+    if aspartial && (_length(val) == length(mkd._partial))
         return val
-    elseif !aspartial && (length(val) == length(mkd._partial))
+    elseif !aspartial && (_length(val) == length(mkd._partial))
         val_ = zeros(manifold_dimension(mkd.manifold))
         val_[mkd._partial] .= val
         return val_
-    elseif aspartial && (length(val) == manifold_dimension(mkd.manifold))
+    elseif aspartial && (_length(val) == manifold_dimension(mkd.manifold))
         return val[mkd._partial]
-    elseif !aspartial && (length(val) == manifold_dimension(mkd.manifold))
+    elseif !aspartial && (_length(val) == manifold_dimension(mkd.manifold))
         return val
     else
         error(
-            "unknown size MKD.$(field) with partial length=$(length(mkd._partial)) vs length=$(length(val)) --- and value=$val",
+            "unknown size MKD.$(field) with partial length=$(length(mkd._partial)) vs length=$(_length(val)) --- and value=$val",
         )
     end
 end
@@ -178,7 +255,7 @@ function getInfoPerCoord(mkd::ManifoldKernelDensity, aspartial::Bool = true)
 end
 
 function getBandwidth(mkd::ManifoldKernelDensity, aspartial::Bool = true)
-    return _getFieldPartials(mkd, x -> getBW(x)[:, 1], aspartial)
+    return _getFieldPartials(mkd, x -> getBW(x)[1], aspartial)
 end
 
 # internal workaround function for building partial submanifold dimensions, must be upgraded/standarized
@@ -218,20 +295,50 @@ DevNotes
 """
 function getPoints(
     x::ManifoldKernelDensity{M, B},
-    ::Bool = true,
+    ::Bool = true; # aspartial unused
+    permute::Bool = true,
 ) where {M <: AbstractManifold, B}
-    return _matrixCoordsToPoints(x.manifold, getPoints(x.belief), x._u0)
+    return getPoints(x.belief; permute)
+    # return _matrixCoordsToPoints(x.manifold, getPoints(x.belief), x._u0)
+end
+
+
+function getPoints(
+    x::ManifoldKernelDensity{M, B, L},
+    aspartial::Bool = true;
+    permute::Bool = true,
+) where {M <: AbstractManifold, B <: ManellicTree, L <: AbstractVector{Int}}
+    #
+    pts = getPoints(x.belief; permute)
+
+    if (L === nothing) && !aspartial
+        error("MKD getPoints aspartial=true but MKD is not partial")
+        return pts
+    end
+
+    Mp, Rp, lkup = getManifoldPartial(x.manifold, x._partial, x._u0)
+
+    vecP = Vector{typeof(Rp)}(undef, length(pts))
+    for (j,pt) in enumerate(pts)
+        vecP[j] =  lkup(pt)
+    end
+    return vecP
+
+    # (x.manifold, x._u0)
+    # x._partial
+    # return _matrixCoordsToPoints(M_, pts_, u0_)
 end
 
 function getPoints(
     x::ManifoldKernelDensity{M, B, L},
-    aspartial::Bool = true,
-) where {M <: AbstractManifold, B, L <: AbstractVector{Int}}
+    aspartial::Bool = true;
+    permute::Bool = true,
+) where {M <: AbstractManifold, B <: BallTreeDensity, L <: AbstractVector{Int}}
     #
-    pts = getPoints(x.belief)
+    pts = getPoints(x.belief, permute)
 
     (M_, pts_, u0_) = if (L !== nothing) && aspartial
-        Mp, Rp = getManifoldPartial(x.manifold, x._partial, x._u0)
+        Mp, Rp, lkup = getManifoldPartial(x.manifold, x._partial, x._u0)
         (Mp, view(pts, x._partial, :), Rp)
     else
         (x.manifold, pts, x._u0)
@@ -245,11 +352,11 @@ function getBW(
     asPartial::Bool = true;
     kw...,
 ) where {M, B, L}
-    bw = getBW(x.belief; kw...)
+    bws = getBW(x.belief; kw...)
     if L !== Nothing && asPartial
-        return view(bw, x._partial)
+        return (bw->view(bw, x._partial)).(bws)
     end
-    return bw
+    return bws
 end
 
 # TODO check that partials / marginals are sampled correctly
@@ -317,7 +424,7 @@ function Base.show(io::IO, mkd::ManifoldKernelDensity{M, B, L, P}) where {M, B, 
     printstyled(io, isPartial(mkd) ? "* --> $(length(mkd._partial))" : ""; bold = true)
     println(io)
     println(io, "  prtl:   ", mkd._partial)
-    bw = getBW(mkd.belief)[:, 1]
+    bw = (getBW(mkd.belief).^2)[:, 1]
     pvec = isPartial(mkd) ? mkd._partial : collect(1:length(bw))
     println(io, "  bws:   ", getBandwidth(mkd, true) |> x -> _round(x; digits = 4)) # .|> x->round(x,digits=4))
     println(io, "  ipc:   ", getInfoPerCoord(mkd, true) .|> x -> round(x; digits = 4))
@@ -351,21 +458,10 @@ function marginal(
     dims::AbstractVector{<:Integer},
 ) where {M <: AbstractManifold, B}
     #
-    ldims::Vector{Int} = collect(dims)
+    ldims::Vector{Int} = _makevec(_intersect(x._partial, collect(dims)))
     return ManifoldKernelDensity(x.manifold, x.belief, ldims, x._u0)
 end
 
-function marginal(
-    x::ManifoldKernelDensity{M, B, L},
-    dims::AbstractVector{<:Integer},
-) where {M <: AbstractManifold, B, L <: AbstractVector{<:Integer}}
-    #
-    ldims::Vector{Int} = intersect(x._partial, dims)
-    return ManifoldKernelDensity(x.manifold, x.belief, ldims, x._u0)
-end
-# manis = convert(Tuple, x.manifold)
-# partMani = _reducePartialManifoldElements(manis[dims])
-# pts = getPoints(x)
 
 """
     $SIGNATURES
@@ -407,6 +503,55 @@ function antimarginal(
 
     return manikde!(newM, nPts, u0; bw, partial = finalpartial, infoPerCoord = ipc)
 end
+
+
+
+function Statistics.mean(mkd::ManifoldKernelDensity, aspartial::Bool = true; kwargs...)
+    return mean(
+        _getManifoldFullOrPart(mkd, aspartial),
+        getPoints(mkd, aspartial),
+        GeodesicInterpolation();
+        kwargs...,
+    )
+end
+"""
+    $SIGNATURES
+
+Alias for overloaded `Statistics.mean`.
+"""
+calcMean(mkd::ManifoldKernelDensity, aspartial::Bool = true) = mean(mkd, aspartial)
+
+function Statistics.std(mkd::ManifoldKernelDensity, aspartial::Bool = true; kwargs...)
+    return std(_getManifoldFullOrPart(mkd, aspartial), getPoints(mkd, aspartial); kwargs...)
+end
+function Statistics.var(mkd::ManifoldKernelDensity, aspartial::Bool = true; kwargs...)
+    return var(_getManifoldFullOrPart(mkd, aspartial), getPoints(mkd, aspartial); kwargs...)
+end
+function Statistics.cov(
+    mkd::ManifoldKernelDensity,
+    aspartial::Bool = true;
+    basis::ManifoldsBase.AbstractBasis = DefaultOrthogonalBasis(),
+    kwargs...,
+)
+    return cov(
+        _getManifoldFullOrPart(mkd, aspartial),
+        getPoints(mkd, aspartial);
+        basis,
+        kwargs...,
+    )
+end
+# function Statistics.mean(mkd::ManifoldKernelDensity; kwargs...)
+#   return mean(mkd.manifold, getPoints(mkd); kwargs...)
+# end
+# function Statistics.cov(mkd::ManifoldKernelDensity; kwargs...) 
+#   cov(mkd.manifold, getPoints(mkd); kwargs...)
+# end
+# function Statistics.std(mkd::ManifoldKernelDensity; kwargs...)
+#   return std(mkd.manifold, getPoints(mkd); kwargs...)
+# end
+# function Statistics.var(mkd::ManifoldKernelDensity; kwargs...)
+#   return var(mkd.manifold, getPoints(mkd); kwargs...)
+# end
 
 ## =======================================================================================
 ##  deprecate as necessary below

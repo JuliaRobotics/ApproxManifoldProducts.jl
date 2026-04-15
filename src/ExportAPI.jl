@@ -31,3 +31,10 @@ export getInfoPerCoord, getBandwidth
 export antimarginal
 
 export mmd!, mmd
+
+# partial specific functions
+export getManifoldPartial
+
+
+## TODO, export
+# export DensityKernel, ConcentratedGaussianKernel

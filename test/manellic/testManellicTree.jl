@@ -9,7 +9,7 @@ using TensorCast
 using Manifolds
 import Rotations as Rot_
 using Distributions
-import ApproxManifoldProducts: ManellicTree, eigenCoords, splitPointsEigen
+import ApproxManifoldProducts: ManellicTree, eigenCoords!, splitPointsEigen
 
 using Optim
 
@@ -20,17 +20,17 @@ using JSON3
 DATADIR = joinpath(dirname(@__DIR__), "testdata")
 
 # test 
-function testEigenCoords(r_C = pi / 3, ax_CC = [SA[5 * randn(); randn()] for _ = 1:100])
+function testEigenCoords!(r_C = pi / 3, ax_CC = [SA[5 * randn(); randn()] for _ = 1:100])
     M = TranslationGroup(2)
     _R(α, s = exp(-α * im)) = real(s) * SA[1 0; 0 1] + imag(s) * SA[0 1; -1 0]
     # _R(α) = SA[cos(α) sin(α); -sin(α) cos(α)]
     r_R_ax = _R(r_C)
     # rotate coordinates
     r_CC = map(ax_CC) do ax_C
-        return r_R_ax * ax_C + SA[10; -100]
+        r_R_ax * ax_C + SA[10; -100]
     end
     r_CV = Manifolds.cov(M, r_CC)
-    r_R_ax_, L, pidx = ApproxManifoldProducts.eigenCoords(r_CV)
+    r_R_ax_, L, pidx = ApproxManifoldProducts.eigenCoords!(r_CV)
 
     # spot check
     @show _ax_ERR = log_lie(SpecialOrthogonalGroup(2), (r_R_ax_') * r_R_ax)[1, 2]
@@ -46,7 +46,7 @@ end
 
     M = TranslationGroup(2)
     α = pi / 3
-    r_CC, R, pidx, r_CV = testEigenCoords(α)
+    r_CC, R, pidx, r_CV = testEigenCoords!(α)
     ax_CCp, mask, knl = splitPointsEigen(M, r_CC)
     @test sum(mask) == (length(r_CC) ÷ 2)
     @test knl isa ApproxManifoldProducts.MvNormalKernel
@@ -332,14 +332,14 @@ end
 
     @test isapprox(pdf(MvNormal(cov(ker)), [0, 0, 0]), AMP.evaluate(M, ker, p))
 
-    X = log(M, ε, Manifolds.compose(M, inv(M, p), q))
+    X = log(M, ε, LieGroups.compose(M, inv(M, p), q))
     Xc_e = vee(M, ε, X)
     pdf_local_coords = pdf(MvNormal(cov(ker)), Xc_e)
 
     @test isapprox(pdf_local_coords, AMP.evaluate(M, ker, q))
 
     delta_c = AMP.distanceMalahanobisCoordinates(M, ker, q)
-    X = log(M, ε, Manifolds.compose(M, inv(M, p), q))
+    X = log(M, ε, LieGroups.compose(M, inv(M, p), q))
     Xc_e = vee(M, ε, X)
     malad_t = Xc_e' * inv(kercov) * Xc_e
     # delta_t = [10, 20, 0.1] - [10, 22, -0.1] 
@@ -464,7 +464,7 @@ end
     θs = -0.3:0.01:0.3
 
     grid_points = map(Iterators.product(xs, ys, θs)) do (x, y, θ)
-        return exp(M, ε, hat(M, ε, SVector(x, y, θ)))
+        exp(M, ε, hat(M, ε, SVector(x, y, θ)))
     end
 
     # use_global_coords = true
@@ -476,7 +476,7 @@ end
             Xc_e = vee(M, ε, X)
             pdf(MvNormal(cov(kerp)), Xc_e)
         else
-            X = log(M, ε, Manifolds.compose(M, inv(M, p), gp))
+            X = log(M, ε, LieGroups.compose(M, inv(M, p), gp))
             Xc_e = vee(M, ε, X)
             pdf(MvNormal(cov(kerp)), Xc_e)
         end
@@ -488,7 +488,7 @@ end
             Xc_e = vee(M, ε, X)
             pdf(MvNormal(cov(kerq)), Xc_e)
         else
-            X = log(M, ε, Manifolds.compose(M, inv(M, q), gp))
+            X = log(M, ε, LieGroups.compose(M, inv(M, q), gp))
             Xc_e = vee(M, ε, X)
             pdf(MvNormal(cov(kerq)), Xc_e)
         end
@@ -499,14 +499,14 @@ end
     # pdf_pqs .*= 15.9672
 
     amp_ps = map(grid_points) do gp
-        return AMP.evaluate(M, kerp, gp)
+        AMP.evaluate(M, kerp, gp)
     end
     amp_qs = map(grid_points) do gp
-        return AMP.evaluate(M, kerq, gp)
+        AMP.evaluate(M, kerq, gp)
     end
 
     amp_pqs = map(grid_points) do gp
-        return AMP.evaluate(M, kerpq, gp)
+        AMP.evaluate(M, kerpq, gp)
     end
 
     amp_bf_pqs = amp_ps .* amp_qs
@@ -542,7 +542,7 @@ end
     gl_kerpq = calcProductGaussians(M, [gl_kerp, gl_kerq])
 
     amp_gl_pqs = map(grid_points) do gp
-        return AMP.evaluate(M, gl_kerpq, gp)
+        AMP.evaluate(M, gl_kerpq, gp)
     end
 
     lines(xs, normalize(pdf_pqs[:, 60, 30]))
@@ -1073,220 +1073,6 @@ end
 # f[1, 2] = Legend(f, ax, "Entropy R&D", framevisible = false)
 # f
 
-##
 
-@testset "Test utility functions for Gaussian products, TranslationGroup(1)" begin
-    ##
-
-    M = TranslationGroup(1)
-
-    g1 = ApproxManifoldProducts.MvNormalKernel([-1.0;], [4.0;;])
-    g2 = ApproxManifoldProducts.MvNormalKernel([1.0;], [4.0;;])
-
-    g = ApproxManifoldProducts.calcProductGaussians(M, [g1; g2])
-    @test isapprox([0.0;], mean(g); atol = 1e-6)
-    @test isapprox([2.0;;], cov(g); atol = 1e-6)
-
-    g1 = ApproxManifoldProducts.MvNormalKernel([-1.0;], [4.0;;])
-    g2 = ApproxManifoldProducts.MvNormalKernel([1.0;], [9.0;;])
-
-    g = ApproxManifoldProducts.calcProductGaussians(M, [g1; g2])
-    @test isapprox([-5 / 13;], mean(g); atol = 1e-6)
-    @test isapprox([36 / 13;;], cov(g); atol = 1e-6)
-
-    ##
-end
-
-# @testset "Test utility functions for multi-scale product sampling" begin
-# ##
-
-# M = TranslationGroup(1)
-
-# pts = [randn(1).-1 for _ in 1:3]
-# p1 = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw=[0.1;;], kernel=ApproxManifoldProducts.MvNormalKernel)
-
-# @test 1 == length(ApproxManifoldProducts.getKernelsTreeLevelIdxs(p1, 1))
-# @test 2 == length(ApproxManifoldProducts.getKernelsTreeLevelIdxs(p1, 2))
-# @test 4 == length(ApproxManifoldProducts.getKernelsTreeLevelIdxs(p1, 3))
-
-# @test 64 == length(ApproxManifoldProducts.getKernelsTreeLevelIdxs(p1, 7))
-# @test 128 == length(ApproxManifoldProducts.getKernelsTreeLevelIdxs(p1, 8))
-
-# # @enter 
-# ApproxManifoldProducts.getKernelsTreeLevelIdxs(p1, 2)
-# ApproxManifoldProducts.getKernelsTreeLevelIdxs(p1, 3)
-
-# ##
-# end
-
-@testset "Product of two Manellic beliefs, Sequential Gibbs, TranslationGroup(1)" begin
-    ##
-
-    M = TranslationGroup(1)
-    N = 64
-
-    pts1 = [randn(1) .- 1 for _ = 1:N]
-    p1 = ApproxManifoldProducts.buildTree_Manellic!(
-        M,
-        pts1;
-        kernel_bw = [0.1;;],
-        kernel = ApproxManifoldProducts.MvNormalKernel,
-    )
-
-    pts2 = [randn(1) .+ 1 for _ = 1:N]
-    p2 = ApproxManifoldProducts.buildTree_Manellic!(
-        M,
-        pts2;
-        kernel_bw = [0.1;;],
-        kernel = ApproxManifoldProducts.MvNormalKernel,
-    )
-
-    ##
-
-    # tree kernel indices
-    @test 2 == ApproxManifoldProducts.leftIndex(p1, 1)
-    @test 3 == ApproxManifoldProducts.rightIndex(p1, 1)
-    # leaf kernel indices
-    @test N + 1 == ApproxManifoldProducts.leftIndex(p1, floor(Int, N / 2))
-    @test N + 2 == ApproxManifoldProducts.rightIndex(p1, floor(Int, N / 2))
-
-    @test ApproxManifoldProducts.exists_BTLabel(p1, floor(Int, N / 2))
-    @test ApproxManifoldProducts.exists_BTLabel(
-        p1,
-        ApproxManifoldProducts.leftIndex(p1, floor(Int, N / 2)),
-    )
-    @test !ApproxManifoldProducts.exists_BTLabel(p1, 2 * N + 1)
-
-    ##
-
-    # leaves only in binary tree indexing
-    bt_label_pool = [
-        [(N + 1):(2 * N);], # use leaf BT labels from p1 
-        [(N + 1):(2 * N);], # use leaf BT labels from p2
-    ]
-
-    # leaves only version
-    @info "Leaves only label sampling version (Gibbs), TranslationGroup(1)"
-
-    ApproxManifoldProducts.sampleProductSeqGibbsBTLabel(M, [p1; p2], 3, bt_label_pool)
-
-    lbls = ApproxManifoldProducts.sampleProductSeqGibbsBTLabels(
-        M,
-        [p1; p2],
-        3,
-        N,
-        bt_label_pool,
-    )
-    post = ApproxManifoldProducts.calcProductKernelsBTLabels(M, [p1; p2], lbls, false) # ?? was permute=false?
-
-    pts = mean.(post)
-    kernel_bw = mean(cov.(post))
-    mtr = ApproxManifoldProducts.buildTree_Manellic!(
-        M,
-        pts;
-        kernel_bw,
-        kernel = ApproxManifoldProducts.MvNormalKernel,
-    )
-
-    @test isapprox(0, mean(ApproxManifoldProducts.getKernelTree(mtr, 1))[1]; atol = 0.75)
-
-    @test all((s -> isapprox(1 / N, s.weight; atol = 1e-6)).(post))
-
-    @info "Multi-scale label sampling version (Gibbs), TranslationGroup(1)"
-
-    # test label pool creation
-    child_label_pools, all_leaves =
-        ApproxManifoldProducts.generateLabelPoolRecursive([p1; p2], [1; 1])
-    @test !all_leaves
-    @test [2; 3] == child_label_pools[1]
-    @test [2; 3] == child_label_pools[2]
-
-    child_label_pools, all_leaves = ApproxManifoldProducts.generateLabelPoolRecursive(
-        [p1; p2],
-        [floor(Int, N / 2); 2 * N],
-    )
-    @test !all_leaves
-    @test [N + 1; N + 2] == child_label_pools[1]
-    @test [2 * N;] == child_label_pools[2]
-
-    child_label_pools, all_leaves =
-        ApproxManifoldProducts.generateLabelPoolRecursive([p1; p2], [N + 1; 2 * N])
-    @test all_leaves
-    @test [N + 1;] == child_label_pools[1]
-    @test [2 * N;] == child_label_pools[2]
-
-    # test sampling
-    ApproxManifoldProducts.sampleProductSeqGibbsBTLabel(M, [p1; p2])
-
-    lbls = ApproxManifoldProducts.sampleProductSeqGibbsBTLabels(M, [p1; p2])
-    post = ApproxManifoldProducts.calcProductKernelsBTLabels(M, [p1; p2], lbls, false) # ?? was permute=false?
-
-    pts = mean.(post)
-    kernel_bw = mean(cov.(post))
-    mtr = ApproxManifoldProducts.buildTree_Manellic!(
-        M,
-        pts;
-        kernel_bw,
-        kernel = ApproxManifoldProducts.MvNormalKernel,
-    )
-
-    @test isapprox(0, mean(ApproxManifoldProducts.getKernelTree(mtr, 1))[1]; atol = 0.75)
-
-    ##
-end
-
-##
-
-# using GLMakie
-
-# XX = [[s;] for s in -4:0.1:4]
-# YY = ApproxManifoldProducts.evaluate.(Ref(mtr), XX)
-
-# lines((s->s[1]).(XX),YY, color=:magenta)
-
-# YY = ApproxManifoldProducts.evaluate.(Ref(p1), XX)
-# lines!((s->s[1]).(XX),YY, color=:blue)
-# YY = ApproxManifoldProducts.evaluate.(Ref(p2), XX)
-# lines!((s->s[1]).(XX),YY, color=:red)
-
-@testset "Multi-scale label sampling version (Gibbs), TranslationGroup(2)" begin
-    ##
-
-    M = TranslationGroup(2)
-    N = 64
-
-    pts1 = [1 * randn(2) for _ = 1:N]
-    p1 = ApproxManifoldProducts.manikde!_manellic(M, pts1)
-
-    pts2 = [1 * randn(2) for _ = 1:N]
-    p2 = ApproxManifoldProducts.manikde!_manellic(M, pts2)
-
-    # test sampling
-    lbls = ApproxManifoldProducts.sampleProductSeqGibbsBTLabels(M, [p1.belief; p2.belief])
-    lbls_ = unique(lbls)
-    N_ = length(lbls_)
-    weights = 1 / N .* ones(N_)
-    # increase weight of duplicates
-    if N_ < N
-        for (i, lb_) in enumerate(lbls_)
-            idxs = findall(==(lb_), lbls)
-            weights[i] = weights[i] * length(idxs)
-        end
-    end
-    post = ApproxManifoldProducts.calcProductKernelsBTLabels(
-        M,
-        [p1.belief; p2.belief],
-        lbls_,
-        false;
-        weights,
-    ) # ?? was permute=false?
-    # check that any duplicates resulted in a height weight
-    @test isapprox(weights, (s -> s.weight).(post); atol = 1e-6)
-
-    # NOTE, resulting tree might not have N number of data points 
-    mtr12 = ApproxManifoldProducts.buildTree_Manellic!(M, post)
-
-    ##
-end
 
 #

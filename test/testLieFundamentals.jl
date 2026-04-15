@@ -1,3 +1,4 @@
+##
 
 using Test
 using LieGroups
@@ -19,7 +20,7 @@ using Distributions
 # @test det(Jl) == det(Jr) == 2*(1-cos||x||)/(||x||^2)
 
 @testset "SO(2) Vector transport (w curvature) via Jacobians and Lie adjoints" begin
-    ##
+##
 
     M = SpecialOrthogonalGroup(2)
     p = identity_element(M)
@@ -48,11 +49,11 @@ using Distributions
     # #   atol=1e-5
     # # )
 
-    ##
+##
 end
 
 @testset "SO(3) Vector transport (w curvature) via Jacobians and Lie adjoints" begin
-    ##
+##
 
     M = SpecialOrthogonalGroup(3)
     p = LieGroups.Identity(M)
@@ -61,7 +62,7 @@ end
     d̂ = [0, 0, 1.0]
     d = hat(LieAlgebra(M), d̂)    # direction in algebra
 
-    ## piggy back utility tests used in construction of transports
+## piggy back utility tests used in construction of transports
 
     @test isapprox(ApproxManifoldProducts.ad_lie(M, X), ApproxManifoldProducts.ad(M, X))
 
@@ -72,7 +73,7 @@ end
         exp(-0.5 * ApproxManifoldProducts.ad(M, X)),         # rom Chirikjian
     )
 
-    ## parallel transport without curvature correction
+## parallel transport without curvature correction
 
     Y = parallel_transport_direction(base_manifold(M), identity_element(M), X, d) # compare to Lie ad and Ad and P, bottom [Mahony 2024 p3]
 
@@ -96,7 +97,7 @@ end
     #   atol=1e-8
     # )
 
-    ## With curvature correction
+## With curvature correction
 
     # compute transported coordinates (with Mahony 2nd order curvature correction)
     # is this also a push-forward
@@ -142,11 +143,11 @@ end
 
     # vector_transport_direction(M, p, X, vee(M,p,c))
 
-    ##
+##
 end
 
 @testset "SE(2) Vector transport (w curvature) via Jacobians and Lie adjoints" begin
-    ##
+##
 
     M = SpecialEuclideanGroup(2; variant = :right)
     p = LieGroups.Identity(M)
@@ -174,11 +175,11 @@ end
     #   atol=1e-5
     # )
 
-    ##
+##
 end
 
 @testset "SE(3) Vector transport (w curvature) via Jacobians and Lie adjoints" begin
-    ##
+##
 
     M = SpecialEuclideanGroup(3; variant = :right)
     p = LieGroups.Identity(M)
@@ -201,11 +202,11 @@ end
     #   atol=1e-5
     # )
 
-    ##
+##
 end
 
 @testset "(Lie Group) on-manifold Gaussian product SO(3), [Ge, van Goor, Mahony, 2024]" begin
-    ##
+##
 
     γ = 1
     ξ = 1
@@ -234,13 +235,16 @@ end
     _Σs = map(s -> inv(cov(s)), (p1, p2))
     _Σn = +(_Σs...)
     _Σnμn = mapreduce(+, zip(_Σs, Xcs)) do (s, c)
-        return s * c
+        s * c
     end
     μn = _Σn \ _Σnμn
     Σn = inv(_Σn)
 
-    # verify calcProductGaussians utility function
+
+## verify calcProductGaussians utility function
     p̂ = calcProductGaussians(M, (p1, p2); μ0 = ε, do_transport_correction = false)
+
+##
 
     @test isapprox(μn, vee(M, ε, log(M, ε, mean(p̂))))
 
@@ -257,7 +261,7 @@ end
         atol = 1e-1, # NOTE looser bound for even-mean-mean case vs naive-identity-mean case
     )
 
-    ##
+##
 
     p̂ = calcProductGaussians(
         M,
@@ -266,7 +270,7 @@ end
         do_transport_correction = true,
     )
 
-    @test isapprox([0; 0; 0.0], mean(p̂.p); atol = 1e-10)
+    @test isapprox([0; 0; 0.0], mean(p̂.shim.functional); atol = 1e-10)
 
     @test isapprox(
         μn,
@@ -274,7 +278,7 @@ end
         atol = 1e-1, # NOTE looser bound for even-mean-mean case vs naive-identity-mean case
     )
 
-    ##
+##
 end
 
 # SE(2)

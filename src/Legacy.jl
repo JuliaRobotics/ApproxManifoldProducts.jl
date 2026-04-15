@@ -1,5 +1,36 @@
 # legacy content to facilitate transition to AMP
 
+
+function resid2DLinear(μ, mus, Lambdas; diffop::Function = -)  # '-' exploits EuclideanManifold commutativity a-b = b-a
+    # dμ = broadcast(diffop, μ, mus)  # mus .- μ  ## μ .\ mus
+    # @show round.(dμ, digits=4)
+    # ret = sum( Lambdas.*dμ )
+    r = map((mu, lam) -> diffop(μ[], mu) * lam, mus, Lambdas)
+    return sum(r)
+end
+
+function solveresid2DLinear!(res, x, mus, Lambdas; diffop::Function = -)::Nothing
+    res[1] = resid2DLinear(x, mus, Lambdas; diffop = diffop)
+    return nothing
+end
+
+# import ApproxManifoldProducts: resid2DLinear, solveresid2DLinear
+function solveresid2DLinear(res, x, mus, Lambdas; diffop::Function = -)::Float64
+    solveresid2DLinear!(res, x, mus, Lambdas; diffop = diffop)
+    return res[1]
+end
+
+
+function _update!(dst::MN, src::MN) where {MN <: ManifoldKernelDensity}
+    KDE._update!(dst.belief, src.belief)
+    @assert dst._partial == src._partial "AMP._update! can only be done for exactly the same ._partial values in dst and src"
+    setPointsMani!(dst._u0, src._u0)
+    dst.infoPerCoord .= src.infoPerCoord
+
+    return dst
+end
+
+
 function _reducePartialManifoldElements(el::Symbol)
     if el == :Euclid
         return TranslationGroup(1)
@@ -156,7 +187,8 @@ import KernelDensityEstimate: sample, rand, resample, kld, minkld
 
 Npts(::ManellicTree{M, D, N}) where {M, D, N} = N
 Ndim(mt::ManellicTree) = manifold_dimension(mt.manifold)
-getBW(mker::MvNormalKernel) = cov(mker) |> collect
+getBW(mker::MvNormalKernel) = sqrt_Σ(mker) |> collect # cov(mker) |> collect
+# getBW(::ManellicTree) currently only returns the permuted data as per .leaf_kernels
 getBW(mt::ManellicTree) = getBW.(mt.leaf_kernels)
 
 Ndim(x::ManifoldKernelDensity, w...; kw...) = Ndim(x.belief, w...; kw...)

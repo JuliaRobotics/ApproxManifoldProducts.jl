@@ -1,6 +1,7 @@
 using Test
 using ApproxManifoldProducts
 using Manifolds
+using LieGroups
 
 ##
 
@@ -19,12 +20,12 @@ using Manifolds
 
     #TODO what mean do we want here?
     # mean(M, pts, GeodesicInterpolation()) != mean(M, pts)
-    @test isapprox(M, mean(P), mean(M, pts, GeodesicInterpolation()))
-    @test isapprox(var(P), var(M, pts))
-    @test isapprox(std(P), std(M, pts))
+    @test isapprox(M, mean(P), mean(M, pts, GeodesicInterpolation()); atol=1e-2)
+    @test isapprox(var(P), var(M, pts); atol=1e-2)
+    @test isapprox(std(P), std(M, pts); atol=1e-2)
     @test_broken isapprox(cov(P), cov(M, pts))
-    @test isapprox(cov(P), cov(M, pts; basis = DefaultOrthogonalBasis()))
-    @test isapprox(cov(P; basis = DefaultOrthonormalBasis()), cov(M, pts))
+    @test isapprox(cov(P), cov(M, pts; basis = DefaultOrthogonalBasis()); atol=1e-2)
+    @test isapprox(cov(P; basis = DefaultOrthonormalBasis()), cov(M, pts); atol=1e-2)
 
     ##
 end

@@ -2,6 +2,7 @@
 
 using ApproxManifoldProducts
 using Manifolds
+using LieGroups
 using Test
 
 ##
@@ -38,10 +39,13 @@ using Test
     @test 0.001 < ret
 
     ##
+    A = manikde!(M, pts1)
+    B = manikde!(M, pts2)
+    C = manikde!(M, pts3)
 
-    A = ManifoldKernelDensity(M, pts1)
-    B = ManifoldKernelDensity(M, pts2)
-    C = ManifoldKernelDensity(M, pts3)
+    # A = ManifoldKernelDensity(M, pts1)
+    # B = ManifoldKernelDensity(M, pts2)
+    # C = ManifoldKernelDensity(M, pts3)
 
     @test 0.75 < AMP.ker(M, pts1[1], pts1[2], 0.001) < 1.25
     @test 0.75 < AMP.ker(M, pts2[1], pts2[2], 0.001) < 1.25

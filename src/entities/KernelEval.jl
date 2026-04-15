@@ -1,14 +1,58 @@
 
 abstract type AbstractKernel end
 
-@kwdef struct MvNormalKernel{P, T, M, iM} <: AbstractKernel
-    """ On-manifold point representing center (mean) of the MvNormal distrubtion """
-    μ::P
-    """ Zero-mean normal distrubtion with covariance """
-    p::MvNormal{T, M}
-    # TDB might already be covered in p.Σ.chol but having issues with SymPD (not particular to this AMP repo)
-    """ Manually maintained square root concentration matrix for faster compute, TODO likely duplicate of existing Distrubtions.jl functionality. """
-    sqrt_iΣ::iM = sqrt(inv(cov(p)))
-    """ Nonparametric weight value """
+
+@kwdef struct DensityKernel{
+    partial, # partial info for compiler, usually a value e.g. nothing or (1,3)
+    K, # kernel info for compiler
+    T  # additional parameters
+} <: AbstractKernel
+    """ Mixture/nonparametric weight value """
     weight::Float64 = 1.0
+    """ functional basis such as RBF/MvNormal, Epanechnikov, (wavelet basis) etc. """
+    functional::K = MvNormal(SMatrix{1,1}(1.0))
+    """ additional parameters relating to on-manifold operations or similar """
+    params::T = nothing
 end
+
+# helper constructor for common case without partials
+DensityKernel{partial}(;
+    weight::Float64,
+    functional::K,
+    params::T, 
+    # partial::P = nothing,
+) where {
+    partial,
+    K,
+    T
+} = DensityKernel{
+    partial,
+    K,
+    T
+}(;
+    weight,
+    functional,
+    params
+)
+
+const ConcentratedGaussianKernel(;
+    weight=1.0,
+    p=SVector(0.0),  # center/expansion point on the manifold
+    covmat=SMatrix{1,1}(1.0),
+    partial::P = nothing,
+) where P <: Union{Nothing, <:Tuple} = DensityKernel{partial}(;
+    weight, 
+    functional=MvNormal(covmat), # NOTE, find inverse Cholesky in MvNormal structure
+    params=p,
+)
+
+
+
+
+
+## LEGACY BELOW
+
+struct MvNormalKernel{T <: DensityKernel} <: AbstractKernel
+    shim::T
+end
+

@@ -1,6 +1,7 @@
 # test for symmetry on distances
 
 using Manifolds
+using LieGroups
 using Test
 
 import Rotations as _Rot
@@ -9,7 +10,7 @@ import Rotations as _Rot
 @testset "test symmetry of Manifolds.distance" begin
     ##
 
-    M = TranslationGroup(2)
+    M = LieGroups.TranslationGroup(2)
     a, b = randn(2), randn(2)
     @test isapprox(distance(M, a, b), distance(M, b, a), atol = 1e-5)
 

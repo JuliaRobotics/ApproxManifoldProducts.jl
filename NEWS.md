@@ -1,4 +1,11 @@
 Major news relating to breaking changes in ApproxManifoldProducts.jl
+
+## v0.11
+
+- Towards integration with DFG v1.0, including halfway step towards HomotopyDensity refactoring.
+- Full support for ManellicTree to finally close #41, including supporting partials as in earlier versions
+- Penultimate step to entirely removing KernelDensityEstimate.jl dependency, which will be archived and is severly limited to Euclidean space, balanced tree products only, poor partial support, no outside access to multiscale sampling process, among many other limitations.
+
 ## v0.5 
 
 - Upgrade to ManifoldsBase.jl v0.13.

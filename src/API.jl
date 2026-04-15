@@ -36,15 +36,18 @@ function manifoldProduct(
     # partialDimsWorkaround=1:MB.manifold_dimension(mani),
     ndims::Integer = maximum([0; Ndim.(ff)]),
     N::Integer = maximum([0; Npts.(ff)]),
-    u0 = getPoints(ff[1], false)[1],
+    u0 = getPoints(ff[1]; permute = false)[1],
     oldPoints::AbstractVector{P} = [identity_element(mani, typeof(u0)) for i = 1:N],
     addEntropy::Bool = true,
     recordLabels::Bool = false,
     selectedLabels::Vector{Vector{Int}} = Vector{Vector{Int}}(),
+    _labelsChoosen_pp::Vector{Vector{@NamedTuple{loo::Int64, selected::Vector{Int64}, pool::Vector{Vector{Int64}}, catp::Vector{Float64}}}} = Vector{Vector{@NamedTuple{loo::Int64, selected::Vector{Int64}, pool::Vector{Vector{Int64}}, catp::Vector{Float64}}}}(undef, N),
     _randU = Vector{Float64}(),
     _randN = Vector{Float64}(),
     logger = ConsoleLogger(),
     bws = 0 == length(ff) ? [1.0;] : ones(ndims),
+    legacy::Bool = false,
+    MC::Int = 3
 ) where {M <: MB.AbstractManifold, P}
     #
     # check quick exit
@@ -53,39 +56,6 @@ function manifoldProduct(
         return (makeCopy ? x -> deepcopy(x) : x -> x)(ff[1])
     end
 
-    # TODO DEPRECATE ::NTuple{Symbol} approach
-    manif = _manifoldtuple(mani)  #[partialDimsWorkaround]
-    addopT, diffopT, getManiMu, _ = buildHybridManifoldCallbacks(manif)
-
-    Ndens = length(ff)
-    # Npartials = length(partials)
-    Ndims = maximum([0; Ndim.(ff)])
-    with_logger(logger) do
-        @debug "[x$(Ndens),d$(Ndims),N$(N)],"
-    end
-
-    glbs = KDE.makeEmptyGbGlb()
-    glbs.recordChoosen = recordLabels
-
-    # MAKE SURE inplace ends up as matrix of coordinates from incoming ::Vector{P}
-    oldpts = _pointsToMatrixCoords(mani, oldPoints)
-    # FIXME currently assumes oldPoints are in coordinates...
-    # @cast oldpts_[i,j] := oldPoints[j][i]
-    # oldpts = collect(oldpts_)
-    inplace = kde!(oldpts, bws, addopT, diffopT) # rand(ndims,N)
-
-    # TODO refactor and reduce
-    _u0 = 0 == length(ff) ? u0 : ff[1]._u0
-    if 0 == length(ff)
-        return ManifoldKernelDensity(
-            mani,
-            inplace,
-            zeros(manifold_dimension(mani)) .== 0,
-            _u0,
-        )
-    end
-
-    _ff = map(x -> x.belief, ff)
     partialDimMask = Vector{BitVector}(undef, length(ff))
     for (k, md) in enumerate(ff)
         partialDimMask[k] = ones(Int, ndims) .== 1
@@ -98,81 +68,167 @@ function manifoldProduct(
         end
     end
 
-    ndims = maximum([0; Ndim.(_ff)])
-    Ndens = length(_ff)
-    Np = Npts(inplace)
-    maxNp = maximum(Int[Np; Npts.(_ff)])
-    Nlevels = floor(Int, (log(Float64(maxNp)) / log(2.0)) + 1.0)
-    if 0 == length(_randU)
-        _len = Int(Np * Ndens * (Niter + 2) * Nlevels)
-        resize!(_randU, _len)
-        _randU .= rand(_len)
-    end
-    if 0 == length(_randN)
-        _len = Int(ndims * Np * (Nlevels + 1))
-        resize!(_randN, _len)
-        _randN .= randn(_len)
-    end
+    if !legacy
+        beliefs = (s -> s.belief).(ff)
+        lbls = ApproxManifoldProducts.sampleProductSeqGibbsBTLabels(
+            mani, 
+            beliefs,
+            MC;
+            _labelsChoosen_pp,
+        )
 
-    ## TODO check both _ff and inplace use a matrix of coordinates (columns)
-    # expects Matrix with columns as samples and rows are coordinate dimensions
-    pGM, = prodAppxMSGibbsS(
-        inplace,
-        _ff,
-        nothing,
-        nothing;
-        Niter,
-        partialDimMask,
-        addop = addopT,
-        diffop = diffopT,
-        getMu = getManiMu,
-        glbs,
-        addEntropy,
-        ndims,
-        Ndens,
-        Np,
-        maxNp,
-        Nlevels,
-        randU = _randU,
-        randN = _randN,
-    )
-    #
-
-    if recordLabels
-        # how many levels in ball tree
-        lc = glbs.labelsChoosen
-        nLevels = maximum(keys(lc[1][1]) |> collect)
-
-        # push final label selections onto selectedLabels
+        # push final label selections onto selected`Labels
         resize!(selectedLabels, N)
         for i = 1:N
             selectedLabels[i] = Int[]
             for j = 1:length(ff)
-                push!(selectedLabels[i], lc[i][j][nLevels])
+                # k = length(getPoints(ff[j]))
+                # @info "HERE" i j lbls
+                push!(selectedLabels[i], lbls[i][j])
             end
         end
+
+        # FIXME, this collapses duplicate labels without resampling -- i.e. problem length(posterior) <= N
+        lbls_ = unique(lbls)
+        N_ = length(lbls_)
+        weights = 1 / N .* ones(N_)
+        # increase weight of duplicates
+        if N_ < N
+            for (i, lb_) in enumerate(lbls_)
+                idxs = findall(==(lb_), lbls)
+                weights[i] = weights[i] * length(idxs)
+            end
+        end
+
+        post = ApproxManifoldProducts.calcProductKernelsBTLabels(
+            mani,
+            beliefs,
+            lbls_,
+            false;
+            weights,
+        ) # ?? was permute=false?
+
+        # NOTE, resulting tree might not have N number of data points 
+        mtr12 = ApproxManifoldProducts.buildTree_Manellic!(mani, post)
+        u0 = mtr12.data[1]
+        return ManifoldKernelDensity(
+            mani,
+            mtr12,
+            nothing,
+            u0;
+            infoPerCoord = zeros(manifold_dimension(mani)),
+        )
+    else 
+        # TODO DEPRECATE ::NTuple{Symbol} approach
+        manif = _manifoldtuple(mani)  #[partialDimsWorkaround]
+        addopT, diffopT, getManiMu, _ = buildHybridManifoldCallbacks(manif)
+
+        Ndens = length(ff)
+        # Npartials = length(partials)
+        Ndims = maximum([0; Ndim.(ff)])
+        with_logger(logger) do
+            @debug "[x$(Ndens),d$(Ndims),N$(N)],"
+        end
+
+        glbs = KDE.makeEmptyGbGlb()
+        glbs.recordChoosen = recordLabels
+
+        # MAKE SURE inplace ends up as matrix of coordinates from incoming ::Vector{P}
+        oldpts = _pointsToMatrixCoords(mani, oldPoints)
+        # FIXME currently assumes oldPoints are in coordinates...
+        # @cast oldpts_[i,j] := oldPoints[j][i]
+        # oldpts = collect(oldpts_)
+        inplace = kde!(oldpts, bws, addopT, diffopT) # rand(ndims,N)
+
+        # TODO refactor and reduce
+        _u0 = 0 == length(ff) ? u0 : ff[1]._u0
+        if 0 == length(ff)
+            return ManifoldKernelDensity(
+                mani,
+                inplace,
+                zeros(manifold_dimension(mani)) .== 0,
+                _u0,
+            )
+        end
+
+        _ff = map(x -> x.belief, ff)
+
+        ndims = maximum([0; Ndim.(_ff)])
+        Ndens = length(_ff)
+        Np = Npts(inplace)
+        maxNp = maximum(Int[Np; Npts.(_ff)])
+        Nlevels = floor(Int, (log(Float64(maxNp)) / log(2.0)) + 1.0)
+        if 0 == length(_randU)
+            _len = Int(Np * Ndens * (Niter + 2) * Nlevels)
+            resize!(_randU, _len)
+            _randU .= rand(_len)
+        end
+        if 0 == length(_randN)
+            _len = Int(ndims * Np * (Nlevels + 1))
+            resize!(_randN, _len)
+            _randN .= randn(_len)
+        end
+
+        ## TODO check both _ff and inplace use a matrix of coordinates (columns)
+        # expects Matrix with columns as samples and rows are coordinate dimensions
+        pGM, = prodAppxMSGibbsS(
+            inplace,
+            _ff,
+            nothing,
+            nothing;
+            Niter,
+            partialDimMask,
+            addop = addopT,
+            diffop = diffopT,
+            getMu = getManiMu,
+            glbs,
+            addEntropy,
+            ndims,
+            Ndens,
+            Np,
+            maxNp,
+            Nlevels,
+            randU = _randU,
+            randN = _randN,
+        )
+        #
+
+        if recordLabels
+            # how many levels in ball tree
+            lc = glbs.labelsChoosen
+            nLevels = maximum(keys(lc[1][1]) |> collect)
+
+            # push final label selections onto selectedLabels
+            resize!(selectedLabels, N)
+            for i = 1:N
+                selectedLabels[i] = Int[]
+                for j = 1:length(ff)
+                    push!(selectedLabels[i], lc[i][j][nLevels])
+                end
+            end
+        end
+
+        # if only partials, then keep other dimension values from oldPoints
+        otherDims = ones(ndims) .== 0
+        for msk in partialDimMask
+            otherDims .|= msk
+        end
+
+        # build new output ManifoldKernelDensity
+        bws[:] = getKDEManifoldBandwidths(pGM, manif)
+        bel = kde!(pGM, bws, addopT, diffopT)
+
+        # FIXME u0 might not be representative of the partial information
+        return ManifoldKernelDensity(mani, bel, otherDims, _u0)
     end
-
-    # if only partials, then keep other dimension values from oldPoints
-    otherDims = ones(ndims) .== 0
-    for msk in partialDimMask
-        otherDims .|= msk
-    end
-
-    # build new output ManifoldKernelDensity
-    bws[:] = getKDEManifoldBandwidths(pGM, manif)
-    bel = kde!(pGM, bws, addopT, diffopT)
-
-    # FIXME u0 might not be representative of the partial information
-    return ManifoldKernelDensity(mani, bel, otherDims, _u0)
 end
 
 # NOTE, this product does not handle combinations of different partial beliefs properly yet
-function *(PP::AbstractVector{<:MKD{M, B}}) where {M <: MB.AbstractManifold{MB.ℝ}, B}
+function *(PP::AbstractVector{<:ManifoldKernelDensity{M, B}}) where {M <: MB.AbstractManifold{MB.ℝ}, B}
     return manifoldProduct(PP, PP[1].manifold)
 end
 
-function *(P1::MKD{M, B}, P2::MKD{M, B}, P_...) where {M <: MB.AbstractManifold{MB.ℝ}, B}
+function *(P1::ManifoldKernelDensity{M, B}, P2::ManifoldKernelDensity{M, B}, P_...) where {M <: MB.AbstractManifold{MB.ℝ}, B}
     return manifoldProduct([P1; P2; P_...], P1.manifold)
 end
 

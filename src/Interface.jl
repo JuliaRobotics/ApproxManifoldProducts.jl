@@ -48,6 +48,7 @@ end
 
 function makeCoordsFromPoint(G::SpecialEuclideanGroup, pt)
     #TODO - review - Force TR-coordinates on SE(n)
+    # @info "SUBM" G pt
     p = ArrayPartition(ManifoldsBase.submanifold_components(G, pt))
     ϵ = identity_element(G, typeof(p))
     X = log(base_manifold(G), ϵ, p)
@@ -201,95 +202,6 @@ function setPointsMani!(dest::AbstractVector, src::AbstractVector{<:AbstractVect
     return setPointsMani!(dest, src[1])
 end
 
-# default replace non-partial/non-marginal values
-# Trivial case where no information from destination is kept, only from src.
-function Base.replace(
-    ::ManifoldKernelDensity{M, <:BallTreeDensity, Nothing},
-    src::ManifoldKernelDensity{M, <:BallTreeDensity, Nothing},
-) where {M <: AbstractManifold}
-    #
-    return src
-end
 
-# replace dest non-partial with incoming partial values
-function Base.replace(
-    dest::ManifoldKernelDensity{M, <:BallTreeDensity, Nothing},
-    src::ManifoldKernelDensity{M, <:BallTreeDensity, <:AbstractVector},
-) where {M <: AbstractManifold}
-    #
-    pl = src._partial
-    # FIXME what about 
-    destPts = getPoints(dest.belief)
-    # get source partial points only 
-    newPts = getPoints(src.belief)
-    @assert size(destPts, 2) <= size(newPts, 2) "MKD replace currently requires the number of points to be the same, dest=$(size(destPts,2)), src=$(size(newPts,2))"
-    # TODO use eachindex or axes instead of 1:size
-    for i = 1:size(destPts, 2)
-        destPts[pl, i] .= newPts[pl, i]
-    end
-    # and new bandwidth
-    oldBw = getBW(dest.belief)[:, 1]
-    oldBw[pl] .= getBW(src.belief)[pl, 1]
-
-    # finaly update the belief with a new container
-    newBel = kde!(destPts, oldBw)
-
-    # also set the metadata values
-    ipc = deepcopy(dest.infoPerCoord)
-    ipc[pl] .= src.infoPerCoord[pl]
-
-    # and _u0 point is a bit more tricky
-    c0 = collect(vee(dest.manifold, dest._u0, log(dest.manifold, dest._u0, dest._u0)))
-    c_ = vee(dest.manifold, dest._u0, log(dest.manifold, dest._u0, src._u0))
-    c0[pl] .= c_[pl]
-    u0 = exp(dest.manifold, dest._u0, hat(dest.manifold, dest._u0, c0))
-
-    # return the update destimation ManifoldKernelDensity object
-    return ManifoldKernelDensity(dest.manifold, newBel, nothing, u0; infoPerCoord = ipc)
-end
-
-# replace partial/marginal with different incoming partial values
-function Base.replace(
-    dest::ManifoldKernelDensity{M, <:BallTreeDensity, <:AbstractVector},
-    src::ManifoldKernelDensity{M, <:BallTreeDensity, <:AbstractVector},
-) where {M <: AbstractManifold}
-    #
-    pl = src._partial
-    destPts = getPoints(dest.belief)
-    # get source partial points only 
-    newPts = getPoints(src.belief)
-    @assert size(newPts, 2) == size(destPts, 2) "this replace currently requires the number of points to be the same, dest=$(size(destPts,2)), src=$(size(newPts,2))"
-    for i = 1:size(destPts, 2)
-        destPts[pl, i] .= newPts[pl, i]
-    end
-    # and new bandwidth
-    oldBw = getBW(dest.belief)[:, 1]
-    oldBw[pl] .= getBW(src.belief)[pl, 1]
-
-    # finaly update the belief with a new container
-    newBel = kde!(destPts, oldBw)
-
-    # also set the metadata values
-    ipc = deepcopy(dest.infoPerCoord)
-    ipc[pl] .= src.infoPerCoord[pl]
-
-    # and _u0 point is a bit more tricky
-    c0 = vee(dest.manifold, dest._u0, log(dest.manifold, dest._u0, dest._u0))
-    c_ = vee(dest.manifold, dest._u0, log(dest.manifold, dest._u0, src._u0))
-    c0[pl] .= c_[pl]
-    u0 = exp(dest.manifold, dest._u0, hat(dest.manifold, dest._u0, c0))
-
-    # and update the partial information
-    pl_ = union(dest._partial, pl)
-
-    # return the update destimation ManifoldKernelDensity object
-    if length(pl_) == manifold_dimension(dest.manifold)
-        # no longer a partial/marginal
-        return ManifoldKernelDensity(dest.manifold, newBel, nothing, u0; infoPerCoord = ipc)
-    else
-        # still a partial
-        return ManifoldKernelDensity(dest.manifold, newBel, pl_, u0; infoPerCoord = ipc)
-    end
-end
 
 #

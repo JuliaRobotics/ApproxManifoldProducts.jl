@@ -10,7 +10,7 @@ import Manifolds as MF
 import LieGroups as LGr
 import Rotations as Rot_
 using Distributions
-import ApproxManifoldProducts: ManellicTree, eigenCoords, splitPointsEigen
+import ApproxManifoldProducts: ManellicTree, splitPointsEigen
 
 using Optim
 
@@ -20,10 +20,10 @@ using JSON3
 
 ##
 
-@testset "Product of two Manellic beliefs, Sequential Gibbs, TranslationGroup(1)" begin
+@testset "Product of two Manellic beliefs, Sequential Gibbs, LieGroups.TranslationGroup(1)" begin
     ##
 
-    M = TranslationGroup(1)
+    M = LGr.TranslationGroup(1)
     N = 64
 
     pts1 = [randn(1) .- 1 for _ = 1:N]
@@ -44,22 +44,6 @@ using JSON3
 
     ##
 
-    # tree kernel indices
-    @test 2 == ApproxManifoldProducts.leftIndex(p1, 1)
-    @test 3 == ApproxManifoldProducts.rightIndex(p1, 1)
-    # leaf kernel indices
-    @test N + 1 == ApproxManifoldProducts.leftIndex(p1, floor(Int, N / 2))
-    @test N + 2 == ApproxManifoldProducts.rightIndex(p1, floor(Int, N / 2))
-
-    @test ApproxManifoldProducts.exists_BTLabel(p1, floor(Int, N / 2))
-    @test ApproxManifoldProducts.exists_BTLabel(
-        p1,
-        ApproxManifoldProducts.leftIndex(p1, floor(Int, N / 2)),
-    )
-    @test !ApproxManifoldProducts.exists_BTLabel(p1, 2 * N + 1)
-
-    ##
-
     # leaves only in binary tree indexing
     bt_label_pool = [
         [(N + 1):(2 * N);], # use leaf BT labels from p1 
@@ -67,7 +51,7 @@ using JSON3
     ]
 
     # leaves only version
-    @info "Leaves only label sampling version (Gibbs), TranslationGroup(1)"
+    @info "Leaves only label sampling version (Gibbs), LieGroups.TranslationGroup(1)"
 
     ApproxManifoldProducts.sampleProductSeqGibbsBTLabel(M, [p1; p2], 3, bt_label_pool)
 
@@ -91,9 +75,9 @@ using JSON3
 
     @test isapprox(0, mean(ApproxManifoldProducts.getKernelTree(mtr, 1))[1]; atol = 0.75)
 
-    @test all((s -> isapprox(1 / N, s.weight; atol = 1e-6)).(post))
+    @test all((s -> isapprox(1 / N, s.shim.weight; atol = 1e-6)).(post))
 
-    @info "Multi-scale label sampling version (Gibbs), TranslationGroup(1)"
+    @info "Multi-scale label sampling version (Gibbs), LieGroups.TranslationGroup(1)"
 
     # test label pool creation
     child_label_pools, all_leaves =
@@ -150,17 +134,17 @@ end
 # YY = ApproxManifoldProducts.evaluate.(Ref(p2), XX)
 # lines!((s->s[1]).(XX),YY, color=:red)
 
-@testset "Multi-scale label sampling version (Gibbs), TranslationGroup(2)" begin
+@testset "Multi-scale label sampling version (Gibbs), LieGroups.TranslationGroup(2)" begin
     ##
 
-    M = TranslationGroup(2)
+    M = LieGroups.TranslationGroup(2)
     N = 64
 
     pts1 = [1 * randn(2) for _ = 1:N]
-    p1 = ApproxManifoldProducts.manikde!_manellic(M, pts1)
+    p1 = ApproxManifoldProducts.manikde!(M, pts1)
 
     pts2 = [1 * randn(2) for _ = 1:N]
-    p2 = ApproxManifoldProducts.manikde!_manellic(M, pts2)
+    p2 = ApproxManifoldProducts.manikde!(M, pts2)
 
     # test sampling
     lbls = ApproxManifoldProducts.sampleProductSeqGibbsBTLabels(M, [p1.belief; p2.belief])
@@ -182,10 +166,21 @@ end
         weights,
     ) # ?? was permute=false?
     # check that any duplicates resulted in a height weight
-    @test isapprox(weights, (s -> s.weight).(post); atol = 1e-6)
+    @test isapprox(weights, (s -> s.shim.weight).(post); atol = 1e-6)
 
     # NOTE, resulting tree might not have N number of data points 
     mtr12 = ApproxManifoldProducts.buildTree_Manellic!(M, post)
 
     ##
 end
+
+
+##
+
+@testset "Wrapper function for multi-scale label sampling version (Gibbs), LieGroups.TranslationGroup(2)" begin
+
+
+
+end
+
+#

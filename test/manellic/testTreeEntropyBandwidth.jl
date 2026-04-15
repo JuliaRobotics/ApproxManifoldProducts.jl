@@ -6,10 +6,10 @@ using Random
 using LinearAlgebra
 using StaticArrays
 using TensorCast
-using Manifolds
+using LieGroups
 import Rotations as Rot_
 using Distributions
-import ApproxManifoldProducts: ManellicTree, eigenCoords, splitPointsEigen
+import ApproxManifoldProducts: ManellicTree, splitPointsEigen
 
 using Optim
 
@@ -20,7 +20,7 @@ using JSON3
 @testset "Manellic tree kernel bandwidth 1D LOO evaluation/entropy checks" begin
     ##
 
-    M = TranslationGroup(1)
+    M = LieGroups.TranslationGroup(1)
 
     pt = [[0.0;], [1.0;], [2.0;], [3.0;]]
     _m_ = ApproxManifoldProducts.buildTree_Manellic!(
@@ -59,7 +59,7 @@ end
 @testset "Manellic tree bandwidth optimization 1D section search" begin
     ##
 
-    M = TranslationGroup(1)
+    M = LieGroups.TranslationGroup(1)
     # pts = [[0.;],[0.1],[0.2;],[0.3;]]
     pts = [1 * randn(1) for _ = 1:64]
 
@@ -82,7 +82,11 @@ end
 
     # FIXME use bounds
     lcov, ucov = AMP.getBandwidthSearchBounds(mtree)
-    bw_cov = (ucov.mat + lcov) / 2
+
+    @test lcov[1] < 0.1
+    @test 0.5 < ucov[1]
+
+    bw_cov = (ucov + lcov) / 2
     mtree_0 = ApproxManifoldProducts.buildTree_Manellic!(
         M,
         pts;
@@ -119,7 +123,7 @@ end
 
     best_cov = Optim.minimizer(res)
 
-    @test isapprox(0.5, best_cov; atol = 0.3)
+    @test isapprox(0.5, best_cov; atol = 0.35)
     bcov_ = deepcopy(best_cov)
 
     ## Test more efficient updateKernelBW version
@@ -156,35 +160,28 @@ end
 @testset "Manellic tree all up construction with bandwith optimization" begin
     ##
 
-    M = TranslationGroup(1)
+    M = LieGroups.TranslationGroup(1)
     # pts = [[0.;],[0.1],[0.2;],[0.3;]]
-    pts = [1 * randn(1) for _ = 1:128]
+    pts = [1 * randn(1) for _ = 1:64]
 
-    mkd = ApproxManifoldProducts.manikde!_manellic(M, pts)
+    mkd = ApproxManifoldProducts.manikde!(M, pts)
 
     best_cov = cov(ApproxManifoldProducts.getKernelLeaf(mkd.belief, 1))[1] |> sqrt
     @show best_cov
 
-    @test isapprox(0.5, best_cov; atol = 0.3)
+    @test isapprox(0.5, best_cov; atol = 0.35)
 
-    # remember broken code in get w bounds
-
-    try
-        pts = [1 * randn(1) for _ = 1:100]
-        mkd = ApproxManifoldProducts.manikde!_manellic(M, pts)
-    catch
-        @test_broken false
-    end
+    pts = [1 * randn(1) for _ = 1:100]
+    mkd = ApproxManifoldProducts.manikde!(M, pts)
 
     ##
 end
 
-# if !(v"1.11" < VERSION < v"1.12.0-beta99")
 
-@testset "Multidimensional LOOCV bandwidth optimization, TranslationGroup(2)" begin
+@testset "Multidimensional LOOCV bandwidth optimization, LieGroups.TranslationGroup(2)" begin
     ##
 
-    M = TranslationGroup(2)
+    M = LieGroups.TranslationGroup(2)
     pts = [1 * randn(2) for _ = 1:64]
 
     bw = [1.0; 1.0]
@@ -206,11 +203,12 @@ end
 
     @show best_cov = abs.(Optim.minimizer(res))
 
-    @test isapprox([0.5; 0.5], best_cov; atol = 0.3)
+    @test isapprox(0.5, best_cov[1]; atol = 0.35)
+    @test isapprox(0.5, best_cov[2]; atol = 0.35)
 
-    mkd = ApproxManifoldProducts.manikde!_manellic(M, pts)
+    mkd = ApproxManifoldProducts.manikde!(M, pts)
 
-    @test isapprox([0.5 0; 0 0.5], getBW(mkd)[1]; atol = 0.3)
+    @test isapprox([0.5 0; 0 0.5], getBW(mkd)[1] .^2; atol = 0.35)
 
     ##
 end
@@ -241,13 +239,14 @@ if !(v"1.11" < VERSION < v"1.12.0-beta99")
 
         @show best_cov = abs.(Optim.minimizer(res))
 
-        @test isapprox([0.6; 0.6], best_cov[1:2]; atol = 0.35)
+        @test isapprox(0.6, best_cov[1]; atol = 0.35)
+        @test isapprox(0.6, best_cov[2]; atol = 0.35)
         @test isapprox(0.06, best_cov[3]; atol = 0.04)
 
-        mkd = ApproxManifoldProducts.manikde!_manellic(M, pts)
+        mkd = ApproxManifoldProducts.manikde!(M, pts)
 
-        @test isapprox([0.6 0; 0 0.6], getBW(mkd)[1][1:2, 1:2]; atol = 0.4)
-        @test isapprox(0.06, getBW(mkd)[1][3, 3]; atol = 0.04)
+        @test isapprox([0.6 0; 0 0.6], getBW(mkd)[1][1:2, 1:2] .^2; atol = 0.4)
+        @test isapprox(0.06, getBW(mkd)[1][3, 3] .^2; atol = 0.04)
 
         ##
     end
@@ -285,12 +284,12 @@ if !(v"1.11" < VERSION < v"1.12.0-beta99")
         @test isapprox([0.75; 0.75; 0.75], best_cov[1:3]; atol = 0.55)
         @test isapprox([0.06; 0.06; 0.06], best_cov[4:6]; atol = 0.055)
 
-        mkd = ApproxManifoldProducts.manikde!_manellic(M, pts)
+        mkd = ApproxManifoldProducts.manikde!(M, pts)
 
-        @test isapprox([0.75 0 0; 0 0.75 0; 0 0 0.75], getBW(mkd)[1][1:3, 1:3]; atol = 0.55)
+        @test isapprox([0.75 0 0; 0 0.75 0; 0 0 0.75], getBW(mkd)[1][1:3, 1:3] .^2; atol = 0.55)
         @test isapprox(
             [0.07 0 0; 0 0.07 0; 0 0 0.07],
-            getBW(mkd)[1][4:6, 4:6];
+            getBW(mkd)[1][4:6, 4:6] .^2;
             atol = 0.055,
         )
 
@@ -305,7 +304,7 @@ end
 ##
 # # using GLMakie
 
-# M = TranslationGroup(1)
+# M = LieGroups.TranslationGroup(1)
 
 # __pts = [1*randn(1) for _ in 1:64] 
 

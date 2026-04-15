@@ -25,8 +25,9 @@ function Base.show(io::IO, x::DensityProductElements)
     println(io, "  # dims:       ", length(x.inElements[1][1]))
     println(io, "  # out pts:    ", length(x.outElements))
     println(io, "  .outBW[1]~:   ", x.outBW[1] .|> x -> round(x; digits = 5))
-    return println(io, "  .outdatedBW:  ", x.outdatedBW[])
+    println(io, "  .outdatedBW:  ", x.outdatedBW[])
     # println(io)
+    return nothing
 end
 
 Base.show(io::IO, ::MIME"text/plain", x::DensityProductElements) = show(io, x)
@@ -61,29 +62,6 @@ function _setLabelCombinations!(mdp::DensityProductElements, lbsChs::Dict)
     return nothing
 end
 
-# # can only do for Array, not view
-# function _setProductElements!(mdp::DensityProductElements{D}, 
-#                               prd::BallTreeDensity)
-#   #
-#   # also set the bandwidth
-#   dim = Ndim(prd)
-#   resize!(mdp.outBW, dim)
-
-#   npts = Npts(prd)
-#   for i in 1:
-#     mdp.outBW[:,i] .= getBW(prd)[:,1] # fix for all elements
-#   end
-
-#   # set kernel center elements
-#   resize!(mdp.outElements, )
-#   for i in 1:Npts(prd)
-#     resize!(mdp.outElements[i], dim)
-#     mdp.outElements[i][:] .= getPoints(prd, i)
-#   end
-
-#   #
-#   nothing
-# end
 
 ##
 

@@ -2,13 +2,12 @@
 
 # testing only
 # using Revise
-# using Gadfly
-# Gadfly.set_default_plot_size(35cm,25cm)
 
 using Test
 using ApproxManifoldProducts
 using DataFrames
 using Manifolds
+using LieGroups
 using StaticArrays
 
 const AMP = ApproxManifoldProducts
@@ -17,7 +16,7 @@ const AMP = ApproxManifoldProducts
 @testset "Test mmd distance between Euclidean beliefs" begin
     ##
 
-    # when not plottin
+    # when not plotting
     offsets = 1:1 # -30:0.25:30
     mc = 1   # 1:100
 
@@ -31,7 +30,7 @@ const AMP = ApproxManifoldProducts
 
         res = MVector(0.0)
 
-        AMP.mmd!(TranslationGroup(1), res, P, Q; bw = [0.001])
+        AMP.mmd!(LieGroups.TranslationGroup(1), res, P, Q; bw = [0.001])
 
         checkGrid[i, j] = res[1]
         push!(df, (offsets[i], res[1]))
@@ -64,7 +63,7 @@ end
 
         res = zeros(1)
 
-        AMP.mmd!(TranslationGroup(2), res, P, Q; bw = [0.001])
+        AMP.mmd!(LieGroups.TranslationGroup(2), res, P, Q; bw = [0.001])
 
         checkGrid[i, j] = res[1]
         push!(df, (offsets[i], res[1]))
