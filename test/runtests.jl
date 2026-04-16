@@ -5,6 +5,8 @@ using LieGroups
 using Manifolds
 using Test
 
+const AMP = ApproxManifoldProducts
+
 ##
 
 include("testLieFundamentals.jl")

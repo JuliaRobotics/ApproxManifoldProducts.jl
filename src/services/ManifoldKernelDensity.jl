@@ -118,7 +118,7 @@ function manikde!(
         M,
         pts;
         kernel_bw = bw,
-        kernel = AMP.MvNormalKernel,
+        kernel = MvNormalKernel,
         partial,
         partl_cb,
     )

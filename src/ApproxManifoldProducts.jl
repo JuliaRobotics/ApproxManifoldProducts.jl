@@ -30,26 +30,12 @@ import Manifolds
 using LieGroups
 using LieGroups: TranslationGroup
 
-# using NLsolve
 import Optim
 
-import TransformUtils as TUs
-import TransformUtils: skew
-
-# using Reexport
-# @reexport using KernelDensityEstimate
-# import KernelDensityEstimate: getPoints, getBW, evalAvgLogL, entropy, evaluate
-
-# OBSOLETE REMOVE
-# using Requires
 
 const MB = ManifoldsBase
 const CTs = CoordinateTransformations
-const AMP = ApproxManifoldProducts
-# const KDE = KernelDensityEstimate
 
-# LEGACY, temporary for initial version of on-manifold products
-# KDE.setForceEvalDirect!(true)
 
 # the exported API
 include("ExportAPI.jl")

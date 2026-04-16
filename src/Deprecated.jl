@@ -1,5 +1,17 @@
 
 
+## ======================================================================================================
+## Remove below before v0.13
+## ======================================================================================================
+
+
+# function TUs.skew(v::SVector{3, T}) where {T <: Real}
+#     # coordinates are the co-tangent elements
+#     x, y, z = v[1], v[2], v[3]
+#     # sum with default basis to form a tangent vector in the algebra
+#     return SMatrix{3, 3, T}(+0, z, -y, -z, 0, x, +y, -x, 0)
+# end
+
 # Circular Manifold definition and associated arithmetic
 
 # function get2DMu(

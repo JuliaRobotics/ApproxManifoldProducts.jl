@@ -1,5 +1,16 @@
 Major news relating to breaking changes in ApproxManifoldProducts.jl
 
+## v0.12
+
+- Drop BallTreeDensity and KernelDensityEstimate.jl entirely (breaking change).
+- Drop export of AMP acronym (breaking change).
+- Drop legacy code, files, and exports of `get2DLambda, get2DMu, get2DMuMin, resid2DLinear, solveresid2DLinear!, solveresid2DLinear` (breaking changes).
+- Drop old deprecated code including `setPointsManiPartial!, productbelief, calcVariableCovarianceBasic` (breaking changes).
+- Drop NLsolve dependency.
+- Drop TransformUtils dependency.
+- Replace internal usage of skew(SO3) with LieGroups.hat(SO3) instead (was never exported).
+
+
 ## v0.11
 
 - Towards integration with DFG v1.0, including halfway step towards HomotopyDensity refactoring.

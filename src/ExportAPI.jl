@@ -1,16 +1,9 @@
 
 export
     # new local features
-    AMP,
-    MKD,
+    MKD, # TODO deprecate
     AbstractManifold,
     ManifoldKernelDensity,
-    get2DLambda,
-    get2DMu,
-    get2DMuMin,
-    resid2DLinear,
-    solveresid2DLinear!,
-    solveresid2DLinear,
     *,
     isapprox,
 
@@ -36,5 +29,4 @@ export mmd!, mmd
 export getManifoldPartial
 
 
-## TODO, export
-# export DensityKernel, ConcentratedGaussianKernel
+export DensityKernel, ConcentratedGaussianKernel
