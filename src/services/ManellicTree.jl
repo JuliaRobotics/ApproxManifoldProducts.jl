@@ -9,9 +9,15 @@
 
 # number of data points (aka particles) in tree, i.e. N
 Base.length(::ManellicTree{M, D, N}) where {M, D, N} = N
+Npts(mt::ManellicTree) = length(mt)
+Ndim(mt::ManellicTree) = manifold_dimension(mt.manifold)
 
 getPoints(mt::ManellicTree; permute::Bool = true) = permute ? view(mt.data, mt.permute) : mt.data
 getWeights(mt::ManellicTree; permute::Bool = true) = permute ? view(mt.weights, mt.permute) : mt.weights
+
+# getBW(::ManellicTree) currently only returns the permuted data as per .leaf_kernels
+getBW(mt::ManellicTree) = getBW.(mt.leaf_kernels)
+
 
 # _getleft(i::Integer, N) = 2*i + (2*i < N ? 0 : 1)
 # _getright(i::Integer, N) = _getleft(i,N) + 1

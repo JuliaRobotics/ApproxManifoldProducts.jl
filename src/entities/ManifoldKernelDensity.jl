@@ -1,5 +1,5 @@
 
-const TreeDensity = Union{<:ManellicTree, <:BallTreeDensity}
+const TreeDensity = ManellicTree
 
 """
     $TYPEDEF
