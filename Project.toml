@@ -1,7 +1,7 @@
 name = "ApproxManifoldProducts"
 uuid = "9bbbb610-88a1-53cd-9763-118ce10c1f89"
 keywords = ["MM-iSAMv2", "SLAM", "inference", "sum-product", "belief-propagation", "nonparametric", "manifolds"]
-version = "0.11.0"
+version = "0.12.0"
 
 [deps]
 Base64 = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
@@ -10,7 +10,6 @@ CoordinateTransformations = "150eb455-5306-5404-9cee-2592286d6298"
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 DocStringExtensions = "ffbed154-4ef7-542d-bbb7-c09d3a79fcae"
-KernelDensityEstimate = "2472808a-b354-52ea-a80e-1658a3c6056d"
 LibGit2 = "76f85450-5226-5b5a-8eaa-529ad045b433"
 Libdl = "8f399da3-3557-5675-b5ff-fb832c97cbdb"
 LieGroups = "6774de46-80ba-43f8-ba42-e41071ccfc5f"
@@ -20,7 +19,6 @@ Manifolds = "1cead3c2-87b3-11e9-0ccd-23c62b72b94e"
 ManifoldsBase = "3362f125-f0bb-47a3-aa74-596ffd7ef2fb"
 Markdown = "d6f4376e-aef5-505a-96c1-9c027394607a"
 Mmap = "a63ad114-7e13-5084-954f-fe012c677804"
-NLsolve = "2774e3e8-f4cf-5e23-947b-6d7e65073b56"
 Optim = "429524aa-4258-5aef-a3af-852621145aeb"
 PDMats = "90014a1f-27ba-587c-ab20-58faa44d9150"
 Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
@@ -34,27 +32,17 @@ SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 TensorCast = "02d47bb6-7ce6-556a-be16-bb1710789e2b"
-TransformUtils = "9b8138ad-1b09-5408-aa39-e87ed6d21b63"
 UUIDs = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
 Unicode = "4ec0a83e-493e-50e2-b9ac-8f72acf5a8f5"
-
-[weakdeps]
-Gadfly = "c91e804a-d5a3-530f-b6f0-dfbca275c004"
-
-[extensions]
-ApproxManiProdGadflyExt = "Gadfly"
 
 [compat]
 Colors = "0.12, 0.13"
 CoordinateTransformations = "0.5, 0.6"
 Distributions = "0.25"
 DocStringExtensions = "0.7, 0.8, 0.9"
-Gadfly = "1"
-KernelDensityEstimate = "0.5.10"
 LieGroups = "0.1.3"
 Manifolds = "0.10, 0.11"
 ManifoldsBase = "1, 2"
-NLsolve = "3, 4"
 Optim = "1"
 PDMats = "0.11"
 RecursiveArrayTools = "2, 3.3"
@@ -64,8 +52,7 @@ Rotations = "1"
 StaticArrays = "0.15, 1"
 Statistics = "1"
 TensorCast = "0.2, 0.3, 0.4"
-TransformUtils = "0.2.17"
-julia = "1.10"
+julia = "1.12"
 
 [extras]
 BSON = "fbb218c0-5317-5bc6-957e-2ee96dd4b1f0"

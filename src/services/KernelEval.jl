@@ -6,6 +6,7 @@
 # - ManellicTree kernel types have mean and cov methods for easy access
 # - ManellicTree currently only supports MvNormalKernel types
 
+
 Statistics.mean(m::MvNormalKernel) = m.shim.params         # mean(m.p)
 # Statistics.cov(m::MvNormalKernel) = cov(m.p)     # note also about m.sqrt_iΣ
 Statistics.cov(m::MvNormalKernel) = m.shim.functional.Σ.mat # direct from stored matrix
@@ -14,6 +15,9 @@ Statistics.std(m::MvNormalKernel) = diagm(std(m.shim.functional)) # sqrt(cov(m))
 # FIXME use MvNormal.pdmatrix for faster access to cov's Cholesky
 sqrt_Σ(m::MvNormalKernel) = std(m)
 sqrt_iΣ(m::MvNormalKernel) = cov(m) |> sqrt |> inv
+
+getBW(mker::MvNormalKernel) = sqrt_Σ(mker) |> collect # cov(mker) |> collect
+
 
 function Base.show(
     io::IO, 

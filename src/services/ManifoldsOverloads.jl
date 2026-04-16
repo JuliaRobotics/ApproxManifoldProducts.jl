@@ -61,12 +61,6 @@ end
 
 ## ================================ GENERIC IMPLEMENTATIONS ================================
 
-function TUs.skew(v::SVector{3, T}) where {T <: Real}
-    # coordinates are the co-tangent elements
-    x, y, z = v[1], v[2], v[3]
-    # sum with default basis to form a tangent vector in the algebra
-    return SMatrix{3, 3, T}(+0, z, -y, -z, 0, x, +y, -x, 0)
-end
 
 # right Jacobian (Lie Group, originally from ?)
 function Jr(M::AbstractLieGroup, X; order = 5)
@@ -258,8 +252,8 @@ function ad(
     d::ArrayPartition,
     X::ArrayPartition,
 )
-    SO3 = SpecialOrthogonalGroup(3)
-    v1x = skew(d.x[1])
+    SO3 = SpecialOrthogonalGroup(3) # TODO use submanifold_component(M, 2) instead?
+    v1x = LieGroups.hat(LieAlgebra(SO3), d.x[1]) # skew(d.x[1])
     Ω1 = d.x[2]
     v2 = X.x[1]
     ω2 = log(SO3, X.x[2])
@@ -278,7 +272,7 @@ function ad(::typeof(SpecialEuclideanGroup(2; variant = :right)), d::ArrayPartit
 end
 
 function ad(::typeof(SpecialEuclideanGroup(3; variant = :right)), d::ArrayPartition)
-    Vx = skew(d.x[1])
+    v1x = LieGroups.hat(LieAlgebra(SpecialOrthogonalGroup(3)), d.x[1]) # skew(d.x[1])
     Ω = d.x[2]
     return vcat(hcat(Ω, Vx), hcat(zero(SMatrix{3, 3, Float64}), Ω))
 end
@@ -292,7 +286,8 @@ end
 function Ad(::typeof(SpecialEuclideanGroup(3; variant = :right)), p)
     t = p.x[1]
     R = p.x[2]
-    return vcat(hcat(R, skew(t) * R), hcat(zero(SMatrix{3, 3, Float64}), R))
+    st = LieGroups.hat(LieAlgebra(SO3), t) # skew(t)
+    return vcat(hcat(R, st * R), hcat(zero(SMatrix{3, 3, Float64}), R))
 end
 
 #
