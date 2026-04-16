@@ -438,7 +438,7 @@ end
     P2 = manikde!(LieGroups.TranslationGroup(3), pts2)
 
     # P12 = P1 * P2
-    P12 = manifoldProduct([P1; P2], LieGroups.TranslationGroup(3); legacy = false)
+    P12 = manifoldProduct([P1; P2], LieGroups.TranslationGroup(3))
 
     @test typeof(P12._u0) <: Vector{Float64}
 
@@ -471,7 +471,7 @@ end
     P2 = manikde!(M, pts2)
 
     # P12 = P1 * P2
-    P12 = manifoldProduct([P1; P2], M; legacy = false)
+    P12 = manifoldProduct([P1; P2], M)
 
     pts_ = getPoints(P12)
 

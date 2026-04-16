@@ -49,8 +49,8 @@ using Random
     p12 = manifoldProduct(
         [p1_SE2_kde; p2_SE2_marg_Tr2_kde];
         selectedLabels = selectedLabels,
-        _randU = randU,
-        _randN = randN,
+        # _randU = randU,
+        # _randN = randN,
     )
     #
     selectedLabels
