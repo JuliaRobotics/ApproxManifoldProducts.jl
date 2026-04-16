@@ -67,16 +67,12 @@ include("services/ManellicTree.jl")
 
 # AMP types and some legacy support 
 include("entities/ManifoldDefinitions.jl")
-# include("Legacy.jl")
 include("services/ManifoldPartials.jl")
 include("Interface.jl")
 
 # regular features
 include("services/KernelEval.jl")
 include("services/ManifoldKernelDensity.jl")
-# include("services/Euclidean.jl")
-# include("services/CircularUtils.jl")
-# include("services/Circular.jl")
 include("KernelHilbertEmbeddings.jl")
 
 include("TrackingLabels.jl")
