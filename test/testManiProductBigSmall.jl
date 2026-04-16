@@ -33,7 +33,7 @@ using TensorCast
     # check new MKD have right type info cached
     @test (p._u0 |> typeof) == typeof(u0)
 
-    pq = manifoldProduct([p; q], M; legacy = false)
+    pq = manifoldProduct([p; q], M)
 
     # check new product also has right point type info cached
     @test (pq._u0 |> typeof) == typeof(u0)
