@@ -1,16 +1,9 @@
 
 export
     # new local features
-    AMP,
-    MKD,
+    MKD, # TODO deprecate
     AbstractManifold,
     ManifoldKernelDensity,
-    get2DLambda,
-    get2DMu,
-    get2DMuMin,
-    resid2DLinear,
-    solveresid2DLinear!,
-    solveresid2DLinear,
     *,
     isapprox,
 
@@ -22,13 +15,13 @@ export
     isPartial,
     calcProductGaussians
 
-export getPoints, getBW, Ndim, Npts
+export getPoints, getBW, Ndim, Npts, getWeights
 export getKDERange, getKDEMax, getKDEMean, getKDEfit
 export sample, rand, resample, kld, minkld
 export calcMean
 export mean, cov, std, var
 export getInfoPerCoord, getBandwidth
-export antimarginal
+export marginal, antimarginal
 
 export mmd!, mmd
 
@@ -36,5 +29,4 @@ export mmd!, mmd
 export getManifoldPartial
 
 
-## TODO, export
-# export DensityKernel, ConcentratedGaussianKernel
+export DensityKernel, ConcentratedGaussianKernel

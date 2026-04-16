@@ -1,5 +1,644 @@
 
 
+## ======================================================================================================
+## Remove below before v0.13
+## ======================================================================================================
+
+
+# function TUs.skew(v::SVector{3, T}) where {T <: Real}
+#     # coordinates are the co-tangent elements
+#     x, y, z = v[1], v[2], v[3]
+#     # sum with default basis to form a tangent vector in the algebra
+#     return SMatrix{3, 3, T}(+0, z, -y, -z, 0, x, +y, -x, 0)
+# end
+
+# Circular Manifold definition and associated arithmetic
+
+# function get2DMu(
+#     mus,
+#     Lambdas;
+#     diffop::Function = -,
+#     periodicmanifold::Function = (x) -> x,
+#     initrange::Tuple{Float64, Float64} = (-1e-5, 1e-5),
+# )::Float64
+#     # TODO: can be solved as the null space basis, but requires proper scaling
+#     gg = (res, x) -> solveresid2DLinear!(res, x, mus, Lambdas; diffop = diffop)
+#     initr = initrange[2] - initrange[1]
+#     x0 = [initr * rand() + initrange[1]]
+#     r = NLsolve.nlsolve(gg, x0)
+#     xs = sign(r.zero[1] - x0[1]) * 1e-3 .+ r.zero
+#     r = NLsolve.nlsolve(gg, xs)
+#     return periodicmanifold(r.zero[1])
+# end
+
+# function get2DMuMin(
+#     mus,
+#     Lambdas;
+#     diffop::Function = -,
+#     periodicmanifold::Function = (x) -> x,
+#     initrange::Tuple{Float64, Float64} = (-1e-5, 1e-5),
+#     method = Optim.Newton(),
+#     Λμ::Bool = false,
+# )::Float64
+#     # TODO: can be solved as the null space basis, but requires proper scaling
+#     res = zeros(1)
+#     # @show round.(mus, digits=3)
+#     gg = (x) -> (solveresid2DLinear(res, x, mus, Lambdas; diffop = diffop))^2
+#     initr = initrange[2] - initrange[1]
+#     # TODO -- do we need periodicmanifold here?
+#     x0 = [initr * rand() + initrange[1]]
+#     r = Optim.optimize(gg, x0, method)
+#     # @show r.minimizer[1]
+#     return periodicmanifold(r.minimizer[1])
+# end
+
+# #
+
+
+# Test naive implementation of entropy calculations towards efficient calculation of entropy on a manifold
+
+# import TransformUtils.logmap_SO2
+
+# export difftheta,
+#     addtheta,
+#     rbfAccAt!,
+#     rbf!,
+#     rbf,
+#     evaluateManifoldNaive1D!,
+#     manifoldLooCrossValidation,
+#     kde!_CircularNaiveCV,
+#     getCircMu,
+#     getCircLambda
+
+# const global reci_s2pi = 1.0 / sqrt(2.0 * pi) # 1.0/2.5066282746310002
+
+# # On-manifold circular product callbacks
+
+# # sign migth be flipped, but kept for legacy support -- FIXME this should be standardized!!
+# difftheta(wth1, wth2) = log(_AMP_CIRCLE, wth2, wth1) # logmap_SO2(TUs.R(wth1)'*TUs.R(wth2))
+# addtheta(wth1, wth2) = exp(_AMP_CIRCLE, wth2, wth1)   # TUs.wrapRad( wth1+wth2 )
+
+# # manifold get Gaussian products mean
+# function getCircMu(m::Vector{Float64}, s::Vector{Float64}, ::Float64)
+#     return addtheta(0, get2DMu(m, s; diffop = difftheta, initrange = (-pi + 0.0, pi + 0.0)))
+# end
+
+# # getCircMu = (m::Vector{Float64}, s::Vector{Float64}, dummy::Float64) -> TUs.wrapRad(get2DMuMin(m, s, diffop=difftheta, initrange=(-pi+0.0,pi+0.0)))
+
+# getCircLambda(x) = getEuclidLambda(x)
+
+# """
+#     $SIGNATURES
+
+# Probability density function `p(x)`, as estimated by kernels
+# ```math
+# hatp_{-j}(x) = 1/(N-1) Σ_{i != j}^N frac{1}{sqrt{2pi}σ } exp{ -frac{(x-μ)^2}{2 σ^2} }
+# ```
+# """
+# function normDistAccAt!(
+#     ret::AV,
+#     idx::Int,
+#     x::Float64,
+#     sigma::Float64,
+#     w::Float64 = 1.0,
+# ) where {AV <: AbstractVector}
+#     global reci_s2pi
+#     @fastmath ret[idx] += w * reci_s2pi / sigma * exp(-(x^2) / (2.0 * (sigma^2)))
+#     return nothing
+# end
+
+# function rbfAccAt!(
+#     ret::AV,
+#     idx::Int,
+#     x::Float64,
+#     μ::Float64 = 0.0,
+#     σ::Float64 = 1.0,
+#     w::Float64 = 1.0,
+#     diffop::Function = -,
+# ) where {AV <: AbstractVector}
+#     #
+#     normDistAccAt!(ret, idx, diffop(x, μ), σ, w)
+#     return nothing
+# end
+# function rbf!(
+#     ret::AV,
+#     x::Float64,
+#     μ::Float64 = 0.0,
+#     σ::Float64 = 1.0,
+#     diffop::Function = -,
+# ) where {AV <: AbstractVector}
+#     #
+#     ret[1] = 0.0
+#     normDistAccAt!(ret, 1, diffop(x, μ), σ)
+#     return nothing
+# end
+
+# function rbf(x::Float64, μ::Float64 = 0.0, σ::Float64 = 1.0)
+#     ret = Vector{Float64}(undef, 1) # initialized in rbf!(..)
+#     rbf!(ret, x, μ, σ)
+#     return ret[1]
+# end
+
+# """
+#     $SIGNATURES
+
+# Evalute the KDE naively as equally weighted Gaussian kernels with common bandwidth.
+# This function does, however, allow on-manifold evaluations.
+# """
+# function evaluateManifoldNaive1D!(
+#     ret::Vector{Float64},
+#     idx::Int,
+#     pts::Array{Float64, 1},
+#     bw::Float64,
+#     x::Array{Float64, 1},
+#     loo::Int = -1,
+#     diffop = -,
+# )
+#     #
+#     dontskip = loo == -1
+#     N = length(pts)
+#     reci_N = dontskip ? 1.0 / N : 1.0 / (N - 1)
+#     for j = 1:N
+#         if dontskip || loo != j
+#             manifolddist = diffop(pts[loo], pts[j])
+#             normDistAccAt!(ret, idx, manifolddist, bw, reci_N)
+#         end
+#     end
+
+#     return nothing
+# end
+# function evaluateManifoldNaive1D!(
+#     ret::Vector{Float64},
+#     idx::Int,
+#     bd::BallTreeDensity,
+#     x::Array{Float64, 1},
+#     loo::Int = -1,
+#     diffop = -,
+# )
+#     #
+#     return evaluateManifoldNaive1D!(
+#         ret,
+#         idx,
+#         getPoints(bd)[:],
+#         getBW(bd)[1, 1],
+#         x,
+#         loo,
+#         diffop,
+#     )
+# end
+
+# """
+#     $SIGNATURES
+
+# Calculate negative entropy with leave one out (j'th element) cross validation.
+
+# Background
+# ==========
+
+# From: Silverman, B.: Density Estimation for Statistics and Data Analysis, 1986, p.52
+
+# Probability density function `p(x)`, as estimated by kernels
+# ```math
+# hatp_{-j}(x) = 1/(N-1) Σ_{i != j}^N frac{1}{sqrt{2pi}σ } exp{ -frac{(x-μ)^2}{2 σ^2} }
+# ```
+# and has Cross Validation number as the average log evaluations of leave one out `hatp_{-j}(x)`:
+# ```math
+# CV(p) = 1/N Σ_i^N log hat{p}_{-j}(x_i)
+# ```
+
+# This quantity `CV` is related to an entropy `H(p)` estimate via:
+# ```math
+# H(p) = -CV(p)
+# ```
+# """
+# function manifoldLooCrossValidation(
+#     pts::Array,
+#     bw::Float64;
+#     own::Bool = true,
+#     diffop::Function = -,
+# )
+#     #
+#     N = maximum(size(pts))
+#     h = [bw;]
+#     loo = zeros(N)
+#     @inbounds for i = 1:N
+#         if !own
+#             # validation version
+#             pts99 = pts[[1:(i - 1); (i + 1):end]]
+#             p99 = kde!(pts99, h)
+#             loo[i] = log(p99([pts[i];])[1])
+#         else
+#             # own naive entropy calculation
+#             loo[i] = 0.0
+#             evaluateManifoldNaive1D!(loo, i, pts, bw, pts, i, diffop)
+#             loo[i] = log(loo[i])
+#         end
+#     end
+#     return sum(loo) / N
+# end
+
+# function kde!_CircularNaiveCV(points::AbstractVector)
+#     # initial setup parameters
+#     dims = 1 # size(points,1)
+#     bwds = zeros(dims)
+#     # initial testing values
+#     lower = 0.001
+#     upper = 2pi
+
+#     # excessive for loop for leave one out likelihiood cross validation (Silverman 1986, p.52)
+#     for i = 1:dims
+#         minEntropyLOOCV =
+#             (bw) -> -manifoldLooCrossValidation(points, bw; own = true, diffop = difftheta)
+#         res = Optim.optimize(
+#             minEntropyLOOCV,
+#             lower,
+#             upper,
+#             Optim.GoldenSection();
+#             x_tol = 0.001,
+#         )
+#         bwds[i] = res.minimizer
+#     end
+
+#     # cosntruct the kde with CV optimized bandwidth
+#     p = kde!(points, bwds, (addtheta,), (difftheta,))
+
+#     return p
+# end
+
+# #
+
+
+# Euclidean Manifold definitions and arithmetic
+
+# get2DLambda(Lambdas::AbstractVector{<:Real}) = sum(Lambdas)
+
+# #
+
+
+# legacy content to facilitate transition to AMP
+
+
+# function resid2DLinear(μ, mus, Lambdas; diffop::Function = -)  # '-' exploits EuclideanManifold commutativity a-b = b-a
+#     # dμ = broadcast(diffop, μ, mus)  # mus .- μ  ## μ .\ mus
+#     # @show round.(dμ, digits=4)
+#     # ret = sum( Lambdas.*dμ )
+#     r = map((mu, lam) -> diffop(μ[], mu) * lam, mus, Lambdas)
+#     return sum(r)
+# end
+
+# function solveresid2DLinear!(res, x, mus, Lambdas; diffop::Function = -)::Nothing
+#     res[1] = resid2DLinear(x, mus, Lambdas; diffop = diffop)
+#     return nothing
+# end
+
+# # import ApproxManifoldProducts: resid2DLinear, solveresid2DLinear
+# function solveresid2DLinear(res, x, mus, Lambdas; diffop::Function = -)::Float64
+#     solveresid2DLinear!(res, x, mus, Lambdas; diffop = diffop)
+#     return res[1]
+# end
+
+
+# function _update!(dst::MN, src::MN) where {MN <: ManifoldKernelDensity}
+#     KDE._update!(dst.belief, src.belief)
+#     @assert dst._partial == src._partial "AMP._update! can only be done for exactly the same ._partial values in dst and src"
+#     setPointsMani!(dst._u0, src._u0)
+#     dst.infoPerCoord .= src.infoPerCoord
+
+#     return dst
+# end
+
+
+# function _reducePartialManifoldElements(el::Symbol)
+#     if el == :Euclid
+#         return TranslationGroup(1)
+#     elseif el == :Circular
+#         return Circle()
+#     end
+#     return error("unknown manifold_symbol $el")
+# end
+
+# """
+#     $SIGNATURES
+
+# Lots to do here, see RoME.jl #244 and standardized usage with Manifolds.jl.
+
+# Notes
+# - diffop( test, reference )   <===>   ΔX = inverse(test) * reference
+
+# DevNotes
+# - FIXME replace with Manifolds.jl #41, RoME.jl #244
+# """
+# function buildHybridManifoldCallbacks(manif::Tuple)
+#     # TODO use multiple dispatch instead -- will be done for second version of system
+#     addopT = []
+#     diffopT = []
+#     getManiMu = []
+#     getManiLam = []
+
+#     for mn in manif
+#         if mn == :Euclid
+#             push!(addopT, +)
+#             push!(diffopT, -)
+#             push!(getManiMu, KDE.getEuclidMu)
+#             push!(getManiLam, KDE.getEuclidLambda)
+#         elseif mn == :Circular
+#             push!(addopT, addtheta)
+#             push!(diffopT, difftheta)
+#             push!(getManiMu, getCircMu)
+#             push!(getManiLam, getCircLambda)
+#         else
+#             error("Unrecognized manifold $(mn)")
+#         end
+#     end
+
+#     return (addopT...,), (diffopT...,), (getManiMu...,), (getManiLam...,)
+# end
+
+# # FIXME TO BE REMOVED
+# # _MtoSymbol(::Euclidean{Tuple{1}}) = :Euclid
+# # _MtoSymbol(::Circle) = :Circular
+
+# function _manifoldtuple(M::AbstractManifold)
+#     # TODO WIP to remove convert(Tuple, M) type piracy.
+#     # Also easier dev experience without so many convert (800+) and implicit conversion.
+#     @warn "Please use `_manifoldtuple(M)` instead. This will be removed (hopefully soon). Got" typeof(
+#         M,
+#     )
+#     return convert(Tuple, M)
+# end
+# # _manifoldtuple(M::ProductManifold) = _MtoSymbol.(M.manifolds)
+# # _manifoldtuple(M::Manifolds.TranslationGroup) = tuple([:Euclid for i in 1:manifold_dimension(M)]...)
+# function _manifoldtuple(M::LieGroups.TranslationGroup)
+#     return tuple([:Euclid for i = 1:manifold_dimension(M)]...)
+# end
+# _manifoldtuple(::typeof(LieGroups.CircleGroup(ℝ))) = (:Circular,)
+# function _manifoldtuple(
+#     ::LieGroup{ℂ, AbelianMultiplicationGroupOperation, Manifolds.Circle{ℂ}},
+# )
+#     return (:Euclid,)
+# end
+# _manifoldtuple(M::ValidationLieGroup) = _manifoldtuple(M.lie_group)
+
+# function _manifoldtuple(::Manifolds.Euclidean{Tuple{N}, ℝ}) where {N}
+#     return tuple([:Euclid for i = 1:N]...)
+# end
+# # _manifoldtuple(::Manifolds.Circle{ℝ})  = error("#FIXME")#(:Circular,)
+# # _manifoldtuple(::Manifolds.RealCircleGroup)  = (:Circular,)
+
+# _manifoldtuple(::typeof(Euclid)) = (:Euclid,)
+# _manifoldtuple(::typeof(Euclid2)) = (:Euclid, :Euclid)
+# _manifoldtuple(::typeof(Euclid3)) = (:Euclid, :Euclid, :Euclid)
+# _manifoldtuple(::typeof(Euclid4)) = (:Euclid, :Euclid, :Euclid, :Euclid)
+
+# _manifoldtuple(::typeof(SpecialOrthogonalGroup(2))) = (:Circular,)
+# _manifoldtuple(::typeof(SpecialOrthogonalGroup(3))) = (:Circular, :Circular, :Circular)
+# function _manifoldtuple(::typeof(SpecialEuclideanGroup(2; variant = :right)))
+#     return (:Euclid, :Euclid, :Circular)
+# end
+# function _manifoldtuple(::typeof(SpecialEuclideanGroup(3; variant = :right)))
+#     return (:Euclid, :Euclid, :Euclid, :Circular, :Circular, :Circular)
+# end
+# function _manifoldtuple(::typeof(TranslationGroup(2) × SpecialOrthogonalGroup(2)))
+#     return (:Euclid, :Euclid, :Circular)
+# end
+# function _manifoldtuple(
+#     ::typeof(TranslationGroup(2) × SpecialOrthogonalGroup(2) × TranslationGroup(2)),
+# )
+#     return (:Euclid, :Euclid, :Circular, :Euclid, :Euclid)
+# end
+# function _manifoldtuple(::typeof(TranslationGroup(3) × SpecialOrthogonalGroup(3)))
+#     return (:Euclid, :Euclid, :Euclid, :Circular, :Circular, :Circular)
+# end
+# function _manifoldtuple(
+#     ::typeof(SpecialOrthogonalGroup(3) × TranslationGroup(3) × TranslationGroup(3)),
+# )
+#     return (
+#         :Circular,
+#         :Circular,
+#         :Circular,
+#         :Euclid,
+#         :Euclid,
+#         :Euclid,
+#         :Euclid,
+#         :Euclid,
+#         :Euclid,
+#     )
+# end
+
+# """
+#     $(SIGNATURES)
+
+# Calculate the KDE bandwidths for each dimension independly, as per manifold of each.  Return vector of all dimension bandwidths.
+# """
+# function getKDEManifoldBandwidths(
+#     pts::AbstractMatrix{<:Real},
+#     manif::T1,
+# ) where {T1 <: Tuple}
+#     #
+#     ndims = size(pts, 1)
+#     bws = ones(ndims)
+
+#     for i = 1:ndims
+#         if manif[i] == :Euclid
+#             bws[i] = getBW(kde!(pts[i, :]))[1, 1]
+#         elseif manif[i] == :Circular
+#             bws[i] = getBW(kde!_CircularNaiveCV(pts[i, :]))[1, 1]
+#         else
+#             error("Unrecognized manifold $(manif[i])")
+#         end
+#     end
+
+#     return bws
+# end
+
+# ## ================================================================================================================================
+# # pass through API
+# ## ================================================================================================================================
+
+# # not exported yet
+# # getManifold(x::ManifoldKernelDensity) = x.manifold
+
+# import KernelDensityEstimate: Ndim, Npts, getWeights, marginal
+# import KernelDensityEstimate: getKDERange, getKDEMax, getKDEMean, getKDEfit
+# import KernelDensityEstimate: sample, rand, resample, kld, minkld
+
+# Npts(::ManellicTree{M, D, N}) where {M, D, N} = N
+# Ndim(mt::ManellicTree) = manifold_dimension(mt.manifold)
+# getBW(mker::MvNormalKernel) = sqrt_Σ(mker) |> collect # cov(mker) |> collect
+# # getBW(::ManellicTree) currently only returns the permuted data as per .leaf_kernels
+# getBW(mt::ManellicTree) = getBW.(mt.leaf_kernels)
+
+# Ndim(x::ManifoldKernelDensity, w...; kw...) = Ndim(x.belief, w...; kw...)
+# Npts(x::ManifoldKernelDensity, w...; kw...) = Npts(x.belief, w...; kw...)
+
+# getWeights(x::ManifoldKernelDensity, w...; kw...) = getWeights(x.belief, w...; kw...)
+
+# getKDERange(x::ManifoldKernelDensity, w...; kw...) = getKDERange(x.belief, w...; kw...)
+# function getKDERange(x::AbstractVector{<:ManifoldKernelDensity}, w...; kw...)
+#     return getKDERange((s -> s.belief).(x), w...; kw...)
+# end
+# getKDEMax(x::ManifoldKernelDensity, w...; kw...) = getKDEMax(x.belief, w...; kw...)
+# getKDEMean(x::ManifoldKernelDensity, w...; kw...) = getKDEMean(x.belief, w...; kw...)
+# getKDEfit(x::ManifoldKernelDensity, w...; kw...) = getKDEfit(x.belief, w...; kw...)
+
+# kld(x::ManifoldKernelDensity, w...; kw...) = kld(x.belief, w...; kw...)
+# minkld(x::ManifoldKernelDensity, w...; kw...) = minkld(x.belief, w...; kw...)
+
+# (x::ManifoldKernelDensity)(w...; kw...) = x.belief(w...; kw...)
+
+# #
+
+# function ManifoldKernelDensity(
+#     M::MB.AbstractManifold,
+#     vecP::AbstractVector{P},
+#     u0 = vecP[1]; # vecP[1]
+#     partial::L = nothing,
+#     partl_cb::Union{Nothing, <:Function} = nothing,
+#     infoPerCoord::AbstractVector{<:Real} = ones(getNumberCoords(M, u0)),
+#     dims::Int = manifold_dimension(M),
+#     bw::Union{<:AbstractVector{<:Real}, <:AbstractMatrix{<:Real}, Nothing} = nothing,
+#     belmodel::Function = (a, b, aF, dF) ->
+#         KernelDensityEstimate.kde!(a, collect(b), aF, dF), # collect(b) but error length(::Nothing)
+# ) where {P, L}
+#     #
+#     # FIXME obsolete
+#     arr = Matrix{Float64}(undef, dims, length(vecP))
+
+#     for j = 1:length(vecP)
+#         arr[:, j] = makeCoordsFromPoint(M, vecP[j])
+#     end
+
+#     # FIXME ON FIRE REMOVE LEGACY
+#     manis = _manifoldtuple(M)
+#     # find or have the bandwidth
+#     _bw = isnothing(bw) ? getKDEManifoldBandwidths(arr, manis) : bw
+#     # NOTE workaround for partials and user did not specify a bw
+#     if isnothing(bw) && !isnothing(partial)
+#         mask = ones(Int, length(_bw)) .== 1
+#         mask[partial] .= false
+#         _bw[mask] .= 1.0
+#     end
+#     # FIXME ON FIRE REMOVE LEGACY
+#     addopT, diffopT, _, _ = buildHybridManifoldCallbacks(manis)
+#     bel = belmodel(arr, _bw, addopT, diffopT)
+#     # bel = KernelDensityEstimate.kde!(arr, collect(_bw), addopT, diffopT)
+#     return ManifoldKernelDensity(M, bel, partial, u0, infoPerCoord)
+# end
+
+# internal workaround function for building partial submanifold dimensions, must be upgraded/standarized
+# function _buildManifoldPartial(fullM::MB.AbstractManifold, partial_coord_dims)
+#     #
+#     # temporary workaround during Manifolds.jl integration
+#     manif = _manifoldtuple(fullM)[partial_coord_dims]
+#     # 
+#     newMani = MB.AbstractManifold[]
+#     for me in manif
+#         push!(newMani, _reducePartialManifoldElements(me))
+#     end
+
+#     # assume independent dimensions for definition, ONLY USED AS DECORATOR AT THIS TIME, FIXME
+#     return ProductManifold(newMani...)
+# end
+
+# function Statistics.mean(mkd::ManifoldKernelDensity; kwargs...)
+#   return mean(mkd.manifold, getPoints(mkd); kwargs...)
+# end
+# function Statistics.cov(mkd::ManifoldKernelDensity; kwargs...) 
+#   cov(mkd.manifold, getPoints(mkd); kwargs...)
+# end
+# function Statistics.std(mkd::ManifoldKernelDensity; kwargs...)
+#   return std(mkd.manifold, getPoints(mkd); kwargs...)
+# end
+# function Statistics.var(mkd::ManifoldKernelDensity; kwargs...)
+#   return var(mkd.manifold, getPoints(mkd); kwargs...)
+# end
+
+# function Base.convert(
+#     ::Type{B},
+#     mkd::ManifoldKernelDensity{M, B},
+# ) where {M, B <: BallTreeDensity}
+#     return mkd.belief
+# end
+
+# """
+# Likely new bug see KDE #70 
+# """
+# function _buildDensityProductElements(
+#     XX::AbstractVector{B};
+#     outName::Symbol = :product,
+#     inNames::Union{<:AbstractVector{Symbol}, NTuple{D, Symbol}} = [
+#         Symbol("belief$i") for i = 1:length(XX)
+#     ],
+#     inFctNames::Union{<:AbstractVector{Symbol}, NTuple{D, Symbol}} = [
+#         Symbol("factor$i") for i = 1:length(XX)
+#     ],
+#     _glbs = KDE.makeEmptyGbGlb(; recordChoosen = true),
+#     product::B = *(XX; glbs = _glbs, addEntropy = false),
+# ) where {B <: BallTreeDensity, D}
+#     #
+
+#     npts = Npts(product)
+#     ndim = Ndim(product)
+#     ndens = length(XX)
+
+#     # pts = getPoints(product)
+#     # @cast outArr[j][i] := pts[i,j]
+#     outArr = [getPoints(product, i) for i = 1:npts]
+#     bw = [getBW(product)[:, i] for i = 1:npts]
+#     lblComb = [zeros(Int, ndens) for i = 1:npts]
+
+#     # restructure points for incoming densities
+#     # indens = (XX...,)
+#     XXarr = [([getPoints(x, i) for i = 1:Npts(x)]) for x in XX]
+#     BWarr = [([getBW(x)[:, i] for i = 1:Npts(x)]) for x in XX]
+
+#     # build the object
+#     mdp = DensityProductElements(
+#         outArr,
+#         bw,
+#         outName,
+#         Ref(true),
+#         lblComb,
+#         (XXarr...,),
+#         (BWarr...,),
+#         (inNames...,),
+#         (inFctNames...,),
+#         Channel{Pair{Int, Int}}(100),
+#     )
+
+#     # set the labels selections used for current product
+#     if length(XX) == 1
+#         resize!(mdp.lblCombinations, npts)
+#         for i = 1:npts
+#             resize!(mdp.lblCombinations[i], 1)
+#             mdp.lblCombinations[i][1] = i
+#         end
+#     else
+#         _setLabelCombinations!(mdp, _glbs.labelsChoosen)
+#     end
+
+#     return mdp
+# end
+
+
+# function getPoints(
+#     x::ManifoldKernelDensity{M, B, L},
+#     aspartial::Bool = true;
+#     permute::Bool = true,
+# ) where {M <: AbstractManifold, B <: BallTreeDensity, L <: AbstractVector{Int}}
+#     #
+#     pts = getPoints(x.belief, permute)
+
+#     (M_, pts_, u0_) = if (L !== nothing) && aspartial
+#         Mp, Rp, lkup = getManifoldPartial(x.manifold, x._partial, x._u0)
+#         (Mp, view(pts, x._partial, :), Rp)
+#     else
+#         (x.manifold, pts, x._u0)
+#     end
+
+#     return _matrixCoordsToPoints(M_, pts_, u0_)
+# end
+
 # # can only do for Array, not view
 # function _setProductElements!(mdp::DensityProductElements{D}, 
 #                               prd::BallTreeDensity)
@@ -313,81 +952,4 @@ function calcCovarianceBasic(M::AbstractManifold, ptsArr::Vector{P}) where {P}
     return msst_
 end
 
-## ======================================================================================================
-## Remove below before v0.7
-## ======================================================================================================
-
-# export
-#   coords,
-#   uncoords,
-#   getPointsManifold
-
-## New Manifolds.jl aware API -- TODO find the right file placement
-
-# # TODO, hack, use the proper Manifolds.jl intended vectoration methods instead
-# _makeVectorManifold(::MB.AbstractManifold, arr::AbstractArray{<:Real}) = arr
-# _makeVectorManifold(::MB.AbstractManifold, val::Real) = [val;]
-# _makeVectorManifold(::M, prr::ProductRepr) where {M <: typeof(SpecialEuclidean(2))} = coords(M, prr)
-# _makeVectorManifold(::M, prr::ProductRepr) where {M <: typeof(SpecialEuclidean(3))} = coords(M, prr)
-
-## ======================================================================================================
-## Remove below before v0.6
-## ======================================================================================================
-
-@deprecate setPointsManiPartial!(
-    Mdest::AbstractManifold,
-    dest,
-    Msrc::AbstractManifold,
-    src,
-    partial::AbstractVector{<:Integer},
-    asPartial::Bool = true,
-) setPointPartial!(Mdest, dest, Msrc, src, partial, asPartial)
-
-export productbelief
-
-"""
-    $SIGNATURES
-
-Take product of `dens` (including optional partials beliefs) as proposals to be multiplied together.
-
-Notes
------
-- Return points of full dimension, even if only partial dimensions in proposals.
-  - 'Other' dimensions left unchanged from incoming `denspts`
-- `d` dimensional product approximation
-- Incorporate ApproxManifoldProducts to process variables in individual batches.
-
-DevNotes
-- TODO Consolidate with [`AMP.manifoldProduct`](@ref), especially concerning partials. 
-"""
-function productbelief(
-    denspts::AbstractVector{P},
-    manifold::MB.AbstractManifold,
-    dens::Vector{<:ManifoldKernelDensity},
-    N::Int;
-    asPartial::Bool = false,
-    dbg::Bool = false,
-    logger = ConsoleLogger(),
-) where {P}
-    #
-
-    @warn "productbelief is being deprecated, use manifoldProduct together with getPoints instead."
-    mkd =
-        AMP.manifoldProduct(dens, manifold; Niter = 1, oldPoints = denspts, logger = logger)
-    pGM = getPoints(mkd, asPartial)
-
-    return pGM
-end
-
-# function calcMean(mkd::ManifoldKernelDensity{M}) where {M <: ManifoldsBase.AbstractManifold}
-#   data = getPoints(mkd)
-#   # Returns the mean point on manifold for consitency
-#   mean(mkd.manifold, data)  
-# end
-
-@deprecate calcVariableCovarianceBasic(
-    M::AbstractManifold,
-    vecP::AbstractVector{P},
-) where {P} calcCovarianceBasic(M, vecP)
-
-#
+##

@@ -1,47 +1,47 @@
 # Common Utils
 
 
-"""
-    $SIGNATURES
+# """
+#     $SIGNATURES
 
-A clunky repeat calculation of one product kernel.
-"""
-function updateProductSample(
-    dest::BallTreeDensity,
-    proposals::Vector{BallTreeDensity},
-    manifolds::Tuple,
-    smplIdx::Int,
-    labels::Vector{Int},
-)
-    #
+# A clunky repeat calculation of one product kernel.
+# """
+# function updateProductSample(
+#     dest::BallTreeDensity,
+#     proposals::Vector{BallTreeDensity},
+#     manifolds::Tuple,
+#     smplIdx::Int,
+#     labels::Vector{Int},
+# )
+#     #
 
-    Ndens = length(proposals)
-    Ndim = Ndim(dest)
+#     Ndens = length(proposals)
+#     Ndim = Ndim(dest)
 
-    densLen = Npts.(proposals)
+#     densLen = Npts.(proposals)
 
-    calclambdas = zeros(Ndim, Ndens)
-    calcmu = zeros(Ndim, Ndens)
-    destMu = zeros(Ndim)
-    destCov = 0.0
+#     calclambdas = zeros(Ndim, Ndens)
+#     calcmu = zeros(Ndim, Ndens)
+#     destMu = zeros(Ndim)
+#     destCov = 0.0
 
-    @inbounds @fastmath @simd for dim = 1:Ndim
-        for j = 1:Ndens
-            calclambdas[dim, j] = 1.0 / (getBW(proposals[j]) .^ 2)[dim, labels[j]]
-            calcmu[dim, j] = getPoints(proposals[j])[dim, labels[j]]
-        end
-        destCov = getLambda(calclambdas)
-        destCov = 1.0 / destCov
-        # μ = 1/Λ * Λμ  ## i.e. already scaled to mean only
-        destMu[dim] = getMu(calcmu[dim, :], calclambdas[dim, :], destCov)
-    end
+#     @inbounds @fastmath @simd for dim = 1:Ndim
+#         for j = 1:Ndens
+#             calclambdas[dim, j] = 1.0 / (getBW(proposals[j]) .^ 2)[dim, labels[j]]
+#             calcmu[dim, j] = getPoints(proposals[j])[dim, labels[j]]
+#         end
+#         destCov = getLambda(calclambdas)
+#         destCov = 1.0 / destCov
+#         # μ = 1/Λ * Λμ  ## i.e. already scaled to mean only
+#         destMu[dim] = getMu(calcmu[dim, :], calclambdas[dim, :], destCov)
+#     end
 
-    # previous points
-    pts = getPoints(dest)
-    pts[:, smplIdx] = destMu
+#     # previous points
+#     pts = getPoints(dest)
+#     pts[:, smplIdx] = destMu
 
-    return manikde!(pts, manifolds)
-end
+#     return manikde!(pts, manifolds)
+# end
 
 
 

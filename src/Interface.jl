@@ -97,7 +97,7 @@ function setPointPartial!(
         return dest
     end
 
-    dest_ = AMP.makeCoordsFromPoint(Mdest, dest)
+    dest_ = makeCoordsFromPoint(Mdest, dest)
     # e0 = identity_element(Mdest, dest)
     # dest_ = vee(Mdest, e0, log(Mdest, e0, dest))
 
@@ -107,7 +107,7 @@ function setPointPartial!(
     #  src is assumed to be values which only represent the partial values 
 
     # FIXME, does this line need to cater for both partial and tangent or point cases?
-    src_ = AMP.makeCoordsFromPoint(Msrc, src)
+    src_ = makeCoordsFromPoint(Msrc, src)
     # e0s = identity_element(Msrc, src)
     # src_ = vee(Msrc, e0s, log(Msrc, e0s, src))
 
@@ -138,8 +138,8 @@ function setPointPartial!(
         if length(partial) == 0
             return dest[destIdx]
         end
-        dest_coords = collect(AMP.makeCoordsFromPoint(Mdest, dest[destIdx]))
-        src_coords = AMP.makeCoordsFromPoint(Msrc, src[srcIdx])
+        dest_coords = collect(makeCoordsFromPoint(Mdest, dest[destIdx]))
+        src_coords = makeCoordsFromPoint(Msrc, src[srcIdx])
         dest_coords[partial] .= asPartial ? src_coords : view(src_coords, partial)
         return dest[destIdx] = makePointFromCoords(Mdest, dest_coords, dest[destIdx])
 
