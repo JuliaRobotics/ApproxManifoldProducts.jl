@@ -317,10 +317,8 @@ end
     P12 = manifoldProduct(
         [P1; P2];
         MC = 1,
-        recordLabels = true,
         selectedLabels = sl,
         _labelsChoosen_pp,
-        addEntropy = false,
     )
 
     @test !isPartial(P12)

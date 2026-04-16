@@ -173,10 +173,8 @@ end
 
     P12_ = manifoldProduct(
         [P1; P2_];
-        recordLabels = true,
         selectedLabels = sl,
         _labelsChoosen_pp,
-        addEntropy = false,
     )
 
 ##
@@ -263,9 +261,7 @@ end
 
     P_ = manifoldProduct(
         [P1; P3];
-        recordLabels = true,
         selectedLabels = sl,
-        addEntropy = false,
     )
 
     @test !isPartial(P_)
@@ -335,9 +331,7 @@ end
 
     P123_ = manifoldProduct(
         [P1; P2_; P3_];
-        recordLabels = true,
         selectedLabels = sl,
-        addEntropy = false,
     )
 
     @test !isPartial(P123_)
@@ -408,9 +402,7 @@ end
     sl = Vector{Vector{Int}}()
     P = manifoldProduct(
         [P2; P1; P3];
-        recordLabels = true,
         selectedLabels = sl,
-        addEntropy = false,
     )
 
     @test !isPartial(P)
@@ -512,9 +504,7 @@ end
 
     P45__ = manifoldProduct(
         [P4; P4_; P5; P5_];
-        recordLabels = true,
         selectedLabels = sl,
-        addEntropy = false,
     )
 
     @test !isPartial(P45__)
@@ -606,9 +596,7 @@ end
     # NOTICE ORDER SWAP [P2;P1;P3]
     P = manifoldProduct(
         [P2; P1; P3];
-        recordLabels = true,
         selectedLabels = sl,
-        addEntropy = false,
     )
 
     @test !isPartial(P)
@@ -684,9 +672,7 @@ end
     sl = Vector{Vector{Int}}()
     P = manifoldProduct(
         [P1; P2; P3];
-        recordLabels = true,
         selectedLabels = sl,
-        addEntropy = false,
     )
 
     @test !isPartial(P)
@@ -759,9 +745,7 @@ end
         sl = Vector{Vector{Int}}()
         P = manifoldProduct(
             [P1; P3];
-            recordLabels = true,
             selectedLabels = sl,
-            addEntropy = false,
         )
 
         @test_broken isPartial(P)

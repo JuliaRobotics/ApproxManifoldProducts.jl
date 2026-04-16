@@ -48,8 +48,6 @@ using Random
     Random.seed!(0)
     p12 = manifoldProduct(
         [p1_SE2_kde; p2_SE2_marg_Tr2_kde];
-        addEntropy = false,
-        recordLabels = true,
         selectedLabels = selectedLabels,
         _randU = randU,
         _randN = randN,
@@ -113,8 +111,6 @@ using Random
     selectedLabels__ = Vector{Vector{Int}}()
     p12__ = manifoldProduct(
         [p1__; p2__];
-        addEntropy = false,
-        recordLabels = true,
         selectedLabels = selectedLabels__,
         _randU = randU,
         _randN = randN,
