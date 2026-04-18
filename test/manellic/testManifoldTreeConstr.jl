@@ -48,24 +48,23 @@ end
     M = LieGroups.TranslationGroup(1)
     N = 32
     pts = [randn(1) for _ = 1:N]
-    weights = ones(N) ./ N
+    # weights = ones(N) ./ N
     KT = ConcentratedGaussianKernel
     KL = ConcentratedGaussianKernel
     lkern = SizedVector{N, KL}(undef)
-    _workaround_isdef_leafkernel = Set{Int}()
 
-    mtree = ApproxManifoldProducts.ManellicTree(
-        M,
-        pts,
-        MVector{N, Float64}(weights),
-        MVector{N, Int}(1:N),
-        lkern,
-        SizedVector{N, KT}(undef),
-        SizedVector{N, Set{Int}}(undef),
-        _workaround_isdef_leafkernel,
-        Set{Int}(),
+##
+
+    mtree = ApproxManifoldProducts.HomotopyDensity{
+        nothing
+    }(;
+        manifold = M,
+        data = pts,
+        leaf_kernels = lkern,                           # leaf_kernels
+        tree_kernels = SizedVector{N, KT}(undef),       # tree_kernels
     );
     
+##
     # tree kernel indices
     @test 2 == ApproxManifoldProducts.leftIndex(mtree, 1)
     @test 3 == ApproxManifoldProducts.rightIndex(mtree, 1)
@@ -115,7 +114,7 @@ end
 
 
 ##
-@testset "test ManellicTree construction" begin
+@testset "test HomotopyDensity construction" begin
 ##
 
     M = LieGroups.TranslationGroup(2)
@@ -192,7 +191,7 @@ end
 end
 
 
-@testset "ManellicTree construction 1D" begin
+@testset "HomotopyDensity construction 1D" begin
 ##
 
     M = LieGroups.TranslationGroup(1)
@@ -376,7 +375,7 @@ end
 end
 
 
-@testset "ManellicTree 1D basic and smaller construction as per sorting of points with shuffle" begin
+@testset "HomotopyDensity 1D basic and smaller construction as per sorting of points with shuffle" begin
 ## 
 
     M = LieGroups.TranslationGroup(1)
@@ -418,7 +417,7 @@ end
 end
 
 
-@testset "ManellicTree 1D basic construction and evaluations" begin
+@testset "HomotopyDensity 1D basic construction and evaluations" begin
 ## 
 
     M = LieGroups.TranslationGroup(1)
@@ -578,7 +577,7 @@ end
 ##
 end
 
-@testset "Basic ManellicTree manifolds construction and evaluations" begin
+@testset "Basic HomotopyDensity manifolds construction and evaluations" begin
 ## 
 
     M = LieGroups.TranslationGroup(1)

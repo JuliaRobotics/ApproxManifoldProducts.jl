@@ -10,7 +10,7 @@ using TensorCast
 using LieGroups
 import Rotations as Rot_
 using Distributions
-import ApproxManifoldProducts: ManellicTree, splitPointsEigen
+import ApproxManifoldProducts: splitPointsEigen
 
 using Optim
 

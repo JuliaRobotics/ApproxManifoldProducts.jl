@@ -41,6 +41,7 @@ _makevec(s::Nothing) = s
 _makevec(w::AbstractVector) = w
 _makevec(w::Tuple) = [w...]
 
+_getprl(::Type{<:ConcentratedGaussianKernel{partial}}) where partial = partial
 _getprl(::ConcentratedGaussianKernel{partial}) where partial = partial
 
 _getpartial(  ::Nothing, s) = s

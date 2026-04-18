@@ -16,7 +16,7 @@ function directProductGaussianTestHelper(
     N::Int,
 )
 
-    invpermute(B::ApproxManifoldProducts.ManellicTree, s::Int) = findfirst(==(s), B.permute)
+    invpermute(B::HomotopyDensity, s::Int) = findfirst(==(s), B.permute)
     # use idx 1 assuming all leaf bandwidths are the same
     bw1 = getBW(P1)[invpermute(P1.belief,1)] .^ 2
     bw2 = getBW(P2)[invpermute(P2.belief,1)] .^ 2

@@ -29,7 +29,7 @@ function ManifoldKernelDensity(
     u0::P = zeros(manifold_dimension(mani));
     infoPerCoord::AbstractVector{<:Real} = ones(getNumberCoords(mani, u0)),
     partl_cb::Nothing = nothing,
-) where {M <: MB.AbstractManifold, B <: TreeDensity, P}
+) where {M <: MB.AbstractManifold, B <: HomotopyDensity, P}
     return ManifoldKernelDensity{M, B, Nothing, P}(mani, bel, nothing, u0, infoPerCoord)
 end
 
@@ -41,7 +41,7 @@ function ManifoldKernelDensity(
     u0::P = zeros(manifold_dimension(mani));
     infoPerCoord::AbstractVector{<:Real} = ones(getNumberCoords(mani, u0)),
     partl_cb::Union{Nothing, <:Function} = nothing,
-) where {M <: MB.AbstractManifold, B <: TreeDensity, L <: AbstractVector{<:Integer}, P}
+) where {M <: MB.AbstractManifold, B <: HomotopyDensity, L <: AbstractVector{<:Integer}, P}
     #
     if isnothing(partl_cb)
         @warn "WIP partl_cb on MKD constructor helper" maxlog=100
@@ -62,16 +62,18 @@ function ManifoldKernelDensity(
         tree_kernels_ .= _intersectpartials.(Ref(mani), view(bel.tree_kernels, tkm), Ref(partial), partl_cb)
         leaf_kernels_ .= _intersectpartials.(Ref(mani), view(bel.leaf_kernels, lkm), Ref(partial), partl_cb)
         # FIXME update belief to have correct partials
-        bel_ = ManellicTree(
-            bel.manifold,
-            bel.data,
-            bel.weights,
-            bel.permute,
+        bel_ = HomotopyDensity{
+            _getprl(eltype(tree_kernels)),
+        }(;
+            manifold = bel.manifold,
+            data = bel.data,
+            weights = bel.weights,
+            permute = bel.permute,
             leaf_kernels,
             tree_kernels,
-            bel.segments,
-            bel._workaround_isdef_leafkernel,
-            bel._workaround_isdef_treekernel,
+            segments = bel.segments,
+            _workaround_isdef_leafkernel = bel._workaround_isdef_leafkernel,
+            _workaround_isdef_treekernel = bel._workaround_isdef_treekernel,
         )
 
         # call the constructor direct
@@ -90,7 +92,7 @@ function ManifoldKernelDensity(
     pl_mask::Union{<:BitVector, <:AbstractVector{<:Bool}},
     u0::P = zeros(manifold_dimension(mani));
     infoPerCoord::AbstractVector{<:Real} = ones(getNumberCoords(mani, u0)),
-) where {M <: MB.AbstractManifold, B <: TreeDensity, P}
+) where {M <: MB.AbstractManifold, B <: HomotopyDensity, P}
     @warn "This constructor is not recommended, as partials have changed somewhat -- possibly erroneous code here..." maxlog=100
     return ManifoldKernelDensity(
         mani,
@@ -274,7 +276,7 @@ function getPoints(
     x::ManifoldKernelDensity{M, B, L},
     aspartial::Bool = true;
     permute::Bool = true,
-) where {M <: AbstractManifold, B <: ManellicTree, L <: AbstractVector{Int}}
+) where {M <: AbstractManifold, B <: HomotopyDensity, L <: AbstractVector{Int}}
     #
     pts = getPoints(x.belief; permute)
 

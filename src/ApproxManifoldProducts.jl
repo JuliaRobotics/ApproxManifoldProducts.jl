@@ -44,7 +44,6 @@ include("ExportAPI.jl")
 include("_BiMaps.jl")
 
 include("entities/KernelEval.jl")
-include("entities/ManellicTree.jl") # experimental
 include("entities/ManifoldKernelDensity.jl")
 
 include("services/ManifoldsOverloads.jl")
