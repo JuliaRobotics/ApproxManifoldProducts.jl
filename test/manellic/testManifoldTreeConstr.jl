@@ -186,7 +186,7 @@ end
 
 ##
 
-    AMP.evaluate(mtree, SA[10.0; -101.0])
+    ApproxManifoldProducts.evaluate(mtree, SA[10.0; -101.0])
 
 ##
 end
@@ -425,7 +425,7 @@ end
     pts = [randn(1) for _ = 1:128]
     mtree = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel = ConcentratedGaussianKernel)
 
-    AMP.evaluate(mtree, SA[0.0;])
+    ApproxManifoldProducts.evaluate(mtree, SA[0.0;])
 
 ## load know test data test
 
@@ -458,7 +458,7 @@ end
     h = 0.1
     xx = -5:h:5
     yy_ = pdf.(np, xx) # ref
-    yy = [AMP.evaluate(mtree, [v;]) for v in xx] # test
+    yy = [ApproxManifoldProducts.evaluate(mtree, [v;]) for v in xx] # test
     for (i, v) in enumerate(yy_)
         @test isapprox(v, yy[i]; atol = 0.05)
     end
@@ -487,10 +487,10 @@ end
     @test norm((pts[mtree.permute] .- mean.(mtree.leaf_kernels)) .|> s -> s[1]) < 1e-6
 
     # for (i,v) in enumerate(dict[:evaltest_1_at])
-    #   # @show AMP.evaluate(mtree, [v;]), dict[:evaltest_1_dens][i]
-    #   @test isapprox(dict[:evaltest_1_dens][i], AMP.evaluate(mtree, [v;]))
+    #   # @show ApproxManifoldProducts.evaluate(mtree, [v;]), dict[:evaltest_1_dens][i]
+    #   @test isapprox(dict[:evaltest_1_dens][i], ApproxManifoldProducts.evaluate(mtree, [v;]))
     # end
-    # isapprox(dict[:evaltest_1_dens][5], AMP.evaluate(mtree, [dict[:evaltest_1_at][5]]))
+    # isapprox(dict[:evaltest_1_dens][5], ApproxManifoldProducts.evaluate(mtree, [dict[:evaltest_1_at][5]]))
     # eval test ref Normal(0,1)
 
 
@@ -507,7 +507,7 @@ end
 
     M = LieGroups.TranslationGroup(1)
     ker = ConcentratedGaussianKernel([0.0], [0.5;;])
-    @test isapprox(AMP.evaluate(M, ker, [0.1]), pdf(MvNormal(mean(ker), cov(ker)), [0.1]))
+    @test isapprox(ApproxManifoldProducts.evaluate(M, ker, [0.1]), pdf(MvNormal(mean(ker), cov(ker)), [0.1]))
 
     # Test wrapped cicular distribution 
     function pdf_wrapped_normal(μ, σ, θ; nwrap = 1000)
@@ -521,20 +521,20 @@ end
     M = LieGroups.CircleGroup(ℝ)
     ker = ConcentratedGaussianKernel([0.0], [0.1;;])
     @test isapprox(
-        AMP.evaluate(M, ker, [0.1]),
+        ApproxManifoldProducts.evaluate(M, ker, [0.1]),
         pdf_wrapped_normal(mean(ker)[], sqrt(cov(ker))[], 0.1),
     )
 
     ker = ConcentratedGaussianKernel([0], [2.0;;])
-    @test isapprox(AMP.evaluate(M, ker, [0.0]), AMP.evaluate(M, ker, [2pi]))
+    @test isapprox(ApproxManifoldProducts.evaluate(M, ker, [0.0]), ApproxManifoldProducts.evaluate(M, ker, [2pi]))
     #TODO wrapped normal distributions broken
     @test_broken isapprox(
         pdf_wrapped_normal(mean(ker)[], sqrt(cov(ker))[], pi),
-        AMP.evaluate(M, ker, [pi]),
+        ApproxManifoldProducts.evaluate(M, ker, [pi]),
     )
     @test_broken isapprox(
         pdf_wrapped_normal(mean(ker)[], sqrt(cov(ker))[], 0),
-        AMP.evaluate(M, ker, [0.0]),
+        ApproxManifoldProducts.evaluate(M, ker, [0.0]),
     )
 
 ##
@@ -544,30 +544,30 @@ end
     p = exp(M, hat(LieAlgebra(M), Xc))
     kercov = diagm([0.5, 2.0, 0.1] .^ 2)
     ker = ConcentratedGaussianKernel(p, kercov)
-    @test isapprox(AMP.evaluate(M, ker, p), pdf(MvNormal(Xc, cov(ker)), Xc))
+    @test isapprox(ApproxManifoldProducts.evaluate(M, ker, p), pdf(MvNormal(Xc, cov(ker)), Xc))
 
     Xc = [10, 22, -0.1]
     q = exp(M, hat(LieAlgebra(M), Xc))
 
-    @test isapprox(pdf(MvNormal(cov(ker)), [0, 0, 0]), AMP.evaluate(M, ker, p))
+    @test isapprox(pdf(MvNormal(cov(ker)), [0, 0, 0]), ApproxManifoldProducts.evaluate(M, ker, p))
 
     X = log(M, compose(M, inv(M, p), q))
     Xc_e = vee(LieAlgebra(M), X)
     pdf_local_coords = pdf(MvNormal(cov(ker)), Xc_e)
 
-    @test isapprox(pdf_local_coords, AMP.evaluate(M, ker, q))
+    @test isapprox(pdf_local_coords, ApproxManifoldProducts.evaluate(M, ker, q))
 
-    delta_c = AMP.distanceMalahanobisCoordinates(M, ker, q)
+    delta_c = ApproxManifoldProducts.distanceMalahanobisCoordinates(M, ker, q)
     X = log(M, compose(M, inv(M, p), q))
     Xc_e = vee(LieAlgebra(M), X)
     malad_t = Xc_e' * inv(kercov) * Xc_e
     # delta_t = [10, 20, 0.1] - [10, 22, -0.1] 
     @test isapprox(malad_t, delta_c' * delta_c; atol = 1e-10)
 
-    malad2 = AMP.distanceMalahanobisSq(M, ker, q)
+    malad2 = ApproxManifoldProducts.distanceMalahanobisSq(M, ker, q)
     @test isapprox(malad_t, malad2; atol = 1e-10)
 
-    rbfd = AMP.ker(M, ker, q, 0.5, AMP.distanceMalahanobisSq)
+    rbfd = ApproxManifoldProducts.ker(M, ker, q, 0.5, ApproxManifoldProducts.distanceMalahanobisSq)
     @test isapprox(exp(-0.5 * malad_t), rbfd; atol = 1e-10)
 
     # NOTE 'global' distribution would have been 
@@ -595,14 +595,14 @@ end
 
 ##
     p = exp(M, ε, hat(LieAlgebra(M), [3.0]))
-    y_amp = AMP.evaluate(mtree, p)
+    y_amp = ApproxManifoldProducts.evaluate(mtree, p)
 
     y_pdf = pdf(dis, [3.0])
 
     @test isapprox(y_amp, y_pdf; atol = 0.1)
 
     # ps = [[p] for p = -0:0.01:6]
-    # ys_amp = map(p->AMP.evaluate(mtree, exp(M, ε, hat(M, ε, p))), ps)
+    # ys_amp = map(p->ApproxManifoldProducts.evaluate(mtree, exp(M, ε, hat(M, ε, p))), ps)
     # ys_pdf = pdf(dis, ps)
 
     # lines(first.(ps), ys_pdf)
@@ -626,14 +626,14 @@ end
 
 ##
     p = exp(M, ε, hat(LieAlgebra(M), [0.1]))
-    y_amp = AMP.evaluate(mtree, p)
+    y_amp = ApproxManifoldProducts.evaluate(mtree, p)
 
     y_pdf = pdf(dis, [0.1])
 
     @test isapprox(y_amp, y_pdf; atol = 0.5)
 
     ps = [[p] for p = -0.3:0.01:0.3]
-    ys_amp = map(p -> AMP.evaluate(mtree, exp(M, ε, hat(LieAlgebra(M), p))), ps)
+    ys_amp = map(p -> ApproxManifoldProducts.evaluate(mtree, exp(M, ε, hat(LieAlgebra(M), p))), ps)
     ys_pdf = pdf(dis, ps)
 
     # lines(first.(ps), ys_pdf)
@@ -653,7 +653,7 @@ end
 
 ##
     p = exp(M, hat(LieAlgebra(M), [10, 20, 0.1]))
-    y_amp = AMP.evaluate(mtree, p)
+    y_amp = ApproxManifoldProducts.evaluate(mtree, p)
     y_pdf = pdf(dis, [10, 20, 0.1])
     # check kde eval is within 20% of true value
     y_err = y_amp - y_pdf

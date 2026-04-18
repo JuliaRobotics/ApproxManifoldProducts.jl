@@ -41,8 +41,8 @@ using JSON3
             kernel_bw = [s;;],
             kernel = ConcentratedGaussianKernel,
         )
-        # AMP.entropy(mtr)
-        return AMP.expectedLogL(mtr, getPoints(mtr), true)
+        # ApproxManifoldProducts.entropy(mtr)
+        return ApproxManifoldProducts.expectedLogL(mtr, getPoints(mtr), true)
     end
 
     # optimal is somewhere in the single digits and basic monoticity outward
@@ -81,7 +81,7 @@ end
     # MINIMIZE(entropy, mtree, p0)
 
     # FIXME use bounds
-    lcov, ucov = AMP.getBandwidthSearchBounds(mtree)
+    lcov, ucov = ApproxManifoldProducts.getBandwidthSearchBounds(mtree)
 
     @test lcov[1] < 0.1
     @test 0.5 < ucov[1]
@@ -95,7 +95,7 @@ end
     )
     lower = lcov / bw_cov
     upper = ucov / bw_cov
-    AMP.entropy(mtree_0)
+    ApproxManifoldProducts.entropy(mtree_0)
 
     # https://julianlsolvers.github.io/Optim.jl/stable/#user/minimization/#minimizing-a-univariate-function-on-a-bounded-interval
     # options for kwargs...
@@ -109,7 +109,7 @@ end
             kernel_bw = [σ;;],
             kernel = ConcentratedGaussianKernel,
         )
-        AMP.entropy(mtr)
+        ApproxManifoldProducts.entropy(mtr)
     end
 
     S = 0.005:0.05:3
@@ -130,7 +130,7 @@ end
 
     cost2(σ) = begin
         mtr = ApproxManifoldProducts.updateBandwidths(mtree_0, [σ;;])
-        AMP.entropy(mtr)
+        ApproxManifoldProducts.entropy(mtr)
     end
 
     # and optimize with "update" kernel bandwith cost
@@ -143,7 +143,7 @@ end
     # mask bandwith by passing in an alternative
 
     cost3(σ) = begin
-        AMP.entropy(mtree_0, [σ;;])
+        ApproxManifoldProducts.entropy(mtree_0, [σ;;])
     end
 
     # and optimize with "update" kernel bandwith cost
@@ -193,7 +193,7 @@ end
     )
 
     cost4(σ) = begin
-        AMP.entropy(mtree, diagm(σ .^ 2))
+        ApproxManifoldProducts.entropy(mtree, diagm(σ .^ 2))
     end
 
     # and optimize with "update" kernel bandwith cost
@@ -229,7 +229,7 @@ if !(v"1.11" < VERSION < v"1.12.0-beta99")
         )
 
         cost4(σ) = begin
-            AMP.entropy(mtree, diagm(σ .^ 2))
+            ApproxManifoldProducts.entropy(mtree, diagm(σ .^ 2))
         end
 
         # and optimize with "update" kernel bandwith cost
@@ -271,7 +271,7 @@ if !(v"1.11" < VERSION < v"1.12.0-beta99")
         )
 
         cost4(σ) = begin
-            AMP.entropy(mtree, diagm(σ .^ 2))
+            ApproxManifoldProducts.entropy(mtree, diagm(σ .^ 2))
         end
 
         # and optimize with "update" kernel bandwith cost

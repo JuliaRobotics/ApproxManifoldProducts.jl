@@ -18,23 +18,23 @@ X3 = kde!([4; 5; 6.0], [1.0;]);
 ##
 
 dpe =
-    AMP._buildDensityProductElements([X1; X2; X3]; inNames = [:X1, :X2, :X3], outName = :Y)
+    ApproxManifoldProducts._buildDensityProductElements([X1; X2; X3]; inNames = [:X1, :X2, :X3], outName = :Y)
 
 ##
 
-AMP._recalcProductKernel(dpe, 1)
+ApproxManifoldProducts._recalcProductKernel(dpe, 1)
 
 ##
 
-AMP._recalcProductKernel(dpe, 2)
+ApproxManifoldProducts._recalcProductKernel(dpe, 2)
 
-AMP._recalcProductKernel(dpe, 3)
+ApproxManifoldProducts._recalcProductKernel(dpe, 3)
 
 ##
 
-AMP._listOutElementLabelSelections(dpe, 1)
-AMP._listOutElementLabelSelections(dpe, 2)
-AMP._listOutElementLabelSelections(dpe, 3)
+ApproxManifoldProducts._listOutElementLabelSelections(dpe, 1)
+ApproxManifoldProducts._listOutElementLabelSelections(dpe, 2)
+ApproxManifoldProducts._listOutElementLabelSelections(dpe, 3)
 
 ##
 
@@ -51,7 +51,7 @@ Z_ = kde!(5 .+ randn(5), [1.0;]);
 
 # Y_ = X_*Z_
 
-dpeY = AMP._buildDensityProductElements(
+dpeY = ApproxManifoldProducts._buildDensityProductElements(
     [X_; Z_];
     outName = :Y,
     inNames = [:X, :Z],
@@ -64,7 +64,7 @@ Y_ = kde!(pts, dpeY.outBW[1])
 ##
 
 X = kde!(pts .- 5)
-dpeX = AMP._buildDensityProductElements(
+dpeX = ApproxManifoldProducts._buildDensityProductElements(
     [X;];
     outName = :X,
     inNames = [:Y;],
@@ -74,7 +74,7 @@ dpeX = AMP._buildDensityProductElements(
 ##
 
 Z = kde!(pts .+ 5)
-dpeZ = AMP._buildDensityProductElements(
+dpeZ = ApproxManifoldProducts._buildDensityProductElements(
     [Z;];
     outName = :Z,
     inNames = [:Y;],
@@ -89,8 +89,8 @@ struct _AMPDiGraph{G, B}
 end
 
 function buildDiGraphKernelProduct!(
-    dpel::AMP.DensityProductElements,
-    abg::_AMPDiGraph = _AMPDiGraph(DiGraph(), AMP._BiDictMap(; sizehint = 100)),
+    dpel::ApproxManifoldProducts.DensityProductElements,
+    abg::_AMPDiGraph = _AMPDiGraph(DiGraph(), ApproxManifoldProducts._BiDictMap(; sizehint = 100)),
 )
     #
 

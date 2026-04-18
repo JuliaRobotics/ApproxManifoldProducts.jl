@@ -47,13 +47,13 @@ using Test
     # B = ManifoldKernelDensity(M, pts2)
     # C = ManifoldKernelDensity(M, pts3)
 
-    @test 0.75 < AMP.ker(M, pts1[1], pts1[2], 0.001) < 1.25
-    @test 0.75 < AMP.ker(M, pts2[1], pts2[2], 0.001) < 1.25
-    @test 0.75 < AMP.ker(M, pts3[1], pts3[2], 0.001) < 1.25
+    @test 0.75 < ApproxManifoldProducts.ker(M, pts1[1], pts1[2], 0.001) < 1.25
+    @test 0.75 < ApproxManifoldProducts.ker(M, pts2[1], pts2[2], 0.001) < 1.25
+    @test 0.75 < ApproxManifoldProducts.ker(M, pts3[1], pts3[2], 0.001) < 1.25
 
-    @test 0 < AMP.ker(M, pts1[1], pts3[1], 0.001) < 0.25
-    @test 0 < AMP.ker(M, pts1[1], pts3[2], 0.001) < 0.25
-    @test 0 < AMP.ker(M, pts1[2], pts3[1], 0.001) < 0.25
+    @test 0 < ApproxManifoldProducts.ker(M, pts1[1], pts3[1], 0.001) < 0.25
+    @test 0 < ApproxManifoldProducts.ker(M, pts1[1], pts3[2], 0.001) < 0.25
+    @test 0 < ApproxManifoldProducts.ker(M, pts1[2], pts3[1], 0.001) < 0.25
 
     @test isapprox(A, B)
     @test !isapprox(A, C)
