@@ -183,7 +183,7 @@ function calcProductGaussians(
         error("diagonal case for calcProductGaussian partial support is TODO")
     end
 
-    kers = [MvNormalKernel(p, C; partial) for (p, C, partial) in zip(μ_, Σ_, partials)]
+    kers = [ConcentratedGaussianKernel(p, C; partial) for (p, C, partial) in zip(μ_, Σ_, partials)]
     return calcProductGaussians(
         M,
         kers,
@@ -207,8 +207,8 @@ DevNotes
 function calcProductGaussians(
     M::AbstractManifold,
     kernels::Union{
-        <:AbstractVector{<:MvNormalKernel{<:DensityKernel}}, # FIXME, product of components with different partials???
-        <:NTuple{N, <:MvNormalKernel{<:DensityKernel}}
+        <:AbstractVector{<:ConcentratedGaussianKernel}, # FIXME, product of components with different partials???
+        <:NTuple{N, <:ConcentratedGaussianKernel}
     };
     μ0 = nothing,
     weight::Real = 1.0,
@@ -233,7 +233,7 @@ function calcProductGaussians(
     __partial = length(_partial) == manifold_dimension(M) ? nothing : _partial
     __partial_ = _tuple(__partial)
     M_, reprl, partl_cb = getManifoldPartial(M, __partial_, _μ)
-    return MvNormalKernel(_μ, _Σ, weight; partial=__partial_, partl_cb)
+    return ConcentratedGaussianKernel(_μ, _Σ, weight; partial=__partial_, partl_cb)
 end
 
 

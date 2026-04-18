@@ -369,7 +369,7 @@ function splitPointsEigen(
     M::AbstractLieGroup,
     r_PP::AbstractVector{P},
     weights::AbstractVector{<:Real} = ones(length(r_PP)); # FIXME, make static vector unless large
-    kernel = MvNormalKernel,
+    kernel = ConcentratedGaussianKernel,
     kernel_bw = nothing,
     partial::Union{Nothing, AbstractVector{<:Integer}} = nothing,
     partl_cb::Union{Nothing, <:Function} = nothing,
@@ -570,7 +570,7 @@ end
     $SIGNATURES
 
 Notes:
-- Bandwidths for leaves (i.e. `kernel_bw`) must be passed in as covariances when `MvNormalKernel`.
+- Bandwidths for leaves (i.e. `kernel_bw`) must be passed in as covariances when `ConcentratedGaussianKernel`.
 
 DevNotes:
 - Design Decision 24Q1, Manellic.MvNormalKernel bandwidth defs should ALWAYS ONLY BE covariances, because
@@ -583,7 +583,7 @@ function buildTree_Manellic!(
     r_PP::AbstractVector{P}; # vector of points referenced to the r_frame
     N = length(r_PP),
     weights::AbstractVector{<:Real} = ones(N) .* (1 / N),
-    kernel = MvNormalKernel,
+    kernel = ConcentratedGaussianKernel,
     kernel_bw = nothing, # TODO
     partial::Union{Nothing, AbstractVector{<:Integer}} = nothing,
     partl_cb::Union{Nothing, <:Function} = nothing,
@@ -656,7 +656,7 @@ function buildTree_Manellic!(
     kernel = KL,
     kernel_bw = nothing, # TODO
     # partial = ??? TBD -- it should already be in the kernels
-) where {KL <: MvNormalKernel}
+) where {KL <: ConcentratedGaussianKernel}
     #
     _μT() = typeof(mean(r_ker[1]))
     D = manifold_dimension(M)
@@ -722,7 +722,7 @@ function updateBandwidths(
 
     _leaf_kernels = SizedVector{N, HL}(undef)
     for (i, lk) in enumerate(mtr.leaf_kernels)
-        nkl = MvNormalKernel(lk; Σ = _getBW(bws, i), partl_cb)
+        nkl = ConcentratedGaussianKernel(lk; Σ = _getBW(bws, i), partl_cb)
         _leaf_kernels[i] = nkl # updateKernelBW(lk, _getBW(bws, i))
     end
     return ManellicTree(
@@ -936,8 +936,8 @@ function calcProductKernelsBTLabels(
     # @show _mergepartials(M, partials)
     # T = typeof(getKernelTree(proposals[1], 1)) # FIXME FIXME FIXME for products of partials, not just [1]
     N = length(N_lbl_sets)
-    # FIXME sort out type stability
-    post = Vector{MvNormalKernel}(undef, N) 
+    # FIXME abstract vectorT not type-stable
+    post = Vector{ConcentratedGaussianKernel}(undef, N) 
 
     for (i, lbs) in enumerate(N_lbl_sets)
         post[i] = calcProductKernelBTLabels(M, proposals, _makevec(lbs); permute, weight = weights[i])

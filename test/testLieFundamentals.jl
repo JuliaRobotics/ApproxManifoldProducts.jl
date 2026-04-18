@@ -226,9 +226,8 @@ end
 
     #
 
-    p1 = ApproxManifoldProducts.MvNormalKernel(; μ = w_R1, p = MvNormal(SA[0; 0; 0.0], Σ1))
-
-    p2 = ApproxManifoldProducts.MvNormalKernel(; μ = w_R2, p = MvNormal(SA[0; 0; 0.0], Σ2))
+    p1 = ConcentratedGaussianKernel(w_R1, Σ1)
+    p2 = ConcentratedGaussianKernel(w_R2, Σ2)
 
     # Naive product (standard linear product of Gaussians) -- reference implementation around group identity
     Xcs = (X1c, X2c)
@@ -270,7 +269,7 @@ end
         do_transport_correction = true,
     )
 
-    @test isapprox([0; 0; 0.0], mean(p̂.shim.functional); atol = 1e-10)
+    @test isapprox([0; 0; 0.0], mean(p̂.functional); atol = 1e-10)
 
     @test isapprox(
         μn,

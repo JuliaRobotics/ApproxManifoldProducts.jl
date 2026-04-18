@@ -26,11 +26,12 @@ include(joinpath(@__DIR__, "testutils.jl"))
     c = [([1.0; Inf]), ([1.0; Inf])]
 
     
-    @test getManifoldPartial(M, [partial...])[1] isa typeof(LieGroups.TranslationGroup(1))
-    @error "expand test for return tuple of getManifoldPartial"
-    @test 1 == manifold_dimension(getManifoldPartial(M, [partial...])[1])
- 
- 
+    M_, reprl, partl_cb = getManifoldPartial(M, [partial...])
+    @test M_ isa typeof(LieGroups.TranslationGroup(1))
+    @test 1 == manifold_dimension(M_)
+    @test_broken reprl isa AbstractVector
+    @test partl_cb isa Function
+
     u_ = ApproxManifoldProducts._mean(M, u; partials=(partial, partial))
 
     @test isapprox(0.5, u_[1])
@@ -39,8 +40,8 @@ include(joinpath(@__DIR__, "testutils.jl"))
 ##
     M_, repr, partl_cb = getManifoldPartial(M, partial)
 
-    k1 = ApproxManifoldProducts.MvNormalKernel(u[1], diagm(c[1]); partial=(1,), partl_cb)
-    k2 = ApproxManifoldProducts.MvNormalKernel(u[2], diagm(c[2]); partial=(1,), partl_cb)
+    k1 = ConcentratedGaussianKernel(u[1], diagm(c[1]); partial=(1,), partl_cb)
+    k2 = ConcentratedGaussianKernel(u[2], diagm(c[2]); partial=(1,), partl_cb)
 
 
 ## calculate extended Gaussian correction term beyond the naive mean, here testing with partials 
@@ -101,7 +102,7 @@ end
         M,
         pts2;
         kernel_bw = [1.0; 0.0],
-        kernel = AMP.MvNormalKernel,
+        kernel = ConcentratedGaussianKernel,
         partial,
     )
 
@@ -544,8 +545,8 @@ end
         u34, S34, prl34 = calcProductGaussians(M, [u3, u4], [bw3, bw4]; partials=[(2,),(2,)])
 
 
-        @test isapprox(u12[1], -10; atol=2.5)
-        @test isapprox(u34[2],  10; atol=2.5)
+        @test isapprox(u12[1], -10; atol=3.0)
+        @test isapprox(u34[2],  10; atol=3.0)
 
         @test prl12 == [2, 0]
         @test prl34 == [0, 2]

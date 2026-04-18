@@ -1,5 +1,70 @@
 
 
+# # helper constructor for common case without partials
+# ConcentratedGaussianKernel{partial}(;
+#     weight::Float64,
+#     functional::K,
+#     params::T, 
+#     # partial::P = nothing,
+# ) where {
+#     partial,
+#     K,
+#     T
+# } = ConcentratedGaussianKernel{
+#     partial,
+#     K,
+#     T
+# }(;
+#     weight,
+#     functional,
+#     params
+# )
+
+# ConcentratedGaussianKernel(
+#     p=SVector(0.0),  # center/expansion point on the manifold
+#     covmat=SMatrix{1,1}(1.0);
+#     weight::Number=1.0,
+#     partial::P = nothing,
+# ) where P <: Union{Nothing, <:Tuple} = ConcentratedGaussianKernel{partial}(;
+#     weight, 
+#     functional=MvNormal(covmat), # NOTE, find inverse Cholesky in MvNormal structure
+#     params=p,
+# )
+
+# struct MvNormalKernel{T <: DensityKernel} <: AbstractKernel
+#     shim::T
+# end
+
+# # case for identical types not requiring any conversions
+# function Base.convert(
+#     ::Type{T},
+#     src::T,
+# ) where {T <: MvNormalKernel}
+#     return src
+# end
+
+# function distanceMalahanobisSq(
+#     M::AbstractLieGroup,
+#     K::AbstractKernel,
+#     q,
+#     basis=DefaultOrthogonalBasis();
+#     partial::Union{Nothing,<:Tuple} = nothing,
+# )
+#     δc = distanceMalahanobisCoordinates(M, K, q)
+#     # return inner(M, p, X, X) # did not work as inner gave almost 2x the answer?
+#     return δc' * δc
+# end
+
+# import Base: getproperty
+# function Base.getproperty(k::MvNormalKernel, f::Symbol)
+#     if f === :sqrt_iΣ
+#         # super slow and hacky, but only legacy.  WIP replacing
+#         cov(k) |> inv |> sqrt
+#     else
+#         return getproperty(k.shim, f)
+#     end
+# end
+
 ## ======================================================================================================
 ## Remove below before v0.13
 ## ======================================================================================================

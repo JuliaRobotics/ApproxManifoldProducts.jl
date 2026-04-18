@@ -27,8 +27,8 @@ using JSON3
 
     u1,u2 = [-1.0;], [1.0;]
     c1,c2 = [4.0;;], [4.0;;]
-    g1 = ApproxManifoldProducts.MvNormalKernel(u1, c1)
-    g2 = ApproxManifoldProducts.MvNormalKernel(u2, c2)
+    g1 = ConcentratedGaussianKernel(u1, c1)
+    g2 = ConcentratedGaussianKernel(u2, c2)
 
     g = ApproxManifoldProducts.calcProductGaussians(M, [g1; g2])
     @test isapprox([0.0;], mean(g); atol = 1e-14)
@@ -40,8 +40,8 @@ using JSON3
 
     u1,u2 = [-1.0;], [1.0;]
     c1,c2 = [4.0;;], [9.0;;]
-    g1 = ApproxManifoldProducts.MvNormalKernel(u1, c1)
-    g2 = ApproxManifoldProducts.MvNormalKernel(u2, c2)
+    g1 = ConcentratedGaussianKernel(u1, c1)
+    g2 = ConcentratedGaussianKernel(u2, c2)
 
     g = ApproxManifoldProducts.calcProductGaussians(M, [g1; g2])
     @test isapprox([-5 / 13;], mean(g); atol = 1e-14)
@@ -61,11 +61,11 @@ end
 
     Xc_p = [10, 20, 0.1]
     p = exp(M, hat(LieAlgebra(M), Xc_p, ArrayPartition))
-    kerp = AMP.MvNormalKernel(p, diagm([0.5, 2.0, 0.1] .^ 2))
+    kerp = ConcentratedGaussianKernel(p, diagm([0.5, 2.0, 0.1] .^ 2))
 
     Xc_q = [10, 22, -0.1]
     q = exp(M, hat(LieAlgebra(M), Xc_q, ArrayPartition))
-    kerq = AMP.MvNormalKernel(q, diagm([1.0, 1.0, 0.1] .^ 2))
+    kerq = ConcentratedGaussianKernel(q, diagm([1.0, 1.0, 0.1] .^ 2))
 
     kerpq = calcProductGaussians(M, [kerp, kerq])
 
@@ -196,14 +196,14 @@ end
 
     Xc_p = [0, 0.0]
     p = exp(M, hat(LieAlgebra(M), Xc_p))
-    kerp = AMP.MvNormalKernel(p, diagm([2.0, 1.0] .^ 2))
+    kerp = ConcentratedGaussianKernel(p, diagm([2.0, 1.0] .^ 2))
 
     Xc_q = [0, 0.0]
     # rotate by 60 deg
     R = Rot_.RotMatrix{2}(pi / 3).mat
     Σ = R * diagm([2.0, 1.0] .^ 2) * R'
     q = exp(M, hat(LieAlgebra(M), Xc_q))
-    kerq = AMP.MvNormalKernel(q, Σ)
+    kerq = ConcentratedGaussianKernel(q, Σ)
 
     kerpq = calcProductGaussians(M, [kerp, kerq])
 
@@ -225,13 +225,13 @@ end
 
     Xc_p = [0, 0, 0.0]
     p = exp(M, hat(LieAlgebra(M), Xc_p, ArrayPartition))
-    kerp = AMP.MvNormalKernel(p, diagm([2.0, 1.0, 0.1] .^ 2))
+    kerp = ConcentratedGaussianKernel(p, diagm([2.0, 1.0, 0.1] .^ 2))
 
     # referenced to "global frame"
     # rotate by 60 deg
     Xc_q = [0, 0, pi / 3]
     q = exp(M, ε, hat(LieAlgebra(M), Xc_q, ArrayPartition))
-    kerq = AMP.MvNormalKernel(q, diagm([2.0, 1.0, 0.1] .^ 2))
+    kerq = ConcentratedGaussianKernel(q, diagm([2.0, 1.0, 0.1] .^ 2))
 
     kerpq = calcProductGaussians(M, [kerp, kerq])
 
@@ -255,15 +255,15 @@ end
 
     M = LieGroups.TranslationGroup(1)
 
-    g1 = ApproxManifoldProducts.MvNormalKernel([-1.0;], [4.0;;])
-    g2 = ApproxManifoldProducts.MvNormalKernel([1.0;], [4.0;;])
+    g1 = ConcentratedGaussianKernel([-1.0;], [4.0;;])
+    g2 = ConcentratedGaussianKernel([1.0;], [4.0;;])
 
     g = ApproxManifoldProducts.calcProductGaussians(M, [g1; g2])
     @test isapprox([0.0;], mean(g); atol = 1e-6)
     @test isapprox([2.0;;], cov(g); atol = 1e-6)
 
-    g1 = ApproxManifoldProducts.MvNormalKernel([-1.0;], [4.0;;])
-    g2 = ApproxManifoldProducts.MvNormalKernel([1.0;], [9.0;;])
+    g1 = ConcentratedGaussianKernel([-1.0;], [4.0;;])
+    g2 = ConcentratedGaussianKernel([1.0;], [9.0;;])
 
     g = ApproxManifoldProducts.calcProductGaussians(M, [g1; g2])
     @test isapprox([-5 / 13;], mean(g); atol = 1e-6)
@@ -278,7 +278,7 @@ end
 # M = MF.TranslationGroup(1)
 
 # pts = [randn(1).-1 for _ in 1:3]
-# p1 = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw=[0.1;;], kernel=ApproxManifoldProducts.MvNormalKernel)
+# p1 = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel_bw=[0.1;;], kernel=ConcentratedGaussianKernel)
 
 # @test 1 == length(ApproxManifoldProducts.getKernelsTreeLevelIdxs(p1, 1))
 # @test 2 == length(ApproxManifoldProducts.getKernelsTreeLevelIdxs(p1, 2))

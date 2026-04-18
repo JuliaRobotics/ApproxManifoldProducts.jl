@@ -2,9 +2,9 @@
 abstract type AbstractKernel end
 
 
-@kwdef struct DensityKernel{
+@kwdef struct ConcentratedGaussianKernel{
     partial, # partial info for compiler, usually a value e.g. nothing or (1,3)
-    K, # kernel info for compiler
+    K <: Distributions.MvNormal, # kernel info for compiler
     T  # additional parameters
 } <: AbstractKernel
     """ Mixture/nonparametric weight value """
@@ -15,44 +15,92 @@ abstract type AbstractKernel end
     params::T = nothing
 end
 
-# helper constructor for common case without partials
-DensityKernel{partial}(;
-    weight::Float64,
-    functional::K,
-    params::T, 
-    # partial::P = nothing,
-) where {
-    partial,
-    K,
-    T
-} = DensityKernel{
-    partial,
-    K,
-    T
-}(;
-    weight,
-    functional,
-    params
+
+function ConcentratedGaussianKernel(
+    μ::AbstractArray, 
+    σ::AbstractArray, 
+    weight::Real = 1.0;
+    partial::Union{Nothing, <:Tuple} = nothing,
+    partl_cb::Union{Nothing, <:Function} = nothing,
 )
+    # @warn "MvNormalKernel is deprecated, use ConcentratedGaussianKernel instead, barr partial [maxlog=10]" maxlog=10
+    _μ(s::AbstractArray, _p::Nothing, pf::Union{Nothing, <:Function}) = s
+    _μ(s::AbstractArray, _p::Tuple, pf::Function) = begin
+        _s = deepcopy(s)
+        _s_ = pf(_s)
+        fill!(s, NaN)
+        s_ = pf(s) # required for non-trivial points, eg SO/SE have more complicated representations
+        s_ .= _s_ # copy back only the partials, leave NaNs in the rest
+        return s
+    end
 
-const ConcentratedGaussianKernel(;
-    weight=1.0,
-    p=SVector(0.0),  # center/expansion point on the manifold
-    covmat=SMatrix{1,1}(1.0),
-    partial::P = nothing,
-) where P <: Union{Nothing, <:Tuple} = DensityKernel{partial}(;
-    weight, 
-    functional=MvNormal(covmat), # NOTE, find inverse Cholesky in MvNormal structure
-    params=p,
-)
+    c_(s::AbstractMatrix, _p::Nothing) = s
+    c_(s::AbstractVector, _p::Nothing) = diagm(s)    
+    c_(s::AbstractMatrix, _p::Tuple) = _partialCovToDefault!(_p,_forcemutable(s))
+    c_(s::AbstractVector, _p::Tuple) = diagm(_partialCovToDefault!(_p,_forcemutable(s)))
 
-
-
-
-
-## LEGACY BELOW
-
-struct MvNormalKernel{T <: DensityKernel} <: AbstractKernel
-    shim::T
+    # TODO _forcestatic
+    Σ = c_(σ, partial)
+    _c = projectSymPosDef(Σ)
+    functional = MvNormal(_c)
+    params = _μ(μ, partial, partl_cb)
+    return ConcentratedGaussianKernel{
+        partial,
+        typeof(functional),
+        typeof(params)
+    }(;
+        weight = float(weight),
+        functional,
+        params,
+    )
 end
+
+
+# ConcentratedGaussianKernel(; μ, p::MvNormal, weight = 1.0, partial = nothing, kw...) = ConcentratedGaussianKernel(μ, cov(p), weight; partial, kw...)
+
+
+function ConcentratedGaussianKernel{
+    L,
+    MvNormal{F,P,Z},
+    S
+}(
+    src::ConcentratedGaussianKernel;
+    partl_cb::Union{Nothing, <:Function} = nothing, # partial is pulled from kernel...
+    Σ = nothing,
+) where {L,F,P,Z,S}
+
+    _matType(::Type{Distributions.PDMats.PDMat{_F, _M}}) where {_F, _M} = _M
+    _sap(::Type{ArrayPartition{T,_S}}) where {T,_S} = _S
+    _new(s) = S(s)
+    _new(s::ArrayPartition{T,O}) where {T,O} = ArrayPartition(begin
+        S_ = _sap(S)
+        [S_.parameters[i](v) for (i,v) in enumerate(s.x)]
+    end...)
+
+    m = _new(src.params)
+    Σ_ = isnothing(Σ) ? cov(src.functional) : Σ
+
+    ConcentratedGaussianKernel(
+        m,
+        _matType(P)(Σ_),
+        src.weight;
+        partial = L,
+        partl_cb,
+    )
+end
+
+
+function ConcentratedGaussianKernel(
+    src::ConcentratedGaussianKernel{
+        L,
+        MvNormal{F,P,Z},
+        S
+    };
+    partl_cb::Union{Nothing, <:Function} = nothing, # partial is pulled from kernel...
+    Σ = nothing,
+    kw...
+) where {L,F,P,Z,S}
+    return ConcentratedGaussianKernel{L,MvNormal{F,P,Z},S}(src; partl_cb, Σ, kw...)
+end
+
 

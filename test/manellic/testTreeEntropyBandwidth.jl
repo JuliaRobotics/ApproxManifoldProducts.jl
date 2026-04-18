@@ -27,7 +27,7 @@ using JSON3
         M,
         pt;
         kernel_bw = [1.0;;],
-        kernel = AMP.MvNormalKernel,
+        kernel = ConcentratedGaussianKernel,
     )
     ApproxManifoldProducts.entropy(_m_)
 
@@ -39,7 +39,7 @@ using JSON3
             M,
             pt;
             kernel_bw = [s;;],
-            kernel = AMP.MvNormalKernel,
+            kernel = ConcentratedGaussianKernel,
         )
         # AMP.entropy(mtr)
         return AMP.expectedLogL(mtr, getPoints(mtr), true)
@@ -68,7 +68,7 @@ end
         M,
         pts;
         kernel_bw = bw,
-        kernel = AMP.MvNormalKernel,
+        kernel = ConcentratedGaussianKernel,
     )
     # TODO isdefined does not work here (upstream bug somewhere)
     # @test isdefined(mtree.tree_kernels, 1)
@@ -91,7 +91,7 @@ end
         M,
         pts;
         kernel_bw = bw_cov,
-        kernel = AMP.MvNormalKernel,
+        kernel = ConcentratedGaussianKernel,
     )
     lower = lcov / bw_cov
     upper = ucov / bw_cov
@@ -107,7 +107,7 @@ end
             M,
             _pts;
             kernel_bw = [σ;;],
-            kernel = AMP.MvNormalKernel,
+            kernel = ConcentratedGaussianKernel,
         )
         AMP.entropy(mtr)
     end
@@ -189,7 +189,7 @@ end
         M,
         pts;
         kernel_bw = bw,
-        kernel = AMP.MvNormalKernel,
+        kernel = ConcentratedGaussianKernel,
     )
 
     cost4(σ) = begin
@@ -208,7 +208,7 @@ end
 
     mkd = ApproxManifoldProducts.manikde!(M, pts)
 
-    @test isapprox([0.5 0; 0 0.5], getBW(mkd)[1] .^2; atol = 0.35)
+    @test isapprox([0.7 0; 0 0.7], getBW(mkd)[1]; atol = 0.3)
 
     ##
 end
@@ -225,7 +225,7 @@ if !(v"1.11" < VERSION < v"1.12.0-beta99")
             M,
             pts;
             kernel_bw = bw,
-            kernel = AMP.MvNormalKernel,
+            kernel = ConcentratedGaussianKernel,
         )
 
         cost4(σ) = begin
@@ -267,7 +267,7 @@ if !(v"1.11" < VERSION < v"1.12.0-beta99")
             M,
             pts;
             kernel_bw = bw,
-            kernel = AMP.MvNormalKernel,
+            kernel = ConcentratedGaussianKernel,
         )
 
         cost4(σ) = begin
