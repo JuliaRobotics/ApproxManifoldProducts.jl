@@ -110,14 +110,14 @@ end
     # pdf_pqs .*= 15.9672
 
     amp_ps = map(grid_points) do gp
-        AMP.evaluate(M, kerp, gp)
+        ApproxManifoldProducts.evaluate(M, kerp, gp)
     end
     amp_qs = map(grid_points) do gp
-        AMP.evaluate(M, kerq, gp)
+        ApproxManifoldProducts.evaluate(M, kerq, gp)
     end
 
     amp_pqs = map(grid_points) do gp
-        AMP.evaluate(M, kerpq, gp)
+        ApproxManifoldProducts.evaluate(M, kerpq, gp)
     end
 
     amp_bf_pqs = amp_ps .* amp_qs

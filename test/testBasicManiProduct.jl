@@ -454,8 +454,6 @@ end
         @test_broken N_ == N
     end
 
-    # pts = AMP._pointsToMatrixCoords(P12.manifold, pts_)
-
     @test 0.8 * N_ < sum(abs.((s->s[1] < 0.1).(pts_)))
     @test 0.8 * N_ < sum(abs.((s->s[2] < 0.1).(pts_)))
     @test 0.8 * N_ < sum(abs.((s->s[3] < 2.0).(pts_)))
@@ -484,8 +482,6 @@ end
     else
         @test_broken N_ == N
     end
-
-    # pts = AMP._pointsToMatrixCoords(P12.manifold, pts_)
 
     XX = (s -> s.x[1][1]).(pts_)
     YY = (s -> s.x[1][2]).(pts_)

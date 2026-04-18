@@ -42,12 +42,12 @@ DATADIR = joinpath(dirname(@__DIR__), "testdata")
     @test mtree.tree_kernels[2] isa kType
     @test mtree.tree_kernels[3] isa kType
 
-    @test isapprox(pdf(Normal(0, 1), 0), AMP.evaluate(mtree, SA[0.0;]); atol=0.15)
+    @test isapprox(pdf(Normal(0, 1), 0), ApproxManifoldProducts.evaluate(mtree, SA[0.0;]); atol=0.15)
 
     @error "expectedLogL for different number of test points not working yet."
-    # AMP.expectedLogL(mtree, [randn(1) for _ in 1:5])
+    # ApproxManifoldProducts.expectedLogL(mtree, [randn(1) for _ in 1:5])
 
-    @test 0.5 < AMP.entropy(mtree)
+    @test 0.5 < ApproxManifoldProducts.entropy(mtree)
 
     # Vector bw required for backward compat with legacy belief structure
     mtreeV = ApproxManifoldProducts.buildTree_Manellic!(
@@ -90,9 +90,9 @@ end
         kernel = ConcentratedGaussianKernel,
     )
 
-    AMP.expectedLogL(mtree, pts)
+    ApproxManifoldProducts.expectedLogL(mtree, pts)
 
-    @test AMP.expectedLogL(mtree, pts) < Inf
+    @test ApproxManifoldProducts.expectedLogL(mtree, pts) < Inf
 
     # to enable faster bandwidth selection/optimization
     ekr = ApproxManifoldProducts.getKernelLeaf(mtree, 1, false)
