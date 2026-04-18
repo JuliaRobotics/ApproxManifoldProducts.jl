@@ -10,6 +10,8 @@ Major news relating to breaking changes in ApproxManifoldProducts.jl
 - Drop TransformUtils dependency.
 - Replace internal usage of skew(SO3) with LieGroups.hat(SO3) instead (was never exported).
 - Drop dependencies Require, Reexport.
+- ConcentratedGaussianKernel replaces MvNormalKernel, DensityKernel.
+- Drop MvNormalKernel, DensityKernel (breaking change).
 
 
 ## v0.11
