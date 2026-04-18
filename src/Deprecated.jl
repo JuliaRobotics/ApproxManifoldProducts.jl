@@ -1,5 +1,15 @@
 
 
+# function Base.getproperty(mt::ManellicTree{M,D,N},f::Symbol) where {M,D,N}
+#   if f !== :kernel
+#     getfield(mt, f)
+#   else
+
+#   end
+# end
+
+# const ManifoldKernelDensity{M, D, L, N} = HomotopyDensity{L, M, D, N}
+
 # # helper constructor for common case without partials
 # ConcentratedGaussianKernel{partial}(;
 #     weight::Float64,

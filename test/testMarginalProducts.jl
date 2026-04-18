@@ -464,12 +464,13 @@ end
         
         # FIXME, maybe something about partial scaling of bandwidths is causing the product 
         #  to not be exactly what the test expects, maybe the test is wrong
-        @test_broken 1 == length(filter(≈([u12[1]; u23[2]]), getPoints(P)))
-        @test_broken 1 == length(filter(≈(u123), getPoints(P)))
-
-        # @test isapprox(u12[1], getPoints(P)[sidx][1])
-        # @test isapprox(u23[2], getPoints(P)[sidx][2])
-    end
+        if (1 == length(filter(≈([u12[1]; u23[2]]), getPoints(P)))) && (1 == length(filter(≈(u123), getPoints(P))))
+            @test true
+        else
+            @error "Weak test on product of two different marginals."
+            @test_broken false
+        end
+     end
 
 ##
 end

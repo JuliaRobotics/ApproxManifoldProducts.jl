@@ -31,7 +31,7 @@ include("testMarginalProducts.jl")
 # include("testPartialProductSE2.jl")
 
 
-## TODO update examples for new homotopyBelief interface
+## TODO update examples for new homotopyDensity interface
 # include("ex_1D.jl")
 # include("ex_2D_rot.jl")
 

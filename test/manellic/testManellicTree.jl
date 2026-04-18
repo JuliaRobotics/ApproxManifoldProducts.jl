@@ -10,7 +10,7 @@ using Manifolds
 using LieGroups
 import Rotations as Rot_
 using Distributions
-import ApproxManifoldProducts: ManellicTree, eigenCoords!, splitPointsEigen
+import ApproxManifoldProducts: eigenCoords!, splitPointsEigen
 
 using Optim
 
@@ -43,7 +43,7 @@ function testEigenCoords!(r_C = pi / 3, ax_CC = [SA[5 * randn(); randn()] for _ 
 end
 
 ##
-@testset "test ManellicTree construction" begin
+@testset "test HomotopyDensity construction" begin
 ##
 
     M = TranslationGroup(2)
@@ -108,7 +108,7 @@ end
 ##
 end
 
-@testset "ManellicTree construction 1D" begin
+@testset "HomotopyDensity construction 1D" begin
 ##
 
     M = TranslationGroup(1)
@@ -226,7 +226,7 @@ end
 ##
 end
 
-@testset "ManellicTree 1D basic construction and evaluations" begin
+@testset "HomotopyDensity 1D basic construction and evaluations" begin
 ## 
 
     M = TranslationGroup(1)
@@ -367,7 +367,7 @@ end
     pdf_global_coords = pdf(MvNormal(cov(ker)), Xc_e)
 end
 
-@testset "Basic ManellicTree manifolds construction and evaluations" begin
+@testset "Basic HomotopyDensity manifolds construction and evaluations" begin
 ## 
 
     M = TranslationGroup(1)

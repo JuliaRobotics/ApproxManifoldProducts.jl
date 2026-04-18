@@ -1,6 +1,12 @@
 Major news relating to breaking changes in ApproxManifoldProducts.jl
 
-## v0.12
+## v0.13 (26Q2)
+
+- Drop `TreeDensity` abstract, use only `HomotopyDensity`. (breaking change)
+- Rename `ManellicTree` to `HomotopyDensity` and refactored all internal calls. (breaking change)
+
+
+## v0.12 (26Q2)
 
 - Drop BallTreeDensity and KernelDensityEstimate.jl entirely (breaking change).
 - Drop export of AMP acronym (breaking change).
@@ -14,7 +20,7 @@ Major news relating to breaking changes in ApproxManifoldProducts.jl
 - Drop MvNormalKernel, DensityKernel (breaking change).
 
 
-## v0.11
+## v0.11 (25Q4 - 26Q1)
 
 - Towards integration with DFG v1.0, including halfway step towards HomotopyDensity refactoring.
 - Full support for ManellicTree to finally close #41, including supporting partials as in earlier versions

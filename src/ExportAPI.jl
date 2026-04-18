@@ -3,10 +3,10 @@ export
     # new local features
     MKD, # TODO deprecate
     AbstractManifold,
+    HomotopyDensity,
     ManifoldKernelDensity,
     *,
     isapprox,
-
     # APi and util functions
     buildHybridManifoldCallbacks,
     getKDEManifoldBandwidths,

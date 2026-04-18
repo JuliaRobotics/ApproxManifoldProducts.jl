@@ -9,7 +9,7 @@ using TensorCast
 using LieGroups
 import Rotations as Rot_
 using Distributions
-import ApproxManifoldProducts: ManellicTree, splitPointsEigen
+import ApproxManifoldProducts: splitPointsEigen
 
 using Optim
 
@@ -17,7 +17,7 @@ using JSON3
 
 ##
 
-@testset "Manellic tree kernel bandwidth 1D LOO evaluation/entropy checks" begin
+@testset "HomotopyDensity kernel bandwidth 1D LOO evaluation/entropy checks" begin
     ##
 
     M = LieGroups.TranslationGroup(1)
@@ -56,7 +56,7 @@ using JSON3
     ##
 end
 
-@testset "Manellic tree bandwidth optimization 1D section search" begin
+@testset "HomotopyDensity bandwidth optimization 1D section search" begin
     ##
 
     M = LieGroups.TranslationGroup(1)
@@ -157,7 +157,7 @@ end
 end
 
 # TODO
-@testset "Manellic tree all up construction with bandwith optimization" begin
+@testset "HomotopyDensity all up construction with bandwith optimization" begin
     ##
 
     M = LieGroups.TranslationGroup(1)
@@ -298,7 +298,7 @@ if !(v"1.11" < VERSION < v"1.12.0-beta99")
 
 else
     @test_broken false
-    @error "TODO: fix broken tests for multidimensional Manellic tree bandwidth optimization"
+    @error "TODO: fix broken tests for multidimensional HomotopyDensity bandwidth optimization"
 end
 
 ##
