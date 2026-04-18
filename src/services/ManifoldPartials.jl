@@ -21,10 +21,10 @@ const _PartiableRepresentation = Union{
 ## weird internal functions for handling partials as vectors or tuples of coordinate indices.
 
 # FIXME, a better solution is needed for sqrt_iΣ, especially for partials.
-_sqrt_Σ(k::MvNormalKernel{<:DensityKernel{L}}) where {L} = _getpartial(L, sqrt_Σ(k))
-_sqrt_Σ(k::MvNormalKernel{<:DensityKernel{Nothing}}) = sqrt_Σ(k)
-_sqrt_iΣ(k::MvNormalKernel{<:DensityKernel{L}}) where {L} = inv(sqrt(_getpartial(L, cov(k))))
-_sqrt_iΣ(k::MvNormalKernel{<:DensityKernel{Nothing}}) = sqrt_iΣ(k)
+_sqrt_Σ(k::ConcentratedGaussianKernel{L}) where {L} = _getpartial(L, sqrt_Σ(k))
+_sqrt_Σ(k::ConcentratedGaussianKernel{Nothing}) = sqrt_Σ(k)
+_sqrt_iΣ(k::ConcentratedGaussianKernel{L}) where {L} = inv(sqrt(_getpartial(L, cov(k))))
+_sqrt_iΣ(k::ConcentratedGaussianKernel{Nothing}) = sqrt_iΣ(k)
 
 # partials sometimes require values to be masked out as Inf or NaN, TBD if pure stack allocations can be used
 _forcemutable(s::MMatrix) = s
@@ -41,8 +41,7 @@ _makevec(s::Nothing) = s
 _makevec(w::AbstractVector) = w
 _makevec(w::Tuple) = [w...]
 
-_getprl(::DensityKernel{L}) where L = L
-_getprl(::MvNormalKernel{<:DensityKernel{partial}}) where partial = partial
+_getprl(::ConcentratedGaussianKernel{partial}) where partial = partial
 
 _getpartial(  ::Nothing, s) = s
 _getpartial(_pr::Tuple, v::AbstractVector) = view(v, SVector(_pr...))
@@ -62,7 +61,7 @@ _intersect(a, ::Nothing) = a
 _intersect(a, b) = tuple(intersect(a,b)...)
 function _intersectpartials(
     M::AbstractManifold, 
-    k::MvNormalKernel, 
+    k::ConcentratedGaussianKernel, 
     prl::Union{Nothing, <:Tuple, <:AbstractVector{<:Int}},
     _partl_cb::Union{Nothing, <:Function} = nothing,
 )
@@ -77,7 +76,7 @@ function _intersectpartials(
     else
         _partl_cb
     end
-    return MvNormalKernel(
+    return ConcentratedGaussianKernel(
         μ, 
         Σ2; 
         partial,

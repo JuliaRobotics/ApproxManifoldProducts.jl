@@ -49,8 +49,8 @@ end
     N = 32
     pts = [randn(1) for _ = 1:N]
     weights = ones(N) ./ N
-    KT = AMP.MvNormalKernel
-    KL = AMP.MvNormalKernel
+    KT = ConcentratedGaussianKernel
+    KL = ConcentratedGaussianKernel
     lkern = SizedVector{N, KL}(undef)
     _workaround_isdef_leafkernel = Set{Int}()
 
@@ -123,7 +123,7 @@ end
     r_CC, R, pidx, r_CV = testEigenCoords!(α)
     ax_CCp, mask, knl = ApproxManifoldProducts.splitPointsEigen(M, r_CC)
     @test sum(mask) == (length(r_CC) ÷ 2)
-    @test knl isa ApproxManifoldProducts.MvNormalKernel
+    @test knl isa ConcentratedGaussianKernel
     Mr = SpecialOrthogonalGroup(2)
     @test isapprox(α, vee(LieAlgebra(Mr), log(Mr, R))[1]; atol = 0.1)
 
@@ -154,7 +154,7 @@ end
 ##
 
     r_PP = r_CC # shortcut because we are in Euclidean space
-    mtree = ApproxManifoldProducts.buildTree_Manellic!(M, r_PP; kernel = AMP.MvNormalKernel)
+    mtree = ApproxManifoldProducts.buildTree_Manellic!(M, r_PP; kernel = ConcentratedGaussianKernel)
 
     # test input data vs leaf kernels
     for i in eachindex(r_PP)
@@ -210,7 +210,7 @@ end
             M,
             pts,
             1/7*ones(length(pts));
-            kernel = AMP.MvNormalKernel,
+            kernel = ConcentratedGaussianKernel,
             kernel_bw = bw,
         )
 
@@ -232,7 +232,7 @@ end
         M,
         pts;
         kernel_bw = bw,
-        kernel = AMP.MvNormalKernel,
+        kernel = ConcentratedGaussianKernel,
     )
 
     @test 7 == length(intersect(mtree.segments[1], Set(1:7))) # root is parent to all
@@ -309,7 +309,7 @@ end
             M,
             pts;
             kernel_bw = bw,
-            kernel = AMP.MvNormalKernel,
+            kernel = ConcentratedGaussianKernel,
         )
         @test permref == mtree.permute
         @test isapprox(mean(M, pts), mean(mtree.tree_kernels[1]); atol = 1e-10)
@@ -396,7 +396,7 @@ end
         M,
         pts;
         kernel_bw = bw,
-        kernel = AMP.MvNormalKernel,
+        kernel = ConcentratedGaussianKernel,
     )
 
     shf = shuffle(1:length(pts))
@@ -404,7 +404,7 @@ end
         M,
         pts[shf];
         kernel_bw = bw,
-        kernel = AMP.MvNormalKernel,
+        kernel = ConcentratedGaussianKernel,
     )
 
     @test all(refperm .== mtree.permute)
@@ -423,7 +423,7 @@ end
 
     M = LieGroups.TranslationGroup(1)
     pts = [randn(1) for _ = 1:128]
-    mtree = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel = AMP.MvNormalKernel)
+    mtree = ApproxManifoldProducts.buildTree_Manellic!(M, pts; kernel = ConcentratedGaussianKernel)
 
     AMP.evaluate(mtree, SA[0.0;])
 
@@ -441,7 +441,7 @@ end
         M,
         pts;
         kernel_bw = bw,
-        kernel = AMP.MvNormalKernel,
+        kernel = ConcentratedGaussianKernel,
     )
 
     mtree.permute
@@ -450,7 +450,7 @@ end
         M,
         pts[shf];
         kernel_bw = bw,
-        kernel = AMP.MvNormalKernel,
+        kernel = ConcentratedGaussianKernel,
     )
 
 
@@ -502,11 +502,11 @@ end
 ##
 end
 
-@testset "Test evaluate MvNormalKernel" begin
+@testset "Test evaluate ConcentratedGaussianKernel" begin
 ##
 
     M = LieGroups.TranslationGroup(1)
-    ker = AMP.MvNormalKernel([0.0], [0.5;;])
+    ker = ConcentratedGaussianKernel([0.0], [0.5;;])
     @test isapprox(AMP.evaluate(M, ker, [0.1]), pdf(MvNormal(mean(ker), cov(ker)), [0.1]))
 
     # Test wrapped cicular distribution 
@@ -519,13 +519,13 @@ end
     end
 
     M = LieGroups.CircleGroup(ℝ)
-    ker = AMP.MvNormalKernel([0.0], [0.1;;])
+    ker = ConcentratedGaussianKernel([0.0], [0.1;;])
     @test isapprox(
         AMP.evaluate(M, ker, [0.1]),
         pdf_wrapped_normal(mean(ker)[], sqrt(cov(ker))[], 0.1),
     )
 
-    ker = AMP.MvNormalKernel([0], [2.0;;])
+    ker = ConcentratedGaussianKernel([0], [2.0;;])
     @test isapprox(AMP.evaluate(M, ker, [0.0]), AMP.evaluate(M, ker, [2pi]))
     #TODO wrapped normal distributions broken
     @test_broken isapprox(
@@ -543,7 +543,7 @@ end
     Xc = [10, 20, 0.1]
     p = exp(M, hat(LieAlgebra(M), Xc))
     kercov = diagm([0.5, 2.0, 0.1] .^ 2)
-    ker = AMP.MvNormalKernel(p, kercov)
+    ker = ConcentratedGaussianKernel(p, kercov)
     @test isapprox(AMP.evaluate(M, ker, p), pdf(MvNormal(Xc, cov(ker)), Xc))
 
     Xc = [10, 22, -0.1]
@@ -590,7 +590,7 @@ end
         M,
         pts;
         kernel_bw = [0.2;;],
-        kernel = AMP.MvNormalKernel,
+        kernel = ConcentratedGaussianKernel,
     )
 
 ##
@@ -621,7 +621,7 @@ end
         M,
         pts;
         kernel_bw = [0.005;;],
-        kernel = AMP.MvNormalKernel,
+        kernel = ConcentratedGaussianKernel,
     )
 
 ##
@@ -648,7 +648,7 @@ end
         M,
         pts;
         kernel_bw = diagm([0.05, 0.2, 0.01]),
-        kernel = AMP.MvNormalKernel,
+        kernel = ConcentratedGaussianKernel,
     )
 
 ##

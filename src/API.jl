@@ -37,7 +37,7 @@ function manifoldProduct(
     selectedLabels::Vector{Vector{Int}} = Vector{Vector{Int}}(),
     _labelsChoosen_pp::Vector{Vector{@NamedTuple{loo::Int64, selected::Vector{Int64}, pool::Vector{Vector{Int64}}, catp::Vector{Float64}}}} = Vector{Vector{@NamedTuple{loo::Int64, selected::Vector{Int64}, pool::Vector{Vector{Int64}}, catp::Vector{Float64}}}}(undef, N),
     MC::Int = 3
-) where {M <: MB.AbstractManifold, P}
+) where {M <: MB.AbstractManifold}
     #
     # check quick exit
     if 1 == length(ff)

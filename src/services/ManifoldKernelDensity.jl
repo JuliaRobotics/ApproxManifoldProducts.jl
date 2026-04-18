@@ -118,7 +118,7 @@ function manikde!(
         M,
         pts;
         kernel_bw = bw,
-        kernel = MvNormalKernel,
+        kernel = ConcentratedGaussianKernel,
         partial,
         partl_cb,
     )

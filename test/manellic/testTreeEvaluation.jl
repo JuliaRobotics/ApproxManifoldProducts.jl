@@ -30,7 +30,7 @@ DATADIR = joinpath(dirname(@__DIR__), "testdata")
     M = LieGroups.TranslationGroup(1)
     pts = [[randn();] for _ = 1:100]
     bw = ones(1, 1)
-    kType = AMP.MvNormalKernel
+    kType = ConcentratedGaussianKernel
     mtree = ApproxManifoldProducts.buildTree_Manellic!(
         M,
         pts;
@@ -54,7 +54,7 @@ DATADIR = joinpath(dirname(@__DIR__), "testdata")
         M,
         pts;
         kernel_bw = [1.0;],
-        kernel = AMP.MvNormalKernel,
+        kernel = ConcentratedGaussianKernel,
     )
 
     bel = manikde!(
@@ -65,7 +65,7 @@ DATADIR = joinpath(dirname(@__DIR__), "testdata")
             M,
             pts;
             kernel_bw = b,
-            kernel = AMP.MvNormalKernel,
+            kernel = ConcentratedGaussianKernel,
         ),
     )
 
@@ -87,7 +87,7 @@ end
         M,
         pts;
         kernel_bw = bw,
-        kernel = AMP.MvNormalKernel,
+        kernel = ConcentratedGaussianKernel,
     )
 
     AMP.expectedLogL(mtree, pts)
@@ -107,7 +107,7 @@ end
         M,
         pts;
         kernel_bw = Σ,
-        kernel = AMP.MvNormalKernel,
+        kernel = ConcentratedGaussianKernel,
     )
     mtr_ = ApproxManifoldProducts.updateBandwidths(mtree, Σ)
 
@@ -130,7 +130,7 @@ M = LieGroups.TranslationGroup(2)
 u = [0.21651994984010028, 100.1499400950606]
 c = [1.225550648840573 0.24068320456978248; 0.24068320456978248 1.005129493645892]
 
-tmp_product = ApproxManifoldProducts.MvNormalKernel(u, c)
+tmp_product = ConcentratedGaussianKernel(u, c)
 eval_at_points = [[-0.0590062185192033, -0.15598788922416723],]
 
 smw = ApproxManifoldProducts.evaluateDensityAtPoints(M, tmp_product, eval_at_points, true) # TBD: smw = evaluate(tmp_product, )

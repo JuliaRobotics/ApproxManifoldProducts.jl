@@ -29,4 +29,4 @@ export mmd!, mmd
 export getManifoldPartial
 
 
-export DensityKernel, ConcentratedGaussianKernel
+export ConcentratedGaussianKernel

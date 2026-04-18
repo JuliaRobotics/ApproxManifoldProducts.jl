@@ -31,7 +31,7 @@ using JSON3
         M,
         pts1;
         kernel_bw = [0.1;;],
-        kernel = ApproxManifoldProducts.MvNormalKernel,
+        kernel = ConcentratedGaussianKernel,
     )
 
     pts2 = [randn(1) .+ 1 for _ = 1:N]
@@ -39,7 +39,7 @@ using JSON3
         M,
         pts2;
         kernel_bw = [0.1;;],
-        kernel = ApproxManifoldProducts.MvNormalKernel,
+        kernel = ConcentratedGaussianKernel,
     )
 
     ##
@@ -70,12 +70,12 @@ using JSON3
         M,
         pts;
         kernel_bw,
-        kernel = ApproxManifoldProducts.MvNormalKernel,
+        kernel = ConcentratedGaussianKernel,
     )
 
     @test isapprox(0, mean(ApproxManifoldProducts.getKernelTree(mtr, 1))[1]; atol = 0.75)
 
-    @test all((s -> isapprox(1 / N, s.shim.weight; atol = 1e-6)).(post))
+    @test all((s -> isapprox(1 / N, s.weight; atol = 1e-6)).(post))
 
     @info "Multi-scale label sampling version (Gibbs), LieGroups.TranslationGroup(1)"
 
@@ -112,7 +112,7 @@ using JSON3
         M,
         pts;
         kernel_bw,
-        kernel = ApproxManifoldProducts.MvNormalKernel,
+        kernel = ConcentratedGaussianKernel,
     )
 
     @test isapprox(0, mean(ApproxManifoldProducts.getKernelTree(mtr, 1))[1]; atol = 0.75)
@@ -166,7 +166,7 @@ end
         weights,
     ) # ?? was permute=false?
     # check that any duplicates resulted in a height weight
-    @test isapprox(weights, (s -> s.shim.weight).(post); atol = 1e-6)
+    @test isapprox(weights, (s -> s.weight).(post); atol = 1e-6)
 
     # NOTE, resulting tree might not have N number of data points 
     mtr12 = ApproxManifoldProducts.buildTree_Manellic!(M, post)
