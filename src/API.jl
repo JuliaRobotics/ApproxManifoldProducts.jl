@@ -103,8 +103,7 @@ function manifoldProduct(
         mani,
         mtr12,
         nothing,
-        u0;
-        infoPerCoord = zeros(manifold_dimension(mani)),
+        u0,
     )
 
 end

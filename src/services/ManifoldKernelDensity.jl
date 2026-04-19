@@ -27,10 +27,10 @@ function ManifoldKernelDensity(
     bel::B,
     ::Nothing = nothing,
     u0::P = zeros(manifold_dimension(mani));
-    infoPerCoord::AbstractVector{<:Real} = ones(getNumberCoords(mani, u0)),
+    # infoPerCoord::AbstractVector{<:Real} = ones(getNumberCoords(mani, u0)),
     partl_cb::Nothing = nothing,
 ) where {M <: MB.AbstractManifold, B <: HomotopyDensity, P}
-    return ManifoldKernelDensity{M, B, Nothing, P}(mani, bel, nothing, u0, infoPerCoord)
+    return ManifoldKernelDensity{M, B, Nothing, P}(mani, bel, nothing, u0)
 end
 
 
@@ -61,7 +61,7 @@ function ManifoldKernelDensity(
         leaf_kernels_ = view(leaf_kernels, lkm)
         tree_kernels_ .= _intersectpartials.(Ref(mani), view(bel.tree_kernels, tkm), Ref(partial), partl_cb)
         leaf_kernels_ .= _intersectpartials.(Ref(mani), view(bel.leaf_kernels, lkm), Ref(partial), partl_cb)
-        # FIXME update belief to have correct partials
+        # TODO update belief to have correct partials
         bel_ = HomotopyDensity{
             _getprl(eltype(tree_kernels)),
         }(;
@@ -71,6 +71,7 @@ function ManifoldKernelDensity(
             permute = bel.permute,
             leaf_kernels,
             tree_kernels,
+            infoPerCoord,
             segments = bel.segments,
             _workaround_isdef_leafkernel = bel._workaround_isdef_leafkernel,
             _workaround_isdef_treekernel = bel._workaround_isdef_treekernel,
@@ -78,11 +79,11 @@ function ManifoldKernelDensity(
 
         # call the constructor direct
         # TODO remove _makevec on partials, here and everywhere really.
-        return ManifoldKernelDensity{M, typeof(bel_), L, P}(mani, bel_, _makevec(partial), u0, infoPerCoord)
+        return ManifoldKernelDensity{M, typeof(bel_), L, P}(mani, bel_, _makevec(partial), u0)
         # return ManifoldKernelDensity{M, B, L, P}(mani, bel, partial_, u0, infoPerCoord)
     else
         # full manifold, therefore equivalent to L::Nothing
-        return ManifoldKernelDensity(mani, bel, nothing, u0; infoPerCoord = infoPerCoord)
+        return ManifoldKernelDensity(mani, bel, nothing, u0)
     end
 end
 
@@ -91,15 +92,15 @@ function ManifoldKernelDensity(
     bel::B,
     pl_mask::Union{<:BitVector, <:AbstractVector{<:Bool}},
     u0::P = zeros(manifold_dimension(mani));
-    infoPerCoord::AbstractVector{<:Real} = ones(getNumberCoords(mani, u0)),
+    # infoPerCoord::AbstractVector{<:Real} = ones(getNumberCoords(mani, u0)),
 ) where {M <: MB.AbstractManifold, B <: HomotopyDensity, P}
     @warn "This constructor is not recommended, as partials have changed somewhat -- possibly erroneous code here..." maxlog=100
     return ManifoldKernelDensity(
         mani,
         bel,
         (1:manifold_dimension(mani))[pl_mask],
-        u0;
-        infoPerCoord,
+        u0
+        # infoPerCoord,
     )
 end
 
@@ -156,20 +157,9 @@ function manikde!(
     __partialCovToDefault!(best_cov)
 
     bel = updateBandwidths(mtree, best_cov; partl_cb)
-    infoPerCoord = ones(getNumberCoords(M, pts[1]))
+    # infoPerCoord = ones(getNumberCoords(M, pts[1]))
     # return tree with correct bandwidth
-    return ManifoldKernelDensity(M, bel, partial, pts[1], infoPerCoord)
-    # # reuse (heavy lift parts of) earlier tree build
-    # # return manikde!_legacy(M, pts; belmodel = (ignore...) -> updateBandwidths(mtree, best_cov), partial, kw...)
-    # ManifoldKernelDensity(
-    #     M, 
-    #     pts, 
-    #     pts[1]; 
-    #     belmodel = (ignore...) -> updateBandwidths(mtree, best_cov; partl_cb), 
-    #     partial, 
-    #     partl_cb,
-    #     kw...
-    # )
+    return ManifoldKernelDensity(M, bel, partial, pts[1])
 end
 
 ## ==========================================================================================
@@ -234,7 +224,7 @@ function _getFieldPartials(
 end
 
 function getInfoPerCoord(mkd::ManifoldKernelDensity, aspartial::Bool = true)
-    return _getFieldPartials(mkd, x -> x.infoPerCoord, aspartial)
+    return _getFieldPartials(mkd, x -> x.belief.infoPerCoord, aspartial)
 end
 
 function getBandwidth(mkd::ManifoldKernelDensity, aspartial::Bool = true)
@@ -348,7 +338,7 @@ function resample(x::ManifoldKernelDensity, N::Int)
         pts,
         x._u0;
         partial = x._partial,
-        infoPerCoord = x.infoPerCoord,
+        infoPerCoord = x.belief.infoPerCoord,
     )
 end
 
