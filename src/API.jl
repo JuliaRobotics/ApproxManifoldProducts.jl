@@ -103,7 +103,6 @@ function manifoldProduct(
         mani,
         mtr12,
         nothing,
-        u0,
     )
 
 end

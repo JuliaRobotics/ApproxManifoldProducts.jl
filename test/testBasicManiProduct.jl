@@ -446,7 +446,7 @@ end
     # P12 = P1 * P2
     P12 = manifoldProduct([P1; P2], LieGroups.TranslationGroup(3))
 
-    @test typeof(P12._u0) <: Vector{Float64}
+    @test typeof(P12.belief.data[1]) <: Vector{Float64}
 
     pts_ = getPoints(P12)
 

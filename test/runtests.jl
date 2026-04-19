@@ -27,7 +27,7 @@ include("testBasicManiProduct.jl")
 include("testManiProductBigSmall.jl")
 # tests for partials and partial products
 include("testMarginalProducts.jl")
-@error "testPartialProductSE2.jl is currently broken, needs to updated after HomotopyDensity swap"
+@error "testPartialProductSE2.jl is currently broken, TODO after HomotopyDensity refactor"
 # include("testPartialProductSE2.jl")
 
 

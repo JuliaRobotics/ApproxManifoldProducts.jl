@@ -27,6 +27,7 @@ export mmd!, mmd
 
 # partial specific functions
 export getManifoldPartial
+export getPointRepr
 
 
 export ConcentratedGaussianKernel

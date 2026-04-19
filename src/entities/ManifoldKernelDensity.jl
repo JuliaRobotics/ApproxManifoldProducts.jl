@@ -44,15 +44,15 @@ Minor eigenvectors are sometimes called "trailing eigenvectors," or "residual mo
 end
 
 HomotopyDensity{
-  L
+  partial
 }(;
   manifold::M, 
   data::D,
   leaf_kernels::SizedVector{N,HL},
   tree_kernels::SizedVector{N,HT},
   kw...
-) where {L, M, D, N, HL, HT} = 
-HomotopyDensity{L, M, D, length(data), HL, HT}(;
+) where {partial, M, D, N, HL, HT} = 
+HomotopyDensity{partial, M, D, length(data), HL, HT}(;
   manifold,
   data,
   leaf_kernels,
@@ -73,13 +73,13 @@ Notes
 DevNotes
 - WIP AMP issue 41, use generic retractions during manifold products.
 """
-struct ManifoldKernelDensity{M <: MB.AbstractManifold, B <: HomotopyDensity, L, P}
+struct ManifoldKernelDensity{M <: MB.AbstractManifold, B <: HomotopyDensity, L}
     manifold::M
     """ legacy expects matrix of coordinates (as columns) """
     belief::B
     _partial::L
     """ just an example point for local access to the point data type"""
-    _u0::P
+    # _u0::P
     # infoPerCoord::Vector{Float64}
 end
 

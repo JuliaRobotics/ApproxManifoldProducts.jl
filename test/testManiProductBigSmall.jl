@@ -31,12 +31,12 @@ using TensorCast
     q = manikde!(M, X2)
 
     # check new MKD have right type info cached
-    @test (p._u0 |> typeof) == typeof(u0)
+    @test (getPointRepr(p)) == typeof(u0)
 
     pq = manifoldProduct([p; q], M)
 
     # check new product also has right point type info cached
-    @test (pq._u0 |> typeof) == typeof(u0)
+    @test (getPointRepr(pq)) == typeof(u0)
 
     ##
 
