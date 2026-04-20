@@ -218,7 +218,7 @@ end
     p2 = ApproxManifoldProducts.manikde!(M, pts2)
 
     # test sampling
-    lbls = ApproxManifoldProducts.sampleProductSeqGibbsBTLabels(M, [p1.belief; p2.belief])
+    lbls = ApproxManifoldProducts.sampleProductSeqGibbsBTLabels(M, [p1; p2])
     lbls_ = unique(lbls)
     N_ = length(lbls_)
     weights = 1 / N .* ones(N_)
@@ -231,7 +231,7 @@ end
     end
     post = ApproxManifoldProducts.calcProductKernelsBTLabels(
         M,
-        [p1.belief; p2.belief],
+        [p1; p2],
         lbls_,
         false;
         weights,
@@ -266,7 +266,7 @@ end
 
     tmp_product = ApproxManifoldProducts.calcProductKernelBTLabels(
         M,
-        [P1.belief; P2.belief],
+        [P1; P2],
         [1; 1],
         1,
         1:2;
@@ -284,34 +284,34 @@ end
 
 ## check candidate child_label_pools
 
-    clp, alv = ApproxManifoldProducts.generateLabelPoolRecursive([P1.belief; P2.belief], [1;1])
+    clp, alv = ApproxManifoldProducts.generateLabelPoolRecursive([P1; P2], [1;1])
     @test clp == [[2; 3], [2; 3]]
     @test !alv
 
-    clp, alv = ApproxManifoldProducts.generateLabelPoolRecursive([P1.belief; P2.belief], [2;2])
+    clp, alv = ApproxManifoldProducts.generateLabelPoolRecursive([P1; P2], [2;2])
     @test clp == [[4; 5], [4; 5]]
     @test !alv
 
-    clp, alv = ApproxManifoldProducts.generateLabelPoolRecursive([P1.belief; P2.belief], [3;3])
+    clp, alv = ApproxManifoldProducts.generateLabelPoolRecursive([P1; P2], [3;3])
     @test clp == [[6; 7], [6; 7]]
     @test !alv
 
-    clp, alv = ApproxManifoldProducts.generateLabelPoolRecursive([P1.belief; P2.belief], [1;2])
+    clp, alv = ApproxManifoldProducts.generateLabelPoolRecursive([P1; P2], [1;2])
     @test clp == [[2; 3], [4; 5]]
     @test !alv
 
-    clp, alv = ApproxManifoldProducts.generateLabelPoolRecursive([P1.belief; P2.belief], [3;1])
+    clp, alv = ApproxManifoldProducts.generateLabelPoolRecursive([P1; P2], [3;1])
     @test clp == [[6; 7], [2; 3]]
     @test !alv
 
-    clp, alv = ApproxManifoldProducts.generateLabelPoolRecursive([P1.belief; P2.belief], [4;5])
+    clp, alv = ApproxManifoldProducts.generateLabelPoolRecursive([P1; P2], [4;5])
     @test clp == [[9; 10], [11; 12]]
     @test !alv
 
     # (TODO drop duplication) Yuck -- slightly horrible legacy test so that leaf kernels have correct duplicate of the permuted data.
     for i in 1:N
-        @test isapprox( P1.belief.data[P1.belief.permute[i]], mean(P1.belief.leaf_kernels[i]))
-        @test isapprox( P2.belief.data[P2.belief.permute[i]], mean(P2.belief.leaf_kernels[i]))
+        @test isapprox( P1.data[P1.permute[i]], mean(P1.leaf_kernels[i]))
+        @test isapprox( P2.data[P2.permute[i]], mean(P2.leaf_kernels[i]))
     end
 
 
@@ -335,6 +335,8 @@ end
     @show sl;
     _labelsChoosen_pp
 
+##
+
     # ensure number of products are at least as many as unique label pairs
     @test length(unique(sl)) <= length(getPoints(P12))
     # FIXME add test that duplicate sl's increase weights of those kernels in P12
@@ -343,8 +345,8 @@ end
     sl1 = [s[1] for s in sl]
     sl2 = [s[2] for s in sl]
 
-    @test all(l -> ApproxManifoldProducts.isLeaf_BTLabel(P1.belief, l), sl1)
-    @test all(l -> ApproxManifoldProducts.isLeaf_BTLabel(P2.belief, l), sl2)
+    @test all(l -> ApproxManifoldProducts.isLeaf_BTLabel(P1, l), sl1)
+    @test all(l -> ApproxManifoldProducts.isLeaf_BTLabel(P2, l), sl2)
 
     # # check the sorting of the labels is consistent by rebuilding a shuffled belief
     # P1_ = manikde!(M, shuffle(pts1); bw = [1; 1.0])
@@ -369,12 +371,12 @@ end
 
     # invpermute(B::ApproxManifoldProducts.ManellicTree, s::Int) = findfirst(==(s), B.permute)
     # # use idx 1 assuming all leaf bandwidths are the same
-    # bw1 = getBW(P1)[invpermute(P1.belief,1)]
-    # bw2 = getBW(P2)[invpermute(P2.belief,1)]
+    # bw1 = getBW(P1)[invpermute(P1,1)]
+    # bw2 = getBW(P2)[invpermute(P2,1)]
 
     # uhm = ApproxManifoldProducts.calcProductKernelsBTLabels(
     #     M,
-    #     [P1.belief; P2.belief],
+    #     [P1; P2],
     #     [(sl1[1],sl2[1]);],
     #     false;
     # )
@@ -409,7 +411,7 @@ end
     #         idxoff += i
     #     end
     #     # TODO test that kernel weights increase for each duplicate selection
-    #     # @isapprox( getWeights(P12)[invpermute(P12.belief, sidx)], 1 / N * dropdups[sl[sidx]])
+    #     # @isapprox( getWeights(P12)[invpermute(P12, sidx)], 1 / N * dropdups[sl[sidx]])
 
     #     if idxoff <= length(pts12)
     #         @test isapprox(u12, pts12[idxoff])
@@ -446,7 +448,7 @@ end
     # P12 = P1 * P2
     P12 = manifoldProduct([P1; P2])
     
-    @test typeof(P12.belief.data[1]) <: Vector{Float64}
+    @test typeof(P12.data[1]) <: Vector{Float64}
 
     pts_ = getPoints(P12)
 

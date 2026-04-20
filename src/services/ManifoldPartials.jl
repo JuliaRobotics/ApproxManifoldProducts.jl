@@ -48,7 +48,7 @@ _getpartial(  ::Nothing, s) = s
 _getpartial(_pr::Tuple, v::AbstractVector) = view(v, SVector(_pr...))
 _getpartial(_pr::Tuple, v::AbstractMatrix) = view(v, SVector(_pr...), SVector(_pr...))
 _getpartial(_pr::Tuple, m::AbstractManifold) = getManifoldPartial(m, _makevec(_pr))[1]
-_getpartial(partial::AbstractVector{<:Int}, s) = _getpartial(_tuple(partial), s)
+_getpartial(partial::AbstractVector{Int}, s) = _getpartial(_tuple(partial), s)
 
 _viewprl(s::AbstractArray, partial::Nothing) = s
 _viewprl(s::AbstractArray, partial::Tuple) = _viewprl(s, _makevec(partial))
@@ -63,7 +63,7 @@ _intersect(a, b) = tuple(intersect(a,b)...)
 function _intersectpartials(
     M::AbstractManifold, 
     k::ConcentratedGaussianKernel, 
-    prl::Union{Nothing, <:Tuple, <:AbstractVector{<:Int}},
+    prl::Union{Nothing, <:Tuple, <:AbstractVector{Int}},
     _partl_cb::Union{Nothing, <:Function} = nothing,
 )
     prlA = _getprl(k)
@@ -257,7 +257,7 @@ end
 
 function getManifoldPartial(
     M::Manifolds.Circle,
-    partial::Union{<:AbstractVector{<:Int}, <:Tuple},
+    partial::Union{<:AbstractVector{Int}, <:Tuple},
     repr::_PartiableRepresentation = nothing,
     offset::Base.RefValue{Int} = Ref(0);
     doError::Bool = true,
@@ -269,7 +269,7 @@ end
 
 function getManifoldPartial(
     M::Manifolds.Rotations{TypeParameter{Tuple{2}}},
-    partial::Union{<:AbstractVector{<:Int}, <:Tuple},
+    partial::Union{<:AbstractVector{Int}, <:Tuple},
     repr::_PartiableRepresentation = nothing,
     offset::Base.RefValue{Int} = Ref(0);
     doError::Bool = true,
@@ -282,7 +282,7 @@ end
 
 function getManifoldPartial(
     M::typeof(SpecialOrthogonalGroup(2)),
-    partial::Union{<:AbstractVector{<:Int}, <:Tuple},
+    partial::Union{<:AbstractVector{Int}, <:Tuple},
     repr::_PartiableRepresentation = nothing,
     offset::Base.RefValue{Int} = Ref(0);
     doError::Bool = true,
@@ -321,7 +321,7 @@ end
 # near duplicate case for different repr ArrayPartition vs AbstractMatrix
 function getManifoldPartial(
     M::typeof(LieGroups.SpecialEuclideanGroup(2; variant = :right)),
-    partial_::Union{<:AbstractVector{<:Int}, <:Tuple},
+    partial_::Union{<:AbstractVector{Int}, <:Tuple},
     repr::AbstractMatrix = LinearAlgebra.I(3),
     offset::Base.RefValue{Int} = Ref(0);
     doError::Bool = true,
@@ -346,7 +346,7 @@ end
 
 function getManifoldPartial(
     PrG::LieGroup{ℝ, <:ProductGroupOperation, <:ProductManifold},
-    partial::Union{<:AbstractVector{<:Int}, <:Tuple},
+    partial::Union{<:AbstractVector{Int}, <:Tuple},
     repr::_PartiableRepresentationProduct = nothing,
     offset::Base.RefValue{Int} = Ref(0);
     doError::Bool = true,
@@ -466,7 +466,7 @@ Related
 """
 function getManifoldPartial(
     M::ProductManifold,
-    partial::Union{<:AbstractVector{<:Int}, <:Tuple},
+    partial::Union{<:AbstractVector{Int}, <:Tuple},
     repr::_PartiableRepresentationProduct = nothing,
     offset::Base.RefValue{Int} = Ref(0);
     doError::Bool = true,

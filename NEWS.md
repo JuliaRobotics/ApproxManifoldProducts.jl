@@ -1,5 +1,10 @@
 Major news relating to breaking changes in ApproxManifoldProducts.jl
 
+## v0.14 (26Q2)
+
+- Drop `ManifoldKernelDensity`, use `HomotopyDensity` instead.  Only limited deprecation compat remains. (breaking change)
+
+
 ## v0.13 (26Q2)
 
 - Drop `TreeDensity` abstract, use only `HomotopyDensity`. (breaking change)

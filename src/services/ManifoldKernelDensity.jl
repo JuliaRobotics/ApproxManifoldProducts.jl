@@ -24,7 +24,7 @@ getPartial(::HomotopyDensity{partial}) where {partial} = partial
 
 # getKDERange(x::ManifoldKernelDensity, w...; kw...) = getKDERange(x.shim, w...; kw...)
 # function getKDERange(x::AbstractVector{<:ManifoldKernelDensity}, w...; kw...)
-#     return getKDERange((s -> s.belief).(x), w...; kw...)
+#     return getKDERange(x, w...; kw...)
 # end
 # getKDEMax(x::ManifoldKernelDensity, w...; kw...) = getKDEMax(x.shim, w...; kw...)
 # getKDEMean(x::ManifoldKernelDensity, w...; kw...) = getKDEMean(x.shim, w...; kw...)
@@ -39,21 +39,22 @@ getPartial(::HomotopyDensity{partial}) where {partial} = partial
 # getManifold(x::ManifoldKernelDensity) = getManifold(x.shim)
 
 
-function ManifoldKernelDensity(
-    bel::B,
+function HomotopyDensity(
+    bel::HomotopyDensity,
     partial_::L;
-    # u0::P = zeros(manifold_dimension(mani));
-    infoPerCoord::AbstractVector{<:Real} = ones(getNumberCoords(getManifold(bel), bel.data[1])),
-    partl_cb::Union{Nothing, <:Function} = nothing,
-) where {B <: HomotopyDensity, L <: Union{<:AbstractVector{<:Integer}, <:Tuple}}
+    infoPerCoord::AbstractVector{<:Real} = bel.infoPerCoord,
+) where {L <: Union{<:AbstractVector{<:Integer}, <:Tuple}}
     #
     @warn "This constructor is deprecated, use HomotopyDensity directly" maxlog=20
-    if isnothing(partl_cb)
-        @warn "WIP partl_cb on MKD constructor helper" maxlog=10
-    end
     partial = _tuple(partial_)
     mani = getManifold(bel)
-    if length(partial) != manifold_dimension(mani)
+    partl = _intersect(getPartial(bel), partial)
+    M_, reprl, partl_cb = getManifoldPartial(
+        mani, 
+        partl, 
+        bel.data[1],
+    )
+    if length(partl) != manifold_dimension(mani)
         # TODO, assuming there are tree and leaf nodes at [1]...
         # @show getKernelTree(bel, 1)
 
@@ -65,8 +66,8 @@ function ManifoldKernelDensity(
         lkm = (s->isassigned(bel.leaf_kernels, s)).(1:length(bel.leaf_kernels))
         tree_kernels_ = view(tree_kernels, tkm)
         leaf_kernels_ = view(leaf_kernels, lkm)
-        tree_kernels_ .= _intersectpartials.(Ref(mani), view(bel.tree_kernels, tkm), Ref(partial), partl_cb)
-        leaf_kernels_ .= _intersectpartials.(Ref(mani), view(bel.leaf_kernels, lkm), Ref(partial), partl_cb)
+        tree_kernels_ .= (s->_intersectpartials(mani, s, partial, partl_cb)).(view(bel.tree_kernels, tkm))
+        leaf_kernels_ .= (s->_intersectpartials(mani, s, partial, partl_cb)).(view(bel.leaf_kernels, lkm))
         # TODO update belief to have correct partials
         bel_ = HomotopyDensity{
             _getprl(eltype(tree_kernels)),
@@ -92,13 +93,14 @@ function ManifoldKernelDensity(
     end
 end
 
-function ManifoldKernelDensity(
-    bel::B,
-    pl_mask::Union{<:BitVector, <:AbstractVector{<:Bool}},
-) where {B <: HomotopyDensity}
-    @warn "This constructor is not recommended, use HomotopyDensity directly" maxlog=20
-    return bel
-end
+
+
+# override
+marginal(
+    hode::HomotopyDensity,
+    partl::AbstractVector{<:Integer},
+) = HomotopyDensity(hode, partl)
+
 
 
 # previously manikde!_manellic
@@ -156,6 +158,8 @@ function manikde!(
     # return tree with correct bandwidth
     return bel
 end
+
+
 
 ## ==========================================================================================
 ## a few utilities
@@ -271,15 +275,6 @@ function resample(x::HomotopyDensity, N::Int)
 end
 
 
-# override
-function marginal(
-    x::HomotopyDensity,
-    dims::AbstractVector{<:Integer},
-)
-    #
-    ldims = _tuple(_intersect(getPartial(x), collect(dims)))
-    return HomotopyDensity{ldims}(x)
-end
 
 
 """

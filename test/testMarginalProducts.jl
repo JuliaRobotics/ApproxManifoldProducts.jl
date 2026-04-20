@@ -117,22 +117,22 @@ end
 
     # check for normal manikde without partial as control
     @test !isPartial(P1)
-    @test 2 == length(mean(ApproxManifoldProducts.getKernelTree(P1.belief, 1)))
-    @test !isnan(mean(ApproxManifoldProducts.getKernelTree(P1.belief, 1))[1])
-    @test !isnan(mean(ApproxManifoldProducts.getKernelTree(P1.belief, 1))[2])
-    @test 2 == length(mean(ApproxManifoldProducts.getKernelLeaf(P1.belief, 1)))
-    @test !isnan(mean(ApproxManifoldProducts.getKernelLeaf(P1.belief, 1))[1])
-    @test !isnan(mean(ApproxManifoldProducts.getKernelLeaf(P1.belief, 1))[2])
+    @test 2 == length(mean(ApproxManifoldProducts.getKernelTree(P1, 1)))
+    @test !isnan(mean(ApproxManifoldProducts.getKernelTree(P1, 1))[1])
+    @test !isnan(mean(ApproxManifoldProducts.getKernelTree(P1, 1))[2])
+    @test 2 == length(mean(ApproxManifoldProducts.getKernelLeaf(P1, 1)))
+    @test !isnan(mean(ApproxManifoldProducts.getKernelLeaf(P1, 1))[1])
+    @test !isnan(mean(ApproxManifoldProducts.getKernelLeaf(P1, 1))[2])
 
     # check for partial manikde with partial on first dimension, with special care on second coordinate...
     # should give value [x, NaN]...
     @test isPartial(P2_)
-    @test 2 == length(mean(ApproxManifoldProducts.getKernelTree(P2_.belief, 1)))
-    @test !isnan(mean(ApproxManifoldProducts.getKernelTree(P2_.belief, 1))[1])
-    @test isnan(mean(ApproxManifoldProducts.getKernelTree(P2_.belief, 1))[2])
-    @test 2 == length(mean(ApproxManifoldProducts.getKernelLeaf(P2_.belief, 1)))
-    @test !isnan(mean(ApproxManifoldProducts.getKernelLeaf(P2_.belief, 1))[1])
-    @test isnan(mean(ApproxManifoldProducts.getKernelLeaf(P2_.belief, 1))[2])
+    @test 2 == length(mean(ApproxManifoldProducts.getKernelTree(P2_, 1)))
+    @test !isnan(mean(ApproxManifoldProducts.getKernelTree(P2_, 1))[1])
+    @test isnan(mean(ApproxManifoldProducts.getKernelTree(P2_, 1))[2])
+    @test 2 == length(mean(ApproxManifoldProducts.getKernelLeaf(P2_, 1)))
+    @test !isnan(mean(ApproxManifoldProducts.getKernelLeaf(P2_, 1))[1])
+    @test isnan(mean(ApproxManifoldProducts.getKernelLeaf(P2_, 1))[2])
 
     # similarly check bandwidths, should have valid values on active coordinates
     @test isapprox( 0.0, getBW(P2_, false)[1][1,2]; atol = 1e-10)
@@ -142,14 +142,14 @@ end
 
 ## need tests for partial kernel products
 
-    @test isnothing(ApproxManifoldProducts._getprl(ApproxManifoldProducts.getKernelTree(P1.belief,1)))
-    @test !isnothing(ApproxManifoldProducts._getprl(ApproxManifoldProducts.getKernelTree(P2_.belief,1)))
+    @test isnothing(ApproxManifoldProducts._getprl(ApproxManifoldProducts.getKernelTree(P1,1)))
+    @test !isnothing(ApproxManifoldProducts._getprl(ApproxManifoldProducts.getKernelTree(P2_,1)))
 
     labels_sampled = [1;1]
     looidx = 1
     tmp_product = ApproxManifoldProducts.calcProductKernelBTLabels(
         M,
-        [P1.belief, P2_.belief],
+        [P1, P2_],
         labels_sampled,
         looidx,  # LOO index
         1:2;
@@ -181,7 +181,7 @@ end
 ##
 
     @test !isPartial(P12_)
-    @test isnothing(ApproxManifoldProducts._getprl(P12_.belief.leaf_kernels[1]))
+    @test isnothing(ApproxManifoldProducts._getprl(P12_.leaf_kernels[1]))
 
     @test isapprox(mean(P12_)[1], 0, atol = 1)
     @test isapprox(mean(P12_)[2], 0, atol = 1)
@@ -241,16 +241,16 @@ end
 
 ##
 
-    @test (1,) == ApproxManifoldProducts._getprl(P1.belief.leaf_kernels[1])
-    @test (1,) == ApproxManifoldProducts._getprl(P1.belief.tree_kernels[1])
+    @test (1,) == ApproxManifoldProducts._getprl(P1.leaf_kernels[1])
+    @test (1,) == ApproxManifoldProducts._getprl(P1.tree_kernels[1])
 
-    @test (2,) == ApproxManifoldProducts._getprl(P3.belief.leaf_kernels[1])
-    @test (2,) == ApproxManifoldProducts._getprl(P3.belief.tree_kernels[1])
+    @test (2,) == ApproxManifoldProducts._getprl(P3.leaf_kernels[1])
+    @test (2,) == ApproxManifoldProducts._getprl(P3.tree_kernels[1])
 
 ## check marginal kernel products
 
-    p1 = ApproxManifoldProducts.getKernelTree(P1.belief, 1)
-    p3 = ApproxManifoldProducts.getKernelTree(P3.belief, 1)
+    p1 = ApproxManifoldProducts.getKernelTree(P1, 1)
+    p3 = ApproxManifoldProducts.getKernelTree(P3, 1)
 
     mvn = calcProductGaussians(M, [p1, p3])
 
@@ -270,7 +270,7 @@ end
     
 ##
 
-    @test isapprox([-10, 10.0], mean(ApproxManifoldProducts.getKernelTree(P_.belief, 1)); atol = 1.0)
+    @test isapprox([-10, 10.0], mean(ApproxManifoldProducts.getKernelTree(P_, 1)); atol = 1.0)
     
     pts = getPoints(P_)
     @cast pGM[i, j] := pts[j][i]
@@ -581,7 +581,7 @@ end
     weights = [0.5, 0.5]
     post = ApproxManifoldProducts.calcProductKernelsBTLabels(
         M,
-        [P2.belief; P1.belief; P3.belief],
+        [P2; P1; P3],
         lbls_,
         false;
         weights,

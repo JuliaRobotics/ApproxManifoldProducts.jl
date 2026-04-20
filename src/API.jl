@@ -29,25 +29,24 @@ plot( x=getPoints(pq)[1,:], y=getPoints(pq)[2,:], Geom.histogram2d )
 ```
 """
 function manifoldProduct(
-    ff::AbstractVector{<:HomotopyDensity};
+    beliefs::AbstractVector{<:HomotopyDensity};
     makeCopy::Bool = false,
-    ndims::Integer = maximum([0; Ndim.(ff)]),
-    N::Integer = maximum([0; Npts.(ff)]),
+    ndims::Integer = maximum([0; Ndim.(beliefs)]),
+    N::Integer = maximum([0; Npts.(beliefs)]),
     selectedLabels::Vector{Vector{Int}} = Vector{Vector{Int}}(),
     _labelsChoosen_pp::Vector{Vector{@NamedTuple{loo::Int64, selected::Vector{Int64}, pool::Vector{Vector{Int64}}, catp::Vector{Float64}}}} = Vector{Vector{@NamedTuple{loo::Int64, selected::Vector{Int64}, pool::Vector{Vector{Int64}}, catp::Vector{Float64}}}}(undef, N),
     MC::Int = 3
 )
     #
-    mani = getManifold(ff[1])
+    mani = getManifold(beliefs[1])
 
     # check quick exit
-    if 1 == length(ff)
-        # @show Ndim(ff[1]), Npts(ff[1]), getPoints(ff[1],false)[1]
-        return (makeCopy ? x -> deepcopy(x) : x -> x)(ff[1])
+    if 1 == length(beliefs)
+        return (makeCopy ? x -> deepcopy(x) : x -> x)(beliefs[1])
     end
 
-    partialDimMask = Vector{BitVector}(undef, length(ff))
-    for (k, md) in enumerate(ff)
+    partialDimMask = Vector{BitVector}(undef, length(beliefs))
+    for (k, md) in enumerate(beliefs)
         partialDimMask[k] = ones(Int, ndims) .== 1
         if isPartial(md)
             for i = 1:ndims
@@ -58,8 +57,7 @@ function manifoldProduct(
         end
     end
 
-    beliefs = (s -> s.belief).(ff)
-    lbls = ApproxManifoldProducts.sampleProductSeqGibbsBTLabels(
+    lbls = sampleProductSeqGibbsBTLabels(
         mani, 
         beliefs,
         MC;
@@ -70,9 +68,7 @@ function manifoldProduct(
     resize!(selectedLabels, N)
     for i = 1:N
         selectedLabels[i] = Int[]
-        for j = 1:length(ff)
-            # k = length(getPoints(ff[j]))
-            # @info "HERE" i j lbls
+        for j = 1:length(beliefs)
             push!(selectedLabels[i], lbls[i][j])
         end
     end
@@ -89,7 +85,7 @@ function manifoldProduct(
         end
     end
 
-    post = ApproxManifoldProducts.calcProductKernelsBTLabels(
+    post = calcProductKernelsBTLabels(
         mani,
         beliefs,
         lbls_,
@@ -98,12 +94,7 @@ function manifoldProduct(
     ) # ?? was permute=false?
 
     # NOTE, resulting tree might not have N number of data points 
-    mtr12 = ApproxManifoldProducts.buildTree_Manellic!(mani, post)
-    return ManifoldKernelDensity(
-        mtr12,
-        nothing,
-    )
-
+    return buildTree_Manellic!(mani, post)
 end
 
 # FIXME, this product does not handle combinations of different partial beliefs properly yet

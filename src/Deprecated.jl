@@ -20,6 +20,16 @@
     partl_cb::Nothing = nothing,
 ) hode
 
+
+function ManifoldKernelDensity(
+    bel::B,
+    pl_mask::Union{<:BitVector, <:AbstractVector{<:Bool}},
+) where {B <: HomotopyDensity}
+    error("This ManifoldKernelDensity constructor is obsolete, use HomotopyDensity directly")
+    # return bel
+end
+
+
 # Base.length(::HomotopyDensity{L, M, D, N}) where {L, M, D, N} = N
 
 

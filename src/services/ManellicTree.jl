@@ -1198,7 +1198,7 @@ function sampleProductSeqGibbsBTLabels(
     M::AbstractManifold,
     proposals::AbstractVector{<:HomotopyDensity},
     MC::Int = 3,
-    N::Int = round(Int, mean(length.(proposals))), # FIXME use getLength or length of proposal (not getPoints)
+    N::Int = round(Int, mean(Npts.(proposals))), # FIXME use getLength or length of proposal (not getPoints)
     label_pools = [[1:1;] for _ in proposals];
     _labelsChoosen_pp::Vector{Vector{@NamedTuple{loo::Int64, selected::Vector{Int64}, pool::Vector{Vector{Int64}}, catp::Vector{Float64}}}} = Vector{Vector{@NamedTuple{loo::Int64, selected::Vector{Int64}, pool::Vector{Vector{Int64}}, catp::Vector{Float64}}}}(undef, N)
 )
