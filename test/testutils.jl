@@ -7,9 +7,9 @@ using Test
 
 function directProductGaussianTestHelper(
     M,
-    P1::ApproxManifoldProducts.ManifoldKernelDensity,
-    P2::ApproxManifoldProducts.ManifoldKernelDensity,
-    P12::ApproxManifoldProducts.ManifoldKernelDensity,
+    P1::HomotopyDensity,
+    P2::HomotopyDensity,
+    P12::HomotopyDensity,
     sl::Vector{Vector{Int}},
     pts1::Vector{Vector{Float64}},
     pts2::Vector{Vector{Float64}},
@@ -18,8 +18,8 @@ function directProductGaussianTestHelper(
 
     invpermute(B::HomotopyDensity, s::Int) = findfirst(==(s), B.permute)
     # use idx 1 assuming all leaf bandwidths are the same
-    bw1 = getBW(P1)[invpermute(P1.belief,1)] .^ 2
-    bw2 = getBW(P2)[invpermute(P2.belief,1)] .^ 2
+    bw1 = getBW(P1)[invpermute(P1,1)] .^ 2
+    bw2 = getBW(P2)[invpermute(P2,1)] .^ 2
 
     sl1 = [s[1] for s in sl]
     sl2 = [s[2] for s in sl]
@@ -31,7 +31,7 @@ function directProductGaussianTestHelper(
     
     uhm = ApproxManifoldProducts.calcProductKernelsBTLabels(
       M,
-      [P1.belief; P2.belief],
+      [P1; P2],
       [(sl1[1],sl2[1]);],
       false;
     )
@@ -66,7 +66,7 @@ function directProductGaussianTestHelper(
         #     idxoff += i
         # end
         # TODO test that kernel weights increase for each duplicate selection
-        # @isapprox( getWeights(P12)[invpermute(P12.belief, sidx)], 1 / N * dropdups[sl[sidx]])
+        # @isapprox( getWeights(P12)[invpermute(P12, sidx)], 1 / N * dropdups[sl[sidx]])
 
         if idxoff <= length(pts12)
             @test isapprox(u12, pts12[idxoff])

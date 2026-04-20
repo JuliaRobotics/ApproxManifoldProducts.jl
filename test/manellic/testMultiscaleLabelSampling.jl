@@ -147,7 +147,7 @@ end
     p2 = ApproxManifoldProducts.manikde!(M, pts2)
 
     # test sampling
-    lbls = ApproxManifoldProducts.sampleProductSeqGibbsBTLabels(M, [p1.belief; p2.belief])
+    lbls = ApproxManifoldProducts.sampleProductSeqGibbsBTLabels(M, [p1; p2])
     lbls_ = unique(lbls)
     N_ = length(lbls_)
     weights = 1 / N .* ones(N_)
@@ -160,7 +160,7 @@ end
     end
     post = ApproxManifoldProducts.calcProductKernelsBTLabels(
         M,
-        [p1.belief; p2.belief],
+        [p1; p2],
         lbls_,
         false;
         weights,

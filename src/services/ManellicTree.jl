@@ -1,15 +1,59 @@
 
 
 # number of data points (aka particles) in tree, i.e. N
-Base.length(::HomotopyDensity{L, M, D, N}) where {L, M, D, N} = N
-Npts(mt::HomotopyDensity) = length(mt)
-Ndim(mt::HomotopyDensity) = manifold_dimension(getManifold(mt))
+Base.length(hode::HomotopyDensity) = Ndim(hode)
+Npts(hode::HomotopyDensity) = length(hode.data)
+Ndim(hode::HomotopyDensity) = manifold_dimension(getManifold(hode))
 
-getPoints(mt::HomotopyDensity; permute::Bool = true) = permute ? view(mt.data, mt.permute) : mt.data
 getWeights(mt::HomotopyDensity; permute::Bool = true) = permute ? view(mt.weights, mt.permute) : mt.weights
 
-# getBW(::HomotopyDensity) currently only returns the permuted data as per .leaf_kernels
-getBW(mt::HomotopyDensity) = getBW.(mt.leaf_kernels)
+"""
+    $SIGNATURES
+
+Return underlying points used to construct the [`ManifoldKernelDensity`](@ref).
+
+Notes
+- Return type is `::Vector{P}` where `P` represents a Manifold point type (e.g. group element or coordinates).
+- Second argument controls whether partial dimensions only should be returned (`=true` default).
+
+DevNotes
+- Currently converts down to manifold from matrix of coordinates (legacy), to be deprecated TODO
+"""
+function getPoints(
+    hode::HomotopyDensity{partl},
+    aspartial::Bool = true;
+    permute::Bool = true,
+) where {partl}
+    #
+    pts = permute ? view(hode.data, hode.permute) : hode.data
+    # pts = getPoints(x.shim; permute)
+
+    if !aspartial || isnothing(partl)
+        # error("MKD getPoints aspartial=true but MKD is not partial")
+        return pts
+    end
+
+    Mp, Rp, lkup = getManifoldPartial(getManifold(hode), getPartial(hode), pts[1])
+
+    vecP = Vector{typeof(Rp)}(undef, length(pts))
+    for (j,pt) in enumerate(pts)
+        vecP[j] =  lkup(pt)
+    end
+    return vecP
+end
+
+
+
+function getBW(
+    x::HomotopyDensity{partl},
+    aspartial::Bool = true,
+) where {partl}
+    bws = getBW.(x.leaf_kernels)
+    if isnothing(partl) && aspartial
+        return (bw->_getpartial(partl, bw)).(bws)
+    end
+    return bws
+end
 
 
 # _getleft(i::Integer, N) = 2*i + (2*i < N ? 0 : 1)
@@ -28,7 +72,7 @@ function childIndices(
     krnIdx::Int;
     mixturedepth::Int = 999,
 )
-    N = length(mt)
+    N = Npts(mt)
     btleft = 2 * krnIdx
     # e.g. for N=length(data)=32, left child of 1*2 = 2, and left child of 2*2=4, whose left child is 4*2 = 8, similarly 8*2=16.  
     #  Now the left child of node 16*2 = 32, which is the first leaf node (but careful with index == N)
@@ -199,39 +243,41 @@ function uniBW(mt::HomotopyDensity{L, M, D, N}) where {M, L, D, N}
     return true
 end
 
-function Base.show(io::IO, mt::HomotopyDensity{L, M, D, N, HL}) where {M, L, D, N, HL}
+function Base.show(io::IO, hode::HomotopyDensity{partial, M, D, N, HL, HT}) where {partial, M, D, N, HL, HT}
     printstyled(io, "HomotopyDensity{"; bold = true, color = :blue)
     println(io)
-    printstyled(io, "  partl  = ", L; color = :magenta)
+    printstyled(io, "    partial"; bold = true, color = :magenta)
+    print(io, " = ", partial, ",")
     println(io)
-    printstyled(io, "  M  = ", M; color = :magenta)
+    printstyled(io, "    M"; bold = true, color = :magenta)
+    print(io, " = ", M, ",")
     println(io)
     printstyled(io, "  D  = ", D; color = :magenta)
     println(io)
     printstyled(io, "  N  = ", N; color = :magenta)
     println(io)
     printstyled(io, "  HL = ", HL; color = :magenta)
-    # println(io)
-    # printstyled(io, "  HT = ", HT, color = :magenta)
+    println(io)
+    printstyled(io, "  HT = ", HT, color = :magenta)
     println(io)
     printstyled(io, "}"; bold = true, color = :blue)
     println(io, "(")
-    @assert N == length(mt.data) "show(::HomotopyDensity,) noticed a data size issue, expecting N$(N) == length(.data)$(length(mt.data))"
+    @assert N == length(hode.data) "show(::HomotopyDensity,) noticed a data size issue, expecting N$(N) == length(.data)$(length(hode.data))"
     if 0 < N
-        println(io, "  .data[1:]   :  ", mt.data[1], " ... ", mt.data[end])
-        println(io, "  .weights[1:]:  ", mt.weights[1], " ... ", mt.weights[end])
-        printstyled(io, "     (uniwt)  :   ", uniWT(mt); color = :light_black)
+        println(io, "  .data[1:]   :  ", hode.data[1], " ... ", hode.data[end])
+        println(io, "  .weights[1:]:  ", hode.weights[1], " ... ", hode.weights[end])
+        printstyled(io, "     (uniwt)  :   ", uniWT(hode); color = :light_black)
         println(io)
         print(io, "  .permute[1:]:  ")
-        printstyled(io, mt.permute[1], " ... ", mt.permute[end]; color = :light_black)
+        printstyled(io, hode.permute[1], " ... ", hode.permute[end]; color = :light_black)
         println(io)
         print(io, "  .tkernels[") # " __see below__"; color=:light_black)
         if 0 < N
             # printstyled(io, "  .tkernels[1] = "; color=:light_black)
             print(io, "1]:  ")
             printstyled(io, "::HT "; color = :magenta)
-            if isassigned(mt.tree_kernels, 1)
-                printstyled(io, mt.tree_kernels[1]; color = :light_black)
+            if isassigned(hode.tree_kernels, 1)
+                printstyled(io, hode.tree_kernels[1]; color = :light_black)
             else
                 printstyled(io, "undef"; color = :red)
                 println(io)
@@ -245,7 +291,7 @@ function Base.show(io::IO, mt::HomotopyDensity{L, M, D, N, HL}) where {M, L, D, 
         printstyled(
             io,
             "     (depth)  :   1+",
-            floor(Int, log2(length(mt.tree_kernels)));
+            floor(Int, log2(length(hode.tree_kernels)));
             color = :light_black,
         )
         println(io)
@@ -255,8 +301,8 @@ function Base.show(io::IO, mt::HomotopyDensity{L, M, D, N, HL}) where {M, L, D, 
         if 0 < N
             print(io, "1]:  ")
             # printstyled(io, "  .tkernels[1] = "; color=:light_black)
-            if isassigned(mt.leaf_kernels, 1)
-                printstyled(io, mt.leaf_kernels[1]; color = :light_black)
+            if isassigned(hode.leaf_kernels, 1)
+                printstyled(io, hode.leaf_kernels[1]; color = :light_black)
             else
                 printstyled(io, "undef"; color = :red)
                 println(io)
@@ -264,8 +310,8 @@ function Base.show(io::IO, mt::HomotopyDensity{L, M, D, N, HL}) where {M, L, D, 
             # print(io, "  ...,")
             if 1 < N
                 printstyled(io, "         [end]:  "; color = :light_black)
-                if isassigned(mt.leaf_kernels, length(mt.leaf_kernels))
-                    printstyled(io, mt.leaf_kernels[end]; color = :light_black)
+                if isassigned(hode.leaf_kernels, length(hode.leaf_kernels))
+                    printstyled(io, hode.leaf_kernels[end]; color = :light_black)
                 else
                     printstyled(io, "undef"; color = :red)
                     println(io)
@@ -277,14 +323,14 @@ function Base.show(io::IO, mt::HomotopyDensity{L, M, D, N, HL}) where {M, L, D, 
         end
         # printstyled(io, "{1..$N}"; color=:light_black)
         # println(io)
-        uBW = uniBW(mt)
+        uBW = uniBW(hode)
         printstyled(io, "     (unibw)  :   ", uBW; color = :light_black)
         println(io)
         if uBW
             printstyled(
                 io,
                 "         bw   :    ",
-                round.((getBW(mt).^2)[1][:]'; digits = 3);
+                round.((getBW(hode).^2)[1][:]'; digits = 3);
                 color = :light_black,
             )
             println(io)
@@ -293,11 +339,42 @@ function Base.show(io::IO, mt::HomotopyDensity{L, M, D, N, HL}) where {M, L, D, 
     println(io, ")")
     # TODO ad dmore stats: max depth, widest point, longest chain, max clique size, average nr children
 
+    _round(s::AbstractArray; kw...) = round.(s[:]; kw...)
+    _round(s::AbstractVector{<:AbstractMatrix}; kw...) = round.(s[1][:]; kw...)
+
+
+    println(io, "  Npts:  ", Npts(hode))
+    print(io, "  dims:  ", Ndim(hode))
+    printstyled(io, isPartial(hode) ? "* --> $(length(getPartial(hode)))" : ""; bold = true)
+    println(io)
+    println(io, "  prtl:   ", getPartial(hode))
+    # bw = (getBW(hode).^2)[1]
+    # pvec = isPartial(hode) ? getPartial(hode) : collect(1:length(bw))
+    # println(io, "  bws:   ", getBandwidth(hode, true) |> x -> _round(x; digits = 4)) # .|> x->round(x,digits=4))
+    println(io, "  ipc:   ", getInfoPerCoord(hode, true) .|> x -> round(x; digits = 4))
+    print(io, "   mean: ")
+    try
+        mn = mean(hode)
+        if mn isa ProductRepr # TODO UPDATE to ArrayPartition only, discontinued use of ProductRepr long ago.
+            println(io)
+            for prt in mn.parts
+                println(io, "         ", round.(prt, digits = 4))
+            end
+        else
+            println(io, round.(mn', digits = 4))
+        end
+    catch
+        println(io, "----")
+    end
+    println(io, ")")
+
     return nothing
 end
 
-Base.show(io::IO, ::MIME"text/plain", mt::HomotopyDensity) = show(io, mt)
-
+Base.show(io::IO, ::MIME"text/plain", hode::HomotopyDensity) = show(io, hode)
+function Base.show(io::IO, ::MIME"application/juno.inline", hode::HomotopyDensity)
+    return show(io, hode)
+end
 
 # covariance eigen decomposition and sort ascending
 function eigenCoords!(
@@ -816,28 +893,31 @@ DevNotes:
 - Parallel transport shortcuts?
 """
 function evaluate(
-    mt::HomotopyDensity{L, M, D, N, HL},
+    mt::HomotopyDensity{partl},
     pt,
     LOO::Bool = false,
     force_kbw = nothing,
-) where {L, M, D, N, HL}
+) where {partl}
     # # force function barrier, just to be sure dyndispatch is limited
     # _F() = getfield(ApproxManifoldProducts,HL.name.name)
     # _F_ = _F() 
 
-    pts = getPoints(mt)
+    pts = getPoints(mt, false)
     w = getWeights(mt)
+
+    # isapprox uses partial version
+    M_, reprl, cb = getManifoldPartial(getManifold(mt), partl)
 
     sumval = 0.0
     # FIXME, brute force for loop
     for (i, t) in enumerate(pts)
-        # FIXME change isapprox to on-manifold version
-        if !LOO || !isapprox(pt, t)
-            # FIXME, is this assuming length(pts) and length(mt.leaf_kernels) are the same?
+        if !LOO || !isapprox(M_, cb(pt), cb(t))
+        # if !LOO || !isapprox(getManifold(mt), pt, t)
+            # TBD, is this assuming length(pts) and length(mt.leaf_kernels) are the same?
             # FIXME use consolidated getKernelLeaf instead
             ekr = mt.leaf_kernels[i]
             ekr = updateKernelBW(ekr, force_kbw)
-            # TODO remember special handling for partials in the future
+            # remember special handling for partials via ekr itself
             oneval = mt.weights[i] * evaluate(getManifold(mt), ekr, pt)
             # leave one out requires kernel weighting to removal of leave out weight
             oneval *= !LOO ? 1 : 1 / (1 - w[i])
@@ -918,7 +998,7 @@ function expectedLogL(
 end
 
 function entropy(mt::HomotopyDensity, force_kbw = nothing)
-    return -expectedLogL(mt, getPoints(mt), true, force_kbw)
+    return -expectedLogL(mt, getPoints(mt, false), true, force_kbw)
 end
 
 (mt::HomotopyDensity)(evalpt::AbstractArray) = evaluate(mt, evalpt)
@@ -1113,13 +1193,12 @@ function sampleProductSeqGibbsBTLabel(
     return labels_sampled
 end
 
-Base.length(mkd::ManifoldKernelDensity) = Ndim(mkd.shim)
 
 function sampleProductSeqGibbsBTLabels(
     M::AbstractManifold,
     proposals::AbstractVector{<:HomotopyDensity},
     MC::Int = 3,
-    N::Int = round(Int, mean(length.(proposals))), # FIXME use getLength or length of proposal (not getPoints)
+    N::Int = round(Int, mean(Npts.(proposals))), # FIXME use getLength or length of proposal (not getPoints)
     label_pools = [[1:1;] for _ in proposals];
     _labelsChoosen_pp::Vector{Vector{@NamedTuple{loo::Int64, selected::Vector{Int64}, pool::Vector{Vector{Int64}}, catp::Vector{Float64}}}} = Vector{Vector{@NamedTuple{loo::Int64, selected::Vector{Int64}, pool::Vector{Vector{Int64}}, catp::Vector{Float64}}}}(undef, N)
 )

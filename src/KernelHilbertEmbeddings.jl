@@ -117,11 +117,11 @@ function mmd(
 end
 
 function mmd(
-    a::ManifoldKernelDensity{B},
-    b::ManifoldKernelDensity{B},
+    a::H,
+    b::H,
     threads::Bool = true;
     bw::Vector{<:Real} = [0.001;],
-) where {B} # force same belief type, but likely not necessary
+) where {H <: HomotopyDensity} # force same belief type, but likely not necessary
     # @assert a.manifold == b.manifold "Manifolds not the same $(a.manifold), $(b.manifold)"
     aPts = getPoints(a)
     bPts = getPoints(b)
@@ -129,8 +129,8 @@ function mmd(
 end
 
 function isapprox(
-    a::ManifoldKernelDensity,
-    b::ManifoldKernelDensity;
+    a::HomotopyDensity,
+    b::HomotopyDensity;
     mmd_tol::Real = 1e-1,
     atol::Real = mmd_tol,
 )

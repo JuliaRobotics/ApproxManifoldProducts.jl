@@ -5,47 +5,56 @@
 ## ==========================================================================================
 
 getPointRepr(x::HomotopyDensity) = eltype(x.data) # TODO use HomotopyDensity{T} style instead
-getManifold(x::HomotopyDensity) = x.manifold
+function getManifold(x::HomotopyDensity, aspartial::Bool = false)
+    return if !aspartial
+        x.manifold
+    else
+        M_, _, _ = getManifoldPartial(x.manifold, getPartial(x), x.data[1])
+        M_
+    end
+end
 
 getPartial(::HomotopyDensity{partial}) where {partial} = partial
-getPartial(x::ManifoldKernelDensity) = getPartial(x.shim)
+# getPartial(x::ManifoldKernelDensity) = getPartial(x.shim)
 
-Ndim(x::ManifoldKernelDensity, w...; kw...) = Ndim(x.shim, w...; kw...)
-Npts(x::ManifoldKernelDensity, w...; kw...) = Npts(x.shim, w...; kw...)
+# Ndim(x::ManifoldKernelDensity, w...; kw...) = Ndim(x.shim, w...; kw...)
+# Npts(x::ManifoldKernelDensity, w...; kw...) = Npts(x.shim, w...; kw...)
 
-getWeights(x::ManifoldKernelDensity, w...; kw...) = getWeights(x.shim, w...; kw...)
+# getWeights(x::ManifoldKernelDensity, w...; kw...) = getWeights(x.shim, w...; kw...)
 
 # getKDERange(x::ManifoldKernelDensity, w...; kw...) = getKDERange(x.shim, w...; kw...)
 # function getKDERange(x::AbstractVector{<:ManifoldKernelDensity}, w...; kw...)
-#     return getKDERange((s -> s.belief).(x), w...; kw...)
+#     return getKDERange(x, w...; kw...)
 # end
 # getKDEMax(x::ManifoldKernelDensity, w...; kw...) = getKDEMax(x.shim, w...; kw...)
 # getKDEMean(x::ManifoldKernelDensity, w...; kw...) = getKDEMean(x.shim, w...; kw...)
 # getKDEfit(x::ManifoldKernelDensity, w...; kw...) = getKDEfit(x.shim, w...; kw...)
 
-kld(x::ManifoldKernelDensity, w...; kw...) = kld(x.shim, w...; kw...)
-minkld(x::ManifoldKernelDensity, w...; kw...) = minkld(x.shim, w...; kw...)
+# kld(x::ManifoldKernelDensity, w...; kw...) = kld(x.shim, w...; kw...)
+# minkld(x::ManifoldKernelDensity, w...; kw...) = minkld(x.shim, w...; kw...)
 
-(x::ManifoldKernelDensity)(w...; kw...) = x.shim(w...; kw...)
+# (x::ManifoldKernelDensity)(w...; kw...) = x.shim(w...; kw...)
 
-getPointRepr(x::ManifoldKernelDensity) = getPointRepr(x.shim)
-getManifold(x::ManifoldKernelDensity) = getManifold(x.shim)
+# getPointRepr(x::ManifoldKernelDensity) = getPointRepr(x.shim)
+# getManifold(x::ManifoldKernelDensity) = getManifold(x.shim)
 
 
-function ManifoldKernelDensity(
-    bel::B,
+function HomotopyDensity(
+    bel::HomotopyDensity,
     partial_::L;
-    # u0::P = zeros(manifold_dimension(mani));
-    infoPerCoord::AbstractVector{<:Real} = ones(getNumberCoords(getManifold(bel), bel.data[1])),
-    partl_cb::Union{Nothing, <:Function} = nothing,
-) where {B <: HomotopyDensity, L <: Union{<:AbstractVector{<:Integer}, <:Tuple}}
+    infoPerCoord::AbstractVector{<:Real} = bel.infoPerCoord,
+) where {L <: Union{<:AbstractVector{<:Integer}, <:Tuple}}
     #
-    if isnothing(partl_cb)
-        @warn "WIP partl_cb on MKD constructor helper" maxlog=10
-    end
+    @warn "This constructor is deprecated, use HomotopyDensity directly" maxlog=20
     partial = _tuple(partial_)
     mani = getManifold(bel)
-    if length(partial) != manifold_dimension(mani)
+    partl = _intersect(getPartial(bel), partial)
+    M_, reprl, partl_cb = getManifoldPartial(
+        mani, 
+        partl, 
+        bel.data[1],
+    )
+    if length(partl) != manifold_dimension(mani)
         # TODO, assuming there are tree and leaf nodes at [1]...
         # @show getKernelTree(bel, 1)
 
@@ -57,8 +66,8 @@ function ManifoldKernelDensity(
         lkm = (s->isassigned(bel.leaf_kernels, s)).(1:length(bel.leaf_kernels))
         tree_kernels_ = view(tree_kernels, tkm)
         leaf_kernels_ = view(leaf_kernels, lkm)
-        tree_kernels_ .= _intersectpartials.(Ref(mani), view(bel.tree_kernels, tkm), Ref(partial), partl_cb)
-        leaf_kernels_ .= _intersectpartials.(Ref(mani), view(bel.leaf_kernels, lkm), Ref(partial), partl_cb)
+        tree_kernels_ .= (s->_intersectpartials(mani, s, partial, partl_cb)).(view(bel.tree_kernels, tkm))
+        leaf_kernels_ .= (s->_intersectpartials(mani, s, partial, partl_cb)).(view(bel.leaf_kernels, lkm))
         # TODO update belief to have correct partials
         bel_ = HomotopyDensity{
             _getprl(eltype(tree_kernels)),
@@ -77,23 +86,21 @@ function ManifoldKernelDensity(
 
         # call the constructor direct
         # TODO remove _makevec on partials, here and everywhere really.
-        return ManifoldKernelDensity{typeof(bel_)}(bel_)
+        return bel_
     else
         # full manifold, i.e. partial=nothing
-        return ManifoldKernelDensity(bel)
+        return bel
     end
 end
 
-function ManifoldKernelDensity(
-    bel::B,
-    pl_mask::Union{<:BitVector, <:AbstractVector{<:Bool}},
-) where {B <: HomotopyDensity}
-    @warn "This constructor is not recommended, as partials have changed somewhat -- possibly erroneous code here..." maxlog=100
-    return ManifoldKernelDensity(
-        bel,
-        # (1:manifold_dimension(getManifold(bel)))[pl_mask], # TODO use tuple instead
-    )
-end
+
+
+# override
+marginal(
+    hode::HomotopyDensity,
+    partl::AbstractVector{<:Integer},
+) = HomotopyDensity(hode, partl)
+
 
 
 # previously manikde!_manellic
@@ -149,8 +156,10 @@ function manikde!(
 
     bel = updateBandwidths(mtree, best_cov; partl_cb)
     # return tree with correct bandwidth
-    return ManifoldKernelDensity(bel)
+    return bel
 end
+
+
 
 ## ==========================================================================================
 ## a few utilities
@@ -199,7 +208,7 @@ function _getFieldPartials(
         val_[getPartial(mkd)] .= val
         return val_
     elseif aspartial && (_length(val) == manifold_dimension(getManifold(mkd)))
-        return val[getPartial(mkd)]
+        return val[_makevec(getPartial(mkd))]
     elseif !aspartial && (_length(val) == manifold_dimension(getManifold(mkd)))
         return val
     else
@@ -209,96 +218,47 @@ function _getFieldPartials(
     end
 end
 
-function getInfoPerCoord(mkd::ManifoldKernelDensity, aspartial::Bool = true)
-    return _getFieldPartials(mkd.shim, x -> x.infoPerCoord, aspartial)
+function getInfoPerCoord(mkd::HomotopyDensity, aspartial::Bool = true)
+    return _getFieldPartials(mkd, x -> x.infoPerCoord, aspartial)
 end
 
-function getBandwidth(mkd::ManifoldKernelDensity, aspartial::Bool = true)
-    return _getFieldPartials(mkd.shim, x -> getBW(x)[1], aspartial)
+function getBandwidth(mkd::HomotopyDensity, aspartial::Bool = true)
+    return _getFieldPartials(mkd, x -> getBW(x)[1], aspartial)
 end
 
 
 """
     $SIGNATURES
 
-Return true if this ManifoldKernelDensity is a partial.
+Return true if this HomotopyDensity is a partial.
 """
-isPartial(hd::HomotopyDensity) = !isnothing(getPartial(hd))
-isPartial(mkd::ManifoldKernelDensity) = isPartial(mkd.shim)
+isPartial(::HomotopyDensity{partl}) where partl = !isnothing(partl)
 
-
-"""
-    $SIGNATURES
-
-Return underlying points used to construct the [`ManifoldKernelDensity`](@ref).
-
-Notes
-- Return type is `::Vector{P}` where `P` represents a Manifold point type (e.g. group element or coordinates).
-- Second argument controls whether partial dimensions only should be returned (`=true` default).
-
-DevNotes
-- Currently converts down to manifold from matrix of coordinates (legacy), to be deprecated TODO
-"""
-function getPoints(
-    x::ManifoldKernelDensity,
-    aspartial::Bool = true;
-    permute::Bool = true,
-)
-    #
-    pts = getPoints(x.shim; permute)
-
-    if !isPartial(x) && !aspartial
-        error("MKD getPoints aspartial=true but MKD is not partial")
-        return pts
-    end
-
-    Mp, Rp, lkup = getManifoldPartial(getManifold(x), getPartial(x), pts[1])
-
-    vecP = Vector{typeof(Rp)}(undef, length(pts))
-    for (j,pt) in enumerate(pts)
-        vecP[j] =  lkup(pt)
-    end
-    return vecP
-end
-
-
-function getBW(
-    x::ManifoldKernelDensity{B},
-    asPartial::Bool = true;
-    kw...,
-) where {B}
-    bws = getBW(x.shim; kw...)
-    if isPartial(x) && asPartial
-        return (bw->view(bw, getPartial(x))).(bws)
-    end
-    return bws
-end
 
 # TODO check that partials / marginals are sampled correctly
-function sample(x::ManifoldKernelDensity, N::Integer = 1)
+function sample(belief::HomotopyDensity, N::Integer = 1)
     # get legacy matrix of coordinates and selected labels
-    belief = x.shim
     coords, lbls = sample(belief, N)
     # pack samples into vector of point type P
     vecP = Vector{eltype(belief.data)}(undef, N)
     for j = 1:N
-        vecP[j] = makePointFromCoords(getManifold(x), view(coords, :, j), belief.data[1])
+        vecP[j] = makePointFromCoords(getManifold(belief), view(coords, :, j), belief.data[1])
     end
 
     return vecP, lbls
 end
 
-Random.rand(mkd::ManifoldKernelDensity, N::Integer) = sample(mkd, N)[1]
+Random.rand(hode::HomotopyDensity, N::Integer) = sample(hode, N)[1]
 
-# rand(mkd::ManifoldKernelDensity) = sample(mkd, 1)[1][1]
-Distributions.variate_form(mkd::ManifoldKernelDensity) = Ndim(mkd) == 1 ? Univariate : Multivariate
-function Random.rand(mkd::ManifoldKernelDensity)
-    return _rand(Distributions.variate_form(mkd), mkd)
+# rand(hode::HomotopyDensity) = sample(hode, 1)[1][1]
+Distributions.variate_form(hode::HomotopyDensity) = Ndim(hode) == 1 ? Univariate : Multivariate
+function Random.rand(hode::HomotopyDensity)
+    return _rand(Distributions.variate_form(hode), hode)
 end
-_rand(::Type{Univariate}, mkd::ManifoldKernelDensity) = sample(mkd.shim, 1)[1][:][]
-_rand(::Type{Multivariate}, mkd::ManifoldKernelDensity) = sample(mkd.shim, 1)[1][:]
+_rand(::Type{Univariate}, hode::HomotopyDensity) = sample(hode, 1)[1][:][]
+_rand(::Type{Multivariate}, hode::HomotopyDensity) = sample(hode, 1)[1][:]
 
-function resample(x::ManifoldKernelDensity, N::Int)
+function resample(x::HomotopyDensity, N::Int)
     pts = if N < Npts(x)
         # get points with non-partial coord dims so that new MKD can be built
         shuffle(getPoints(x, false))[1:N]
@@ -306,73 +266,15 @@ function resample(x::ManifoldKernelDensity, N::Int)
         _pts, = sample(x, N)
         _pts
     end
-    return ManifoldKernelDensity(
+    return HomotopyDensity(
         getManifold(x),
         pts;
         partial = getPartial(x),
-        infoPerCoord = x.shim.infoPerCoord,
+        infoPerCoord = x.infoPerCoord,
     )
 end
 
-function Base.show(io::IO, mkd::ManifoldKernelDensity{B}) where {B}
-    _round(s::AbstractArray; kw...) = round.(s[:]; kw...)
-    _round(s::AbstractVector{<:AbstractMatrix}; kw...) = round.(s[1][:]; kw...)
 
-    printstyled(io, "ManifoldKernelDensity{"; bold = true, color = :blue)
-    println(io)
-    # FIXME restore after HomotopyDensity refactor
-    # printstyled(io, "    M"; bold = true, color = :magenta)
-    # print(io, " = ", M, ",")
-    # println(io)
-    printstyled(io, "    B"; bold = true, color = :magenta)
-    print(io, " = ", B, ",")
-    println(io)
-    # FIXME restore after HomotopyDensity refactor
-    # printstyled(io, "    L"; bold = true, color = :magenta)
-    # print(io, " = ", L, ",")
-    # println(io)
-    println(io, " }(")
-    println(io, "  Npts:  ", Npts(mkd.shim))
-    print(io, "  dims:  ", Ndim(mkd.shim))
-    printstyled(io, isPartial(mkd) ? "* --> $(length(getPartial(mkd)))" : ""; bold = true)
-    println(io)
-    println(io, "  prtl:   ", getPartial(mkd))
-    bw = (getBW(mkd.shim).^2)[:, 1]
-    pvec = isPartial(mkd) ? getPartial(mkd) : collect(1:length(bw))
-    println(io, "  bws:   ", getBandwidth(mkd, true) |> x -> _round(x; digits = 4)) # .|> x->round(x,digits=4))
-    println(io, "  ipc:   ", getInfoPerCoord(mkd, true) .|> x -> round(x; digits = 4))
-    print(io, "   mean: ")
-    try
-        mn = mean(mkd)
-        if mn isa ProductRepr # TODO UPDATE to ArrayPartition only, discontinued use of ProductRepr long ago.
-            println(io)
-            for prt in mn.parts
-                println(io, "         ", round.(prt, digits = 4))
-            end
-        else
-            println(io, round.(mn', digits = 4))
-        end
-    catch
-        println(io, "----")
-    end
-    println(io, ")")
-    return nothing
-end
-
-Base.show(io::IO, ::MIME"text/plain", mkd::ManifoldKernelDensity) = show(io, mkd)
-function Base.show(io::IO, ::MIME"application/juno.inline", mkd::ManifoldKernelDensity)
-    return show(io, mkd)
-end
-
-# override
-function marginal(
-    x::ManifoldKernelDensity{B},
-    dims::AbstractVector{<:Integer},
-) where {B}
-    #
-    ldims::Vector{Int} = _makevec(_intersect(getPartial(x), collect(dims)))
-    return ManifoldKernelDensity(x.shim, ldims)
-end
 
 
 """
@@ -392,7 +294,7 @@ Notes
 function antimarginal(
     newM::AbstractManifold,
     u0,
-    mkd::ManifoldKernelDensity,
+    mkd::HomotopyDensity,
     newpartial::AbstractVector{<:Integer},
 )
     #
@@ -418,7 +320,7 @@ end
 
 
 
-function Statistics.mean(mkd::ManifoldKernelDensity, aspartial::Bool = true; kwargs...)
+function Statistics.mean(mkd::HomotopyDensity, aspartial::Bool = true; kwargs...)
     return mean(
         _getManifoldFullOrPart(mkd, aspartial),
         getPoints(mkd, aspartial),
@@ -431,16 +333,16 @@ end
 
 Alias for overloaded `Statistics.mean`.
 """
-calcMean(mkd::ManifoldKernelDensity, aspartial::Bool = true) = mean(mkd, aspartial)
+calcMean(mkd::HomotopyDensity, aspartial::Bool = true) = mean(mkd, aspartial)
 
-function Statistics.std(mkd::ManifoldKernelDensity, aspartial::Bool = true; kwargs...)
+function Statistics.std(mkd::HomotopyDensity, aspartial::Bool = true; kwargs...)
     return std(_getManifoldFullOrPart(mkd, aspartial), getPoints(mkd, aspartial); kwargs...)
 end
-function Statistics.var(mkd::ManifoldKernelDensity, aspartial::Bool = true; kwargs...)
+function Statistics.var(mkd::HomotopyDensity, aspartial::Bool = true; kwargs...)
     return var(_getManifoldFullOrPart(mkd, aspartial), getPoints(mkd, aspartial); kwargs...)
 end
 function Statistics.cov(
-    mkd::ManifoldKernelDensity,
+    mkd::HomotopyDensity,
     aspartial::Bool = true;
     basis::ManifoldsBase.AbstractBasis = DefaultOrthogonalBasis(),
     kwargs...,
