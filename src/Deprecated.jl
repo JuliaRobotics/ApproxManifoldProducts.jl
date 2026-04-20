@@ -4,6 +4,30 @@
 ## Remove below before v0.14
 ## ======================================================================================================
 
+# remove -- find workaround for partl_cb in this case
+function ManifoldKernelDensity(
+    bel::B,
+    ::Nothing;
+    partl_cb::Nothing = nothing,
+) where {B <: HomotopyDensity}
+    return ManifoldKernelDensity{B}(bel)
+end
+
+# function getPoints(
+#     x::ManifoldKernelDensity{B, Nothing},
+#     ::Bool = true; # aspartial unused
+#     permute::Bool = true,
+# ) where {B}
+#     return getPoints(x.belief; permute)
+# end
+
+# function _getFieldPartials(
+#     mkd::ManifoldKernelDensity{B, Nothing},
+#     field::Function,
+#     _aspartial::Bool = true,
+# ) where {B}
+#     return field(mkd)
+# end
 
 # const MKD{M, B, L} = ManifoldKernelDensity{M, B, L}
 

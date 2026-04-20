@@ -751,7 +751,7 @@ end
         )
 
         @test_broken isPartial(P)
-        @test_broken P._partial == [1; 3]
+        @test_broken getPartial(P) == [1; 3]
 
         # @show sl;
         P
@@ -783,7 +783,7 @@ end
             u1 = pts1[sl1_]
             u3 = pts3[sl3_]
 
-            @test 1 == legnth(filter(≈([u1[1]; u3[3]]), (s->s[[1,3]]).(pts_)))
+            @test 1 == length(filter(≈([u1[1]; u3[3]]), (s->s[[1,3]]).(pts_)))
         end
     catch e
         @test_broken isa(e, ErrorException) # currently this case throws an error because the product is not supported, but ideally it would just return a partial product with the open dimension

@@ -4,6 +4,7 @@ Major news relating to breaking changes in ApproxManifoldProducts.jl
 
 - Drop `TreeDensity` abstract, use only `HomotopyDensity`. (breaking change)
 - Rename `ManellicTree` to `HomotopyDensity` and refactored all internal calls. (breaking change)
+- Use accessors for legacy ManifoldKernelDensity objects, e.g. `getManifold, getPartial, getPointRepr` (breaking change).
 
 
 ## v0.12 (26Q2)

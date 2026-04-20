@@ -111,7 +111,7 @@ end
 # TODO this should be a public method relating to getManifold
 function _getManifoldFullOrPart(mkd::ManifoldKernelDensity, aspartial::Bool = true)
     if aspartial && isPartial(mkd)
-        getManifoldPartial(getManifold(mkd), mkd._partial)
+        getManifoldPartial(getManifold(mkd), getPartial(mkd))
     else
         getManifold(mkd)
     end

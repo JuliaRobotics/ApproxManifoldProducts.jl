@@ -206,7 +206,7 @@ end
     # X__ = replace(X, X3)
 
     # @test isPartial(X__)
-    # @test X__._partial == [1; 3]
+    # @test getPartial(X__) == [1; 3]
 
     # x__ = getPoints(X__, false)
     # for (i, pt) in enumerate(x)

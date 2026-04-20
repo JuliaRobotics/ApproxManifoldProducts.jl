@@ -26,7 +26,7 @@ export marginal, antimarginal
 export mmd!, mmd
 
 # partial specific functions
-export getManifold, getManifoldPartial
+export getManifold, getManifoldPartial, getPartial
 export getPointRepr
 
 

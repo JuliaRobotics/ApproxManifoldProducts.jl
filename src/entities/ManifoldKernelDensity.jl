@@ -10,7 +10,7 @@ Hybrid belief representation with natural transition between (non)parametric rep
 Notes:
 - Refactoring and renaming of ManellicTree + ManifoldKernelDensity
 - Replaces kernel density estimate, Gaussian mixture models, Principle component analysis, Homotopy methods, Model order reduction
-- Allows partials as identified by list of coordinate dimensions e.g. `._partial = [1;3]`
+- Allows partials as identified by list of coordinate dimensions e.g. `partial = [1;3]`
   - When building a partial belief, use full points with necessary information in the specified partial coords.
 
 In model order reduction, PCA, and modal analysis, the terms for the eigenvectors associated with the largest and smallest eigenvalues are commonly:
@@ -67,20 +67,18 @@ HomotopyDensity{partial, M, D, length(data), HL, HT}(;
 On-manifold kernel density belief.
 
 Notes
-- Allows partials as identified by list of coordinate dimensions e.g. `._partial = [1;3]`
+- Allows partials as identified by list of coordinate dimensions e.g. `partial = [1;3]`
   - When building a partial belief, use full points with necessary information in the specified partial coords.
 
 DevNotes
 - WIP AMP issue 41, use generic retractions during manifold products.
 """
-struct ManifoldKernelDensity{B <: HomotopyDensity, L}
+struct ManifoldKernelDensity{B <: HomotopyDensity}
     # manifold::M
-    """ legacy expects matrix of coordinates (as columns) """
+    """ HomotopyDensity legacy-shim for hybrid-(non)parametric belief propagation """
     belief::B
-    _partial::L
-    """ just an example point for local access to the point data type"""
+    # _partial::L
+    # """ just an example point for local access to the point data type"""
     # _u0::P
     # infoPerCoord::Vector{Float64}
 end
-
-

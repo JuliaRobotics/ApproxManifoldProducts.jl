@@ -51,7 +51,7 @@ function manifoldProduct(
         partialDimMask[k] = ones(Int, ndims) .== 1
         if isPartial(md)
             for i = 1:ndims
-                if !(i in md._partial)
+                if !(i in getPartial(md))
                     partialDimMask[k][i] = false
                 end
             end
