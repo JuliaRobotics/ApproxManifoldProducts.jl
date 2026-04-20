@@ -180,6 +180,8 @@ end
     @error "restore tests for manikde partials"
     # X_ = replace(X0, X)
 
+##
+
     # # check metadata
     # @test isapprox(getBW(X_, false)[[1; 3], 1], getBW(X, false)[[1; 3], 1])
     # @test !isapprox(getBW(X_, false)[[1; 3], 1], getBW(X0, false)[[1; 3], 1])
@@ -253,7 +255,7 @@ end
 
     @test length(p12) == N
     @test length(p12[1]) == 2
-    @test_broken getManifold(P12) isa LieGroups.TranslationGroup(2)
+    @test getManifold(P12, true) == LieGroups.TranslationGroup(2)
 
 ##
 end
@@ -276,7 +278,7 @@ end
 
     @test length(p12) == N
     @test length(p12[1]) == 2
-    @test_broken getManifold(P12) isa LieGroups.TranslationGroup(2)
+    @test getManifold(P12, true) == LieGroups.TranslationGroup(2)
 
 ##
 end
@@ -295,6 +297,8 @@ end
     partial = [1;]
     M_, reprl, partl_cb = ApproxManifoldProducts.getManifoldPartial(M, partial, pts[1])
 
+##
+
     # preemptively check splitPoints 
     begin
         
@@ -311,6 +315,8 @@ end
         @test mask[1:4] == BitVector([0,0,0,0])
         @test mask[5:7] == BitVector([1,1,1])
     end
+
+##
 
     mtree = ApproxManifoldProducts.buildTree_Manellic!(
         M,
@@ -404,14 +410,14 @@ end
 
     ps3 = getPoints(X_)
 
-    for (i, pt) in enumerate(pts[X_.belief.permute])
+    for (i, pt) in enumerate(pts[X_.permute])
         @test isapprox(ps3[i][1], pt[3])
     end
 
     try
         M = LieGroups.TranslationGroup(4)
         # check the constructor when only a few points are available
-        X = manikde(M, pts; partial = [1; 3; 4])
+        X = manikde!(M, pts; partial = [1; 3; 4])
     catch
         @test_broken false
     end

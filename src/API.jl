@@ -29,7 +29,7 @@ plot( x=getPoints(pq)[1,:], y=getPoints(pq)[2,:], Geom.histogram2d )
 ```
 """
 function manifoldProduct(
-    ff::AbstractVector{<:ManifoldKernelDensity};
+    ff::AbstractVector{<:HomotopyDensity};
     makeCopy::Bool = false,
     ndims::Integer = maximum([0; Ndim.(ff)]),
     N::Integer = maximum([0; Npts.(ff)]),
@@ -107,11 +107,11 @@ function manifoldProduct(
 end
 
 # FIXME, this product does not handle combinations of different partial beliefs properly yet
-function *(PP::AbstractVector{<:ManifoldKernelDensity{B}}) where {B}
+function *(PP::AbstractVector{H}) where {H <: HomotopyDensity}
     return manifoldProduct(PP)
 end
 
-function *(P1::ManifoldKernelDensity{B}, P2::ManifoldKernelDensity{B}, P_...) where {B}
+function *(P1::HomotopyDensity, P2::HomotopyDensity, P_...) 
     return manifoldProduct([P1; P2; P_...])
 end
 

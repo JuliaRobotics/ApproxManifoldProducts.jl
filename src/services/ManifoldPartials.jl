@@ -109,11 +109,11 @@ end
 
 
 # TODO this should be a public method relating to getManifold
-function _getManifoldFullOrPart(mkd::ManifoldKernelDensity, aspartial::Bool = true)
-    if aspartial && isPartial(mkd)
-        getManifoldPartial(getManifold(mkd), getPartial(mkd))
+function _getManifoldFullOrPart(hode::HomotopyDensity, aspartial::Bool = true)
+    if aspartial && isPartial(hode)
+        getManifoldPartial(getManifold(hode), getPartial(hode))
     else
-        getManifold(mkd)
+        getManifold(hode)
     end
 end
 

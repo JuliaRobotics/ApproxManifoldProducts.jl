@@ -302,6 +302,7 @@ end
         return 1 / (σ * sqrt(2pi)) * s
     end
 
+    # See LieGroups.jl issue #94, the related issue was fixed 26Q2
     M = CircleGroup()
 
     try
@@ -928,7 +929,7 @@ end
 
     mkd = ApproxManifoldProducts.manikde!_manellic(M, pts)
 
-    best_cov = cov(ApproxManifoldProducts.getKernelLeaf(mkd.shim, 1))[1] |> sqrt
+    best_cov = cov(ApproxManifoldProducts.getKernelLeaf(mkd, 1))[1] |> sqrt
     @show best_cov
 
     @test isapprox(0.5, best_cov; atol = 0.3)

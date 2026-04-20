@@ -60,25 +60,24 @@ HomotopyDensity{partial, M, D, length(data), HL, HT}(;
   kw...
 )
 
-
-"""
-    $TYPEDEF
-
-On-manifold kernel density belief.
-
-Notes
-- Allows partials as identified by list of coordinate dimensions e.g. `partial = [1;3]`
-  - When building a partial belief, use full points with necessary information in the specified partial coords.
-
-DevNotes
-- WIP AMP issue 41, use generic retractions during manifold products.
-"""
-struct ManifoldKernelDensity{B <: HomotopyDensity}
-  # manifold::M
-  """ HomotopyDensity legacy-shim for hybrid-(non)parametric belief propagation """
-  shim::B
-  # _partial::L
-  # """ just an example point for local access to the point data type"""
-  # _u0::P
-  # infoPerCoord::Vector{Float64}
+function HomotopyDensity{
+  partial
+}(
+  hode::HomotopyDensity{partl}
+) where {partial, partl}
+  _partl = _intersect(partial, partl)
+  HomotopyDensity{_partl}(;
+    manifold = getManifold(hode),
+    data = hode.data,
+    leaf_kernels = hode.leaf_kernels,
+    tree_kernels = hode.tree_kernels,
+    weights = getWeights(hode),
+    permute = hode.permute,
+    segments = hode.segments,
+    infoPerCoord = hode.infoPerCoord,
+    _workaround_isdef_leafkernel = hode._workaround_isdef_leafkernel,
+    _workaround_isdef_treekernel = hode._workaround_isdef_treekernel
+  )
 end
+
+

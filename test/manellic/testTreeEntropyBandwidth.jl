@@ -166,7 +166,7 @@ end
 
     mkd = ApproxManifoldProducts.manikde!(M, pts)
 
-    best_cov = cov(ApproxManifoldProducts.getKernelLeaf(mkd.shim, 1))[1] |> sqrt
+    best_cov = cov(ApproxManifoldProducts.getKernelLeaf(mkd, 1))[1] |> sqrt
 
     @warn "Bandwidth optimization test seems weak with 0.4 tolerance."
     @test isapprox(0.5, best_cov; atol = 0.4)
