@@ -124,7 +124,7 @@ function plotKDECircular(
     )
 end
 
-plotMKD(mkd::ManifoldKernelDensity{M}) where {M <: AbstractManifold} = plotKDE(mkd.belief)
+plotMKD(mkd::ManifoldKernelDensity) = plotKDE(mkd.belief)
 plotMKD(mkds::AbstractVector{<:ManifoldKernelDensity}) = plotKDE((x -> x.belief).(mkds))
 
 # function plotKDE(pp::BallTreeDensity, )

@@ -467,7 +467,7 @@ end
         if (1 == length(filter(≈([u12[1]; u23[2]]), getPoints(P)))) && (1 == length(filter(≈(u123), getPoints(P))))
             @test true
         else
-            @error "Weak test on product of two different marginals."
+            @error "Weak test on product of two different marginals." maxlog=1
             @test_broken false
         end
      end

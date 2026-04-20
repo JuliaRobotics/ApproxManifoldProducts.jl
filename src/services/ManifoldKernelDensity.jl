@@ -1,7 +1,12 @@
 
+
 ## ==========================================================================================
 ## helper functions to contruct MKD objects
 ## ==========================================================================================
+
+getPointRepr(x::HomotopyDensity) = eltype(x.data) # TODO use HomotopyDensity{T} style instead
+getManifold(x::HomotopyDensity) = x.manifold
+
 
 Ndim(x::ManifoldKernelDensity, w...; kw...) = Ndim(x.belief, w...; kw...)
 Npts(x::ManifoldKernelDensity, w...; kw...) = Npts(x.belief, w...; kw...)
@@ -21,8 +26,8 @@ minkld(x::ManifoldKernelDensity, w...; kw...) = minkld(x.belief, w...; kw...)
 
 (x::ManifoldKernelDensity)(w...; kw...) = x.belief(w...; kw...)
 
-getPointRepr(x::HomotopyDensity) = eltype(x.data) # TODO use HomotopyDensity{T} style instead
 getPointRepr(x::ManifoldKernelDensity) = getPointRepr(x.belief)
+getManifold(x::ManifoldKernelDensity) = getManifold(x.belief)
 
 function ManifoldKernelDensity(
     mani::M,
@@ -32,7 +37,7 @@ function ManifoldKernelDensity(
     # infoPerCoord::AbstractVector{<:Real} = ones(getNumberCoords(mani, u0)),
     partl_cb::Nothing = nothing,
 ) where {M <: MB.AbstractManifold, B <: HomotopyDensity}
-    return ManifoldKernelDensity{M, B, Nothing}(mani, bel, nothing)
+    return ManifoldKernelDensity{B, Nothing}(mani, bel, nothing)
 end
 
 
@@ -67,7 +72,7 @@ function ManifoldKernelDensity(
         bel_ = HomotopyDensity{
             _getprl(eltype(tree_kernels)),
         }(;
-            manifold = bel.manifold,
+            manifold = getManifold(bel),
             data = bel.data,
             weights = bel.weights,
             permute = bel.permute,
@@ -81,7 +86,7 @@ function ManifoldKernelDensity(
 
         # call the constructor direct
         # TODO remove _makevec on partials, here and everywhere really.
-        return ManifoldKernelDensity{M, typeof(bel_), L}(mani, bel_, _makevec(partial))
+        return ManifoldKernelDensity{typeof(bel_), L}(mani, bel_, _makevec(partial))
     else
         # full manifold, therefore equivalent to L::Nothing
         return ManifoldKernelDensity(mani, bel, nothing)
@@ -187,30 +192,30 @@ function _partialCovToDefault!(p::Union{<:Tuple, <:AbstractVector{<:Integer}}, m
 end
 
 function _getFieldPartials(
-    mkd::ManifoldKernelDensity{M, B, Nothing},
+    mkd::ManifoldKernelDensity{B, Nothing},
     field::Function,
     _aspartial::Bool = true,
-) where {M, B}
+) where {B}
     return field(mkd)
 end
 
 function _getFieldPartials(
-    mkd::ManifoldKernelDensity{M, B, <:AbstractVector},
+    mkd::ManifoldKernelDensity{B, <:AbstractVector},
     field::Function,
     aspartial::Bool = true,
-) where {M, B}
+) where {B}
     _length(x::AbstractMatrix) = length(diag(x))
     _length(x::AbstractVector) = length(x)
     val = field(mkd)
     if aspartial && (_length(val) == length(mkd._partial))
         return val
     elseif !aspartial && (_length(val) == length(mkd._partial))
-        val_ = zeros(manifold_dimension(mkd.manifold))
+        val_ = zeros(manifold_dimension(getManifold(mkd)))
         val_[mkd._partial] .= val
         return val_
-    elseif aspartial && (_length(val) == manifold_dimension(mkd.manifold))
+    elseif aspartial && (_length(val) == manifold_dimension(getManifold(mkd)))
         return val[mkd._partial]
-    elseif !aspartial && (_length(val) == manifold_dimension(mkd.manifold))
+    elseif !aspartial && (_length(val) == manifold_dimension(getManifold(mkd)))
         return val
     else
         error(
@@ -233,8 +238,8 @@ end
 
 Return true if this ManifoldKernelDensity is a partial.
 """
-isPartial(mkd::ManifoldKernelDensity{M, B, L}) where {M, B, L} = true
-isPartial(mkd::ManifoldKernelDensity{M, B, Nothing}) where {M, B} = false
+isPartial(mkd::ManifoldKernelDensity{B, L}) where {B, L} = true
+isPartial(mkd::ManifoldKernelDensity{B, Nothing}) where {B} = false
 
 """
     $SIGNATURES
@@ -249,19 +254,19 @@ DevNotes
 - Currently converts down to manifold from matrix of coordinates (legacy), to be deprecated TODO
 """
 function getPoints(
-    x::ManifoldKernelDensity{M, B},
+    x::ManifoldKernelDensity{B, Nothing},
     ::Bool = true; # aspartial unused
     permute::Bool = true,
-) where {M <: AbstractManifold, B}
+) where {B}
     return getPoints(x.belief; permute)
 end
 
 
 function getPoints(
-    x::ManifoldKernelDensity{M, B, L},
+    x::ManifoldKernelDensity{B, L},
     aspartial::Bool = true;
     permute::Bool = true,
-) where {M <: AbstractManifold, B <: HomotopyDensity, L <: AbstractVector{Int}}
+) where {B, L <: AbstractVector{Int}}
     #
     pts = getPoints(x.belief; permute)
 
@@ -270,7 +275,7 @@ function getPoints(
         return pts
     end
 
-    Mp, Rp, lkup = getManifoldPartial(x.manifold, x._partial, pts[1])
+    Mp, Rp, lkup = getManifoldPartial(getManifold(x), x._partial, pts[1])
 
     vecP = Vector{typeof(Rp)}(undef, length(pts))
     for (j,pt) in enumerate(pts)
@@ -281,10 +286,10 @@ end
 
 
 function getBW(
-    x::ManifoldKernelDensity{M, B, L},
+    x::ManifoldKernelDensity{B, L},
     asPartial::Bool = true;
     kw...,
-) where {M, B, L}
+) where {B, L}
     bws = getBW(x.belief; kw...)
     if L !== Nothing && asPartial
         return (bw->view(bw, x._partial)).(bws)
@@ -293,14 +298,14 @@ function getBW(
 end
 
 # TODO check that partials / marginals are sampled correctly
-function sample(x::ManifoldKernelDensity{M, B, L}, N::Integer = 1) where {M, B, L}
+function sample(x::ManifoldKernelDensity{B, L}, N::Integer = 1) where {B, L}
     # get legacy matrix of coordinates and selected labels
     belief = x.belief
     coords, lbls = sample(belief, N)
     # pack samples into vector of point type P
     vecP = Vector{eltype(belief.data)}(undef, N)
     for j = 1:N
-        vecP[j] = makePointFromCoords(x.manifold, view(coords, :, j), belief.data[1])
+        vecP[j] = makePointFromCoords(getManifold(x), view(coords, :, j), belief.data[1])
     end
 
     return vecP, lbls
@@ -325,22 +330,23 @@ function resample(x::ManifoldKernelDensity, N::Int)
         _pts
     end
     return ManifoldKernelDensity(
-        x.manifold,
+        getManifold(x),
         pts;
         partial = x._partial,
         infoPerCoord = x.belief.infoPerCoord,
     )
 end
 
-function Base.show(io::IO, mkd::ManifoldKernelDensity{M, B, L}) where {M, B, L}
+function Base.show(io::IO, mkd::ManifoldKernelDensity{B, L}) where {B, L}
     _round(s::AbstractArray; kw...) = round.(s[:]; kw...)
     _round(s::AbstractVector{<:AbstractMatrix}; kw...) = round.(s[1][:]; kw...)
 
     printstyled(io, "ManifoldKernelDensity{"; bold = true, color = :blue)
     println(io)
-    printstyled(io, "    M"; bold = true, color = :magenta)
-    print(io, " = ", M, ",")
-    println(io)
+    # FIXME restore after HomotopyDensity refactor
+    # printstyled(io, "    M"; bold = true, color = :magenta)
+    # print(io, " = ", M, ",")
+    # println(io)
     printstyled(io, "    B"; bold = true, color = :magenta)
     print(io, " = ", B, ",")
     println(io)
@@ -383,12 +389,12 @@ end
 
 # override
 function marginal(
-    x::ManifoldKernelDensity{M, B},
+    x::ManifoldKernelDensity{B},
     dims::AbstractVector{<:Integer},
-) where {M <: AbstractManifold, B}
+) where {B}
     #
     ldims::Vector{Int} = _makevec(_intersect(x._partial, collect(dims)))
-    return ManifoldKernelDensity(x.manifold, x.belief, ldims)
+    return ManifoldKernelDensity(getManifold(x), x.belief, ldims)
 end
 
 
@@ -419,7 +425,7 @@ function antimarginal(
     # new coord partials must be placed into a full dimension point, thats why we use u0
     nPts = Vector{typeof(u0)}(undef, length(pts))
     for i in eachindex(pts)
-        setPointPartial!(newM, nPts, mkd.manifold, pts, newpartial, i)
+        setPointPartial!(newM, nPts, getManifold(mkd), pts, newpartial, i)
     end
 
     # also update metadata elements
