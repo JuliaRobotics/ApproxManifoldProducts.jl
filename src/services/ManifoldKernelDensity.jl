@@ -15,12 +15,7 @@ function getManifold(x::HomotopyDensity, aspartial::Bool = false)
 end
 
 getPartial(::HomotopyDensity{partial}) where {partial} = partial
-# getPartial(x::ManifoldKernelDensity) = getPartial(x.shim)
 
-# Ndim(x::ManifoldKernelDensity, w...; kw...) = Ndim(x.shim, w...; kw...)
-# Npts(x::ManifoldKernelDensity, w...; kw...) = Npts(x.shim, w...; kw...)
-
-# getWeights(x::ManifoldKernelDensity, w...; kw...) = getWeights(x.shim, w...; kw...)
 
 # getKDERange(x::ManifoldKernelDensity, w...; kw...) = getKDERange(x.shim, w...; kw...)
 # function getKDERange(x::AbstractVector{<:ManifoldKernelDensity}, w...; kw...)
@@ -33,10 +28,6 @@ getPartial(::HomotopyDensity{partial}) where {partial} = partial
 # kld(x::ManifoldKernelDensity, w...; kw...) = kld(x.shim, w...; kw...)
 # minkld(x::ManifoldKernelDensity, w...; kw...) = minkld(x.shim, w...; kw...)
 
-# (x::ManifoldKernelDensity)(w...; kw...) = x.shim(w...; kw...)
-
-# getPointRepr(x::ManifoldKernelDensity) = getPointRepr(x.shim)
-# getManifold(x::ManifoldKernelDensity) = getManifold(x.shim)
 
 
 function HomotopyDensity(
@@ -45,7 +36,6 @@ function HomotopyDensity(
     infoPerCoord::AbstractVector{<:Real} = bel.infoPerCoord,
 ) where {L <: Union{<:AbstractVector{<:Integer}, <:Tuple}}
     #
-    @warn "This constructor is deprecated, use HomotopyDensity directly" maxlog=20
     partial = _tuple(partial_)
     mani = getManifold(bel)
     partl = _intersect(getPartial(bel), partial)
@@ -55,9 +45,7 @@ function HomotopyDensity(
         bel.data[1],
     )
     if length(partl) != manifold_dimension(mani)
-        # TODO, assuming there are tree and leaf nodes at [1]...
-        # @show getKernelTree(bel, 1)
-
+        # assuming there are tree and leaf nodes at [1]...
         _tkT() = _intersectpartials(mani, getKernelTree(bel, 1), partial) |> typeof
         _lkT() = _intersectpartials(mani, getKernelLeaf(bel, 1), partial) |> typeof
         tree_kernels  = SizedVector{length(bel.tree_kernels), _tkT()}(undef)
@@ -68,7 +56,7 @@ function HomotopyDensity(
         leaf_kernels_ = view(leaf_kernels, lkm)
         tree_kernels_ .= (s->_intersectpartials(mani, s, partial, partl_cb)).(view(bel.tree_kernels, tkm))
         leaf_kernels_ .= (s->_intersectpartials(mani, s, partial, partl_cb)).(view(bel.leaf_kernels, lkm))
-        # TODO update belief to have correct partials
+        # update belief to have correct partials
         bel_ = HomotopyDensity{
             _getprl(eltype(tree_kernels)),
         }(;
@@ -85,7 +73,6 @@ function HomotopyDensity(
         )
 
         # call the constructor direct
-        # TODO remove _makevec on partials, here and everywhere really.
         return bel_
     else
         # full manifold, i.e. partial=nothing
