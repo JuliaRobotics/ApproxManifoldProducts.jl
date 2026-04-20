@@ -74,11 +74,11 @@ DevNotes
 - WIP AMP issue 41, use generic retractions during manifold products.
 """
 struct ManifoldKernelDensity{B <: HomotopyDensity}
-    # manifold::M
-    """ HomotopyDensity legacy-shim for hybrid-(non)parametric belief propagation """
-    belief::B
-    # _partial::L
-    # """ just an example point for local access to the point data type"""
-    # _u0::P
-    # infoPerCoord::Vector{Float64}
+  # manifold::M
+  """ HomotopyDensity legacy-shim for hybrid-(non)parametric belief propagation """
+  shim::B
+  # _partial::L
+  # """ just an example point for local access to the point data type"""
+  # _u0::P
+  # infoPerCoord::Vector{Float64}
 end

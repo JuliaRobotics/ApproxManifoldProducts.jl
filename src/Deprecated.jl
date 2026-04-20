@@ -4,14 +4,39 @@
 ## Remove below before v0.14
 ## ======================================================================================================
 
+
+import Base: getproperty
+
+function getproperty(mkd::ManifoldKernelDensity, f::Symbol)
+  if f === :shim || f === :belief
+    return getfield(mkd, :shim)
+  elseif f === :manifold
+    return getManifold(mkd)
+  elseif f === :_partial
+    return getPartial(mkd)
+  elseif f === :_u0
+    return getPointRepr(mkd)
+  else
+    @warn "ManifoldKernelDensity has been deprecated, use HomotopyBelief instead." maxlog=20
+    getproperty(getfield(mkd, :shim), f)
+  end
+end
+
+@deprecate ManifoldKernelDensity(
+  manifold::AbstractManifold,
+  bel::HomotopyDensity,
+  _partial::Union{Nothing, <:AbstractVector, <:Tuple},
+  _u0::AbstractVector,
+  infoPerCoord::AbstractVector{<:Real};
+  partl_cb::Union{Nothing, <:Function} = nothing
+) ManifoldKernelDensity(bel)
+
 # remove -- find workaround for partl_cb in this case
-function ManifoldKernelDensity(
-    bel::B,
+@deprecate ManifoldKernelDensity(
+    bel::HomotopyDensity,
     ::Nothing;
     partl_cb::Nothing = nothing,
-) where {B <: HomotopyDensity}
-    return ManifoldKernelDensity{B}(bel)
-end
+) ManifoldKernelDensity(bel)
 
 # function getPoints(
 #     x::ManifoldKernelDensity{B, Nothing},
