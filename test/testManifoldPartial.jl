@@ -206,7 +206,7 @@ end
     # X__ = replace(X, X3)
 
     # @test isPartial(X__)
-    # @test X__._partial == [1; 3]
+    # @test getPartial(X__) == [1; 3]
 
     # x__ = getPoints(X__, false)
     # for (i, pt) in enumerate(x)
@@ -253,7 +253,7 @@ end
 
     @test length(p12) == N
     @test length(p12[1]) == 2
-    @test_broken P12.manifold isa LieGroups.TranslationGroup(2)
+    @test_broken getManifold(P12) isa LieGroups.TranslationGroup(2)
 
 ##
 end
@@ -276,7 +276,7 @@ end
 
     @test length(p12) == N
     @test length(p12[1]) == 2
-    @test_broken P12.manifold isa LieGroups.TranslationGroup(2)
+    @test_broken getManifold(P12) isa LieGroups.TranslationGroup(2)
 
 ##
 end

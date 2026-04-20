@@ -4,6 +4,8 @@ Major news relating to breaking changes in ApproxManifoldProducts.jl
 
 - Drop `TreeDensity` abstract, use only `HomotopyDensity`. (breaking change)
 - Rename `ManellicTree` to `HomotopyDensity` and refactored all internal calls. (breaking change)
+- Use accessors for legacy `ManifoldKernelDensity` objects, e.g. `getManifold, getPartial, getPointRepr` (breaking change).
+- Strip down `ManifoldKernelDensity` to only a `.shim::HomotopyDensity` field, with large-ish compat footprint in Deprecated.jl (breaking change).
 
 
 ## v0.12 (26Q2)
@@ -16,8 +18,8 @@ Major news relating to breaking changes in ApproxManifoldProducts.jl
 - Drop TransformUtils dependency.
 - Replace internal usage of skew(SO3) with LieGroups.hat(SO3) instead (was never exported).
 - Drop dependencies Require, Reexport.
-- ConcentratedGaussianKernel replaces MvNormalKernel, DensityKernel.
-- Drop MvNormalKernel, DensityKernel (breaking change).
+- `ConcentratedGaussianKernel` replaces `MvNormalKernel`, `DensityKernel`.
+- Drop `MvNormalKernel`, `DensityKernel` (breaking change).
 
 
 ## v0.11 (25Q4 - 26Q1)

@@ -328,7 +328,7 @@ end
     )
 
     @test !isPartial(P12)
-    @test P12._partial === nothing
+    @test getPartial(P12) === nothing
     # @test isapprox( mean(P12)[1], 0, atol=1 )
     # @test isapprox( mean(P12)[2], 0, atol=1 )
 
@@ -444,9 +444,9 @@ end
     P2 = manikde!(LieGroups.TranslationGroup(3), pts2)
 
     # P12 = P1 * P2
-    P12 = manifoldProduct([P1; P2], LieGroups.TranslationGroup(3))
-
-    @test typeof(P12._u0) <: Vector{Float64}
+    P12 = manifoldProduct([P1; P2])
+    
+    @test typeof(P12.belief.data[1]) <: Vector{Float64}
 
     pts_ = getPoints(P12)
 
@@ -475,7 +475,7 @@ end
     P2 = manikde!(M, pts2)
 
     # P12 = P1 * P2
-    P12 = manifoldProduct([P1; P2], M)
+    P12 = manifoldProduct([P1; P2])
 
     pts_ = getPoints(P12)
 
@@ -490,7 +490,7 @@ end
     XX = (s -> s.x[1][1]).(pts_)
     YY = (s -> s.x[1][2]).(pts_)
     R0 = [1. 0; 0 1]
-    TT = (s -> log(P12.manifold.manifold[2], R0, s.x[2])[1,2]).(pts_)
+    TT = (s -> log(getManifold(P12).manifold[2], R0, s.x[2])[1,2]).(pts_)
 
     @test 0.7 * N_ < sum(abs.(XX) .< 0.1)
     @test 0.7 * N_ < sum(abs.(YY) .< 0.1)

@@ -117,15 +117,15 @@ function mmd(
 end
 
 function mmd(
-    a::ManifoldKernelDensity{M},
-    b::ManifoldKernelDensity{M},
+    a::ManifoldKernelDensity{B},
+    b::ManifoldKernelDensity{B},
     threads::Bool = true;
     bw::Vector{<:Real} = [0.001;],
-) where {M <: MB.AbstractManifold}
+) where {B} # force same belief type, but likely not necessary
     # @assert a.manifold == b.manifold "Manifolds not the same $(a.manifold), $(b.manifold)"
     aPts = getPoints(a)
     bPts = getPoints(b)
-    return mmd(a.manifold, aPts, bPts, length(aPts), length(bPts), threads; bw)
+    return mmd(getManifold(a), aPts, bPts, length(aPts), length(bPts), threads; bw)
 end
 
 function isapprox(

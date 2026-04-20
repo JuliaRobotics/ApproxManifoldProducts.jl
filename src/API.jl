@@ -29,16 +29,17 @@ plot( x=getPoints(pq)[1,:], y=getPoints(pq)[2,:], Geom.histogram2d )
 ```
 """
 function manifoldProduct(
-    ff::AbstractVector{<:ManifoldKernelDensity},
-    mani::M = ff[1].manifold;
+    ff::AbstractVector{<:ManifoldKernelDensity};
     makeCopy::Bool = false,
     ndims::Integer = maximum([0; Ndim.(ff)]),
     N::Integer = maximum([0; Npts.(ff)]),
     selectedLabels::Vector{Vector{Int}} = Vector{Vector{Int}}(),
     _labelsChoosen_pp::Vector{Vector{@NamedTuple{loo::Int64, selected::Vector{Int64}, pool::Vector{Vector{Int64}}, catp::Vector{Float64}}}} = Vector{Vector{@NamedTuple{loo::Int64, selected::Vector{Int64}, pool::Vector{Vector{Int64}}, catp::Vector{Float64}}}}(undef, N),
     MC::Int = 3
-) where {M <: MB.AbstractManifold}
+)
     #
+    mani = getManifold(ff[1])
+
     # check quick exit
     if 1 == length(ff)
         # @show Ndim(ff[1]), Npts(ff[1]), getPoints(ff[1],false)[1]
@@ -50,7 +51,7 @@ function manifoldProduct(
         partialDimMask[k] = ones(Int, ndims) .== 1
         if isPartial(md)
             for i = 1:ndims
-                if !(i in md._partial)
+                if !(i in getPartial(md))
                     partialDimMask[k][i] = false
                 end
             end
@@ -98,24 +99,21 @@ function manifoldProduct(
 
     # NOTE, resulting tree might not have N number of data points 
     mtr12 = ApproxManifoldProducts.buildTree_Manellic!(mani, post)
-    u0 = mtr12.data[1]
     return ManifoldKernelDensity(
-        mani,
         mtr12,
         nothing,
-        u0;
-        infoPerCoord = zeros(manifold_dimension(mani)),
     )
 
 end
 
-# NOTE, this product does not handle combinations of different partial beliefs properly yet
-function *(PP::AbstractVector{<:ManifoldKernelDensity{M, B}}) where {M <: MB.AbstractManifold{MB.ℝ}, B}
-    return manifoldProduct(PP, PP[1].manifold)
+# FIXME, this product does not handle combinations of different partial beliefs properly yet
+function *(PP::AbstractVector{<:ManifoldKernelDensity{B}}) where {B}
+    return manifoldProduct(PP)
 end
 
-function *(P1::ManifoldKernelDensity{M, B}, P2::ManifoldKernelDensity{M, B}, P_...) where {M <: MB.AbstractManifold{MB.ℝ}, B}
-    return manifoldProduct([P1; P2; P_...], P1.manifold)
+function *(P1::ManifoldKernelDensity{B}, P2::ManifoldKernelDensity{B}, P_...) where {B}
+    return manifoldProduct([P1; P2; P_...])
 end
+
 
 #

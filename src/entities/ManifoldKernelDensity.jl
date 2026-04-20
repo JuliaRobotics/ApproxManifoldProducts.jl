@@ -9,7 +9,9 @@ Hybrid belief representation with natural transition between (non)parametric rep
 
 Notes:
 - Refactoring and renaming of ManellicTree + ManifoldKernelDensity
-- Kernel density estimate, Gaussian mixture models, Principle component analysis, Homotopy methods, Model order reduction
+- Replaces kernel density estimate, Gaussian mixture models, Principle component analysis, Homotopy methods, Model order reduction
+- Allows partials as identified by list of coordinate dimensions e.g. `partial = [1;3]`
+  - When building a partial belief, use full points with necessary information in the specified partial coords.
 
 In model order reduction, PCA, and modal analysis, the terms for the eigenvectors associated with the largest and smallest eigenvalues are commonly:
 Major eigenvectors are often called "dominant eigenvectors," or simply "leading modes." In Principal Component Analysis (PCA), these are the "principal components."
@@ -34,21 +36,23 @@ Minor eigenvectors are sometimes called "trailing eigenvectors," or "residual mo
     infoPerCoord::Vector{Float64} = zeros(manifold_dimension(manifold))
     # _unibw::U
 
-    # workaround to overcome bug for StaticArrays `isdefined() != false` issue
+    # workaround to overcome bug for StaticArrays `isdefined() != false` issue || 
+    #  use isassigned(), but recall same issue remains
+    #  also will be influenced by serialization design, see #315
     _workaround_isdef_leafkernel::Set{Int} = Set{Int}()
     _workaround_isdef_treekernel::Set{Int} = Set{Int}()
 end
 
 HomotopyDensity{
-  L
+  partial
 }(;
   manifold::M, 
   data::D,
   leaf_kernels::SizedVector{N,HL},
   tree_kernels::SizedVector{N,HT},
   kw...
-) where {L, M, D, N, HL, HT} = 
-HomotopyDensity{L, M, D, length(data), HL, HT}(;
+) where {partial, M, D, N, HL, HT} = 
+HomotopyDensity{partial, M, D, length(data), HL, HT}(;
   manifold,
   data,
   leaf_kernels,
@@ -63,20 +67,18 @@ HomotopyDensity{L, M, D, length(data), HL, HT}(;
 On-manifold kernel density belief.
 
 Notes
-- Allows partials as identified by list of coordinate dimensions e.g. `._partial = [1;3]`
+- Allows partials as identified by list of coordinate dimensions e.g. `partial = [1;3]`
   - When building a partial belief, use full points with necessary information in the specified partial coords.
 
 DevNotes
 - WIP AMP issue 41, use generic retractions during manifold products.
 """
-struct ManifoldKernelDensity{M <: MB.AbstractManifold, B <: HomotopyDensity, L, P}
-    manifold::M
-    """ legacy expects matrix of coordinates (as columns) """
-    belief::B
-    _partial::L
-    """ just an example point for local access to the point data type"""
-    _u0::P
-    infoPerCoord::Vector{Float64}
+struct ManifoldKernelDensity{B <: HomotopyDensity}
+  # manifold::M
+  """ HomotopyDensity legacy-shim for hybrid-(non)parametric belief propagation """
+  shim::B
+  # _partial::L
+  # """ just an example point for local access to the point data type"""
+  # _u0::P
+  # infoPerCoord::Vector{Float64}
 end
-
-
