@@ -3,7 +3,7 @@
 # number of data points (aka particles) in tree, i.e. N
 Base.length(::HomotopyDensity{L, M, D, N}) where {L, M, D, N} = N
 Npts(mt::HomotopyDensity) = length(mt)
-Ndim(mt::HomotopyDensity) = manifold_dimension(mt.manifold)
+Ndim(mt::HomotopyDensity) = manifold_dimension(getManifold(mt))
 
 getPoints(mt::HomotopyDensity; permute::Bool = true) = permute ? view(mt.data, mt.permute) : mt.data
 getWeights(mt::HomotopyDensity; permute::Bool = true) = permute ? view(mt.weights, mt.permute) : mt.weights
@@ -145,7 +145,7 @@ function getKernelTree(
             kernelType = getfield(ApproxManifoldProducts, HT.name.name)
             partial = _getprl(raw_ker)
             μ = mean(raw_ker)
-            M_, reprl, partl_cb = getManifoldPartial(mtr.manifold, _tuple(partial), μ)
+            M_, reprl, partl_cb = getManifoldPartial(getManifold(mtr), _tuple(partial), μ)
             kernelType(μ, nC, mtr.weights[currIdx]; partial, partl_cb)
         else
             raw_ker
@@ -496,7 +496,7 @@ function buildTree_Manellic!(
     #     return mtree
     # end
 
-    M = mtree.manifold
+    M = getManifold(mtree)
     # take a slice of data
     idc = low:high
     # according to current index permutation (i.e. sort data as you build the tree)
@@ -756,7 +756,7 @@ function updateBandwidths(
     return HomotopyDensity{
         L,
     }(
-        manifold = mtr.manifold,
+        manifold = getManifold(mtr),
         data = mtr.data,
         weights = mtr.weights,
         permute = mtr.permute,
@@ -838,7 +838,7 @@ function evaluate(
             ekr = mt.leaf_kernels[i]
             ekr = updateKernelBW(ekr, force_kbw)
             # TODO remember special handling for partials in the future
-            oneval = mt.weights[i] * evaluate(mt.manifold, ekr, pt)
+            oneval = mt.weights[i] * evaluate(getManifold(mt), ekr, pt)
             # leave one out requires kernel weighting to removal of leave out weight
             oneval *= !LOO ? 1 : 1 / (1 - w[i])
             sumval += oneval

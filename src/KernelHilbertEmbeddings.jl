@@ -125,7 +125,7 @@ function mmd(
     # @assert a.manifold == b.manifold "Manifolds not the same $(a.manifold), $(b.manifold)"
     aPts = getPoints(a)
     bPts = getPoints(b)
-    return mmd(a.manifold, aPts, bPts, length(aPts), length(bPts), threads; bw)
+    return mmd(getManifold(a), aPts, bPts, length(aPts), length(bPts), threads; bw)
 end
 
 function isapprox(

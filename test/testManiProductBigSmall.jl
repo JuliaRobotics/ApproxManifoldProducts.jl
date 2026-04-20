@@ -33,7 +33,7 @@ using TensorCast
     # check new MKD have right type info cached
     @test (getPointRepr(p)) == typeof(u0)
 
-    pq = manifoldProduct([p; q], M)
+    pq = manifoldProduct([p; q])
 
     # check new product also has right point type info cached
     @test (getPointRepr(pq)) == typeof(u0)
@@ -54,7 +54,7 @@ using TensorCast
     XX = (s -> s.x[1][1]).(X12_)
     YY = (s -> s.x[1][2]).(X12_)
     R0 = [1. 0; 0 1]
-    TT = (s -> log(pq.manifold.manifold[2], R0, s.x[2])[1,2]).(X12_)
+    TT = (s -> log(getManifold(pq).manifold[2], R0, s.x[2])[1,2]).(X12_)
 
     @test 0.7 * N_ < sum(abs.(XX) .< 0.3)
     @test 0.7 * N_ < sum(abs.(YY) .< 0.3)

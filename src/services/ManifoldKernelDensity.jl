@@ -30,30 +30,27 @@ getPointRepr(x::ManifoldKernelDensity) = getPointRepr(x.belief)
 getManifold(x::ManifoldKernelDensity) = getManifold(x.belief)
 
 function ManifoldKernelDensity(
-    mani::M,
     bel::B,
     ::Nothing = nothing;
-    # u0::P = zeros(manifold_dimension(mani));
-    # infoPerCoord::AbstractVector{<:Real} = ones(getNumberCoords(mani, u0)),
     partl_cb::Nothing = nothing,
-) where {M <: MB.AbstractManifold, B <: HomotopyDensity}
-    return ManifoldKernelDensity{B, Nothing}(mani, bel, nothing)
+) where {B <: HomotopyDensity}
+    return ManifoldKernelDensity{B, Nothing}(bel, nothing)
 end
 
 
 function ManifoldKernelDensity(
-    mani::M,
     bel::B,
     partial_::L;
     # u0::P = zeros(manifold_dimension(mani));
-    infoPerCoord::AbstractVector{<:Real} = ones(getNumberCoords(mani, bel.data[1])),
+    infoPerCoord::AbstractVector{<:Real} = ones(getNumberCoords(getManifold(bel), bel.data[1])),
     partl_cb::Union{Nothing, <:Function} = nothing,
-) where {M <: MB.AbstractManifold, B <: HomotopyDensity, L <: AbstractVector{<:Integer}}
+) where {B <: HomotopyDensity, L <: AbstractVector{<:Integer}}
     #
     if isnothing(partl_cb)
-        @warn "WIP partl_cb on MKD constructor helper" maxlog=100
+        @warn "WIP partl_cb on MKD constructor helper" maxlog=10
     end
     partial = _tuple(partial_)
+    mani = getManifold(bel)
     if length(partial) != manifold_dimension(mani)
         # TODO, assuming there are tree and leaf nodes at [1]...
         # @show getKernelTree(bel, 1)
@@ -86,23 +83,21 @@ function ManifoldKernelDensity(
 
         # call the constructor direct
         # TODO remove _makevec on partials, here and everywhere really.
-        return ManifoldKernelDensity{typeof(bel_), L}(mani, bel_, _makevec(partial))
+        return ManifoldKernelDensity{typeof(bel_), L}(bel_, _makevec(partial))
     else
         # full manifold, therefore equivalent to L::Nothing
-        return ManifoldKernelDensity(mani, bel, nothing)
+        return ManifoldKernelDensity(bel, nothing)
     end
 end
 
 function ManifoldKernelDensity(
-    mani::M,
     bel::B,
     pl_mask::Union{<:BitVector, <:AbstractVector{<:Bool}},
-) where {M <: MB.AbstractManifold, B <: HomotopyDensity}
+) where {B <: HomotopyDensity}
     @warn "This constructor is not recommended, as partials have changed somewhat -- possibly erroneous code here..." maxlog=100
     return ManifoldKernelDensity(
-        mani,
         bel,
-        (1:manifold_dimension(mani))[pl_mask], # TODO use tuple instead
+        (1:manifold_dimension(getManifold(bel)))[pl_mask], # TODO use tuple instead
     )
 end
 
@@ -160,7 +155,7 @@ function manikde!(
 
     bel = updateBandwidths(mtree, best_cov; partl_cb)
     # return tree with correct bandwidth
-    return ManifoldKernelDensity(M, bel, partial)
+    return ManifoldKernelDensity(bel, partial)
 end
 
 ## ==========================================================================================
@@ -365,7 +360,6 @@ function Base.show(io::IO, mkd::ManifoldKernelDensity{B, L}) where {B, L}
     println(io, "  ipc:   ", getInfoPerCoord(mkd, true) .|> x -> round(x; digits = 4))
     print(io, "   mean: ")
     try
-        # mn = mean(mkd.manifold, getPoints(mkd, false))
         mn = mean(mkd)
         if mn isa ProductRepr # TODO UPDATE to ArrayPartition only, discontinued use of ProductRepr long ago.
             println(io)
@@ -394,7 +388,7 @@ function marginal(
 ) where {B}
     #
     ldims::Vector{Int} = _makevec(_intersect(x._partial, collect(dims)))
-    return ManifoldKernelDensity(getManifold(x), x.belief, ldims)
+    return ManifoldKernelDensity(x.belief, ldims)
 end
 
 

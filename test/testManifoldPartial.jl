@@ -253,7 +253,7 @@ end
 
     @test length(p12) == N
     @test length(p12[1]) == 2
-    @test_broken P12.manifold isa LieGroups.TranslationGroup(2)
+    @test_broken getManifold(P12) isa LieGroups.TranslationGroup(2)
 
 ##
 end
@@ -276,7 +276,7 @@ end
 
     @test length(p12) == N
     @test length(p12[1]) == 2
-    @test_broken P12.manifold isa LieGroups.TranslationGroup(2)
+    @test_broken getManifold(P12) isa LieGroups.TranslationGroup(2)
 
 ##
 end
