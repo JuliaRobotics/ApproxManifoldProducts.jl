@@ -21,7 +21,6 @@ Minor eigenvectors are sometimes called "trailing eigenvectors," or "residual mo
   partial,
   M, 
   P <: AbstractArray,
-  N, 
   HL, 
   HT,
   # U <: Union{<:StaticArray, <:PDMats.AbstractPDMat}
@@ -51,8 +50,8 @@ HomotopyDensity{
   leaf_kernels::Vector{HL},
   tree_kernels::Vector{HT},
   kw...
-) where {partial, M, P, N, HL, HT} = 
-HomotopyDensity{partial, M, P, length(data), HL, HT}(;
+) where {partial, M, P, HL, HT} = 
+HomotopyDensity{partial, M, P, HL, HT}(;
   manifold,
   data,
   leaf_kernels,

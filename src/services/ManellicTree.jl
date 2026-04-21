@@ -140,10 +140,10 @@ Notes:
 - use `permute=true` (default) for sorted index retrieval.
 """
 getKernelLeafAsTreeKer(
-    mtr::HomotopyDensity{L, M, P, N, HL, HT},
+    mtr::HomotopyDensity{L, M, P, HL, HT},
     idx::Int,
     permuted::Bool = false,
-) where {M, L, P, N, HL, HT} = convert(HT, getKernelLeaf(mtr, (idx - 1) % N + 1, permuted))
+) where {M, L, P, HL, HT} = convert(HT, getKernelLeaf(mtr, (idx - 1) % Npts(mtr) + 1, permuted))
 
 """
     $SIGNATURES
@@ -156,14 +156,14 @@ Notes:
 See also: [`getKernelLeafAsTreeKer`](@ref)
 """
 function getKernelTree(
-    hode::HomotopyDensity{L, M, P, N, HL, HT},
+    hode::HomotopyDensity{L, M, P, HL, HT},
     currIdx::Int,
     # must return sorted given name signature "Tree"
     permuted::Bool = false,
     cov_continuation::Bool = false,
-) where {M, L, P, N, HL, HT}
+) where {M, L, P, HL, HT}
     #
-
+    N = Npts(hode)
     # BinaryTree (BT) index goes from root=1 to largest leaf 2*N
     if currIdx < N
         # cov_continuation correction so that we may build trees with sensible convariance to bandwidth transition from root to leaf
@@ -201,18 +201,19 @@ end
 
 
 # check for existence in tree or leaves
-function exists_BTLabel(mt::HomotopyDensity{L, M, P, N}, idx::Int) where {M, L, P, N}
+function exists_BTLabel(hode::HomotopyDensity, idx::Int)
+    N = Npts(hode)
     eset = if idx < N
-        mt._workaround_isdef_treekernel
+        hode._workaround_isdef_treekernel
     else
-        mt._workaround_isdef_leafkernel
+        hode._workaround_isdef_leafkernel
     end
 
     # return existence
     return idx in eset
 end
 
-function isLeaf_BTLabel(mt::HomotopyDensity{L, M, P, N}, idx::Int) where {M, L, P, N}
+function isLeaf_BTLabel(mt::HomotopyDensity, idx::Int)
     if exists_BTLabel(mt, leftIndex(mt, idx))
         return false
     elseif exists_BTLabel(mt, rightIndex(mt, idx))
@@ -228,7 +229,8 @@ uniWT(mt::HomotopyDensity) = 1 === length(union(diff(getWeights(mt))))
 
 
 # check for uniform bandwidths in kernels
-function uniBW(mt::HomotopyDensity{L, M, P, N}) where {M, L, P, N}
+function uniBW(mt::HomotopyDensity)
+    N = Npts(mt)
     if 1 < length(mt.leaf_kernels)
         if !isassigned(mt.leaf_kernels, 1)
             return false
@@ -243,7 +245,7 @@ function uniBW(mt::HomotopyDensity{L, M, P, N}) where {M, L, P, N}
     return true
 end
 
-function Base.show(io::IO, hode::HomotopyDensity{partial, M, P, N, HL, HT}) where {partial, M, P, N, HL, HT}
+function Base.show(io::IO, hode::HomotopyDensity{partial, M, P, HL, HT}) where {partial, M, P, HL, HT}
     printstyled(io, "HomotopyDensity{"; bold = true, color = :blue)
     println(io)
     printstyled(io, "    partial"; bold = true, color = :magenta)
@@ -254,7 +256,7 @@ function Base.show(io::IO, hode::HomotopyDensity{partial, M, P, N, HL, HT}) wher
     println(io)
     printstyled(io, "  P  = ", P; color = :magenta)
     println(io)
-    printstyled(io, "  N  = ", N; color = :magenta)
+    printstyled(io, "  N  = ", Npts(hode); color = :magenta)
     println(io)
     printstyled(io, "  HL = ", HL; color = :magenta)
     println(io)
@@ -262,8 +264,8 @@ function Base.show(io::IO, hode::HomotopyDensity{partial, M, P, N, HL, HT}) wher
     println(io)
     printstyled(io, "}"; bold = true, color = :blue)
     println(io, "(")
-    @assert N == length(hode.data) "show(::HomotopyDensity,) noticed a data size issue, expecting N$(N) == length(.data)$(length(hode.data))"
-    if 0 < N
+    @assert Npts(hode) == length(hode.data) "show(::HomotopyDensity,) noticed a data size issue, expecting N$(Npts(hode)) == length(.data)$(length(hode.data))"
+    if 0 < Npts(hode)
         println(io, "  .data[1:]   :  ", hode.data[1], " ... ", hode.data[end])
         println(io, "  .weights[1:]:  ", hode.weights[1], " ... ", hode.weights[end])
         printstyled(io, "     (uniwt)  :   ", uniWT(hode); color = :light_black)
@@ -272,7 +274,7 @@ function Base.show(io::IO, hode::HomotopyDensity{partial, M, P, N, HL, HT}) wher
         printstyled(io, hode.permute[1], " ... ", hode.permute[end]; color = :light_black)
         println(io)
         print(io, "  .tkernels[") # " __see below__"; color=:light_black)
-        if 0 < N
+        if 0 < Npts(hode)
             # printstyled(io, "  .tkernels[1] = "; color=:light_black)
             print(io, "1]:  ")
             printstyled(io, "::HT "; color = :magenta)
@@ -298,7 +300,7 @@ function Base.show(io::IO, hode::HomotopyDensity{partial, M, P, N, HL, HT}) wher
         printstyled(io, "     (blncd)  :   ", "true : _wip_"; color = :light_black)
         println(io)
         print(io, "  .lkernels[")
-        if 0 < N
+        if 0 < Npts(hode)
             print(io, "1]:  ")
             # printstyled(io, "  .tkernels[1] = "; color=:light_black)
             if isassigned(hode.leaf_kernels, 1)
@@ -308,7 +310,7 @@ function Base.show(io::IO, hode::HomotopyDensity{partial, M, P, N, HL, HT}) wher
                 println(io)
             end
             # print(io, "  ...,")
-            if 1 < N
+            if 1 < Npts(hode)
                 printstyled(io, "         [end]:  "; color = :light_black)
                 if isassigned(hode.leaf_kernels, length(hode.leaf_kernels))
                     printstyled(io, hode.leaf_kernels[end]; color = :light_black)
@@ -551,7 +553,7 @@ function splitPointsEigen(
 end
 
 function buildTree_Manellic!(
-    hode::HomotopyDensity{L, MT, P, N},
+    hode::HomotopyDensity{L, MT, P},
     index::Integer, # tree node root=1,left=2n+corr,right=left+1
     low::Integer,   # bottom index of segment
     high::Integer;  # top index of segment;
@@ -560,13 +562,14 @@ function buildTree_Manellic!(
     leaf_size = 1,
     partial::Union{Nothing, AbstractVector{<:Integer}} = nothing,
     partl_cb::Union{Nothing, <:Function} = nothing,
-) where {MT, L, P, N} # FIXME, use just one partial/L
+) where {MT, L, P} # FIXME, use just one partial/L
     #
     _legacybw(s::Nothing) = s
     _legacybw(s::AbstractMatrix) = s
     _legacybw(s::AbstractVector) = diagm(s)
 
     _kernel_bw = _legacybw(kernel_bw)
+    N = Npts(hode)
 
     # # terminate recursive tree build when all necessary tree kernels have been built
     # if N <= index
@@ -801,15 +804,17 @@ function buildTree_Manellic!(
 end
 
 function updateBandwidths(
-    hode::HomotopyDensity{L, M, P, N, HL}, 
+    hode::HomotopyDensity{L, M, P, HL}, 
     bws;
     partl_cb::Union{Nothing, <:Function} = nothing,
-) where {L, M, P, N, HL}
+) where {L, M, P, HL}
     #
     _getBW(s::Float64, ::Int) = [s;;]
     _getBW(s::AbstractVector{<:Real}, ::Int) = s
     _getBW(s::AbstractMatrix{<:Real}, ::Int) = s
     _getBW(s::AbstractVector{<:AbstractArray}, _i::Int) = s[_i]
+
+    N = Npts(hode)
 
     leaf_kernels = Vector{HL}(undef, N)
     for (i, lk) in enumerate(hode.leaf_kernels)
