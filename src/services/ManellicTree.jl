@@ -203,14 +203,11 @@ end
 # check for existence in tree or leaves
 function exists_BTLabel(hode::HomotopyDensity, idx::Int)
     N = Npts(hode)
-    eset = if idx < N
-        hode._workaround_isdef_treekernel
+    if idx < N
+        return isassigned(hode.tree_kernels, idx)
     else
-        hode._workaround_isdef_leafkernel
+        return isassigned(hode.leaf_kernels, idx - N)
     end
-
-    # return existence
-    return idx in eset
 end
 
 function isLeaf_BTLabel(mt::HomotopyDensity, idx::Int)
@@ -652,7 +649,7 @@ function buildTree_Manellic!(
         # _knl = convert(tkT, knl)
         # set tree kernel
         hode.tree_kernels[index] = _knl
-        push!(hode._workaround_isdef_treekernel, index)
+        # push!(hode._workaround_isdef_treekernel, index)
         hode.segments[index] = Set(ido)
     end
 
@@ -704,11 +701,9 @@ function buildTree_Manellic!(
 
     # leaf kernels
     lkern = Vector{lknlT}(undef, N)
-    _workaround_isdef_leafkernel = Set{Int}()
     for i = 1:N
         nkr = kernel(r_PP[i], lCV; partial = _tuple(partial), partl_cb=prlcb)
         lkern[i] = nkr
-        push!(_workaround_isdef_leafkernel, i + N)
     end
 
     _hode = ApproxManifoldProducts.HomotopyDensity{
@@ -719,7 +714,6 @@ function buildTree_Manellic!(
         weights,
         leaf_kernels = lkern,                           # leaf_kernels
         tree_kernels = Vector{tknlT}(undef, N),    # tree_kernels
-        _workaround_isdef_leafkernel,
     );
 
     #
@@ -762,7 +756,6 @@ function buildTree_Manellic!(
 
     # leaf kernels
     lkern = Vector{KL}(undef, N)
-    _workaround_isdef_leafkernel = Set{Int}()
     for i = 1:N
         r_PP[i] = mean(r_ker[i])
         lkern[i] = if isnothing(kernel_bw)
@@ -770,7 +763,6 @@ function buildTree_Manellic!(
         else
             updateKernelBW(r_ker[i], kernel_bw) # TODO handle vector of kernel_bws
         end
-        push!(_workaround_isdef_leafkernel, i + N)
     end
 
     mtree = HomotopyDensity{
@@ -783,8 +775,6 @@ function buildTree_Manellic!(
         leaf_kernels = lkern,
         tree_kernels = Vector{KT}(undef, N),
         segments = Vector{Set{Int}}(undef, N),
-        _workaround_isdef_leafkernel,
-        _workaround_isdef_treekernel = Set{Int}(),
     )
 
     #
@@ -831,8 +821,6 @@ function updateBandwidths(
         leaf_kernels,
         tree_kernels = hode.tree_kernels,
         segments = hode.segments,
-        _workaround_isdef_leafkernel = hode._workaround_isdef_leafkernel,
-        _workaround_isdef_treekernel = hode._workaround_isdef_treekernel,
     )
 end
 

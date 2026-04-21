@@ -68,8 +68,6 @@ function HomotopyDensity(
             tree_kernels,
             infoPerCoord,
             segments = bel.segments,
-            _workaround_isdef_leafkernel = bel._workaround_isdef_leafkernel,
-            _workaround_isdef_treekernel = bel._workaround_isdef_treekernel,
         )
 
         # call the constructor direct
