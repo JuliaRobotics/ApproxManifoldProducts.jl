@@ -20,14 +20,14 @@ Minor eigenvectors are sometimes called "trailing eigenvectors," or "residual mo
 @kwdef struct HomotopyDensity{
   partial,
   M, 
-  D <: AbstractVector,
+  P <: AbstractArray,
   N, 
   HL, 
   HT,
   # U <: Union{<:StaticArray, <:PDMats.AbstractPDMat}
 }
     manifold::M
-    data::D
+    data::Vector{P}
     weights::MVector{N, <:Real} = MVector{length(data), Float64}(ones(length(data))) ./ length(data)  # TODO rename to mixture_weights
     permute::MVector{N, Int} = MVector{length(data), Int}(1:length(data))
     leaf_kernels::SizedVector{N, HL}  # TODO rename to trailing
@@ -47,12 +47,12 @@ HomotopyDensity{
   partial
 }(;
   manifold::M, 
-  data::D,
+  data::Vector{P},
   leaf_kernels::SizedVector{N,HL},
   tree_kernels::SizedVector{N,HT},
   kw...
-) where {partial, M, D, N, HL, HT} = 
-HomotopyDensity{partial, M, D, length(data), HL, HT}(;
+) where {partial, M, P, N, HL, HT} = 
+HomotopyDensity{partial, M, P, length(data), HL, HT}(;
   manifold,
   data,
   leaf_kernels,
