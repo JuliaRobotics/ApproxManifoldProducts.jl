@@ -48,8 +48,8 @@ function HomotopyDensity(
         # assuming there are tree and leaf nodes at [1]...
         _tkT() = _intersectpartials(mani, getKernelTree(bel, 1), partial) |> typeof
         _lkT() = _intersectpartials(mani, getKernelLeaf(bel, 1), partial) |> typeof
-        tree_kernels  = SizedVector{length(bel.tree_kernels), _tkT()}(undef)
-        leaf_kernels  = SizedVector{length(bel.leaf_kernels), _lkT()}(undef)
+        tree_kernels  = Vector{_tkT()}(undef, length(bel.tree_kernels))
+        leaf_kernels  = Vector{_lkT()}(undef, length(bel.leaf_kernels))
         tkm = (s->isassigned(bel.tree_kernels, s)).(1:length(bel.tree_kernels))
         lkm = (s->isassigned(bel.leaf_kernels, s)).(1:length(bel.leaf_kernels))
         tree_kernels_ = view(tree_kernels, tkm)

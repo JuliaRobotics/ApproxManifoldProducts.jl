@@ -156,7 +156,7 @@ Notes:
 See also: [`getKernelLeafAsTreeKer`](@ref)
 """
 function getKernelTree(
-    mtr::HomotopyDensity{L, M, P, N, HL, HT},
+    hode::HomotopyDensity{L, M, P, N, HL, HT},
     currIdx::Int,
     # must return sorted given name signature "Tree"
     permuted::Bool = false,
@@ -167,19 +167,19 @@ function getKernelTree(
     # BinaryTree (BT) index goes from root=1 to largest leaf 2*N
     if currIdx < N
         # cov_continuation correction so that we may build trees with sensible convariance to bandwidth transition from root to leaf
-        raw_ker = mtr.tree_kernels[currIdx]
+        raw_ker = hode.tree_kernels[currIdx]
         if cov_continuation
             # depth of this index
             ances_depth = floor(Int, log2(currIdx))
             # how many leaf offsp
-            offsp_depth = log2(length(mtr.segments[currIdx]))
+            offsp_depth = log2(length(hode.segments[currIdx]))
             # get approx continuous depth fraction of this index
             λ = (ances_depth) / (ances_depth + offsp_depth)
             # mean bandwidth of all leaf children
-            leafIdxs = mtr.segments[currIdx] .|> s -> findfirst(==(s), mtr.permute)
+            leafIdxs = hode.segments[currIdx] .|> s -> findfirst(==(s), hode.permute)
             leafIdxs .+= N
             # TBD, why permuted hard false here, maybe because tree nodes not leaves?
-            bws = [cov(getKernelTree(mtr, lidx, false)) for lidx in leafIdxs] 
+            bws = [cov(getKernelTree(hode, lidx, false)) for lidx in leafIdxs] 
             # FIXME is a parallel transport needed between different kernel covariances that each exist in different tangent spaces
             mean_bw = Matrix(mean(bws)) # FIXME upgrade to on-manifold mean
             # corrected cov varies from root (only Monte Carlo cov est) to leaves (only selected bandwdith)
@@ -189,13 +189,13 @@ function getKernelTree(
             kernelType = getfield(ApproxManifoldProducts, HT.name.name)
             partial = _getprl(raw_ker)
             μ = mean(raw_ker)
-            M_, reprl, partl_cb = getManifoldPartial(getManifold(mtr), _tuple(partial), μ)
-            kernelType(μ, nC, mtr.weights[currIdx]; partial, partl_cb)
+            M_, reprl, partl_cb = getManifoldPartial(getManifold(hode), _tuple(partial), μ)
+            kernelType(μ, nC, hode.weights[currIdx]; partial, partl_cb)
         else
             raw_ker
         end
     else
-        getKernelLeafAsTreeKer(mtr, currIdx, permuted)
+        getKernelLeafAsTreeKer(hode, currIdx, permuted)
     end
 end
 
@@ -551,7 +551,7 @@ function splitPointsEigen(
 end
 
 function buildTree_Manellic!(
-    mtree::HomotopyDensity{L, MT, P, N},
+    hode::HomotopyDensity{L, MT, P, N},
     index::Integer, # tree node root=1,left=2n+corr,right=left+1
     low::Integer,   # bottom index of segment
     high::Integer;  # top index of segment;
@@ -570,19 +570,19 @@ function buildTree_Manellic!(
 
     # # terminate recursive tree build when all necessary tree kernels have been built
     # if N <= index
-    #     return mtree
+    #     return hode
     # end
 
-    M = getManifold(mtree)
+    M = getManifold(hode)
     # take a slice of data
     idc = low:high
     # according to current index permutation (i.e. sort data as you build the tree)
-    ido = view(mtree.permute, idc)
+    ido = view(hode.permute, idc)
     # split the slice of order-permuted data
     ax_CCp, mask, knl = splitPointsEigen(
         M,
-        view(mtree.data, ido),
-        view(mtree.weights, ido);
+        view(hode.data, ido),
+        view(hode.weights, ido);
         kernel,
         kernel_bw = _kernel_bw,
         partial,
@@ -593,7 +593,7 @@ function buildTree_Manellic!(
     # sort the data as 'small' and 'big' elements either side of the eigen split
     big = view(ido, mask)  |> collect
     sml = view(ido, imask) |> collect
-    # inplace reorder the slice portion of mtree.permute towards accending
+    # inplace reorder the slice portion of hode.permute towards accending
     _ido = SA[sml...; big...]
     # ido .= SA[sml...; big...]
     for (i,v) in enumerate(_ido)
@@ -602,20 +602,20 @@ function buildTree_Manellic!(
 
     # terminate recursive tree build when all necessary tree kernels have been built
     if N <= index
-        return mtree
+        return hode
     end
 
     npts = high - low + 1
     mid_idx = low + sum(imask) - 1
 
-    lft = mid_idx <= low ? low : leftIndex(mtree, index)
-    rgt = high <= mid_idx + 1 ? high : rightIndex(mtree, index)
+    lft = mid_idx <= low ? low : leftIndex(hode, index)
+    rgt = high <= mid_idx + 1 ? high : rightIndex(hode, index)
 
     if leaf_size < npts
         if lft != low # mid_idx
             # recursively call two branches of tree, left
             buildTree_Manellic!(
-                mtree,
+                hode,
                 lft,
                 low,
                 mid_idx;
@@ -629,7 +629,7 @@ function buildTree_Manellic!(
         if rgt != high
             # and right subtree
             buildTree_Manellic!(
-                mtree,
+                hode,
                 rgt,
                 mid_idx + 1,
                 high;
@@ -643,17 +643,17 @@ function buildTree_Manellic!(
     end
 
     if index < N
-        tkT = eltype(mtree.tree_kernels)
+        tkT = eltype(hode.tree_kernels)
         # TBD, maybe a constructor instead?
         _knl = tkT(knl; partl_cb)
         # _knl = convert(tkT, knl)
         # set tree kernel
-        mtree.tree_kernels[index] = _knl
-        push!(mtree._workaround_isdef_treekernel, index)
-        mtree.segments[index] = Set(ido)
+        hode.tree_kernels[index] = _knl
+        push!(hode._workaround_isdef_treekernel, index)
+        hode.segments[index] = Set(ido)
     end
 
-    return mtree
+    return hode
 end
 
 """
@@ -700,7 +700,7 @@ function buildTree_Manellic!(
     # kernel scale
 
     # leaf kernels
-    lkern = SizedVector{N, lknlT}(undef)
+    lkern = Vector{lknlT}(undef, N)
     _workaround_isdef_leafkernel = Set{Int}()
     for i = 1:N
         nkr = kernel(r_PP[i], lCV; partial = _tuple(partial), partl_cb=prlcb)
@@ -715,7 +715,7 @@ function buildTree_Manellic!(
         data = r_PP,
         weights,
         leaf_kernels = lkern,                           # leaf_kernels
-        tree_kernels = SizedVector{N, tknlT}(undef),    # tree_kernels
+        tree_kernels = Vector{tknlT}(undef, N),    # tree_kernels
         _workaround_isdef_leafkernel,
     );
 
@@ -758,7 +758,7 @@ function buildTree_Manellic!(
     r_PP = Vector{_μT()}(undef, N)
 
     # leaf kernels
-    lkern = SizedVector{N, KL}(undef)
+    lkern = Vector{KL}(undef, N)
     _workaround_isdef_leafkernel = Set{Int}()
     for i = 1:N
         r_PP[i] = mean(r_ker[i])
@@ -776,10 +776,10 @@ function buildTree_Manellic!(
         manifold = M,
         data = r_PP,
         weights,
-        permute = MVector{N, Int}(1:N),
+        permute = collect(1:N),
         leaf_kernels = lkern,
-        tree_kernels = SizedVector{N, KT}(undef),
-        segments = SizedVector{N, Set{Int}}(undef),
+        tree_kernels = Vector{KT}(undef, N),
+        segments = Vector{Set{Int}}(undef, N),
         _workaround_isdef_leafkernel,
         _workaround_isdef_treekernel = Set{Int}(),
     )
@@ -811,19 +811,19 @@ function updateBandwidths(
     _getBW(s::AbstractMatrix{<:Real}, ::Int) = s
     _getBW(s::AbstractVector{<:AbstractArray}, _i::Int) = s[_i]
 
-    _leaf_kernels = SizedVector{N, HL}(undef)
+    leaf_kernels = Vector{HL}(undef, N)
     for (i, lk) in enumerate(hode.leaf_kernels)
         nkl = ConcentratedGaussianKernel(lk; Σ = _getBW(bws, i), partl_cb)
-        _leaf_kernels[i] = nkl # updateKernelBW(lk, _getBW(bws, i))
+        leaf_kernels[i] = nkl # updateKernelBW(lk, _getBW(bws, i))
     end
     return HomotopyDensity{
         L,
-    }(
+    }(;
         manifold = getManifold(hode),
         data = hode.data,
         weights = hode.weights,
         permute = hode.permute,
-        leaf_kernels = _leaf_kernels,
+        leaf_kernels,
         tree_kernels = hode.tree_kernels,
         segments = hode.segments,
         _workaround_isdef_leafkernel = hode._workaround_isdef_leafkernel,
@@ -839,20 +839,20 @@ For Manellic tree parent kernels, what is the 'smallest' and 'biggest' covarianc
 Notes:
 - Thought about `det` for covariance volume but long access of pancake (smaller volume) is not minimum compared to circular covariance. 
 """
-function getBandwidthSearchBounds(mtree::HomotopyDensity)
-    upper = cov(mtree.tree_kernels[1])
+function getBandwidthSearchBounds(hode::HomotopyDensity)
+    upper = cov(hode.tree_kernels[1])
 
-    #FIXME isdefined does not work as expected for mtree.tree_kernels, so using length-1 for now
+    #FIXME isdefined does not work as expected for hode.tree_kernels, so using length-1 for now
     # this will break if number of points is not a power of 2. 
     
-    lower_diag = diag(cov(mtree.tree_kernels[1]))
-    for i in 2:(length(mtree.tree_kernels) - 1)
+    lower_diag = diag(cov(hode.tree_kernels[1]))
+    for i in 2:(length(hode.tree_kernels) - 1)
         # FIXME use consolidated getKernelTree instead
-        if isassigned(mtree.tree_kernels, i)
-            hdg = hcat(lower_diag, diag(cov(mtree.tree_kernels[i])))
+        if isassigned(hode.tree_kernels, i)
+            hdg = hcat(lower_diag, diag(cov(hode.tree_kernels[i])))
             lower_diag = minimum(hdg; dims = 2)
         end
-        # lower_diag = minimum(hcat(lower_diag, diag(cov(mtree.tree_kernels[i]))); dims = 2)
+        # lower_diag = minimum(hcat(lower_diag, diag(cov(hode.tree_kernels[i]))); dims = 2)
     end
 
     # floors make us feel safe, but hurt when faceplanting

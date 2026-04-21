@@ -30,9 +30,9 @@ Minor eigenvectors are sometimes called "trailing eigenvectors," or "residual mo
     data::Vector{P}
     weights::Vector{<:Real} = Vector{Float64}(ones(length(data))) ./ length(data)  # TODO rename to mixture_weights
     permute::Vector{Int} = collect(1:length(data))
-    leaf_kernels::SizedVector{N, HL}  # TODO rename to trailing
-    tree_kernels::SizedVector{N, HT}  # TODO rename to leading
-    segments::SizedVector{N, Set{Int}} = SizedVector{length(data), Set{Int}}(undef)
+    leaf_kernels::Vector{HL}  # TODO rename to trailing
+    tree_kernels::Vector{HT}  # TODO rename to leading
+    segments::Vector{Set{Int}} = Vector{Set{Int}}(undef, length(data))
     infoPerCoord::Vector{Float64} = zeros(manifold_dimension(manifold))
     # _unibw::U
 
@@ -48,8 +48,8 @@ HomotopyDensity{
 }(;
   manifold::M, 
   data::Vector{P},
-  leaf_kernels::SizedVector{N,HL},
-  tree_kernels::SizedVector{N,HT},
+  leaf_kernels::Vector{HL},
+  tree_kernels::Vector{HT},
   kw...
 ) where {partial, M, P, N, HL, HT} = 
 HomotopyDensity{partial, M, P, length(data), HL, HT}(;

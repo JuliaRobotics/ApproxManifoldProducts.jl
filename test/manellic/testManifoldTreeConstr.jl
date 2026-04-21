@@ -51,7 +51,7 @@ end
     # weights = ones(N) ./ N
     KT = ConcentratedGaussianKernel
     KL = ConcentratedGaussianKernel
-    lkern = SizedVector{N, KL}(undef)
+    lkern = Vector{KL}(undef, N)
 
 ##
 
@@ -61,7 +61,7 @@ end
         manifold = M,
         data = pts,
         leaf_kernels = lkern,                           # leaf_kernels
-        tree_kernels = SizedVector{N, KT}(undef),       # tree_kernels
+        tree_kernels = Vector{KT}(undef, N),       # tree_kernels
     );
     
 ##
