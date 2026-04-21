@@ -28,7 +28,7 @@ Minor eigenvectors are sometimes called "trailing eigenvectors," or "residual mo
 }
     manifold::M
     data::Vector{P}
-    weights::MVector{N, <:Real} = MVector{length(data), Float64}(ones(length(data))) ./ length(data)  # TODO rename to mixture_weights
+    weights::Vector{<:Real} = Vector{Float64}(ones(length(data))) ./ length(data)  # TODO rename to mixture_weights
     permute::MVector{N, Int} = MVector{length(data), Int}(1:length(data))
     leaf_kernels::SizedVector{N, HL}  # TODO rename to trailing
     tree_kernels::SizedVector{N, HT}  # TODO rename to leading

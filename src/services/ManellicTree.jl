@@ -713,7 +713,7 @@ function buildTree_Manellic!(
     }(;
         manifold = M,
         data = r_PP,
-        weights = MVector{N, Float64}(weights),
+        weights,
         leaf_kernels = lkern,                           # leaf_kernels
         tree_kernels = SizedVector{N, tknlT}(undef),    # tree_kernels
         _workaround_isdef_leafkernel,
@@ -775,7 +775,7 @@ function buildTree_Manellic!(
     }(;
         manifold = M,
         data = r_PP,
-        weights = MVector{N, Float64}(weights),
+        weights,
         permute = MVector{N, Int}(1:N),
         leaf_kernels = lkern,
         tree_kernels = SizedVector{N, KT}(undef),
@@ -879,7 +879,7 @@ DevNotes:
 - Parallel transport shortcuts?
 """
 function evaluate(
-    mt::HomotopyDensity{partl},
+    hode::HomotopyDensity{partl},
     pt,
     LOO::Bool = false,
     force_kbw = nothing,
@@ -888,23 +888,23 @@ function evaluate(
     # _F() = getfield(ApproxManifoldProducts,HL.name.name)
     # _F_ = _F() 
 
-    pts = getPoints(mt, false)
-    w = getWeights(mt)
+    pts = getPoints(hode, false)
+    w = getWeights(hode)
 
     # isapprox uses partial version
-    M_, reprl, cb = getManifoldPartial(getManifold(mt), partl)
+    M_, reprl, cb = getManifoldPartial(getManifold(hode), partl)
 
     sumval = 0.0
     # FIXME, brute force for loop
     for (i, t) in enumerate(pts)
         if !LOO || !isapprox(M_, cb(pt), cb(t))
-        # if !LOO || !isapprox(getManifold(mt), pt, t)
-            # TBD, is this assuming length(pts) and length(mt.leaf_kernels) are the same?
+        # if !LOO || !isapprox(getManifold(hode), pt, t)
+            # TBD, is this assuming length(pts) and length(hode.leaf_kernels) are the same?
             # FIXME use consolidated getKernelLeaf instead
-            ekr = mt.leaf_kernels[i]
+            ekr = hode.leaf_kernels[i]
             ekr = updateKernelBW(ekr, force_kbw)
             # remember special handling for partials via ekr itself
-            oneval = mt.weights[i] * evaluate(getManifold(mt), ekr, pt)
+            oneval = hode.weights[i] * evaluate(getManifold(hode), ekr, pt)
             # leave one out requires kernel weighting to removal of leave out weight
             oneval *= !LOO ? 1 : 1 / (1 - w[i])
             sumval += oneval
@@ -983,11 +983,11 @@ function expectedLogL(
     end
 end
 
-function entropy(mt::HomotopyDensity, force_kbw = nothing)
-    return -expectedLogL(mt, getPoints(mt, false), true, force_kbw)
+function entropy(hode::HomotopyDensity, force_kbw = nothing)
+    return -expectedLogL(hode, getPoints(hode, false), true, force_kbw)
 end
 
-(mt::HomotopyDensity)(evalpt::AbstractArray) = evaluate(mt, evalpt)
+(hode::HomotopyDensity)(evalpt::AbstractArray) = evaluate(hode, evalpt)
 
 """
     $SIGNATURES
