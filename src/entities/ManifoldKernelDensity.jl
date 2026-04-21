@@ -20,19 +20,18 @@ Minor eigenvectors are sometimes called "trailing eigenvectors," or "residual mo
 @kwdef struct HomotopyDensity{
   partial,
   M, 
-  D <: AbstractVector,
-  N, 
+  P <: AbstractArray,
   HL, 
   HT,
   # U <: Union{<:StaticArray, <:PDMats.AbstractPDMat}
 }
     manifold::M
-    data::D
-    weights::MVector{N, <:Real} = MVector{length(data), Float64}(ones(length(data))) ./ length(data)  # TODO rename to mixture_weights
-    permute::MVector{N, Int} = MVector{length(data), Int}(1:length(data))
-    leaf_kernels::SizedVector{N, HL}  # TODO rename to trailing
-    tree_kernels::SizedVector{N, HT}  # TODO rename to leading
-    segments::SizedVector{N, Set{Int}} = SizedVector{length(data), Set{Int}}(undef)
+    data::Vector{P}
+    weights::Vector{Float64} = Vector{Float64}(ones(length(data))) ./ length(data)  # TODO rename to mixture_weights
+    permute::Vector{Int} = collect(1:length(data))
+    leaf_kernels::Vector{HL}  # TODO rename to trailing
+    tree_kernels::Vector{HT}  # TODO rename to leading
+    segments::Vector{Set{Int}} = Vector{Set{Int}}(undef, length(data))
     infoPerCoord::Vector{Float64} = zeros(manifold_dimension(manifold))
     # _unibw::U
 
@@ -47,12 +46,12 @@ HomotopyDensity{
   partial
 }(;
   manifold::M, 
-  data::D,
-  leaf_kernels::SizedVector{N,HL},
-  tree_kernels::SizedVector{N,HT},
+  data::Vector{P},
+  leaf_kernels::Vector{HL},
+  tree_kernels::Vector{HT},
   kw...
-) where {partial, M, D, N, HL, HT} = 
-HomotopyDensity{partial, M, D, length(data), HL, HT}(;
+) where {partial, M, P, HL, HT} = 
+HomotopyDensity{partial, M, P, HL, HT}(;
   manifold,
   data,
   leaf_kernels,
