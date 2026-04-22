@@ -41,6 +41,36 @@ function testEigenCoords!(r_C = pi / 3, ax_CC = [SA[5 * randn(); randn()] for _ 
     return r_CC, r_R_ax_, pidx, r_CV
 end
 
+
+function testMDEConstr(
+    pts::AbstractVector{<:AbstractVector{<:Real}},
+    permref = sortperm(pts; by = s -> getindex(s, 1));
+    lseg = 1:2,
+    rseg = 3:4,
+    atol = 1e-6,
+)
+    # check permutation
+    M = LieGroups.TranslationGroup(1)
+    bw = [1.0]
+
+    mtree = ApproxManifoldProducts.buildTree_Manellic!(
+        M,
+        pts;
+        kernel_bw = bw,
+        kernel = ConcentratedGaussianKernel,
+    )
+    @test permref == mtree.permute
+    @test isapprox(mean(M, pts), mean(mtree.tree_kernels[1]); atol = 1e-10)
+    @test Set(mtree.segments[1]) == Set(union(lseg, rseg))
+    @test Set(mtree.segments[2]) == Set(mtree.permute[lseg])
+    @test Set(mtree.segments[3]) == Set(mtree.permute[rseg])
+    @test isapprox(mean(M, pts[mtree.permute[lseg]]), mean(mtree.tree_kernels[2]); atol)
+    @test isapprox(mean(M, pts[mtree.permute[rseg]]), mean(mtree.tree_kernels[3]); atol)
+    return nothing
+end
+
+
+
 ##
 
 @testset "test Manellic tree utilities w skeleton object" begin
@@ -290,36 +320,6 @@ end
 
     @test all(s->s[1] ≈ s[2], zip(getPoints(mtree), getPoints(mtree_)) )
 
-
-## additional test datasets
-
-    function testMDEConstr(
-        pts::AbstractVector{<:AbstractVector{<:Real}},
-        permref = sortperm(pts; by = s -> getindex(s, 1));
-        lseg = 1:2,
-        rseg = 3:4,
-        atol = 1e-6,
-    )
-        # check permutation
-        M = LieGroups.TranslationGroup(1)
-        bw = [1.0]
-
-        mtree = ApproxManifoldProducts.buildTree_Manellic!(
-            M,
-            pts;
-            kernel_bw = bw,
-            kernel = ConcentratedGaussianKernel,
-        )
-        @test permref == mtree.permute
-        @test isapprox(mean(M, pts), mean(mtree.tree_kernels[1]); atol = 1e-10)
-        @test Set(mtree.segments[1]) == Set(union(lseg, rseg))
-        @test Set(mtree.segments[2]) == Set(mtree.permute[lseg])
-        @test Set(mtree.segments[3]) == Set(mtree.permute[rseg])
-        @test isapprox(mean(M, pts[mtree.permute[lseg]]), mean(mtree.tree_kernels[2]); atol)
-        @test isapprox(mean(M, pts[mtree.permute[rseg]]), mean(mtree.tree_kernels[3]); atol)
-        return nothing
-    end
-
 ## for 4 values
 
     # manual orders
@@ -374,6 +374,70 @@ end
 ##
 end
 
+
+@testset "HomotopyDensity 1D unbalanced tree construction" begin
+## 
+
+    M = LieGroups.TranslationGroup(1)
+    # design mean at 0.0
+    pts = [
+        [-2.0],
+        [-1.0],
+        [3.0],
+    ]
+    
+    bw = [0.5;]
+    #
+    #
+    #               {1}1:3
+    #              /      \
+    #         {2}1:2      (3)3
+    #          /   \      /   \
+    #       (4)1  (5)2   *     *
+    #
+    hode = ApproxManifoldProducts.buildTree_Manellic!(
+        M,
+        pts;
+        kernel_bw = bw,
+        kernel = ConcentratedGaussianKernel,
+    )
+
+    @test 1 == Ndim(hode)
+    @test 3 == Npts(hode)
+
+    @test hode.permute == [1;2;3]
+    @test hode.segments[1] == Set(1:3)
+    @test hode.segments[2] == Set(1:2)
+
+    @test isassigned(hode.tree_kernels, 1)
+    @test isassigned(hode.tree_kernels, 2)
+    @test !isassigned(hode.tree_kernels, 3)
+
+    @test isassigned(hode.leaf_kernels, 1)
+    @test isassigned(hode.leaf_kernels, 2)
+    @test isassigned(hode.leaf_kernels, 3)
+
+    @test !ApproxManifoldProducts.isLeaf_BTLabel(hode, 1)
+    @test !ApproxManifoldProducts.isLeaf_BTLabel(hode, 2)
+    @test ApproxManifoldProducts.isLeaf_BTLabel(hode, 3)
+
+    @test ApproxManifoldProducts.isLeaf_BTLabel(hode, 4)
+    @test ApproxManifoldProducts.isLeaf_BTLabel(hode, 5)
+    # @test !ApproxManifoldProducts.isLeaf_BTLabel(hode, 6)
+    # @test !ApproxManifoldProducts.isLeaf_BTLabel(hode, 7)
+
+    @test ApproxManifoldProducts.exists_BTLabel(hode, 1)
+    @test ApproxManifoldProducts.exists_BTLabel(hode, 2)
+    @test ApproxManifoldProducts.exists_BTLabel(hode, 3)
+    @test ApproxManifoldProducts.exists_BTLabel(hode, 4)
+    @test ApproxManifoldProducts.exists_BTLabel(hode, 5)
+    @test !ApproxManifoldProducts.exists_BTLabel(hode, 6)
+    @test !ApproxManifoldProducts.exists_BTLabel(hode, 7)
+##
+
+
+##
+end
 
 @testset "HomotopyDensity 1D basic and smaller construction as per sorting of points with shuffle" begin
 ## 

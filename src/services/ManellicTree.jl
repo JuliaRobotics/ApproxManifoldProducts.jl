@@ -206,7 +206,7 @@ function exists_BTLabel(hode::HomotopyDensity, idx::Int)
     if idx < N
         return isassigned(hode.tree_kernels, idx)
     else
-        return isassigned(hode.leaf_kernels, idx - N)
+        return isassigned(hode.leaf_kernels, idx - N + 1)
     end
 end
 
