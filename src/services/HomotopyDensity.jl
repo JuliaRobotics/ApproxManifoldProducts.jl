@@ -140,9 +140,203 @@ end
 
 
 ## ==========================================================================================
-## helper functions to contruct MKD objects
+## HomotopyDensity constructorhelper functions
 ## ==========================================================================================
 
+
+function HomotopyDensity(
+    bel::HomotopyDensity,
+    partial_::L;
+    infoPerCoord::AbstractVector{<:Real} = bel.infoPerCoord,
+) where {L <: Union{<:AbstractVector{<:Integer}, <:Tuple}}
+    #
+    partial = _tuple(partial_)
+    mani = getManifold(bel)
+    partl = _intersect(getPartial(bel), partial)
+    M_, reprl, partl_cb = getManifoldPartial(
+        mani, 
+        partl, 
+        bel.data[1],
+    )
+    if length(partl) != manifold_dimension(mani)
+        # assuming there are tree and leaf nodes at [1]...
+        _tkT() = _intersectpartials(mani, getKernelTree(bel, 1), partial) |> typeof
+        _lkT() = _intersectpartials(mani, getKernelLeaf(bel, 1), partial) |> typeof
+        tree_kernels  = Vector{_tkT()}(undef, length(bel.tree_kernels))
+        leaf_kernels  = Vector{_lkT()}(undef, length(bel.leaf_kernels))
+        tkm = (s->isassigned(bel.tree_kernels, s)).(1:length(bel.tree_kernels))
+        lkm = (s->isassigned(bel.leaf_kernels, s)).(1:length(bel.leaf_kernels))
+        tree_kernels_ = view(tree_kernels, tkm)
+        leaf_kernels_ = view(leaf_kernels, lkm)
+        tree_kernels_ .= (s->_intersectpartials(mani, s, partial, partl_cb)).(view(bel.tree_kernels, tkm))
+        leaf_kernels_ .= (s->_intersectpartials(mani, s, partial, partl_cb)).(view(bel.leaf_kernels, lkm))
+        # update belief to have correct partials
+        bel_ = HomotopyDensity{
+            _getprl(eltype(tree_kernels)),
+        }(;
+            manifold = getManifold(bel),
+            data = bel.data,
+            weights = bel.weights,
+            permute = bel.permute,
+            leaf_kernels,
+            tree_kernels,
+            infoPerCoord,
+            segments = bel.segments,
+        )
+
+        # call the constructor direct
+        return bel_
+    else
+        # full manifold, i.e. partial=nothing
+        return bel
+    end
+end
+
+
+
+"""
+    $SIGNATURES
+
+Notes:
+- Bandwidths for leaves (i.e. `kernel_bw`) must be passed in as covariances when `ConcentratedGaussianKernel`.
+
+DevNotes:
+- Design Decision 24Q1, Manellic.MvNormalKernel bandwidth defs should ALWAYS ONLY BE covariances, because
+  - Vision state is multiple bandwidth kernels including off diagonals in both tree or leaf kernels
+  - Hybrid parametric to leafs covariance continuity
+  - https://github.com/JuliaStats/Distributions.jl/blob/a9b0e3c99c8dda367f69b2dbbdfa4530c810e3d7/src/multivariate/mvnormal.jl#L220-L224
+"""
+function buildTree_Manellic!(
+    M::AbstractManifold,
+    r_PP::AbstractVector{P}; # vector of points referenced to the r_frame
+    N = length(r_PP),
+    weights::AbstractVector{<:Real} = ones(N) .* (1 / N),
+    kernel = ConcentratedGaussianKernel,
+    kernel_bw = nothing, # TODO
+    partial::Union{Nothing, <:Tuple, AbstractVector{<:Integer}} = nothing,
+    partl_cb::Union{Nothing, <:Function} = nothing,
+) where {P <: AbstractArray}
+    #
+    
+    D = manifold_dimension(M)
+    CV = SMatrix{D, D, Float64, D * D}(diagm(ones(D)))
+    prlcb = if isnothing(partl_cb) && !isnothing(partial)
+        M_, reprl, cb = getManifoldPartial(M, partial)
+        cb
+    else
+        partl_cb
+    end
+    tknlT = kernel(r_PP[1], CV; partial=_tuple(partial), partl_cb=prlcb) |> typeof
+
+    _legacybw(s::AbstractMatrix) = s
+    _legacybw(s::AbstractVector) = diagm(s)
+    _legacybw(::Nothing) = CV
+
+    lCV = _legacybw(kernel_bw)
+
+    lknlT = kernel(r_PP[1], lCV; partial = _tuple(partial), partl_cb=prlcb) |> typeof
+
+    # kernel scale
+
+    # leaf kernels
+    lkern = Vector{lknlT}(undef, N)
+    for i = 1:N
+        nkr = kernel(r_PP[i], lCV; partial = _tuple(partial), partl_cb=prlcb)
+        lkern[i] = nkr
+    end
+
+    _hode = HomotopyDensity{
+        _tuple(partial),
+    }(;
+        manifold = M,
+        data = r_PP,
+        weights,
+        leaf_kernels = lkern,                      # leaf_kernels
+        tree_kernels = Vector{tknlT}(undef, N),    # tree_kernels
+    );
+
+    #
+    tosort_leaves = buildTree_Manellic!(
+        _hode,
+        1, # start at root
+        1, # spanning all data
+        N; # to end of data
+        kernel,
+        kernel_bw,
+        partial = _tuple(partial),
+        partl_cb = prlcb,
+    )
+
+    # manual reset leaves in the order discovered
+    permute!(tosort_leaves.leaf_kernels, tosort_leaves.permute)
+
+    return tosort_leaves
+end
+
+
+
+
+# previously manikde!_manellic
+function manikde!(
+    M::AbstractManifold,
+    pts::AbstractVector;
+    bw = diagm(ones(manifold_dimension(M))),
+    algo = Optim.NelderMead(),
+    partial::Union{Nothing, <:Tuple, AbstractVector{<:Integer}} = nothing,
+    kw...
+)
+    #
+    M_, reprl, partl_cb = getManifoldPartial(M, partial, pts[1])
+
+    mtree = ApproxManifoldProducts.buildTree_Manellic!(
+        M,
+        pts;
+        kernel_bw = bw,
+        kernel = ConcentratedGaussianKernel,
+        partial = _tuple(partial),
+        partl_cb,
+    )
+
+    # mask bw for partially excluded dimensions -- assumed 1.0 from legacy but...
+    __partialCovToDefault!(s) = _partialCovToDefault!(_makevec(partial), s)
+
+    # Cost function to optimize
+    # avoid rebuilding tree at each optim iteration!!!
+    _cost(σ::Real) =           entropy(mtree,       [σ^2;;]                 )
+    _cost(σ::AbstractVector) = entropy(mtree, diagm(__partialCovToDefault!(σ .^ 2)))
+    _cost(σ::AbstractMatrix) = entropy(mtree,       __partialCovToDefault!(σ ^ 2)  )
+
+    _bw(v::AbstractVector) = __partialCovToDefault!(v)
+    _bw(m::AbstractMatrix) = _bw(diag(m))
+
+    # optimize for best LOOCV bandwidth
+    # FIXME switch to RLM (or other Manopt) techinque instead 
+    # set lower and upper bounds for Golden section optimization
+    best_cov = if 1 === manifold_dimension(M)
+        lcov, ucov = getBandwidthSearchBounds(mtree)
+        res =
+            Optim.optimize((s) -> _cost([s;]), lcov[1], ucov[1], Optim.GoldenSection())
+        [Optim.minimizer(res);;]
+    else
+        res = Optim.optimize(
+            _cost,
+            _bw(bw), # FIXME Optim API issue, if using bw::matrix then steps not PDMat (NelderMead) 
+            algo,
+        )
+        diagm(abs.(Optim.minimizer(res)))
+    end
+    __partialCovToDefault!(best_cov)
+
+    bel = updateBandwidths(mtree, best_cov; partl_cb)
+    # return tree with correct bandwidth
+    return bel
+end
+
+
+
+## ==========================================================================================
+## a few utilities
+## ==========================================================================================
 
 """
     $SIGNATURES
@@ -283,182 +477,7 @@ function getManifold(x::HomotopyDensity, aspartial::Bool = false)
     end
 end
 
-getPartial(::HomotopyDensity{partial}) where {partial} = partial
 
-
-
-function HomotopyDensity(
-    bel::HomotopyDensity,
-    partial_::L;
-    infoPerCoord::AbstractVector{<:Real} = bel.infoPerCoord,
-) where {L <: Union{<:AbstractVector{<:Integer}, <:Tuple}}
-    #
-    partial = _tuple(partial_)
-    mani = getManifold(bel)
-    partl = _intersect(getPartial(bel), partial)
-    M_, reprl, partl_cb = getManifoldPartial(
-        mani, 
-        partl, 
-        bel.data[1],
-    )
-    if length(partl) != manifold_dimension(mani)
-        # assuming there are tree and leaf nodes at [1]...
-        _tkT() = _intersectpartials(mani, getKernelTree(bel, 1), partial) |> typeof
-        _lkT() = _intersectpartials(mani, getKernelLeaf(bel, 1), partial) |> typeof
-        tree_kernels  = Vector{_tkT()}(undef, length(bel.tree_kernels))
-        leaf_kernels  = Vector{_lkT()}(undef, length(bel.leaf_kernels))
-        tkm = (s->isassigned(bel.tree_kernels, s)).(1:length(bel.tree_kernels))
-        lkm = (s->isassigned(bel.leaf_kernels, s)).(1:length(bel.leaf_kernels))
-        tree_kernels_ = view(tree_kernels, tkm)
-        leaf_kernels_ = view(leaf_kernels, lkm)
-        tree_kernels_ .= (s->_intersectpartials(mani, s, partial, partl_cb)).(view(bel.tree_kernels, tkm))
-        leaf_kernels_ .= (s->_intersectpartials(mani, s, partial, partl_cb)).(view(bel.leaf_kernels, lkm))
-        # update belief to have correct partials
-        bel_ = HomotopyDensity{
-            _getprl(eltype(tree_kernels)),
-        }(;
-            manifold = getManifold(bel),
-            data = bel.data,
-            weights = bel.weights,
-            permute = bel.permute,
-            leaf_kernels,
-            tree_kernels,
-            infoPerCoord,
-            segments = bel.segments,
-        )
-
-        # call the constructor direct
-        return bel_
-    else
-        # full manifold, i.e. partial=nothing
-        return bel
-    end
-end
-
-
-
-# override
-marginal(
-    hode::HomotopyDensity,
-    partl::AbstractVector{<:Integer},
-) = HomotopyDensity(hode, partl)
-
-
-
-# previously manikde!_manellic
-function manikde!(
-    M::AbstractManifold,
-    pts::AbstractVector;
-    bw = diagm(ones(manifold_dimension(M))),
-    algo = Optim.NelderMead(),
-    partial::Union{Nothing, <:Tuple, AbstractVector{<:Integer}} = nothing,
-    kw...
-)
-    #
-    M_, reprl, partl_cb = getManifoldPartial(M, partial, pts[1])
-
-    mtree = ApproxManifoldProducts.buildTree_Manellic!(
-        M,
-        pts;
-        kernel_bw = bw,
-        kernel = ConcentratedGaussianKernel,
-        partial = _tuple(partial),
-        partl_cb,
-    )
-
-    # mask bw for partially excluded dimensions -- assumed 1.0 from legacy but...
-    __partialCovToDefault!(s) = _partialCovToDefault!(_makevec(partial), s)
-
-    # Cost function to optimize
-    # avoid rebuilding tree at each optim iteration!!!
-    _cost(σ::Real) =           entropy(mtree,       [σ^2;;]                 )
-    _cost(σ::AbstractVector) = entropy(mtree, diagm(__partialCovToDefault!(σ .^ 2)))
-    _cost(σ::AbstractMatrix) = entropy(mtree,       __partialCovToDefault!(σ ^ 2)  )
-
-    _bw(v::AbstractVector) = __partialCovToDefault!(v)
-    _bw(m::AbstractMatrix) = _bw(diag(m))
-
-    # optimize for best LOOCV bandwidth
-    # FIXME switch to RLM (or other Manopt) techinque instead 
-    # set lower and upper bounds for Golden section optimization
-    best_cov = if 1 === manifold_dimension(M)
-        lcov, ucov = getBandwidthSearchBounds(mtree)
-        res =
-            Optim.optimize((s) -> _cost([s;]), lcov[1], ucov[1], Optim.GoldenSection())
-        [Optim.minimizer(res);;]
-    else
-        res = Optim.optimize(
-            _cost,
-            _bw(bw), # FIXME Optim API issue, if using bw::matrix then steps not PDMat (NelderMead) 
-            algo,
-        )
-        diagm(abs.(Optim.minimizer(res)))
-    end
-    __partialCovToDefault!(best_cov)
-
-    bel = updateBandwidths(mtree, best_cov; partl_cb)
-    # return tree with correct bandwidth
-    return bel
-end
-
-
-
-## ==========================================================================================
-## a few utilities
-## ==========================================================================================
-
-
-
-# partial (i.e. active) coordinate dimensions are left unchanged, while inactive 
-# dimensions are set to default values (1.0 for variances, 0.0 for covariances)
-_partialCovToDefault!(::Nothing, s) = s
-function _partialCovToDefault!(p::Union{<:Tuple, <:AbstractVector{<:Integer}}, v::AbstractVector)
-    mask = ones(Int, length(v)) .== 1
-    mask[p] .= false
-    v[mask] .= 1.0
-    return v
-end
-function _partialCovToDefault!(p::Union{<:Tuple, <:AbstractVector{<:Integer}}, m::AbstractMatrix)
-    for i in axes(m, 1)
-        for j in axes(m, 2)
-            if !(i in p) || !(j in p)
-                # default values for inactive elements of covariance matrix
-                m[i,j] = i == j ? Inf : 0.0
-            end
-            # else leave row and column unchanged
-        end
-    end
-    return m
-end
-
-
-function _getFieldPartials(
-    mkd::HomotopyDensity{partial},
-    field::Function,
-    aspartial::Bool = true,
-) where {partial}
-    if isnothing(partial)
-        return field(mkd)
-    end
-    _length(x::AbstractMatrix) = length(diag(x))
-    _length(x::AbstractVector) = length(x)
-    val = field(mkd)
-    if aspartial && (_length(val) == length(getPartial(mkd)))
-        return val
-    elseif !aspartial && (_length(val) == length(getPartial(mkd)))
-        val_ = zeros(manifold_dimension(getManifold(mkd)))
-        val_[getPartial(mkd)] .= val
-        return val_
-    elseif aspartial && (_length(val) == manifold_dimension(getManifold(mkd)))
-        return val[_makevec(getPartial(mkd))]
-    elseif !aspartial && (_length(val) == manifold_dimension(getManifold(mkd)))
-        return val
-    else
-        error(
-            "unknown size MKD.$(field) with partial length=$(length(getPartial(mkd))) vs length=$(_length(val)) --- and value=$val",
-        )
-    end
-end
 
 function getInfoPerCoord(mkd::HomotopyDensity, aspartial::Bool = true)
     return _getFieldPartials(mkd, x -> x.infoPerCoord, aspartial)
@@ -467,14 +486,6 @@ end
 function getBandwidth(mkd::HomotopyDensity, aspartial::Bool = true)
     return _getFieldPartials(mkd, x -> getBW(x)[1], aspartial)
 end
-
-
-"""
-    $SIGNATURES
-
-Return true if this HomotopyDensity is a partial.
-"""
-isPartial(::HomotopyDensity{partl}) where partl = !isnothing(partl)
 
 
 # TODO check that partials / marginals are sampled correctly
@@ -515,51 +526,6 @@ function resample(x::HomotopyDensity, N::Int)
         infoPerCoord = x.infoPerCoord,
     )
 end
-
-
-
-
-"""
-    $SIGNATURES
-
-If a marginal (statistics) of a probability reduce the dimensions (i.e. casts a shadow, or projects); then an 
-antimarginal aims to increase dimension of the probability within reason.
-
-Notes
-- Marginalization is a integration of for higher dimension to lower dimension, so antimarginal likely involve 
-  differentiation (anti-integral) instead.
-- In manifold language, this is an embedding into a higher dimensional space.
-- See structure from motion in machine vision, or stereo disparity for building depth clouds from 2D images.
-- Imagine combining three different partial embedding A=[1, nan, nan, 1.4], B=[nan,2.1,nan,4], C=[nan, nan, 3, nan]
-  which should equal A+B+C = [notnan, notnan, notnan, notnan]
-"""
-function antimarginal(
-    newM::AbstractManifold,
-    u0,
-    mkd::HomotopyDensity,
-    newpartial::AbstractVector{<:Integer},
-)
-    #
-
-    # convert to antimarginal by copying user provided example point for bigger manifold
-    pts = getPoints(mkd, false)
-    # new coord partials must be placed into a full dimension point, thats why we use u0
-    nPts = Vector{typeof(u0)}(undef, length(pts))
-    for i in eachindex(pts)
-        setPointPartial!(newM, nPts, getManifold(mkd), pts, newpartial, i)
-    end
-
-    # also update metadata elements
-    finalpartial =
-        !isPartial(mkd) ? newpartial : error("not built yet, to shift incoming partial")
-    bw = zeros(manifold_dimension(newM))
-    bw[finalpartial] .= getBW(mkd)[:, 1]
-    ipc = zeros(manifold_dimension(newM))
-    ipc[finalpartial] .= getInfoPerCoord(mkd, true)
-
-    return manikde!(newM, nPts, u0; bw, partial = finalpartial, infoPerCoord = ipc)
-end
-
 
 
 function updateBandwidths(
@@ -750,6 +716,107 @@ function entropy(hode::HomotopyDensity, force_kbw = nothing)
 end
 
 (hode::HomotopyDensity)(evalpt::AbstractArray) = evaluate(hode, evalpt)
+
+
+
+"""
+    $SIGNATURES
+
+If a marginal (statistics) of a probability reduce the dimensions (i.e. casts a shadow, or projects); then an 
+antimarginal aims to increase dimension of the probability within reason.
+
+Notes
+- Marginalization is a integration of for higher dimension to lower dimension, so antimarginal likely involve 
+  differentiation (anti-integral) instead.
+- In manifold language, this is an embedding into a higher dimensional space.
+- See structure from motion in machine vision, or stereo disparity for building depth clouds from 2D images.
+- Imagine combining three different partial embedding A=[1, nan, nan, 1.4], B=[nan,2.1,nan,4], C=[nan, nan, 3, nan]
+  which should equal A+B+C = [notnan, notnan, notnan, notnan]
+"""
+function antimarginal(
+    newM::AbstractManifold,
+    u0,
+    mkd::HomotopyDensity,
+    newpartial::AbstractVector{<:Integer},
+)
+    #
+
+    # convert to antimarginal by copying user provided example point for bigger manifold
+    pts = getPoints(mkd, false)
+    # new coord partials must be placed into a full dimension point, thats why we use u0
+    nPts = Vector{typeof(u0)}(undef, length(pts))
+    for i in eachindex(pts)
+        setPointPartial!(newM, nPts, getManifold(mkd), pts, newpartial, i)
+    end
+
+    # also update metadata elements
+    finalpartial =
+        !isPartial(mkd) ? newpartial : error("not built yet, to shift incoming partial")
+    bw = zeros(manifold_dimension(newM))
+    bw[finalpartial] .= getBW(mkd)[:, 1]
+    ipc = zeros(manifold_dimension(newM))
+    ipc[finalpartial] .= getInfoPerCoord(mkd, true)
+
+    return manikde!(newM, nPts, u0; bw, partial = finalpartial, infoPerCoord = ipc)
+end
+
+
+
+## ========================================================================
+## Marginalization and partials
+## ======================================================================== 
+
+
+# override
+marginal(
+    hode::HomotopyDensity,
+    partl::AbstractVector{<:Integer},
+) = HomotopyDensity(hode, partl)
+
+
+getPartial(::HomotopyDensity{partial}) where {partial} = partial
+
+
+
+function _getFieldPartials(
+    mkd::HomotopyDensity{partial},
+    field::Function,
+    aspartial::Bool = true,
+) where {partial}
+    if isnothing(partial)
+        return field(mkd)
+    end
+    _length(x::AbstractMatrix) = length(diag(x))
+    _length(x::AbstractVector) = length(x)
+    val = field(mkd)
+    if aspartial && (_length(val) == length(getPartial(mkd)))
+        return val
+    elseif !aspartial && (_length(val) == length(getPartial(mkd)))
+        val_ = zeros(manifold_dimension(getManifold(mkd)))
+        val_[getPartial(mkd)] .= val
+        return val_
+    elseif aspartial && (_length(val) == manifold_dimension(getManifold(mkd)))
+        return val[_makevec(getPartial(mkd))]
+    elseif !aspartial && (_length(val) == manifold_dimension(getManifold(mkd)))
+        return val
+    else
+        error(
+            "unknown size MKD.$(field) with partial length=$(length(getPartial(mkd))) vs length=$(_length(val)) --- and value=$val",
+        )
+    end
+end
+
+
+"""
+    $SIGNATURES
+
+Return true if this HomotopyDensity is a partial.
+"""
+isPartial(::HomotopyDensity{partl}) where partl = !isnothing(partl)
+
+
+
+
 
 
 #

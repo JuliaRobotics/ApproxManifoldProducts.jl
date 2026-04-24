@@ -260,6 +260,7 @@ end
 
     sl = Vector{Vector{Int}}()
 
+    @warn "suspect numerical cov hard because product between highly disjoint densities reduce fewer unique product labels"
     P_ = manifoldProduct(
         [P1; P3];
         selectedLabels = sl,

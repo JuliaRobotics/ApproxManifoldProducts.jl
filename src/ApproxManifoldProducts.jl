@@ -47,9 +47,10 @@ include("entities/KernelEval.jl")
 include("entities/HomotopyDensity.jl")
 
 include("services/ManifoldsOverloads.jl")
-include("CommonUtils.jl")
 include("services/EigenSortUtils.jl")
 include("services/HomotopyTreeUtils.jl")
+include("services/BuildHomotopyTree.jl")
+include("services/GaussianProductUtils.jl")
 include("services/HomotopyBeliefPropagation.jl")
 
 # AMP types and some legacy support 
