@@ -44,12 +44,12 @@ include("ExportAPI.jl")
 include("_BiMaps.jl")
 
 include("entities/KernelEval.jl")
-include("entities/ManifoldKernelDensity.jl")
+include("entities/HomotopyDensity.jl")
 
 include("services/ManifoldsOverloads.jl")
 include("CommonUtils.jl")
 include("services/EigenSortUtils.jl")
-include("services/ManellicTree.jl")
+include("services/HomotopyTreeUtils.jl")
 include("services/HomotopyBeliefPropagation.jl")
 
 # AMP types and some legacy support 
@@ -59,7 +59,7 @@ include("Interface.jl")
 
 # regular features
 include("services/KernelEval.jl")
-include("services/ManifoldKernelDensity.jl")
+include("services/HomotopyDensity.jl")
 include("KernelHilbertEmbeddings.jl")
 
 include("TrackingLabels.jl")
