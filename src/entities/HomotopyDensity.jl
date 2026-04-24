@@ -34,12 +34,6 @@ Minor eigenvectors are sometimes called "trailing eigenvectors," or "residual mo
     segments::Vector{Set{Int}} = Vector{Set{Int}}(undef, length(data))
     infoPerCoord::Vector{Float64} = zeros(manifold_dimension(manifold))
     # _unibw::U
-
-    # workaround to overcome bug for StaticArrays `isdefined() != false` issue || 
-    #  use isassigned(), but recall same issue remains
-    #  also will be influenced by serialization design, see #315
-    _workaround_isdef_leafkernel::Set{Int} = Set{Int}()
-    _workaround_isdef_treekernel::Set{Int} = Set{Int}()
 end
 
 HomotopyDensity{
@@ -74,8 +68,6 @@ function HomotopyDensity{
     permute = hode.permute,
     segments = hode.segments,
     infoPerCoord = hode.infoPerCoord,
-    _workaround_isdef_leafkernel = hode._workaround_isdef_leafkernel,
-    _workaround_isdef_treekernel = hode._workaround_isdef_treekernel
   )
 end
 

@@ -41,7 +41,390 @@ function testEigenCoords!(r_C = pi / 3, ax_CC = [SA[5 * randn(); randn()] for _ 
     return r_CC, r_R_ax_, pidx, r_CV
 end
 
+
+function testMDEConstr(
+    pts::AbstractVector{<:AbstractVector{<:Real}},
+    permref = sortperm(pts; by = s -> getindex(s, 1));
+    lseg = 1:2,
+    rseg = 3:4,
+    atol = 1e-6,
+)
+    # check permutation
+    M = LieGroups.TranslationGroup(1)
+    bw = [1.0]
+
+    mtree = ApproxManifoldProducts.buildTree_Manellic!(
+        M,
+        pts;
+        kernel_bw = bw,
+        kernel = ConcentratedGaussianKernel,
+    )
+    @test permref == mtree.permute
+    @test isapprox(mean(M, pts), mean(mtree.tree_kernels[1]); atol = 1e-10)
+    @test Set(mtree.segments[1]) == Set(union(lseg, rseg))
+    @test Set(mtree.segments[2]) == Set(mtree.permute[lseg])
+    @test Set(mtree.segments[3]) == Set(mtree.permute[rseg])
+    @test isapprox(mean(M, pts[mtree.permute[lseg]]), mean(mtree.tree_kernels[2]); atol)
+    @test isapprox(mean(M, pts[mtree.permute[rseg]]), mean(mtree.tree_kernels[3]); atol)
+    return nothing
+end
+
+
+
+## ===================================================================
+
+
+@testset "HomotopyDensity 1D unbalanced tree construction, left" begin
+## 
+
+    M = LieGroups.TranslationGroup(1)
+    # design mean at 0.0
+    pts = [
+        [-2.0],
+        [-1.0],
+        [3.0],
+    ]
+    
+    bw = [0.5;]
+    #
+    #
+    #               {1}1:3
+    #              /      \
+    #         {2}1:2      (3)3
+    #          /   \      /   \
+    #       (4)1  (5)2   *     *
+    #
+    hode = ApproxManifoldProducts.buildTree_Manellic!(
+        M,
+        pts;
+        kernel_bw = bw,
+        kernel = ConcentratedGaussianKernel,
+    )
+
 ##
+
+    @test 1 == Ndim(hode)
+    @test 3 == Npts(hode)
+
+    @test hode.permute == [1;2;3]
+    @test hode.segments[1] == Set(1:3)
+    @test hode.segments[2] == Set(1:2)
+    @test !isassigned(hode.segments, 3) # no third segment because right child is leaf
+
+    @test isassigned(hode.tree_kernels, 1)
+    @test isassigned(hode.tree_kernels, 2)
+    @test !isassigned(hode.tree_kernels, 3)
+
+    @test isassigned(hode.leaf_kernels, 1)
+    @test isassigned(hode.leaf_kernels, 2)
+    @test isassigned(hode.leaf_kernels, 3)
+
+    @test !ApproxManifoldProducts.isLeaf_BTLabel(hode, 1)
+    @test !ApproxManifoldProducts.isLeaf_BTLabel(hode, 2)
+    @test ApproxManifoldProducts.isLeaf_BTLabel(hode, 3)
+
+    @test ApproxManifoldProducts.isLeaf_BTLabel(hode, 4)
+    @test ApproxManifoldProducts.isLeaf_BTLabel(hode, 5)
+    @test ApproxManifoldProducts.isLeaf_BTLabel(hode, 6) # there for binary tree defaults, although undef
+    @test ApproxManifoldProducts.isLeaf_BTLabel(hode, 7) # there for binary tree defaults, although undef
+
+    @test ApproxManifoldProducts.exists_BTLabel(hode, 1)
+    @test ApproxManifoldProducts.exists_BTLabel(hode, 2)
+    @test ApproxManifoldProducts.exists_BTLabel(hode, 3)
+    @test ApproxManifoldProducts.exists_BTLabel(hode, 4)
+    @test ApproxManifoldProducts.exists_BTLabel(hode, 5)
+    @test !ApproxManifoldProducts.exists_BTLabel(hode, 6)
+    @test !ApproxManifoldProducts.exists_BTLabel(hode, 7)
+
+
+##
+end
+
+
+@testset "HomotopyDensity 1D unbalanced tree construction, right" begin
+## 
+
+    M = LieGroups.TranslationGroup(1)
+    # design mean at 0.0
+    pts = [
+        [1.0],
+        [2.0],
+        [-3.0],
+    ]
+    
+    bw = [0.5;]
+    #
+    #
+    #               {1}1:3
+    #              /      \
+    #          (2)3      {3}1:2
+    #          /   \     /     \
+    #         *     *  (6)1    (7)2
+    #
+    hode = ApproxManifoldProducts.buildTree_Manellic!(
+        M,
+        pts;
+        kernel_bw = bw,
+        kernel = ConcentratedGaussianKernel,
+    )
+
+##
+    @error "WORK IN PROGRESS"
+    # @test 1 == Ndim(hode)
+    # @test 3 == Npts(hode)
+
+    # @test hode.permute == [3;1;2]
+    # @test hode.segments[1] == Set(1:3)
+    # @test !isassigned(hode.segments, 2) # no second segment because left child is leaf
+    # @test hode.segments[3] == Set(1:2) # TBD these are dataidx not permuted dataidx
+
+    # @test isassigned(hode.tree_kernels, 1)
+    # @test isassigned(hode.tree_kernels, 2)
+    # @test !isassigned(hode.tree_kernels, 3)
+
+    # @test isassigned(hode.leaf_kernels, 1)
+    # @test isassigned(hode.leaf_kernels, 2)
+    # @test isassigned(hode.leaf_kernels, 3)
+
+    # @test !ApproxManifoldProducts.isLeaf_BTLabel(hode, 1)
+    # @test !ApproxManifoldProducts.isLeaf_BTLabel(hode, 2)
+    # @test ApproxManifoldProducts.isLeaf_BTLabel(hode, 3)
+
+    # @test ApproxManifoldProducts.isLeaf_BTLabel(hode, 4) # undef but there for binary tree defaults
+    # @test ApproxManifoldProducts.isLeaf_BTLabel(hode, 5) # undef but there for binary tree defaults
+    # @test ApproxManifoldProducts.isLeaf_BTLabel(hode, 6)
+    # @test ApproxManifoldProducts.isLeaf_BTLabel(hode, 7)
+
+    # @test ApproxManifoldProducts.exists_BTLabel(hode, 1)
+    # @test ApproxManifoldProducts.exists_BTLabel(hode, 2)
+    # @test ApproxManifoldProducts.exists_BTLabel(hode, 3)
+    # @test ApproxManifoldProducts.exists_BTLabel(hode, 4)
+    # @test ApproxManifoldProducts.exists_BTLabel(hode, 5)
+    # @test !ApproxManifoldProducts.exists_BTLabel(hode, 6)
+    # @test !ApproxManifoldProducts.exists_BTLabel(hode, 7)
+
+##
+end
+
+
+@testset "HomotopyDensity 1D basic sorting of points with shuffle" begin
+## 
+
+    M = LieGroups.TranslationGroup(1)
+    # pts = [randn(1) for _ = 1:5]
+    pts = [
+        [0.07322299439163212],
+        [2.065271709556179],
+        [-0.21699662409315343],
+        [0.3625358873858872],
+        [-0.7988970559113724],
+    ]
+
+    refperm = sortperm(pts)
+    
+    bw = [0.1;]
+    #
+    #
+    #               {1}1:5
+    #              /      \
+    #          (2)135     {3}24
+    #          /   \     /     \
+    #         *     *  (6)1    (7)2
+    #
+    hode = ApproxManifoldProducts.buildTree_Manellic!(
+        M,
+        pts;
+        kernel_bw = bw,
+        kernel = ConcentratedGaussianKernel,
+    )
+
+    shf = shuffle(1:length(pts))
+    hode_ = ApproxManifoldProducts.buildTree_Manellic!(
+        M,
+        pts[shf];
+        kernel_bw = bw,
+        kernel = ConcentratedGaussianKernel,
+    )
+
+##
+
+    @test 5 == Npts(hode)
+    
+    @test all(refperm .== hode.permute)
+    @test all(refperm .== shf[hode_.permute])
+    @test all(hode.permute .== shf[hode_.permute])
+
+    @test hode.segments[1] == Set(1:5)
+    @test hode.segments[2] == Set([1,3,5])
+    @test hode.segments[3] == Set([2,4])
+    
+
+
+##
+
+
+    @error "expand sorting test to trivial TranslateGroup(2) with pts = [[*; 0], ...] producing same mtree.permute"
+    @error "expand sorting test to trivial TranslateGroup(2) with pts = [[0; *], ...] producing same mtree.permute"
+
+##
+end
+
+
+@testset "HomotopyDensity construction 1D" begin
+##
+
+    M = LieGroups.TranslationGroup(1)
+    # already sorted list
+    pts = [[1.0], [2.0], [4.0], [7.0], [11.0], [16.0], [22.0]]
+    bw = [1.0]
+    N = length(pts)
+    
+    # preemptively check splitPoints 
+    begin
+        
+        @test isapprox([9.0;], Statistics.mean(pts))
+        
+        ax_CCp, mask, knl = ApproxManifoldProducts.splitPointsEigen(
+            M,
+            pts,
+            1/7*ones(length(pts));
+            kernel = ConcentratedGaussianKernel,
+            kernel_bw = bw,
+        )
+
+        @test mask[1:4] == BitVector([0,0,0,0])
+        @test mask[5:7] == BitVector([1,1,1])
+    end
+
+    #
+    #               {1}1:7
+    #              /      \
+    #        {2}1:4        {3}5:7
+    #        /    \         /    \
+    #    {4}1:2  {5}3:4  {6}5:6   (7)7
+    #    /  \    /  \     /  \     /  \
+    #   (8)(9) (10)(11) (12)(13)  *    *
+    #    1  2    3  4     5  6
+    #
+    mtree = ApproxManifoldProducts.buildTree_Manellic!(
+        M,
+        pts;
+        kernel_bw = bw,
+        kernel = ConcentratedGaussianKernel,
+    )
+
+##
+    @test mtree.permute == [1;2;3;4;5;6;7]
+
+    @test 7 == length(intersect(mtree.segments[1], Set(1:7))) # root is parent to all
+    @test 4 == length(intersect(mtree.segments[2], Set(1:4))) # first left is parent to 1:4
+    @test 3 == length(intersect(mtree.segments[3], Set(5:7))) # first right is parent to 5:7
+    @test 2 == length(intersect(mtree.segments[4], Set(1:2))) # second left is parent to 1:2
+    @test 2 == length(intersect(mtree.segments[5], Set(3:4))) # second right is parent to 3:4
+    @test 2 == length(intersect(mtree.segments[6], Set(5:6))) # third left is parent to 5:6
+    @test !isassigned(mtree.segments, 7)                      # third right is unused
+    
+    @test isapprox(mean(M, pts),      mean(mtree.tree_kernels[1]); atol = 1e-6)
+    @test isapprox(mean(M, pts[1:4]), mean(mtree.tree_kernels[2]); atol = 1e-6)
+    @test isapprox(mean(M, pts[5:7]), mean(mtree.tree_kernels[3]); atol = 1e-6)
+    @test isapprox(mean(M, pts[1:2]), mean(mtree.tree_kernels[4]); atol = 1e-6)
+    @test isapprox(mean(M, pts[3:4]), mean(mtree.tree_kernels[5]); atol = 1e-6)
+    @test isapprox(mean(M, pts[5:6]), mean(mtree.tree_kernels[6]); atol = 1e-6)
+
+    @test !ApproxManifoldProducts.isLeaf_BTLabel(mtree, 1)
+    @test !ApproxManifoldProducts.isLeaf_BTLabel(mtree, 2)
+    @test !ApproxManifoldProducts.isLeaf_BTLabel(mtree, 3)
+    @test !ApproxManifoldProducts.isLeaf_BTLabel(mtree, 4)
+    @test !ApproxManifoldProducts.isLeaf_BTLabel(mtree, 5)
+    @test !ApproxManifoldProducts.isLeaf_BTLabel(mtree, 6)
+    @test ApproxManifoldProducts.isLeaf_BTLabel(mtree, 7)
+    @test ApproxManifoldProducts.isLeaf_BTLabel(mtree, 8)
+    @test ApproxManifoldProducts.isLeaf_BTLabel(mtree, 9)
+    @test ApproxManifoldProducts.isLeaf_BTLabel(mtree, 10)
+    @test ApproxManifoldProducts.isLeaf_BTLabel(mtree, 11)
+    @test ApproxManifoldProducts.isLeaf_BTLabel(mtree, 12)
+    @test ApproxManifoldProducts.isLeaf_BTLabel(mtree, 13)
+    @test ApproxManifoldProducts.isLeaf_BTLabel(mtree, 14)
+
+    # check leaf nodes
+    @test [1.0;] ≈ mean(ApproxManifoldProducts.getKernelTree(mtree, 8))
+    @test [2.0;] ≈ mean(ApproxManifoldProducts.getKernelTree(mtree, 9))
+    @test [4.0;] ≈ mean(ApproxManifoldProducts.getKernelTree(mtree, 10))
+    @test [7.0;] ≈ mean(ApproxManifoldProducts.getKernelTree(mtree, 11))
+    @test [11.0;] ≈ mean(ApproxManifoldProducts.getKernelTree(mtree, 12))
+    @test [16.0;] ≈ mean(ApproxManifoldProducts.getKernelTree(mtree, 13))
+    @test [22.0;] ≈ mean(ApproxManifoldProducts.getKernelTree(mtree, 14))
+    # 7 is 14
+    @test [22.0;] ≈ mean(ApproxManifoldProducts.getKernelTree(mtree, 7))
+    
+##
+
+    @test ApproxManifoldProducts.exists_BTLabel(mtree, floor(Int, N / 2))
+    @test ApproxManifoldProducts.exists_BTLabel(
+        mtree,
+        ApproxManifoldProducts.leftIndex(mtree, floor(Int, N / 2)),
+    )
+    @test !ApproxManifoldProducts.exists_BTLabel(mtree, 2 * N + 1)
+
+
+## test sorting of labels is consistent by rebuilding a shuffled belief
+    mtree_ = manikde!(M, shuffle(pts); bw)
+
+    @test all(s->s[1] ≈ s[2], zip(getPoints(mtree), getPoints(mtree_)) )
+
+## for 4 values
+
+    # manual orders
+    testMDEConstr([[0.0;], [1.0], [3.0;], [6.0;]])
+    testMDEConstr([[0.0;], [1.0], [6.0;], [3.0;]])
+    testMDEConstr([[0.0;], [3.0], [1.0;], [6.0;]])
+    testMDEConstr([[1.0;], [0.0], [3.0;], [6.0;]])
+    testMDEConstr([[1.0;], [0.0], [6.0;], [3.0;]])
+    testMDEConstr([[1.0;], [6.0], [0.0;], [3.0;]])
+    testMDEConstr([[6.0;], [1.0], [3.0;], [0.0;]])
+
+    testMDEConstr([
+        [0.9497270480266986;],
+        [-0.5973125859935883;],
+        [-0.6031001429225558;],
+        [-0.3971695179687664;],
+    ])
+
+    # randomized orders for 4 values
+    pts = [[0.0;], [1.0], [3.0;], [6.0;]]
+    for i = 1:10
+        testMDEConstr(pts[shuffle(1:4)])
+    end
+
+## for 5 values
+
+    testMDEConstr([[0.0;], [1.0], [3.0;], [6.0;], [10.0;]]; lseg = 1:3, rseg = 4:5)
+    testMDEConstr([[0.0;], [1.0], [6.0;], [3.0;], [10.0;]]; lseg = 1:3, rseg = 4:5)
+
+    # randomized orders for 5 values
+    pts = [[0.0;], [1.0], [3.0;], [6.0;], [10.0;]]
+    for i = 1:10
+        testMDEConstr(pts[shuffle(1:length(pts))]; lseg = 1:3, rseg = 4:5)
+    end
+
+## for 7 values
+
+    # randomized orders for 7 values
+    pts = [[0.0;], [1.0], [3.0;], [6.0;], [10.0;], [15.0;], [21.0;]]
+    for i = 1:10
+        testMDEConstr(pts[shuffle(1:length(pts))]; lseg = 1:4, rseg = 5:7)
+    end
+
+    #
+    M = LieGroups.TranslationGroup(1)
+    pts = [randn(1) for _ = 1:8]
+    for i = 1:10
+        _pts = pts[shuffle(1:length(pts))]
+        testMDEConstr(_pts; lseg = 1:4, rseg = 5:8)
+    end
+
+##
+end
 
 @testset "test Manellic tree utilities w skeleton object" begin
 ##
@@ -189,233 +572,6 @@ end
 
 ##
 end
-
-
-@testset "HomotopyDensity construction 1D" begin
-##
-
-    M = LieGroups.TranslationGroup(1)
-    # already sorted list
-    pts = [[1.0], [2.0], [4.0], [7.0], [11.0], [16.0], [22.0]]
-    bw = [1.0]
-    N = length(pts)
-    
-    # preemptively check splitPoints 
-    begin
-        
-        @test isapprox([9.0;], Statistics.mean(pts))
-        
-        ax_CCp, mask, knl = ApproxManifoldProducts.splitPointsEigen(
-            M,
-            pts,
-            1/7*ones(length(pts));
-            kernel = ConcentratedGaussianKernel,
-            kernel_bw = bw,
-        )
-
-        @test mask[1:4] == BitVector([0,0,0,0])
-        @test mask[5:7] == BitVector([1,1,1])
-    end
-
-    #
-    #               {1}1:7
-    #              /      \
-    #         {2}1:4       {3}5:7
-    #          /   \       /     \
-    #    {4}1:2  {5}3:4  {6}5:6   (7)7
-    #    /  \    /  \     /  \     /  \
-    #   (8)(9) (10)(11) (12)(13)  *    *
-    #    1  2    3  4     5  6
-    #
-    mtree = ApproxManifoldProducts.buildTree_Manellic!(
-        M,
-        pts;
-        kernel_bw = bw,
-        kernel = ConcentratedGaussianKernel,
-    )
-
-    @test 7 == length(intersect(mtree.segments[1], Set(1:7))) # root is parent to all
-    @test 4 == length(intersect(mtree.segments[2], Set(1:4))) # first left is parent to 1:4
-    @test 3 == length(intersect(mtree.segments[3], Set(5:7))) # first right is parent to 5:7
-    @test 2 == length(intersect(mtree.segments[4], Set(1:2))) # second left is parent to 1:2
-    @test 2 == length(intersect(mtree.segments[5], Set(3:4))) # second right is parent to 3:4
-    @test 2 == length(intersect(mtree.segments[6], Set(5:6))) # third left is parent to 5:6
-    @test !isassigned(mtree.segments, 7)                      # third right is unused
-    
-    @test isapprox(mean(M, pts),      mean(mtree.tree_kernels[1]); atol = 1e-6)
-    @test isapprox(mean(M, pts[1:4]), mean(mtree.tree_kernels[2]); atol = 1e-6)
-    @test isapprox(mean(M, pts[5:7]), mean(mtree.tree_kernels[3]); atol = 1e-6)
-    @test isapprox(mean(M, pts[1:2]), mean(mtree.tree_kernels[4]); atol = 1e-6)
-    @test isapprox(mean(M, pts[3:4]), mean(mtree.tree_kernels[5]); atol = 1e-6)
-    @test isapprox(mean(M, pts[5:6]), mean(mtree.tree_kernels[6]); atol = 1e-6)
-
-    @test !ApproxManifoldProducts.isLeaf_BTLabel(mtree, 1)
-    @test !ApproxManifoldProducts.isLeaf_BTLabel(mtree, 2)
-    @test !ApproxManifoldProducts.isLeaf_BTLabel(mtree, 3)
-    @test !ApproxManifoldProducts.isLeaf_BTLabel(mtree, 4)
-    @test !ApproxManifoldProducts.isLeaf_BTLabel(mtree, 5)
-    @test !ApproxManifoldProducts.isLeaf_BTLabel(mtree, 6)
-    @test ApproxManifoldProducts.isLeaf_BTLabel(mtree, 7)
-    @test ApproxManifoldProducts.isLeaf_BTLabel(mtree, 8)
-    @test ApproxManifoldProducts.isLeaf_BTLabel(mtree, 9)
-    @test ApproxManifoldProducts.isLeaf_BTLabel(mtree, 10)
-    @test ApproxManifoldProducts.isLeaf_BTLabel(mtree, 11)
-    @test ApproxManifoldProducts.isLeaf_BTLabel(mtree, 12)
-    @test ApproxManifoldProducts.isLeaf_BTLabel(mtree, 13)
-    @test ApproxManifoldProducts.isLeaf_BTLabel(mtree, 14)
-
-    # check leaf nodes
-    @test [1.0;] ≈ mean(ApproxManifoldProducts.getKernelTree(mtree, 8))
-    @test [2.0;] ≈ mean(ApproxManifoldProducts.getKernelTree(mtree, 9))
-    @test [4.0;] ≈ mean(ApproxManifoldProducts.getKernelTree(mtree, 10))
-    @test [7.0;] ≈ mean(ApproxManifoldProducts.getKernelTree(mtree, 11))
-    @test [11.0;] ≈ mean(ApproxManifoldProducts.getKernelTree(mtree, 12))
-    @test [16.0;] ≈ mean(ApproxManifoldProducts.getKernelTree(mtree, 13))
-    @test [22.0;] ≈ mean(ApproxManifoldProducts.getKernelTree(mtree, 14))
-    # 7 is 14
-    @test [22.0;] ≈ mean(ApproxManifoldProducts.getKernelTree(mtree, 7))
-    
-##
-
-    @test ApproxManifoldProducts.exists_BTLabel(mtree, floor(Int, N / 2))
-    @test ApproxManifoldProducts.exists_BTLabel(
-        mtree,
-        ApproxManifoldProducts.leftIndex(mtree, floor(Int, N / 2)),
-    )
-    @test !ApproxManifoldProducts.exists_BTLabel(mtree, 2 * N + 1)
-
-
-## test sorting of labels is consistent by rebuilding a shuffled belief
-    mtree_ = manikde!(M, shuffle(pts); bw)
-
-    @test all(s->s[1] ≈ s[2], zip(getPoints(mtree), getPoints(mtree_)) )
-
-
-## additional test datasets
-
-    function testMDEConstr(
-        pts::AbstractVector{<:AbstractVector{<:Real}},
-        permref = sortperm(pts; by = s -> getindex(s, 1));
-        lseg = 1:2,
-        rseg = 3:4,
-        atol = 1e-6,
-    )
-        # check permutation
-        M = LieGroups.TranslationGroup(1)
-        bw = [1.0]
-
-        mtree = ApproxManifoldProducts.buildTree_Manellic!(
-            M,
-            pts;
-            kernel_bw = bw,
-            kernel = ConcentratedGaussianKernel,
-        )
-        @test permref == mtree.permute
-        @test isapprox(mean(M, pts), mean(mtree.tree_kernels[1]); atol = 1e-10)
-        @test Set(mtree.segments[1]) == Set(union(lseg, rseg))
-        @test Set(mtree.segments[2]) == Set(mtree.permute[lseg])
-        @test Set(mtree.segments[3]) == Set(mtree.permute[rseg])
-        @test isapprox(mean(M, pts[mtree.permute[lseg]]), mean(mtree.tree_kernels[2]); atol)
-        @test isapprox(mean(M, pts[mtree.permute[rseg]]), mean(mtree.tree_kernels[3]); atol)
-        return nothing
-    end
-
-## for 4 values
-
-    # manual orders
-    testMDEConstr([[0.0;], [1.0], [3.0;], [6.0;]])
-    testMDEConstr([[0.0;], [1.0], [6.0;], [3.0;]])
-    testMDEConstr([[0.0;], [3.0], [1.0;], [6.0;]])
-    testMDEConstr([[1.0;], [0.0], [3.0;], [6.0;]])
-    testMDEConstr([[1.0;], [0.0], [6.0;], [3.0;]])
-    testMDEConstr([[1.0;], [6.0], [0.0;], [3.0;]])
-    testMDEConstr([[6.0;], [1.0], [3.0;], [0.0;]])
-
-    testMDEConstr([
-        [0.9497270480266986;],
-        [-0.5973125859935883;],
-        [-0.6031001429225558;],
-        [-0.3971695179687664;],
-    ])
-
-    # randomized orders for 4 values
-    pts = [[0.0;], [1.0], [3.0;], [6.0;]]
-    for i = 1:10
-        testMDEConstr(pts[shuffle(1:4)])
-    end
-
-## for 5 values
-
-    testMDEConstr([[0.0;], [1.0], [3.0;], [6.0;], [10.0;]]; lseg = 1:3, rseg = 4:5)
-    testMDEConstr([[0.0;], [1.0], [6.0;], [3.0;], [10.0;]]; lseg = 1:3, rseg = 4:5)
-
-    # randomized orders for 5 values
-    pts = [[0.0;], [1.0], [3.0;], [6.0;], [10.0;]]
-    for i = 1:10
-        testMDEConstr(pts[shuffle(1:length(pts))]; lseg = 1:3, rseg = 4:5)
-    end
-
-## for 7 values
-
-    # randomized orders for 7 values
-    pts = [[0.0;], [1.0], [3.0;], [6.0;], [10.0;], [15.0;], [21.0;]]
-    for i = 1:10
-        testMDEConstr(pts[shuffle(1:length(pts))]; lseg = 1:4, rseg = 5:7)
-    end
-
-    #
-    M = LieGroups.TranslationGroup(1)
-    pts = [randn(1) for _ = 1:8]
-    for i = 1:10
-        _pts = pts[shuffle(1:length(pts))]
-        testMDEConstr(_pts; lseg = 1:4, rseg = 5:8)
-    end
-
-##
-end
-
-
-@testset "HomotopyDensity 1D basic and smaller construction as per sorting of points with shuffle" begin
-## 
-
-    M = LieGroups.TranslationGroup(1)
-    # pts = [randn(1) for _ = 1:5]
-    pts = [
-        [0.07322299439163212],
-        [2.065271709556179],
-        [-0.21699662409315343],
-        [0.3625358873858872],
-        [-0.7988970559113724],
-    ]
-
-    refperm = sortperm(pts)
-
-    bw = [0.1;]
-    mtree = ApproxManifoldProducts.buildTree_Manellic!(
-        M,
-        pts;
-        kernel_bw = bw,
-        kernel = ConcentratedGaussianKernel,
-    )
-
-    shf = shuffle(1:length(pts))
-    mtree_ = ApproxManifoldProducts.buildTree_Manellic!(
-        M,
-        pts[shf];
-        kernel_bw = bw,
-        kernel = ConcentratedGaussianKernel,
-    )
-
-    @test all(refperm .== mtree.permute)
-    @test all(refperm .== shf[mtree_.permute])
-    @test all(mtree.permute .== shf[mtree_.permute])
-
-    @error "expand sorting test to trivial TranslateGroup(2) with pts = [[*; 0], ...] producing same mtree.permute"
-    @error "expand sorting test to trivial TranslateGroup(2) with pts = [[0; *], ...] producing same mtree.permute"
-
-##
-end
-
 
 @testset "HomotopyDensity 1D basic construction and evaluations" begin
 ## 
