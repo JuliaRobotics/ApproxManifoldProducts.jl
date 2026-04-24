@@ -559,9 +559,8 @@ function buildTree_Manellic!(
     leaf_size = 1,
     partial::Union{Nothing, AbstractVector{<:Integer}} = nothing,
     partl_cb::Union{Nothing, <:Function} = nothing,
-) # FIXME, use just one partial/L
+)
     #
-
     N = Npts(hode)
     npts = high - low + 1
     # recursion termination case
@@ -580,14 +579,13 @@ function buildTree_Manellic!(
     _legacybw(s::AbstractVector) = diagm(s)
     _kernel_bw = _legacybw(kernel_bw)
 
-    M = getManifold(hode)
     # take a slice of data
     idc = low:high
     # according to current index permutation (i.e. sort data as you build the tree)
     ido = view(hode.permute, idc)
     # split the slice of order-permuted data
-    ax_CCp, mask, knl = splitPointsEigen(
-        M,
+    _, mask, knl = splitPointsEigen(
+        getManifold(hode),
         view(hode.data, ido),
         view(hode.weights, ido);
         kernel,
