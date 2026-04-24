@@ -550,7 +550,7 @@ function splitPointsEigen(
 end
 
 function buildTree_Manellic!(
-    hode::HomotopyDensity{L, MT, P},
+    hode::HomotopyDensity,
     index::Integer, # tree node root=1,left=2n+corr,right=left+1
     low::Integer,   # bottom index of segment
     high::Integer;  # top index of segment;
@@ -559,19 +559,26 @@ function buildTree_Manellic!(
     leaf_size = 1,
     partial::Union{Nothing, AbstractVector{<:Integer}} = nothing,
     partl_cb::Union{Nothing, <:Function} = nothing,
-) where {MT, L, P} # FIXME, use just one partial/L
+) # FIXME, use just one partial/L
     #
+
+    N = Npts(hode)
+    npts = high - low + 1
+    # recursion termination case
+    if npts <= leaf_size
+        return hode
+    end
+
+    # DX code bug stop, FIXME remove, ensure bugfree with tests
+    if index < 0
+        @error "details:" N leaf_size index low high partial
+        error("HomotopyDensity tree build error, index=($index) should not be negative")
+    end
+
     _legacybw(s::Nothing) = s
     _legacybw(s::AbstractMatrix) = s
     _legacybw(s::AbstractVector) = diagm(s)
-
     _kernel_bw = _legacybw(kernel_bw)
-    N = Npts(hode)
-
-    # # terminate recursive tree build when all necessary tree kernels have been built
-    # if N <= index
-    #     return hode
-    # end
 
     M = getManifold(hode)
     # take a slice of data
@@ -589,6 +596,7 @@ function buildTree_Manellic!(
         partl_cb,
     )
     imask = xor.(mask, true)
+    mid_idx = low + sum(imask) - 1
 
     # sort the data as 'small' and 'big' elements either side of the eigen split
     big = view(ido, mask)  |> collect
@@ -599,24 +607,14 @@ function buildTree_Manellic!(
     for (i,v) in enumerate(_ido)
         ido[i] = v
     end
-
-    # terminate recursive tree build when all necessary tree kernels have been built
-    if N <= index
-        return hode
-    end
-
-    npts = high - low + 1
-    mid_idx = low + sum(imask) - 1
-
-    lft = mid_idx <= low ? low : leftIndex(hode, index)
-    rgt = high <= mid_idx + 1 ? high : rightIndex(hode, index)
-
-    if leaf_size < npts
-        if lft != low # mid_idx
-            # recursively call two branches of tree, left
+    
+    # recursively check and call left or right branches and skip overshoot on index?
+    if (index < N) # && (leaf_size < npts)
+        # check need for left subtree
+        if low < mid_idx
             buildTree_Manellic!(
                 hode,
-                lft,
+                leftIndex(hode, index),
                 low,
                 mid_idx;
                 kernel,
@@ -626,11 +624,11 @@ function buildTree_Manellic!(
                 partl_cb,
             )
         end
-        if rgt != high
-            # and right subtree
+        # check need for right subtree
+        if (mid_idx + 1) < high
             buildTree_Manellic!(
                 hode,
-                rgt,
+                rightIndex(hode, index),
                 mid_idx + 1,
                 high;
                 kernel,
@@ -642,15 +640,19 @@ function buildTree_Manellic!(
         end
     end
 
+    # # terminate recursive tree build AFTER CHECKING for all necessary tree kernels that need to be built
+    # if (N <= index) # && (npts <= leaf_size)
+    #     return hode
+    # # else
+    # #     @show N index npts leaf_size
+    # end
+
     if index < N
         tkT = eltype(hode.tree_kernels)
-        # TBD, maybe a constructor instead?
         _knl = tkT(knl; partl_cb)
-        # _knl = convert(tkT, knl)
         # set tree kernel
         hode.tree_kernels[index] = _knl
-        # push!(hode._workaround_isdef_treekernel, index)
-        hode.segments[index] = Set(ido)
+        hode.segments[index] = Set(ido)        
     end
 
     return hode
@@ -712,7 +714,7 @@ function buildTree_Manellic!(
         manifold = M,
         data = r_PP,
         weights,
-        leaf_kernels = lkern,                           # leaf_kernels
+        leaf_kernels = lkern,                      # leaf_kernels
         tree_kernels = Vector{tknlT}(undef, N),    # tree_kernels
     );
 
