@@ -549,36 +549,16 @@ function splitPointsEigen(
     return ax_CCp, mask, kernel(p, cv, weight; partial=_tuple(partial), partl_cb)
 end
 
-function buildTree_Manellic!(
+
+function splitsortBinary!(
     hode::HomotopyDensity,
-    index::Integer, # tree node root=1,left=2n+corr,right=left+1
-    low::Integer,   # bottom index of segment
-    high::Integer;  # top index of segment;
-    kernel = MvNormal,
-    kernel_bw = nothing,
-    leaf_size = 1,
-    partial::Union{Nothing, AbstractVector{<:Integer}} = nothing,
-    partl_cb::Union{Nothing, <:Function} = nothing,
+    low::Integer,
+    high::Integer;
+    kernel,
+    kernel_bw,
+    partial,
+    partl_cb,
 )
-    #
-    N = Npts(hode)
-    npts = high - low + 1
-    # recursion termination case
-    if npts <= leaf_size
-        return hode
-    end
-
-    # DX code bug stop, FIXME remove, ensure bugfree with tests
-    if index < 0
-        @error "details:" N leaf_size index low high partial
-        error("HomotopyDensity tree build error, index=($index) should not be negative")
-    end
-
-    _legacybw(s::Nothing) = s
-    _legacybw(s::AbstractMatrix) = s
-    _legacybw(s::AbstractVector) = diagm(s)
-    _kernel_bw = _legacybw(kernel_bw)
-
     # take a slice of data
     idc = low:high
     # according to current index permutation (i.e. sort data as you build the tree)
@@ -589,12 +569,11 @@ function buildTree_Manellic!(
         view(hode.data, ido),
         view(hode.weights, ido);
         kernel,
-        kernel_bw = _kernel_bw,
+        kernel_bw,
         partial,
         partl_cb,
     )
     imask = xor.(mask, true)
-    mid_idx = low + sum(imask) - 1
 
     # sort the data as 'small' and 'big' elements either side of the eigen split
     big = view(ido, mask)  |> collect
@@ -605,52 +584,94 @@ function buildTree_Manellic!(
     for (i,v) in enumerate(_ido)
         ido[i] = v
     end
-    
-    # recursively check and call left or right branches and skip overshoot on index?
-    if (index < N) # && (leaf_size < npts)
-        # check need for left subtree
-        if low < mid_idx
-            buildTree_Manellic!(
-                hode,
-                leftIndex(hode, index),
-                low,
-                mid_idx;
-                kernel,
-                kernel_bw = _kernel_bw,
-                leaf_size,
-                partial,
-                partl_cb,
-            )
-        end
-        # check need for right subtree
-        if (mid_idx + 1) < high
-            buildTree_Manellic!(
-                hode,
-                rightIndex(hode, index),
-                mid_idx + 1,
-                high;
-                kernel,
-                kernel_bw = _kernel_bw,
-                leaf_size,
-                partial,
-                partl_cb,
-            )
-        end
+    mid_idx = low + sum(imask) - 1
+
+    return mid_idx, Set(ido), knl
+end
+
+
+function buildTree_Manellic!(
+    hode::HomotopyDensity,
+    index::Integer, # tree node root=1,left=2n+corr,right=left+1
+    low::Integer,   # bottom index of segment
+    high::Integer;  # top index of segment;
+    kernel = MvNormal,
+    kernel_bw = nothing,
+    leaf_size = 1,
+    partial::Union{Nothing, AbstractVector{<:Integer}} = nothing,  # TODO remove, get from hode internally
+    partl_cb::Union{Nothing, <:Function} = nothing,
+)
+    # DX code bug stop, FIXME remove, ensure bugfree with tests
+    if index < 0
+        @error "details:" N leaf_size index low high partial
+        error("HomotopyDensity tree build error, index=($index) should not be negative")
     end
 
-    # # terminate recursive tree build AFTER CHECKING for all necessary tree kernels that need to be built
-    # if (N <= index) # && (npts <= leaf_size)
-    #     return hode
-    # # else
-    # #     @show N index npts leaf_size
-    # end
+    #
+    _legacybw(s::Nothing) = s
+    _legacybw(s::AbstractMatrix) = s
+    _legacybw(s::AbstractVector) = diagm(s)
+    _kernel_bw = _legacybw(kernel_bw)
 
-    if index < N
-        tkT = eltype(hode.tree_kernels)
-        _knl = tkT(knl; partl_cb)
-        # set tree kernel
-        hode.tree_kernels[index] = _knl
-        hode.segments[index] = Set(ido)        
+    #
+    N = Npts(hode)
+    npts = high - low + 1
+    
+    # secondary recursion termination case, seems odd to have two terminations FIXME
+    if npts <= leaf_size
+        return hode
+    end
+
+    mid_idx, sido, knl = splitsortBinary!(
+        hode,
+        low,
+        high;
+        kernel,
+        kernel_bw = _kernel_bw,
+        partial, # TODO remove, get from hode internally
+        partl_cb,
+    )
+
+    # primary recursion termination case
+    #  occurs after permute sort modifications in recursion stack 
+    #  this prevents an overshoot in index...
+    if (N <= index)
+        return hode
+    end
+    # set tree kernel
+    # FIXME, THIS USED TO BE BELOW recursive subtree build
+    tkT = eltype(hode.tree_kernels)
+    hode.tree_kernels[index] = tkT(knl; partl_cb)
+    hode.segments[index] = sido # Set(ido)     
+
+    
+    # recursively check need for left subtree
+    if low < mid_idx
+        buildTree_Manellic!(
+            hode,
+            leftIndex(hode, index),
+            low,
+            mid_idx;
+            kernel,
+            kernel_bw = _kernel_bw,
+            leaf_size,
+            partial,
+            partl_cb,
+        )
+    end
+    # recursively check need for right subtree
+    if (mid_idx + 1) < high
+        buildTree_Manellic!(
+            hode,
+            rightIndex(hode, index),
+            mid_idx + 1,
+            high;
+            kernel,
+            kernel_bw = _kernel_bw,
+            leaf_size,
+            partial,
+            partl_cb,
+        )
     end
 
     return hode
