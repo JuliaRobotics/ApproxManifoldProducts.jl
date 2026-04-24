@@ -48,7 +48,9 @@ include("entities/ManifoldKernelDensity.jl")
 
 include("services/ManifoldsOverloads.jl")
 include("CommonUtils.jl")
+include("services/EigenSortUtils.jl")
 include("services/ManellicTree.jl")
+include("services/HomotopyBeliefPropagation.jl")
 
 # AMP types and some legacy support 
 include("entities/ManifoldDefinitions.jl")

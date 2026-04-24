@@ -1,20 +1,184 @@
 
 
 ## ==========================================================================================
+## UX/DX Convenience functions
+## ==========================================================================================
+
+
+function Base.show(io::IO, hode::HomotopyDensity{partial, M, P, HL, HT}) where {partial, M, P, HL, HT}
+    printstyled(io, "HomotopyDensity{"; bold = true, color = :blue)
+    println(io)
+    printstyled(io, "    partial"; bold = true, color = :magenta)
+    print(io, " = ", partial, ",")
+    println(io)
+    printstyled(io, "    M"; bold = true, color = :magenta)
+    print(io, " = ", M, ",")
+    println(io)
+    printstyled(io, "  P  = ", P; color = :magenta)
+    println(io)
+    printstyled(io, "  N  = ", Npts(hode); color = :magenta)
+    println(io)
+    printstyled(io, "  HL = ", HL; color = :magenta)
+    println(io)
+    printstyled(io, "  HT = ", HT, color = :magenta)
+    println(io)
+    printstyled(io, "}"; bold = true, color = :blue)
+    println(io, "(")
+    @assert Npts(hode) == length(hode.data) "show(::HomotopyDensity,) noticed a data size issue, expecting N$(Npts(hode)) == length(.data)$(length(hode.data))"
+    if 0 < Npts(hode)
+        println(io, "  .data[1:]   :  ", hode.data[1], " ... ", hode.data[end])
+        println(io, "  .weights[1:]:  ", hode.weights[1], " ... ", hode.weights[end])
+        printstyled(io, "     (uniwt)  :   ", uniWT(hode); color = :light_black)
+        println(io)
+        print(io, "  .permute[1:]:  ")
+        printstyled(io, hode.permute[1], " ... ", hode.permute[end]; color = :light_black)
+        println(io)
+        print(io, "  .tkernels[") # " __see below__"; color=:light_black)
+        if 0 < Npts(hode)
+            # printstyled(io, "  .tkernels[1] = "; color=:light_black)
+            print(io, "1]:  ")
+            printstyled(io, "::HT "; color = :magenta)
+            if isassigned(hode.tree_kernels, 1)
+                printstyled(io, hode.tree_kernels[1]; color = :light_black)
+            else
+                printstyled(io, "undef"; color = :red)
+                println(io)
+            end
+            # print(io, "  ...,")
+        else
+            print(io, "]:   ")
+            printstyled(io, "::HT "; color = :magenta)
+            println(io)
+        end
+        printstyled(
+            io,
+            "     (depth)  :   1+",
+            floor(Int, log2(length(hode.tree_kernels)));
+            color = :light_black,
+        )
+        println(io)
+        printstyled(io, "     (blncd)  :   ", "true : _wip_"; color = :light_black)
+        println(io)
+        print(io, "  .lkernels[")
+        if 0 < Npts(hode)
+            print(io, "1]:  ")
+            # printstyled(io, "  .tkernels[1] = "; color=:light_black)
+            if isassigned(hode.leaf_kernels, 1)
+                printstyled(io, hode.leaf_kernels[1]; color = :light_black)
+            else
+                printstyled(io, "undef"; color = :red)
+                println(io)
+            end
+            # print(io, "  ...,")
+            if 1 < Npts(hode)
+                printstyled(io, "         [end]:  "; color = :light_black)
+                if isassigned(hode.leaf_kernels, length(hode.leaf_kernels))
+                    printstyled(io, hode.leaf_kernels[end]; color = :light_black)
+                else
+                    printstyled(io, "undef"; color = :red)
+                    println(io)
+                end
+            end
+        else
+            print(io, "]:   ")
+            println(io)
+        end
+        # printstyled(io, "{1..$N}"; color=:light_black)
+        # println(io)
+        uBW = uniBW(hode)
+        printstyled(io, "     (unibw)  :   ", uBW; color = :light_black)
+        println(io)
+        if uBW
+            printstyled(
+                io,
+                "         bw   :    ",
+                round.((getBW(hode).^2)[1][:]'; digits = 3);
+                color = :light_black,
+            )
+            println(io)
+        end
+    end
+    println(io, ")")
+    # TODO ad dmore stats: max depth, widest point, longest chain, max clique size, average nr children
+
+    _round(s::AbstractArray; kw...) = round.(s[:]; kw...)
+    _round(s::AbstractVector{<:AbstractMatrix}; kw...) = round.(s[1][:]; kw...)
+
+
+    println(io, "  Npts:  ", Npts(hode))
+    print(io, "  dims:  ", Ndim(hode))
+    printstyled(io, isPartial(hode) ? "* --> $(length(getPartial(hode)))" : ""; bold = true)
+    println(io)
+    println(io, "  prtl:   ", getPartial(hode))
+    # bw = (getBW(hode).^2)[1]
+    # pvec = isPartial(hode) ? getPartial(hode) : collect(1:length(bw))
+    # println(io, "  bws:   ", getBandwidth(hode, true) |> x -> _round(x; digits = 4)) # .|> x->round(x,digits=4))
+    println(io, "  ipc:   ", getInfoPerCoord(hode, true) .|> x -> round(x; digits = 4))
+    print(io, "   mean: ")
+    try
+        mn = mean(hode)
+        if mn isa ProductRepr # TODO UPDATE to ArrayPartition only, discontinued use of ProductRepr long ago.
+            println(io)
+            for prt in mn.parts
+                println(io, "         ", round.(prt, digits = 4))
+            end
+        else
+            println(io, round.(mn', digits = 4))
+        end
+    catch
+        println(io, "----")
+    end
+    println(io, ")")
+
+    return nothing
+end
+
+Base.show(io::IO, ::MIME"text/plain", hode::HomotopyDensity) = show(io, hode)
+function Base.show(io::IO, ::MIME"application/juno.inline", hode::HomotopyDensity)
+    return show(io, hode)
+end
+
+
+## ==========================================================================================
 ## helper functions to contruct MKD objects
 ## ==========================================================================================
 
-getPointRepr(x::HomotopyDensity) = eltype(x.data) # TODO use HomotopyDensity{T} style instead
-function getManifold(x::HomotopyDensity, aspartial::Bool = false)
-    return if !aspartial
-        x.manifold
-    else
-        M_, _, _ = getManifoldPartial(x.manifold, getPartial(x), x.data[1])
-        M_
-    end
-end
 
-getPartial(::HomotopyDensity{partial}) where {partial} = partial
+"""
+    $SIGNATURES
+
+Alias for overloaded `Statistics.mean`.
+"""
+calcMean(mkd::HomotopyDensity, aspartial::Bool = true) = mean(mkd, aspartial)
+
+
+function Statistics.mean(mkd::HomotopyDensity, aspartial::Bool = true; kwargs...)
+    return mean(
+        _getManifoldFullOrPart(mkd, aspartial),
+        getPoints(mkd, aspartial),
+        GeodesicInterpolation();
+        kwargs...,
+    )
+end
+function Statistics.std(mkd::HomotopyDensity, aspartial::Bool = true; kwargs...)
+    return std(_getManifoldFullOrPart(mkd, aspartial), getPoints(mkd, aspartial); kwargs...)
+end
+function Statistics.var(mkd::HomotopyDensity, aspartial::Bool = true; kwargs...)
+    return var(_getManifoldFullOrPart(mkd, aspartial), getPoints(mkd, aspartial); kwargs...)
+end
+function Statistics.cov(
+    mkd::HomotopyDensity,
+    aspartial::Bool = true;
+    basis::ManifoldsBase.AbstractBasis = DefaultOrthogonalBasis(),
+    kwargs...,
+)
+    return cov(
+        _getManifoldFullOrPart(mkd, aspartial),
+        getPoints(mkd, aspartial);
+        basis,
+        kwargs...,
+    )
+end
 
 
 # getKDERange(x::ManifoldKernelDensity, w...; kw...) = getKDERange(x.shim, w...; kw...)
@@ -27,6 +191,99 @@ getPartial(::HomotopyDensity{partial}) where {partial} = partial
 
 # kld(x::ManifoldKernelDensity, w...; kw...) = kld(x.shim, w...; kw...)
 # minkld(x::ManifoldKernelDensity, w...; kw...) = minkld(x.shim, w...; kw...)
+
+
+# number of data points (aka particles) in tree, i.e. N
+Base.length(hode::HomotopyDensity) = Ndim(hode)
+Npts(hode::HomotopyDensity) = length(hode.data)
+Ndim(hode::HomotopyDensity) = manifold_dimension(getManifold(hode))
+
+getWeights(mt::HomotopyDensity; permute::Bool = true) = permute ? view(mt.weights, mt.permute) : mt.weights
+
+"""
+    $SIGNATURES
+
+Return underlying points used to construct the [`ManifoldKernelDensity`](@ref).
+
+Notes
+- Return type is `::Vector{P}` where `P` represents a Manifold point type (e.g. group element or coordinates).
+- Second argument controls whether partial dimensions only should be returned (`=true` default).
+
+DevNotes
+- Currently converts down to manifold from matrix of coordinates (legacy), to be deprecated TODO
+"""
+function getPoints(
+    hode::HomotopyDensity{partl},
+    aspartial::Bool = true;
+    permute::Bool = true,
+) where {partl}
+    #
+    pts = permute ? view(hode.data, hode.permute) : hode.data
+    # pts = getPoints(x.shim; permute)
+
+    if !aspartial || isnothing(partl)
+        # error("MKD getPoints aspartial=true but MKD is not partial")
+        return pts
+    end
+
+    Mp, Rp, lkup = getManifoldPartial(getManifold(hode), getPartial(hode), pts[1])
+
+    vecP = Vector{typeof(Rp)}(undef, length(pts))
+    for (j,pt) in enumerate(pts)
+        vecP[j] =  lkup(pt)
+    end
+    return vecP
+end
+
+
+
+function getBW(
+    x::HomotopyDensity{partl},
+    aspartial::Bool = true,
+) where {partl}
+    bws = getBW.(x.leaf_kernels)
+    if isnothing(partl) && aspartial
+        return (bw->_getpartial(partl, bw)).(bws)
+    end
+    return bws
+end
+
+
+
+# check for uniform weights
+uniWT(mt::HomotopyDensity) = 1 === length(union(diff(getWeights(mt))))
+
+
+# check for uniform bandwidths in kernels
+function uniBW(mt::HomotopyDensity)
+    N = Npts(mt)
+    if 1 < length(mt.leaf_kernels)
+        if !isassigned(mt.leaf_kernels, 1)
+            return false
+        end
+        bw = cov(mt.leaf_kernels[1])
+        for lk in view(mt.leaf_kernels, 2:N)
+            if !isapprox(bw, cov(lk))
+                return false
+            end
+        end
+    end
+    return true
+end
+
+
+
+getPointRepr(x::HomotopyDensity) = eltype(x.data) # TODO use HomotopyDensity{T} style instead
+function getManifold(x::HomotopyDensity, aspartial::Bool = false)
+    return if !aspartial
+        x.manifold
+    else
+        M_, _, _ = getManifoldPartial(x.manifold, getPartial(x), x.data[1])
+        M_
+    end
+end
+
+getPartial(::HomotopyDensity{partial}) where {partial} = partial
 
 
 
@@ -305,40 +562,194 @@ end
 
 
 
-function Statistics.mean(mkd::HomotopyDensity, aspartial::Bool = true; kwargs...)
-    return mean(
-        _getManifoldFullOrPart(mkd, aspartial),
-        getPoints(mkd, aspartial),
-        GeodesicInterpolation();
-        kwargs...,
+function updateBandwidths(
+    hode::HomotopyDensity{L, M, P, HL}, 
+    bws;
+    partl_cb::Union{Nothing, <:Function} = nothing,
+) where {L, M, P, HL}
+    #
+    _getBW(s::Float64, ::Int) = [s;;]
+    _getBW(s::AbstractVector{<:Real}, ::Int) = s
+    _getBW(s::AbstractMatrix{<:Real}, ::Int) = s
+    _getBW(s::AbstractVector{<:AbstractArray}, _i::Int) = s[_i]
+
+    N = Npts(hode)
+
+    leaf_kernels = Vector{HL}(undef, N)
+    for (i, lk) in enumerate(hode.leaf_kernels)
+        nkl = ConcentratedGaussianKernel(lk; Σ = _getBW(bws, i), partl_cb)
+        leaf_kernels[i] = nkl # updateKernelBW(lk, _getBW(bws, i))
+    end
+    return HomotopyDensity{
+        L,
+    }(;
+        manifold = getManifold(hode),
+        data = hode.data,
+        weights = hode.weights,
+        permute = hode.permute,
+        leaf_kernels,
+        tree_kernels = hode.tree_kernels,
+        segments = hode.segments,
     )
 end
+
+"""
+    $SIGNATURES
+    
+For Manellic tree parent kernels, what is the 'smallest' and 'biggest' covariance.
+
+Notes:
+- Thought about `det` for covariance volume but long access of pancake (smaller volume) is not minimum compared to circular covariance. 
+"""
+function getBandwidthSearchBounds(hode::HomotopyDensity)
+    upper = cov(hode.tree_kernels[1])
+
+    #FIXME isdefined does not work as expected for hode.tree_kernels, so using length-1 for now
+    # this will break if number of points is not a power of 2. 
+    
+    lower_diag = diag(cov(hode.tree_kernels[1]))
+    for i in 2:(length(hode.tree_kernels) - 1)
+        # FIXME use consolidated getKernelTree instead
+        if isassigned(hode.tree_kernels, i)
+            hdg = hcat(lower_diag, diag(cov(hode.tree_kernels[i])))
+            lower_diag = minimum(hdg; dims = 2)
+        end
+        # lower_diag = minimum(hcat(lower_diag, diag(cov(hode.tree_kernels[i]))); dims = 2)
+    end
+
+    # floors make us feel safe, but hurt when faceplanting
+    lower_diag = maximum(hcat(lower_diag, 1e-8 * ones(length(lower_diag))); dims = 2)[:]
+
+    # Give back lower as diagonal only covariance matrix
+    lower = diagm(lower_diag)
+
+    return lower, upper
+end
+
 """
     $SIGNATURES
 
-Alias for overloaded `Statistics.mean`.
-"""
-calcMean(mkd::HomotopyDensity, aspartial::Bool = true) = mean(mkd, aspartial)
+Evaluate the belief density for a given Manellic tree.
 
-function Statistics.std(mkd::HomotopyDensity, aspartial::Bool = true; kwargs...)
-    return std(_getManifoldFullOrPart(mkd, aspartial), getPoints(mkd, aspartial); kwargs...)
+DevNotes:
+- Computational Geometry
+  - use geometric computing for faster evaluation
+- Dual tree evaluations
+  - Holmes, M.P., Gray, A.G. and Isbell Jr, C.L., 2010. Fast kernel conditional density estimation: A dual-tree Monte Carlo approach. Computational statistics & data analysis, 54(7), pp.1707-1718.
+  - Curtin, R., March, W., Ram, P., Anderson, D., Gray, A. and Isbell, C., 2013, May. Tree-independent dual-tree algorithms. In International Conference on Machine Learning (pp. 1435-1443). PMLR.
+- Fast kernels
+- Parallel transport shortcuts?
+"""
+function evaluate(
+    hode::HomotopyDensity{partl},
+    pt,
+    LOO::Bool = false,
+    force_kbw = nothing,
+) where {partl}
+    # # force function barrier, just to be sure dyndispatch is limited
+    # _F() = getfield(ApproxManifoldProducts,HL.name.name)
+    # _F_ = _F() 
+
+    pts = getPoints(hode, false)
+    w = getWeights(hode)
+
+    # isapprox uses partial version
+    M_, reprl, cb = getManifoldPartial(getManifold(hode), partl)
+
+    sumval = 0.0
+    # FIXME, brute force for loop
+    for (i, t) in enumerate(pts)
+        if !LOO || !isapprox(M_, cb(pt), cb(t))
+        # if !LOO || !isapprox(getManifold(hode), pt, t)
+            # TBD, is this assuming length(pts) and length(hode.leaf_kernels) are the same?
+            # FIXME use consolidated getKernelLeaf instead
+            ekr = hode.leaf_kernels[i]
+            ekr = updateKernelBW(ekr, force_kbw)
+            # remember special handling for partials via ekr itself
+            oneval = hode.weights[i] * evaluate(getManifold(hode), ekr, pt)
+            # leave one out requires kernel weighting to removal of leave out weight
+            oneval *= !LOO ? 1 : 1 / (1 - w[i])
+            sumval += oneval
+        end
+    end
+
+    return sumval
 end
-function Statistics.var(mkd::HomotopyDensity, aspartial::Bool = true; kwargs...)
-    return var(_getManifoldFullOrPart(mkd, aspartial), getPoints(mkd, aspartial); kwargs...)
-end
-function Statistics.cov(
-    mkd::HomotopyDensity,
-    aspartial::Bool = true;
-    basis::ManifoldsBase.AbstractBasis = DefaultOrthogonalBasis(),
-    kwargs...,
+
+"""
+    $SIGNATURES
+
+Return vector of weights of evaluated proposal label points against density.
+
+DevNotes:
+- TODO should evat points be of equal weights?  If multiscale sampling goes down unbalanced trees?
+- FIXME how should partials be handled here? 
+- FIXME, use multipoint evaluation such as NN (not just one point at a time)
+"""
+function evaluateDensityAtPoints(
+    M::AbstractManifold,
+    density,
+    eval_at_points,
+    normalize::Bool = false,
 )
-    return cov(
-        _getManifoldFullOrPart(mkd, aspartial),
-        getPoints(mkd, aspartial);
-        basis,
-        kwargs...,
-    )
+    # evaluate new sampling weights of points in out component
+    # TODO use agnostic-Dual tree or MonteCarloDualTree evaluation
+    # vector for storing resulting weights
+    smw = zeros(length(eval_at_points))
+    for (i, ev) in enumerate(eval_at_points)
+        # single kernel evaluation
+        smw[i] = evaluate(M, density, ev)
+        # δc = distanceMalahanobisCoordinates(M,tmp_product,ev)
+    end
+
+    # Note convenience only
+    if normalize
+        _s = sum(smw)
+        if isapprox(_s, 0.0)
+            #assume L'Hopital or similar
+            smw .= 1 / length(smw)
+        else
+            smw ./= _s
+        end
+    end
+
+    # return weights
+    return smw
 end
+
+function expectedLogL(
+    mt::HomotopyDensity,
+    epts::AbstractVector,
+    LOO::Bool = false,
+    force_kbw = nothing,
+)
+    T = Float64
+    # TODO really slow brute force evaluation, use agnostic-DualTree or MonteCarloDualTree
+    eL = MVector{length(epts), T}(undef)
+    for (i, p) in enumerate(epts)
+        # LOO skip for leave-one-out
+        eL[i] = evaluate(mt, p, LOO, force_kbw)
+    end
+    # set numerical tolerance floor
+    zrs = findall(isapprox.(0, eL))
+    # nominal case with usable evaluation points
+    eL[zrs] .= 1.0
+
+    # weight and return within numerical reach
+    w = getWeights(mt)
+    if any(0 .!= w[zrs])
+        -Inf
+    else
+        w' * (log.(eL))
+        # return mean(log.(eL)) #?
+    end
+end
+
+function entropy(hode::HomotopyDensity, force_kbw = nothing)
+    return -expectedLogL(hode, getPoints(hode, false), true, force_kbw)
+end
+
+(hode::HomotopyDensity)(evalpt::AbstractArray) = evaluate(hode, evalpt)
 
 
 #

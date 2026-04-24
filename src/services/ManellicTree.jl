@@ -1,61 +1,5 @@
 
 
-# number of data points (aka particles) in tree, i.e. N
-Base.length(hode::HomotopyDensity) = Ndim(hode)
-Npts(hode::HomotopyDensity) = length(hode.data)
-Ndim(hode::HomotopyDensity) = manifold_dimension(getManifold(hode))
-
-getWeights(mt::HomotopyDensity; permute::Bool = true) = permute ? view(mt.weights, mt.permute) : mt.weights
-
-"""
-    $SIGNATURES
-
-Return underlying points used to construct the [`ManifoldKernelDensity`](@ref).
-
-Notes
-- Return type is `::Vector{P}` where `P` represents a Manifold point type (e.g. group element or coordinates).
-- Second argument controls whether partial dimensions only should be returned (`=true` default).
-
-DevNotes
-- Currently converts down to manifold from matrix of coordinates (legacy), to be deprecated TODO
-"""
-function getPoints(
-    hode::HomotopyDensity{partl},
-    aspartial::Bool = true;
-    permute::Bool = true,
-) where {partl}
-    #
-    pts = permute ? view(hode.data, hode.permute) : hode.data
-    # pts = getPoints(x.shim; permute)
-
-    if !aspartial || isnothing(partl)
-        # error("MKD getPoints aspartial=true but MKD is not partial")
-        return pts
-    end
-
-    Mp, Rp, lkup = getManifoldPartial(getManifold(hode), getPartial(hode), pts[1])
-
-    vecP = Vector{typeof(Rp)}(undef, length(pts))
-    for (j,pt) in enumerate(pts)
-        vecP[j] =  lkup(pt)
-    end
-    return vecP
-end
-
-
-
-function getBW(
-    x::HomotopyDensity{partl},
-    aspartial::Bool = true,
-) where {partl}
-    bws = getBW.(x.leaf_kernels)
-    if isnothing(partl) && aspartial
-        return (bw->_getpartial(partl, bw)).(bws)
-    end
-    return bws
-end
-
-
 # _getleft(i::Integer, N) = 2*i + (2*i < N ? 0 : 1)
 # _getright(i::Integer, N) = _getleft(i,N) + 1
 
@@ -107,6 +51,32 @@ function childIndices(
         right, 
     )
 end
+
+
+
+
+# check for existence in tree or leaves
+function exists_BTLabel(hode::HomotopyDensity, idx::Int)
+    N = Npts(hode)
+    if idx < N
+        return isassigned(hode.tree_kernels, idx)
+    else
+        return isassigned(hode.leaf_kernels, idx - N + 1)
+    end
+end
+
+function isLeaf_BTLabel(mt::HomotopyDensity, idx::Int)
+    if exists_BTLabel(mt, leftIndex(mt, idx))
+        return false
+    elseif exists_BTLabel(mt, rightIndex(mt, idx))
+        # TODO likely not needed to check for right child existence
+        return false
+    else
+        return true
+    end
+end
+
+
 
 """
     $SIGNATURES
@@ -199,376 +169,9 @@ function getKernelTree(
     end
 end
 
-
-# check for existence in tree or leaves
-function exists_BTLabel(hode::HomotopyDensity, idx::Int)
-    N = Npts(hode)
-    if idx < N
-        return isassigned(hode.tree_kernels, idx)
-    else
-        return isassigned(hode.leaf_kernels, idx - N + 1)
-    end
-end
-
-function isLeaf_BTLabel(mt::HomotopyDensity, idx::Int)
-    if exists_BTLabel(mt, leftIndex(mt, idx))
-        return false
-    elseif exists_BTLabel(mt, rightIndex(mt, idx))
-        # TODO likely not needed to check for right child existence
-        return false
-    else
-        return true
-    end
-end
-
-# check for uniform weights
-uniWT(mt::HomotopyDensity) = 1 === length(union(diff(getWeights(mt))))
-
-
-# check for uniform bandwidths in kernels
-function uniBW(mt::HomotopyDensity)
-    N = Npts(mt)
-    if 1 < length(mt.leaf_kernels)
-        if !isassigned(mt.leaf_kernels, 1)
-            return false
-        end
-        bw = cov(mt.leaf_kernels[1])
-        for lk in view(mt.leaf_kernels, 2:N)
-            if !isapprox(bw, cov(lk))
-                return false
-            end
-        end
-    end
-    return true
-end
-
-function Base.show(io::IO, hode::HomotopyDensity{partial, M, P, HL, HT}) where {partial, M, P, HL, HT}
-    printstyled(io, "HomotopyDensity{"; bold = true, color = :blue)
-    println(io)
-    printstyled(io, "    partial"; bold = true, color = :magenta)
-    print(io, " = ", partial, ",")
-    println(io)
-    printstyled(io, "    M"; bold = true, color = :magenta)
-    print(io, " = ", M, ",")
-    println(io)
-    printstyled(io, "  P  = ", P; color = :magenta)
-    println(io)
-    printstyled(io, "  N  = ", Npts(hode); color = :magenta)
-    println(io)
-    printstyled(io, "  HL = ", HL; color = :magenta)
-    println(io)
-    printstyled(io, "  HT = ", HT, color = :magenta)
-    println(io)
-    printstyled(io, "}"; bold = true, color = :blue)
-    println(io, "(")
-    @assert Npts(hode) == length(hode.data) "show(::HomotopyDensity,) noticed a data size issue, expecting N$(Npts(hode)) == length(.data)$(length(hode.data))"
-    if 0 < Npts(hode)
-        println(io, "  .data[1:]   :  ", hode.data[1], " ... ", hode.data[end])
-        println(io, "  .weights[1:]:  ", hode.weights[1], " ... ", hode.weights[end])
-        printstyled(io, "     (uniwt)  :   ", uniWT(hode); color = :light_black)
-        println(io)
-        print(io, "  .permute[1:]:  ")
-        printstyled(io, hode.permute[1], " ... ", hode.permute[end]; color = :light_black)
-        println(io)
-        print(io, "  .tkernels[") # " __see below__"; color=:light_black)
-        if 0 < Npts(hode)
-            # printstyled(io, "  .tkernels[1] = "; color=:light_black)
-            print(io, "1]:  ")
-            printstyled(io, "::HT "; color = :magenta)
-            if isassigned(hode.tree_kernels, 1)
-                printstyled(io, hode.tree_kernels[1]; color = :light_black)
-            else
-                printstyled(io, "undef"; color = :red)
-                println(io)
-            end
-            # print(io, "  ...,")
-        else
-            print(io, "]:   ")
-            printstyled(io, "::HT "; color = :magenta)
-            println(io)
-        end
-        printstyled(
-            io,
-            "     (depth)  :   1+",
-            floor(Int, log2(length(hode.tree_kernels)));
-            color = :light_black,
-        )
-        println(io)
-        printstyled(io, "     (blncd)  :   ", "true : _wip_"; color = :light_black)
-        println(io)
-        print(io, "  .lkernels[")
-        if 0 < Npts(hode)
-            print(io, "1]:  ")
-            # printstyled(io, "  .tkernels[1] = "; color=:light_black)
-            if isassigned(hode.leaf_kernels, 1)
-                printstyled(io, hode.leaf_kernels[1]; color = :light_black)
-            else
-                printstyled(io, "undef"; color = :red)
-                println(io)
-            end
-            # print(io, "  ...,")
-            if 1 < Npts(hode)
-                printstyled(io, "         [end]:  "; color = :light_black)
-                if isassigned(hode.leaf_kernels, length(hode.leaf_kernels))
-                    printstyled(io, hode.leaf_kernels[end]; color = :light_black)
-                else
-                    printstyled(io, "undef"; color = :red)
-                    println(io)
-                end
-            end
-        else
-            print(io, "]:   ")
-            println(io)
-        end
-        # printstyled(io, "{1..$N}"; color=:light_black)
-        # println(io)
-        uBW = uniBW(hode)
-        printstyled(io, "     (unibw)  :   ", uBW; color = :light_black)
-        println(io)
-        if uBW
-            printstyled(
-                io,
-                "         bw   :    ",
-                round.((getBW(hode).^2)[1][:]'; digits = 3);
-                color = :light_black,
-            )
-            println(io)
-        end
-    end
-    println(io, ")")
-    # TODO ad dmore stats: max depth, widest point, longest chain, max clique size, average nr children
-
-    _round(s::AbstractArray; kw...) = round.(s[:]; kw...)
-    _round(s::AbstractVector{<:AbstractMatrix}; kw...) = round.(s[1][:]; kw...)
-
-
-    println(io, "  Npts:  ", Npts(hode))
-    print(io, "  dims:  ", Ndim(hode))
-    printstyled(io, isPartial(hode) ? "* --> $(length(getPartial(hode)))" : ""; bold = true)
-    println(io)
-    println(io, "  prtl:   ", getPartial(hode))
-    # bw = (getBW(hode).^2)[1]
-    # pvec = isPartial(hode) ? getPartial(hode) : collect(1:length(bw))
-    # println(io, "  bws:   ", getBandwidth(hode, true) |> x -> _round(x; digits = 4)) # .|> x->round(x,digits=4))
-    println(io, "  ipc:   ", getInfoPerCoord(hode, true) .|> x -> round(x; digits = 4))
-    print(io, "   mean: ")
-    try
-        mn = mean(hode)
-        if mn isa ProductRepr # TODO UPDATE to ArrayPartition only, discontinued use of ProductRepr long ago.
-            println(io)
-            for prt in mn.parts
-                println(io, "         ", round.(prt, digits = 4))
-            end
-        else
-            println(io, round.(mn', digits = 4))
-        end
-    catch
-        println(io, "----")
-    end
-    println(io, ")")
-
-    return nothing
-end
-
-Base.show(io::IO, ::MIME"text/plain", hode::HomotopyDensity) = show(io, hode)
-function Base.show(io::IO, ::MIME"application/juno.inline", hode::HomotopyDensity)
-    return show(io, hode)
-end
-
-# covariance eigen decomposition and sort ascending
-function eigenCoords!(
-    f_CVp::AbstractMatrix;
-    partial::Union{Nothing, <:Tuple} = nothing,
-)
-    function _decomp(
-        evc::AbstractMatrix, 
-        evl::AbstractVector, 
-        _toflip::Bool = det(evc) < 0
-    )
-        pidx = _toflip ? sortperm(evl; rev = true) : 1:length(evl)
-        Q = evc[:, pidx]
-        L = diagm(evl[pidx])
-        # FIXME, handle partials -- i.e. embed in larger matrices
-        return Q, L, pidx
-    end
-
-    # FIXME embed partial dimensions inside the full non-partial covariance.
-    _f_CVp = _partialCovToDefault!(partial, _forcemutable(f_CVp))
-
-    E = eigen(_f_CVp)
-    f_Q_ax, Λ, pidx = _decomp(E.vectors, E.values)
-    # largest variance is on coord `dim = pidx[end]`
-    # derotate cloud for easy split
-    # swap points order left and right of split
-    return f_Q_ax, Λ, pidx
-end
-
-
-"""
-    $SIGNATURES
-
-Give vector of manifold points and split along largest covariance (i.e. major direction)
-
-DevNotes:
-- FIXME: upgrade to Manopt version 
-  - https://github.com/JuliaRobotics/ApproxManifoldProducts.jl/issues/277
-- TODO, instead use Krylov methods (e.g. recursive power series) for next largest eigen vector down depth of tree for efficiency
-"""
-function splitPointsEigen(
-    M::AbstractLieGroup,
-    r_PP::AbstractVector{P},
-    weights::AbstractVector{<:Real} = ones(length(r_PP)); # FIXME, make static vector unless large
-    kernel = ConcentratedGaussianKernel,
-    kernel_bw = nothing,
-    partial::Union{Nothing, <:Tuple} = nothing,
-    partl_cb::Union{Nothing, <:Function} = nothing,
-) where {P <: AbstractArray}
-    #
-    
-    # important, covariance is calculated around mean of points, which enables log to avoid singularities
-    # do calculations around mean point on manifold, i.e. towards Riemannian
-    p = mean(M, r_PP)
-    len = length(r_PP)
-    weight = sum(weights)
-    D = manifold_dimension(M)
-    ndia = ((D - 1) ÷ 2 + 1) * D
-
-    # use provided bandwidth if available, or try estimate multisample covariance
-    cv = if ndia < len
-        SMatrix{D, D, Float64}(
-            Manifolds.cov(M, r_PP; basis = DefaultLieAlgebraOrthogonalBasis()),
-        )
-    elseif 1 < len <= ndia
-        di = diag(Manifolds.cov(M, r_PP; basis = DefaultLieAlgebraOrthogonalBasis()))
-        sc = eps(Float64) # maximum(di) 
-        SMatrix{D, D, Float64}(
-            diagm(di .+ ones(length(di)) * sc),
-        )
-    else
-        SMatrix{D, D, Float64}(zeros(D, D))
-    end
-
-    knl = kernel(p, cv, weight; partial, partl_cb)
-    
-
-    r_XXp = log.(Ref(M), Ref(p), r_PP)      # FIXME replace with on-manifold distance
-    r_CCp = vee.(Ref(LieAlgebra(M)), r_XXp) # TODO, remove LieGroup/LieAlgebra restriction 
-
-    # TODO, handle these if-else cases better
-    if isapprox(0.0, norm(cv)) 
-        # Fall back case
-        bw = if isnothing(kernel_bw)
-            @error "Not enough points to estimate covariance" maxlog=5
-            # SMatrix{D, D, Float64}(diagm(eps(Float64) * ones(D)))
-            cv
-        else
-            kernel_bw
-        end
-        return r_CCp, BitVector(ntuple(i -> true, Val(len))), kernel(p, bw)
-    end
-
-    # expecting largest variation on coord dimension `pidx[end]`
-    r_R_ax, Λ, pidx = eigenCoords!(cv; partial)
-    ax_R_r = r_R_ax'
-
-    # rotate coordinates
-    ax_CCp = _rotateCoordsPartial(M, r_CCp, ax_R_r; partial)
-
-    # this is a local test around base point p (not at global 0)
-    mask = 0 .<= (ax_CCp .|> (s -> isnothing(partial) ? s[1] : s[partial[1]]))
-
-    # TODO ALLOW BOTH BALANCED OR UNBALANCED MASK RETRIEVAL, STARTING WITH FORCED MASK BALANCING
-    # NOTE, rebalancing reason: deadcenter of covariance is not halfway between points (unconfirmed)
-    # rebalance if stochastic nearest estimates fall in wrong mask
-    # see #328 for more details and discussion
-    function _flipmask_minormax!(smlmask, bigmask, data; argminmax::Function = argmin)
-        N = length(smlmask)
-        # move minimum mask points over to imask
-        for k = 1:((sum(bigmask) - sum(smlmask)) ÷ 2)
-            # keep flipping the minimum element from mask into imask set
-            # note using first coord, ie.. x-axis as the split axis: `s->s[1]`
-            mlis = (1:sum(bigmask))
-            ami = argminmax(view(data, bigmask))
-            idx = mlis[ami]
-            # get idx from orginal list
-            flipidx = view(1:N, bigmask)[idx]
-            data[flipidx]
-            bigmask[flipidx] = xor(bigmask[flipidx], true)
-            smlmask[flipidx] = xor(smlmask[flipidx], true)
-        end
-        return nothing
-    end
-
-    imask = xor.(mask, true)
-    ax_CC1 = (s -> s[1]).(ax_CCp)
-    _flipmask_minormax!(imask, mask, ax_CC1; argminmax = argmin)
-    _flipmask_minormax!(mask, imask, ax_CC1; argminmax = argmax)
-
-    # return rotated coordinates and split mask
-    return ax_CCp, mask, knl
-end
-
-
-function splitsortBinary!(
-    hode::HomotopyDensity,
-    low::Integer,
-    high::Integer,
-    index::Integer;
-    leaf_size::Integer = 1,
-    kernel,
-    kernel_bw,
-    partial::Union{Nothing, <:Tuple},
-    partl_cb,
-)
-    keepbranching = true
-
-    # take a slice of data
-    npts = high - low + 1
-    idc = low:high
-    
-    # according to current index permutation (i.e. sort data as you build the tree)
-    ido = view(hode.permute, idc)
-    
-    # secondary recursion termination case, seems odd to have two terminations FIXME
-    if npts <= leaf_size
-        keepbranching = false
-        # HACK mid=-1, knl=nothing if keepbranching false 
-        return -1, Set(ido), nothing, keepbranching
-    end
-
-    # split the slice of order-permuted data
-    _, mask, knl = splitPointsEigen(
-        getManifold(hode),
-        view(hode.data, ido),
-        view(hode.weights, ido);
-        kernel,
-        kernel_bw,
-        partial,
-        partl_cb,
-    )
-    imask = xor.(mask, true)
-
-    # sort the data as 'small' and 'big' elements either side of the eigen split
-    big = view(ido, mask)  |> collect
-    sml = view(ido, imask) |> collect
-    # inplace reorder the slice portion of hode.permute towards accending
-    _ido = SA[sml...; big...]
-    # ido .= SA[sml...; big...]
-    for (i,v) in enumerate(_ido)
-        ido[i] = v
-    end
-    mid_idx = low + sum(imask) - 1
-
-
-    # primary recursion termination case
-    #  occurs after permute sort modifications in recursion stack 
-    #  this prevents an overshoot in index...
-    if (Npts(hode) <= index)
-        keepbranching = false
-    end
-
-    return mid_idx, Set(ido), knl, keepbranching
-end
+## =================================================================================
+## Tree build functions
+## =================================================================================
 
 
 function buildTree_Manellic!(
@@ -588,22 +191,7 @@ function buildTree_Manellic!(
         error("HomotopyDensity tree build error, index=($index) should not be negative")
     end
 
-    #
-    _legacybw(s::Nothing) = s
-    _legacybw(s::AbstractMatrix) = s
-    _legacybw(s::AbstractVector) = diagm(s)
-    _kernel_bw = _legacybw(kernel_bw)
-
-    #
-    # N = Npts(hode)
-    # npts = high - low + 1
-    
-    # # secondary recursion termination case, seems odd to have two terminations FIXME
-    # if npts <= leaf_size
-    #     return hode
-    # end
-
-    # HACK, mid=-1, knl=nothing if keepbranching false
+    # HACK returns if keepbranching==false, also mid=-1, knl=nothing
     mid_idx, sido, knl, keepbranching = splitsortBinary!(
         hode,
         low,
@@ -611,8 +199,8 @@ function buildTree_Manellic!(
         index;
         leaf_size,
         kernel,
-        kernel_bw = _kernel_bw,
-        partial = _tuple(partial), # TODO remove, get from hode internally
+        kernel_bw,
+        partial, # TODO remove, get from hode internally
         partl_cb,
     )
 
@@ -620,12 +208,6 @@ function buildTree_Manellic!(
     if !keepbranching
         return hode
     end
-    # # primary recursion termination case
-    # #  occurs after permute sort modifications in recursion stack 
-    # #  this prevents an overshoot in index...
-    # if (N <= index)
-    #     return hode
-    # end
 
     # set tree kernel
     # FIXME, THIS USED TO BE BELOW recursive subtree build
@@ -642,9 +224,9 @@ function buildTree_Manellic!(
             low,
             mid_idx;
             kernel,
-            kernel_bw = _kernel_bw,
+            kernel_bw,
             leaf_size,
-            partial = _tuple(partial),
+            partial,
             partl_cb,
         )
     end
@@ -656,9 +238,9 @@ function buildTree_Manellic!(
             mid_idx + 1,
             high;
             kernel,
-            kernel_bw = _kernel_bw,
+            kernel_bw,
             leaf_size,
-            partial = _tuple(partial),
+            partial,
             partl_cb,
         )
     end
@@ -803,405 +385,5 @@ function buildTree_Manellic!(
     return tosort_leaves
 end
 
-function updateBandwidths(
-    hode::HomotopyDensity{L, M, P, HL}, 
-    bws;
-    partl_cb::Union{Nothing, <:Function} = nothing,
-) where {L, M, P, HL}
-    #
-    _getBW(s::Float64, ::Int) = [s;;]
-    _getBW(s::AbstractVector{<:Real}, ::Int) = s
-    _getBW(s::AbstractMatrix{<:Real}, ::Int) = s
-    _getBW(s::AbstractVector{<:AbstractArray}, _i::Int) = s[_i]
-
-    N = Npts(hode)
-
-    leaf_kernels = Vector{HL}(undef, N)
-    for (i, lk) in enumerate(hode.leaf_kernels)
-        nkl = ConcentratedGaussianKernel(lk; Σ = _getBW(bws, i), partl_cb)
-        leaf_kernels[i] = nkl # updateKernelBW(lk, _getBW(bws, i))
-    end
-    return HomotopyDensity{
-        L,
-    }(;
-        manifold = getManifold(hode),
-        data = hode.data,
-        weights = hode.weights,
-        permute = hode.permute,
-        leaf_kernels,
-        tree_kernels = hode.tree_kernels,
-        segments = hode.segments,
-    )
-end
-
-"""
-    $SIGNATURES
-    
-For Manellic tree parent kernels, what is the 'smallest' and 'biggest' covariance.
-
-Notes:
-- Thought about `det` for covariance volume but long access of pancake (smaller volume) is not minimum compared to circular covariance. 
-"""
-function getBandwidthSearchBounds(hode::HomotopyDensity)
-    upper = cov(hode.tree_kernels[1])
-
-    #FIXME isdefined does not work as expected for hode.tree_kernels, so using length-1 for now
-    # this will break if number of points is not a power of 2. 
-    
-    lower_diag = diag(cov(hode.tree_kernels[1]))
-    for i in 2:(length(hode.tree_kernels) - 1)
-        # FIXME use consolidated getKernelTree instead
-        if isassigned(hode.tree_kernels, i)
-            hdg = hcat(lower_diag, diag(cov(hode.tree_kernels[i])))
-            lower_diag = minimum(hdg; dims = 2)
-        end
-        # lower_diag = minimum(hcat(lower_diag, diag(cov(hode.tree_kernels[i]))); dims = 2)
-    end
-
-    # floors make us feel safe, but hurt when faceplanting
-    lower_diag = maximum(hcat(lower_diag, 1e-8 * ones(length(lower_diag))); dims = 2)[:]
-
-    # Give back lower as diagonal only covariance matrix
-    lower = diagm(lower_diag)
-
-    return lower, upper
-end
-
-"""
-    $SIGNATURES
-
-Evaluate the belief density for a given Manellic tree.
-
-DevNotes:
-- Computational Geometry
-  - use geometric computing for faster evaluation
-- Dual tree evaluations
-  - Holmes, M.P., Gray, A.G. and Isbell Jr, C.L., 2010. Fast kernel conditional density estimation: A dual-tree Monte Carlo approach. Computational statistics & data analysis, 54(7), pp.1707-1718.
-  - Curtin, R., March, W., Ram, P., Anderson, D., Gray, A. and Isbell, C., 2013, May. Tree-independent dual-tree algorithms. In International Conference on Machine Learning (pp. 1435-1443). PMLR.
-- Fast kernels
-- Parallel transport shortcuts?
-"""
-function evaluate(
-    hode::HomotopyDensity{partl},
-    pt,
-    LOO::Bool = false,
-    force_kbw = nothing,
-) where {partl}
-    # # force function barrier, just to be sure dyndispatch is limited
-    # _F() = getfield(ApproxManifoldProducts,HL.name.name)
-    # _F_ = _F() 
-
-    pts = getPoints(hode, false)
-    w = getWeights(hode)
-
-    # isapprox uses partial version
-    M_, reprl, cb = getManifoldPartial(getManifold(hode), partl)
-
-    sumval = 0.0
-    # FIXME, brute force for loop
-    for (i, t) in enumerate(pts)
-        if !LOO || !isapprox(M_, cb(pt), cb(t))
-        # if !LOO || !isapprox(getManifold(hode), pt, t)
-            # TBD, is this assuming length(pts) and length(hode.leaf_kernels) are the same?
-            # FIXME use consolidated getKernelLeaf instead
-            ekr = hode.leaf_kernels[i]
-            ekr = updateKernelBW(ekr, force_kbw)
-            # remember special handling for partials via ekr itself
-            oneval = hode.weights[i] * evaluate(getManifold(hode), ekr, pt)
-            # leave one out requires kernel weighting to removal of leave out weight
-            oneval *= !LOO ? 1 : 1 / (1 - w[i])
-            sumval += oneval
-        end
-    end
-
-    return sumval
-end
-
-"""
-    $SIGNATURES
-
-Return vector of weights of evaluated proposal label points against density.
-
-DevNotes:
-- TODO should evat points be of equal weights?  If multiscale sampling goes down unbalanced trees?
-- FIXME how should partials be handled here? 
-- FIXME, use multipoint evaluation such as NN (not just one point at a time)
-"""
-function evaluateDensityAtPoints(
-    M::AbstractManifold,
-    density,
-    eval_at_points,
-    normalize::Bool = false,
-)
-    # evaluate new sampling weights of points in out component
-    # TODO use agnostic-Dual tree or MonteCarloDualTree evaluation
-    # vector for storing resulting weights
-    smw = zeros(length(eval_at_points))
-    for (i, ev) in enumerate(eval_at_points)
-        # single kernel evaluation
-        smw[i] = evaluate(M, density, ev)
-        # δc = distanceMalahanobisCoordinates(M,tmp_product,ev)
-    end
-
-    # Note convenience only
-    if normalize
-        _s = sum(smw)
-        if isapprox(_s, 0.0)
-            #assume L'Hopital or similar
-            smw .= 1 / length(smw)
-        else
-            smw ./= _s
-        end
-    end
-
-    # return weights
-    return smw
-end
-
-function expectedLogL(
-    mt::HomotopyDensity,
-    epts::AbstractVector,
-    LOO::Bool = false,
-    force_kbw = nothing,
-)
-    T = Float64
-    # TODO really slow brute force evaluation, use agnostic-DualTree or MonteCarloDualTree
-    eL = MVector{length(epts), T}(undef)
-    for (i, p) in enumerate(epts)
-        # LOO skip for leave-one-out
-        eL[i] = evaluate(mt, p, LOO, force_kbw)
-    end
-    # set numerical tolerance floor
-    zrs = findall(isapprox.(0, eL))
-    # nominal case with usable evaluation points
-    eL[zrs] .= 1.0
-
-    # weight and return within numerical reach
-    w = getWeights(mt)
-    if any(0 .!= w[zrs])
-        -Inf
-    else
-        w' * (log.(eL))
-        # return mean(log.(eL)) #?
-    end
-end
-
-function entropy(hode::HomotopyDensity, force_kbw = nothing)
-    return -expectedLogL(hode, getPoints(hode, false), true, force_kbw)
-end
-
-(hode::HomotopyDensity)(evalpt::AbstractArray) = evaluate(hode, evalpt)
-
-"""
-    $SIGNATURES
-
-Calculate one product of proposal kernels, as defined  BTLabels.
-"""
-function calcProductKernelBTLabels(
-    M::AbstractManifold,
-    proposals::AbstractVector,
-    labels_sampled::AbstractVector{<:Integer},
-    looidx::Union{Int, Nothing} = nothing,
-    propIdxs_Gibbs::AbstractVector{<:Integer} = 1:length(proposals);
-    permute::Bool = true, # true because signature is BTLabels
-    weight::Real = 1.0,
-)
-    # select a density label from the other proposals
-    prop_and_label = Tuple{Int, Int}[]
-    for s in setdiff(propIdxs_Gibbs, isnothing(looidx) ? Int[] : Int[looidx;])
-        # tuple of which leave-one-out-proposal and its new latest label selection
-        push!(prop_and_label, (s, labels_sampled[s]))
-    end
-    # get raw kernels from tree, also as tree_kernel type
-    # TODO COVARIANCE CONTINUATION CORRECTION FOR DEPTH OF TREE KERNELS
-    components = map(
-        pr_lb -> getKernelTree(proposals[pr_lb[1]], pr_lb[2], permute, true),
-        prop_and_label,
-    )
-
-    # TODO upgrade to tuples
-    return calcProductGaussians(M, [components...]; weight)
-end
-
-function calcProductKernelsBTLabels(
-    M::AbstractManifold,
-    proposals::AbstractVector,
-    N_lbl_sets::AbstractVector{<:NTuple},
-    permute::Bool = true; # true because signature is BTLabels
-    weights = 1 / length(N_lbl_sets) .* ones(length(N_lbl_sets)),
-)
-    #
-    # partials = getKernelTree.(proposals, Ref(1)) .|> _getprl
-    # @show _mergepartials(M, partials)
-    # T = typeof(getKernelTree(proposals[1], 1)) # FIXME FIXME FIXME for products of partials, not just [1]
-    N = length(N_lbl_sets)
-    # FIXME abstract vectorT not type-stable
-    post = Vector{ConcentratedGaussianKernel}(undef, N) 
-
-    for (i, lbs) in enumerate(N_lbl_sets)
-        post[i] = calcProductKernelBTLabels(M, proposals, _makevec(lbs); permute, weight = weights[i])
-    end
-
-    return post
-end
-
-
-# TODO why not use a standardized `getChildren`?
-function generateLabelPoolRecursive(
-    proposals::AbstractVector{<:HomotopyDensity},
-    labels_sampled::AbstractVector{<:Integer},
-)
-    # NOTE at top of tree, selections will be [1,1]
-    child_label_pools = Vector{Vector{Int}}()
-
-    # Are all selected labels leaves?
-    all_leaves = true
-    for _ = 1:length(proposals)
-        push!(child_label_pools, Vector{Int}())
-    end
-    for (o, sel) in enumerate(labels_sampled)
-        isleaf = true
-        # add interval of left and right children for next scale label sampling
-        if exists_BTLabel(proposals[o], leftIndex(proposals[o], sel))
-            push!(child_label_pools[o], leftIndex(proposals[o], sel))
-            isleaf = false
-        end
-        if exists_BTLabel(proposals[o], rightIndex(proposals[o], sel))
-            push!(child_label_pools[o], rightIndex(proposals[o], sel))
-            isleaf = false
-        end
-        all_leaves &= isleaf
-        if isleaf
-            push!(child_label_pools[o], sel)
-        end
-    end
-
-    return child_label_pools, all_leaves
-end
-
-"""
-    $SIGNATURES
-
-Notes:
-- Advise, 2<=MC to ensure multiscale works during decent transitions (TBD obsolete requirement)
-- To force sequential Gibbs on leaves only, use:
-  `label_pools = [[(length(getPoints(prop))+1):(2*length(getPoints(prop)));] for prop in proposals]`
-- Taken from: Sudderth, E.B., Ihler, A.T., Isard, M., Freeman, W.T. and Willsky, A.S., 2010. 
-  Nonparametric belief propagation. Communications of the ACM, 53(10), pp.95-103.
-"""
-function sampleProductSeqGibbsBTLabel(
-    M::AbstractManifold,
-    proposals::AbstractVector{<:HomotopyDensity},
-    MC::Int = 3,
-    # pool of sampleable labels
-    label_pools::Vector{Vector{Int}} = [[1:1;] for _ in proposals],
-    labels_sampled::Vector{Int} = [rand(label_pools[i]) for i in 1:length(proposals)];
-    # multiscale_parents = nothing;
-    MAX_RECURSE_DEPTH::Int = 24, # 2^24 is so deep
-    _labelsChoosen::Vector{@NamedTuple{loo::Int64, selected::Vector{Int64}, pool::Vector{Vector{Int64}}, catp::Vector{Float64}}} = Vector{@NamedTuple{loo::Int64, selected::Vector{Int64}, pool::Vector{Vector{Int64}}, catp::Vector{Float64}}}()
-)
-    # local helpers for partials either vec or nothing
-    _leng(s::Nothing) = 0
-    _leng(s::Union{<:AbstractVector{<:Integer}, <:Tuple}) = length(s)
-
-    # apply further partials to existing kernel
-    # how many incoming proposals
-    d = length(proposals)
-    propIdxs_Gibbs = 1:d
-
-    _trivial_label_pool = all(length.(label_pools) .== 1)
-    # pick the next leave-out proposal
-    # TODO, gibbSeq might be different for unbalanced nodes "cross-products" during multiscale
-    for _burn = 1:MC, lvout_idx in propIdxs_Gibbs
-        # on first pass labels_sampled come from parent-recursive as part of multi-scale (i.e. pre-homotopy) operations
-        # calc product of Gaussians from currently selected \LOO-proposals
-        lvin_product_tmp = calcProductKernelBTLabels(
-            M,
-            proposals,
-            labels_sampled,
-            lvout_idx,
-            propIdxs_Gibbs;
-            permute = false,
-        )
-        
-        # to find leave-out (LO) resample weights, evaluate leave-in (LI) mean against temporary leavein_product kernel
-        lvout_centers = [mean(getKernelTree(proposals[lvout_idx], i, false)) for i in label_pools[lvout_idx]]
-        # if lvout_centers are partial, then only evaluate with partial lvin_product_tmp
-        lvout_prl = _getprl(getKernelTree(proposals[lvout_idx], label_pools[lvout_idx][1], false))
-        lvin_product_tmp_partial = _intersectpartials(M, lvin_product_tmp, lvout_prl)
-
-        # overcome case where no partial overlap exists
-        resample_weights = if 0 < _leng(_getprl(lvin_product_tmp_partial))
-            resample_weights = evaluateDensityAtPoints(M, lvin_product_tmp_partial, lvout_centers, true)
-            # update label-distribution of out-proposal from product of selected LOO-proposal components
-            p = Categorical(resample_weights)
-            labels_sampled[lvout_idx] = label_pools[lvout_idx][rand(p)]
-            resample_weights
-        else
-            NaN*ones(length(lvout_centers))
-        end
-
-        # slightly heavy memory usage to aid DX
-        push!(_labelsChoosen, (;
-            loo = lvout_idx,
-            selected = deepcopy(labels_sampled),
-            pool = deepcopy(label_pools),
-            catp = deepcopy(resample_weights),
-        ))
-
-        # don't have to resample if only one label to choose from
-        if _trivial_label_pool && ( lvout_idx == propIdxs_Gibbs[end])
-            break
-        end
-    end
-
-    # construct new label pool for children in multiscale
-    child_label_pools, all_leaves = generateLabelPoolRecursive(proposals, labels_sampled)
-
-    # recursively call sampling down the multiscale tree ("pyramid") -- aka homotopy
-    # limit recursion to MAX_RECURSE_DEPTH
-    # FIXME, final label selection should not be sensitive to being all_leaves.
-    if 0 < MAX_RECURSE_DEPTH && !all_leaves
-        # @info "Recurse down manellic tree for multiscale product"
-        # labels_sampled_copy = deepcopy(labels_sampled)
-        labels_sampled = sampleProductSeqGibbsBTLabel(
-            M,
-            proposals,
-            MC,
-            child_label_pools;
-            # labels_sampled_copy; # randomly sample from new child pool
-            MAX_RECURSE_DEPTH = MAX_RECURSE_DEPTH - 1,
-            _labelsChoosen,
-        )
-
-        # TODO, [circa 2006, Rudoy & Wolfe] detailed balance (Hastings) by rejecting a multiscale decent given simulated or parallel tempering
-        # recursive call of sampleProductSeqGibbsBTLabel but with same parameters as this function invokation, aka reject the decend
-    end
-
-    #
-    return labels_sampled
-end
-
-
-function sampleProductSeqGibbsBTLabels(
-    M::AbstractManifold,
-    proposals::AbstractVector{<:HomotopyDensity},
-    MC::Int = 3,
-    N::Int = round(Int, mean(Npts.(proposals))), # FIXME use getLength or length of proposal (not getPoints)
-    label_pools = [[1:1;] for _ in proposals];
-    _labelsChoosen_pp::Vector{Vector{@NamedTuple{loo::Int64, selected::Vector{Int64}, pool::Vector{Vector{Int64}}, catp::Vector{Float64}}}} = Vector{Vector{@NamedTuple{loo::Int64, selected::Vector{Int64}, pool::Vector{Vector{Int64}}, catp::Vector{Float64}}}}(undef, N)
-)
-    #
-    d = length(proposals)
-    posterior_labels = Vector{NTuple{d, Int}}(undef, N)
-
-    for i = 1:N
-        _labelsChoosen_pp[i] = Vector{@NamedTuple{loo::Int64, selected::Vector{Int64}, pool::Vector{Vector{Int64}}, catp::Vector{Float64}}}()
-        posterior_labels[i] =
-            tuple(sampleProductSeqGibbsBTLabel(M, proposals, MC, label_pools; _labelsChoosen = _labelsChoosen_pp[i])...)
-    end
-
-    return posterior_labels
-end
 
 ##
