@@ -378,7 +378,7 @@ end
 # covariance eigen decomposition and sort ascending
 function eigenCoords!(
     f_CVp::AbstractMatrix;
-    partial::Union{Nothing, AbstractVector{<:Integer}} = nothing,
+    partial::Union{Nothing, <:Tuple} = nothing,
 )
     function _decomp(
         evc::AbstractMatrix, 
@@ -403,46 +403,6 @@ function eigenCoords!(
     return f_Q_ax, Λ, pidx
 end
 
-function _rotateCoordsPartial(
-    M::AbstractLieGroup,
-    r_CCp::AbstractVector,
-    ax_R_r::AbstractMatrix;
-    partial::Union{Nothing, AbstractVector{<:Integer}} = nothing,
-)
-    _unrollpartial(::Nothing) = LinearAlgebra.I
-    _unrollpartial(p::AbstractVector{<:Integer}) = begin
-        m = zeros(Int,manifold_dimension(M))
-        m[p] .= 1
-        return m
-    end
-    _unrollpartial(p::ArrayPartition) = error("TODO _unrollpartial for ArrayPartition")
-    _ = _unrollpartial(partial) # FIXME
-    _ax_R_r = _forcemutable(ax_R_r)
-    # remove Nans
-    for i in axes(_ax_R_r, 1)
-        for j in axes(_ax_R_r, 2)
-            if !isnothing(partial) && (!(i in partial) || !(j in partial))
-                # default values for inactive elements of rotation matrix
-                _ax_R_r[i,j] = i == j ? 1.0 : 0.0
-            end
-            # else leave row and column unchanged
-        end
-    end
-
-    # rotate coordinates
-    return map(r_CCp) do r_Cp
-        _r_Cp = _forcemutable(r_Cp)
-        for j in 1:length(_r_Cp)
-            if !isnothing(partial) && !(j in partial)
-                # default values for inactive coordinates
-                _r_Cp[j] = 0.0
-            end
-            # else leave coordinate unchanged
-        end
-        _ax_R_r * _r_Cp
-    end
-end
-
 
 """
     $SIGNATURES
@@ -460,20 +420,19 @@ function splitPointsEigen(
     weights::AbstractVector{<:Real} = ones(length(r_PP)); # FIXME, make static vector unless large
     kernel = ConcentratedGaussianKernel,
     kernel_bw = nothing,
-    partial::Union{Nothing, AbstractVector{<:Integer}} = nothing,
+    partial::Union{Nothing, <:Tuple} = nothing,
     partl_cb::Union{Nothing, <:Function} = nothing,
 ) where {P <: AbstractArray}
     #
-    len = length(r_PP)
-
+    
     # important, covariance is calculated around mean of points, which enables log to avoid singularities
     # do calculations around mean point on manifold, i.e. towards Riemannian
     p = mean(M, r_PP)
-    r_XXp = log.(Ref(M), Ref(p), r_PP)      # FIXME replace with on-manifold distance
-    r_CCp = vee.(Ref(LieAlgebra(M)), r_XXp) # TODO, remove LieGroup/LieAlgebra restriction 
-
+    len = length(r_PP)
+    weight = sum(weights)
     D = manifold_dimension(M)
     ndia = ((D - 1) ÷ 2 + 1) * D
+
     # use provided bandwidth if available, or try estimate multisample covariance
     cv = if ndia < len
         SMatrix{D, D, Float64}(
@@ -489,6 +448,12 @@ function splitPointsEigen(
         SMatrix{D, D, Float64}(zeros(D, D))
     end
 
+    knl = kernel(p, cv, weight; partial, partl_cb)
+    
+
+    r_XXp = log.(Ref(M), Ref(p), r_PP)      # FIXME replace with on-manifold distance
+    r_CCp = vee.(Ref(LieAlgebra(M)), r_XXp) # TODO, remove LieGroup/LieAlgebra restriction 
+
     # TODO, handle these if-else cases better
     if isapprox(0.0, norm(cv)) 
         # Fall back case
@@ -501,16 +466,12 @@ function splitPointsEigen(
         end
         return r_CCp, BitVector(ntuple(i -> true, Val(len))), kernel(p, bw)
     end
-    # S = SymmetricPositiveDefinite(2)
-    # @info "COV" cv LinearAlgebra.isposdef(cv) Manifolds.check_point(S,cv) len
+
     # expecting largest variation on coord dimension `pidx[end]`
     r_R_ax, Λ, pidx = eigenCoords!(cv; partial)
     ax_R_r = r_R_ax'
 
     # rotate coordinates
-    # ax_CCp = map(r_CCp) do r_Cp
-    #     ax_R_r * r_Cp
-    # end
     ax_CCp = _rotateCoordsPartial(M, r_CCp, ax_R_r; partial)
 
     # this is a local test around base point p (not at global 0)
@@ -543,10 +504,8 @@ function splitPointsEigen(
     _flipmask_minormax!(imask, mask, ax_CC1; argminmax = argmin)
     _flipmask_minormax!(mask, imask, ax_CC1; argminmax = argmax)
 
-    weight = sum(weights)
-
     # return rotated coordinates and split mask
-    return ax_CCp, mask, kernel(p, cv, weight; partial=_tuple(partial), partl_cb)
+    return ax_CCp, mask, knl
 end
 
 
@@ -556,7 +515,7 @@ function splitsortBinary!(
     high::Integer;
     kernel,
     kernel_bw,
-    partial,
+    partial::Union{Nothing, <:Tuple},
     partl_cb,
 )
     # take a slice of data
@@ -628,7 +587,7 @@ function buildTree_Manellic!(
         high;
         kernel,
         kernel_bw = _kernel_bw,
-        partial, # TODO remove, get from hode internally
+        partial = _tuple(partial), # TODO remove, get from hode internally
         partl_cb,
     )
 
