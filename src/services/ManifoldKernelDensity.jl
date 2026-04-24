@@ -94,7 +94,7 @@ function manikde!(
     pts::AbstractVector;
     bw = diagm(ones(manifold_dimension(M))),
     algo = Optim.NelderMead(),
-    partial::Union{Nothing, AbstractVector{<:Integer}} = nothing,
+    partial::Union{Nothing, <:Tuple, AbstractVector{<:Integer}} = nothing,
     kw...
 )
     #
@@ -105,12 +105,12 @@ function manikde!(
         pts;
         kernel_bw = bw,
         kernel = ConcentratedGaussianKernel,
-        partial,
+        partial = _tuple(partial),
         partl_cb,
     )
 
     # mask bw for partially excluded dimensions -- assumed 1.0 from legacy but...
-    __partialCovToDefault!(s) = _partialCovToDefault!(partial, s)
+    __partialCovToDefault!(s) = _partialCovToDefault!(_makevec(partial), s)
 
     # Cost function to optimize
     # avoid rebuilding tree at each optim iteration!!!

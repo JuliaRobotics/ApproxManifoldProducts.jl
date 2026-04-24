@@ -512,16 +512,30 @@ end
 function splitsortBinary!(
     hode::HomotopyDensity,
     low::Integer,
-    high::Integer;
+    high::Integer,
+    index::Integer;
+    leaf_size::Integer = 1,
     kernel,
     kernel_bw,
     partial::Union{Nothing, <:Tuple},
     partl_cb,
 )
+    keepbranching = true
+
     # take a slice of data
+    npts = high - low + 1
     idc = low:high
+    
     # according to current index permutation (i.e. sort data as you build the tree)
     ido = view(hode.permute, idc)
+    
+    # secondary recursion termination case, seems odd to have two terminations FIXME
+    if npts <= leaf_size
+        keepbranching = false
+        # HACK mid=-1, knl=nothing if keepbranching false 
+        return -1, Set(ido), nothing, keepbranching
+    end
+
     # split the slice of order-permuted data
     _, mask, knl = splitPointsEigen(
         getManifold(hode),
@@ -545,7 +559,15 @@ function splitsortBinary!(
     end
     mid_idx = low + sum(imask) - 1
 
-    return mid_idx, Set(ido), knl
+
+    # primary recursion termination case
+    #  occurs after permute sort modifications in recursion stack 
+    #  this prevents an overshoot in index...
+    if (Npts(hode) <= index)
+        keepbranching = false
+    end
+
+    return mid_idx, Set(ido), knl, keepbranching
 end
 
 
@@ -557,7 +579,7 @@ function buildTree_Manellic!(
     kernel = MvNormal,
     kernel_bw = nothing,
     leaf_size = 1,
-    partial::Union{Nothing, AbstractVector{<:Integer}} = nothing,  # TODO remove, get from hode internally
+    partial::Union{Nothing, <:Tuple, AbstractVector{<:Integer}} = nothing,  # TODO remove, get from hode internally
     partl_cb::Union{Nothing, <:Function} = nothing,
 )
     # DX code bug stop, FIXME remove, ensure bugfree with tests
@@ -573,30 +595,38 @@ function buildTree_Manellic!(
     _kernel_bw = _legacybw(kernel_bw)
 
     #
-    N = Npts(hode)
-    npts = high - low + 1
+    # N = Npts(hode)
+    # npts = high - low + 1
     
-    # secondary recursion termination case, seems odd to have two terminations FIXME
-    if npts <= leaf_size
-        return hode
-    end
+    # # secondary recursion termination case, seems odd to have two terminations FIXME
+    # if npts <= leaf_size
+    #     return hode
+    # end
 
-    mid_idx, sido, knl = splitsortBinary!(
+    # HACK, mid=-1, knl=nothing if keepbranching false
+    mid_idx, sido, knl, keepbranching = splitsortBinary!(
         hode,
         low,
-        high;
+        high,
+        index;
+        leaf_size,
         kernel,
         kernel_bw = _kernel_bw,
         partial = _tuple(partial), # TODO remove, get from hode internally
         partl_cb,
     )
 
-    # primary recursion termination case
-    #  occurs after permute sort modifications in recursion stack 
-    #  this prevents an overshoot in index...
-    if (N <= index)
+    # Terminate recursion as determined by splitsort
+    if !keepbranching
         return hode
     end
+    # # primary recursion termination case
+    # #  occurs after permute sort modifications in recursion stack 
+    # #  this prevents an overshoot in index...
+    # if (N <= index)
+    #     return hode
+    # end
+
     # set tree kernel
     # FIXME, THIS USED TO BE BELOW recursive subtree build
     tkT = eltype(hode.tree_kernels)
@@ -614,7 +644,7 @@ function buildTree_Manellic!(
             kernel,
             kernel_bw = _kernel_bw,
             leaf_size,
-            partial,
+            partial = _tuple(partial),
             partl_cb,
         )
     end
@@ -628,7 +658,7 @@ function buildTree_Manellic!(
             kernel,
             kernel_bw = _kernel_bw,
             leaf_size,
-            partial,
+            partial = _tuple(partial),
             partl_cb,
         )
     end
@@ -655,7 +685,7 @@ function buildTree_Manellic!(
     weights::AbstractVector{<:Real} = ones(N) .* (1 / N),
     kernel = ConcentratedGaussianKernel,
     kernel_bw = nothing, # TODO
-    partial::Union{Nothing, AbstractVector{<:Integer}, <:Tuple} = nothing,
+    partial::Union{Nothing, <:Tuple, AbstractVector{<:Integer}} = nothing,
     partl_cb::Union{Nothing, <:Function} = nothing,
 ) where {P <: AbstractArray}
     #
@@ -704,7 +734,7 @@ function buildTree_Manellic!(
         N; # to end of data
         kernel,
         kernel_bw,
-        partial,
+        partial = _tuple(partial),
         partl_cb = prlcb,
     )
 
