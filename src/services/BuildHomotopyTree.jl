@@ -83,8 +83,7 @@ function buildTree_Manellic!(
     end
 
     # Must always sort down into leaf_size pool (which might be > 1) before terminating recursion
-    # HACK returns if keepbranching==false, also mid=-1
-    mid_idx, keepbranching = splitsortBinary!(
+    mid_idx, stopbranching = splitsortBinary!(
         hode,
         low,
         high,
@@ -97,9 +96,11 @@ function buildTree_Manellic!(
     )
 
     # Terminate recursion as determined by splitsort, and after necessary sort in leaf nodes of tree
-    if !keepbranching
+    if stopbranching
         return hode
-    end 
+    end
+    # !(Npts(hode) <= index) && error("DX bug stop. This should not have happened since npts<=leaf_size should have stopped tree build recursion, but now Npts(hode)=$(Npts(hode)) > index=$(index)")
+
 
     # recursively check need for left subtree
     if low < mid_idx
@@ -156,24 +157,11 @@ function splitsortBinary!(
     _legacybw(s::AbstractMatrix) = s
     _legacybw(s::AbstractVector) = diagm(s)
 
-
-    keepbranching = true
-
     # take a slice of data
-    npts = high - low + 1
     idc = low:high
     
     # according to current index permutation (i.e. sort data as you build the tree)
     ido = view(hode.permute, idc)
-    
-    # secondary recursion termination case, seems odd to have two terminations 
-    # FIXME, this will likely fail if leaf_size is not 1, since mid_idx will be wrong
-    if npts <= leaf_size
-        keepbranching = false
-        # HACK mid=-1, knl=nothing if keepbranching false 
-        return -1, keepbranching
-    end
-
 
     # split the slice of order-permuted data
     _, mask, knl = splitPointsEigen(
@@ -198,19 +186,19 @@ function splitsortBinary!(
     end
     mid_idx = low + sum(imask) - 1
 
-
-    # primary recursion termination case
-    #  occurs after permute sort modifications in recursion stack 
-    #  this prevents an overshoot in index...
-    if (Npts(hode) <= index)
-        keepbranching = false
-    else
+    # store tree kernel and segment indices; after sorting
+    if (index <= Npts(hode))
         # set tree kernel
-        # NOTE, THIS USED TO BE BELOW recursive subtree build
+        # NOTE, THIS USED TO BE AFTER recursive subtree build
         tkT = eltype(hode.tree_kernels)
         hode.tree_kernels[index] = tkT(knl; partl_cb)
-        hode.segments[index] = Set(ido)     
+        hode.segments[index] = Set(ido)
     end
 
-    return mid_idx, keepbranching
+    # recursion termination case
+    # TBD, untested leaf_size is not 1
+    npts = high - low + 1
+    stopbranching = (npts <= leaf_size) || (Npts(hode) < index)
+
+    return mid_idx, stopbranching
 end
