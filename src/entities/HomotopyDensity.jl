@@ -36,39 +36,6 @@ Minor eigenvectors are sometimes called "trailing eigenvectors," or "residual mo
     # _unibw::U
 end
 
-HomotopyDensity{
-  partial
-}(;
-  manifold::M, 
-  data::Vector{P},
-  leaf_kernels::Vector{HL},
-  tree_kernels::Vector{HT},
-  kw...
-) where {partial, M, P, HL, HT} = 
-HomotopyDensity{partial, M, P, HL, HT}(;
-  manifold,
-  data,
-  leaf_kernels,
-  tree_kernels,
-  kw...
-)
 
-function HomotopyDensity{
-  partial
-}(
-  hode::HomotopyDensity{partl}
-) where {partial, partl}
-  _partl = _intersect(partial, partl)
-  HomotopyDensity{_partl}(;
-    manifold = getManifold(hode),
-    data = hode.data,
-    leaf_kernels = hode.leaf_kernels,
-    tree_kernels = hode.tree_kernels,
-    weights = getWeights(hode),
-    permute = hode.permute,
-    segments = hode.segments,
-    infoPerCoord = hode.infoPerCoord,
-  )
-end
 
 

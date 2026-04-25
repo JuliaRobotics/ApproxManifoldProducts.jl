@@ -274,22 +274,55 @@ function buildTree_Manellic!(
 end
 
 
-
-
-# previously manikde!_manellic
-function manikde!(
-    M::AbstractManifold,
-    pts::AbstractVector;
-    bw = diagm(ones(manifold_dimension(M))),
-    algo = Optim.NelderMead(),
-    partial::Union{Nothing, <:Tuple, AbstractVector{<:Integer}} = nothing,
-    kw...
+HomotopyDensity{
+  partial
+}(;
+  manifold::M, 
+  data::Vector{P},
+  leaf_kernels::Vector{HL},
+  tree_kernels::Vector{HT},
+  kw...
+) where {partial, M, P, HL, HT} = 
+HomotopyDensity{partial, M, P, HL, HT}(;
+  manifold,
+  data,
+  leaf_kernels,
+  tree_kernels,
+  kw...
 )
-    #
-    M_, reprl, partl_cb = getManifoldPartial(M, partial, pts[1])
 
-    mtree = ApproxManifoldProducts.buildTree_Manellic!(
-        M,
+function HomotopyDensity{
+  partial
+}(
+  hode::HomotopyDensity{partl}
+) where {partial, partl}
+  _partl = _intersect(partial, partl)
+  HomotopyDensity{_partl}(;
+    manifold = getManifold(hode),
+    data = hode.data,
+    leaf_kernels = hode.leaf_kernels,
+    tree_kernels = hode.tree_kernels,
+    weights = getWeights(hode),
+    permute = hode.permute,
+    segments = hode.segments,
+    infoPerCoord = hode.infoPerCoord,
+  )
+end
+
+function HomotopyDensity{
+    partial
+}(
+    manifold::AbstractManifold,
+    pts::AbstractVector;
+    bw = diagm(ones(manifold_dimension(manifold))),
+    algo = Optim.NelderMead(),
+    kw...
+) where {partial}
+    #
+    M_, reprl, partl_cb = getManifoldPartial(manifold, partial, pts[1])
+
+    hode = ApproxManifoldProducts.buildTree_Manellic!(
+        manifold,
         pts;
         kernel_bw = bw,
         kernel = ConcentratedGaussianKernel,
@@ -302,9 +335,9 @@ function manikde!(
 
     # Cost function to optimize
     # avoid rebuilding tree at each optim iteration!!!
-    _cost(σ::Real) =           entropy(mtree,       [σ^2;;]                 )
-    _cost(σ::AbstractVector) = entropy(mtree, diagm(__partialCovToDefault!(σ .^ 2)))
-    _cost(σ::AbstractMatrix) = entropy(mtree,       __partialCovToDefault!(σ ^ 2)  )
+    _cost(σ::Real) =           entropy(hode,       [σ^2;;]                 )
+    _cost(σ::AbstractVector) = entropy(hode, diagm(__partialCovToDefault!(σ .^ 2)))
+    _cost(σ::AbstractMatrix) = entropy(hode,       __partialCovToDefault!(σ ^ 2)  )
 
     _bw(v::AbstractVector) = __partialCovToDefault!(v)
     _bw(m::AbstractMatrix) = _bw(diag(m))
@@ -312,8 +345,8 @@ function manikde!(
     # optimize for best LOOCV bandwidth
     # FIXME switch to RLM (or other Manopt) techinque instead 
     # set lower and upper bounds for Golden section optimization
-    best_cov = if 1 === manifold_dimension(M)
-        lcov, ucov = getBandwidthSearchBounds(mtree)
+    best_cov = if 1 === manifold_dimension(manifold)
+        lcov, ucov = getBandwidthSearchBounds(hode)
         res =
             Optim.optimize((s) -> _cost([s;]), lcov[1], ucov[1], Optim.GoldenSection())
         [Optim.minimizer(res);;]
@@ -327,9 +360,9 @@ function manikde!(
     end
     __partialCovToDefault!(best_cov)
 
-    bel = updateBandwidths(mtree, best_cov; partl_cb)
+    belief = updateBandwidths(hode, best_cov; partl_cb)
     # return tree with correct bandwidth
-    return bel
+    return belief
 end
 
 
