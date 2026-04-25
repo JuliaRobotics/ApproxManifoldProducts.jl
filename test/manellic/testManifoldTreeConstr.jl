@@ -74,7 +74,82 @@ end
 ## ===================================================================
 
 
-@testset "HomotopyDensity 1D unbalanced tree construction, left" begin
+@testset "HomotopyDensity 1D unbalanced tree construction, left and sorted" begin
+## 
+
+    M = LieGroups.TranslationGroup(1)
+    # design mean at 0.0
+    pts = [
+        [-1.0],
+        [3.0],
+        [-2.0],
+    ]
+    
+    bw = [0.5;]
+    #
+    #
+    #               {1}1:3
+    #              /      \
+    #         {2}1,3      (3)2
+    #          /   \      /   \
+    #       (4)3  (5)1   *     *
+    #
+    hode = ApproxManifoldProducts.buildTree_Manellic!(
+        M,
+        pts;
+        kernel_bw = bw,
+        kernel = ConcentratedGaussianKernel,
+    )
+
+##
+
+    @test 1 == Ndim(hode)
+    @test 3 == Npts(hode)
+
+    @test hode.permute == [3;1;2]
+    @test hode.segments[1] == Set(1:3)
+    @test hode.segments[2] == Set([1,3]) # segments are raw dataidx, not permuted dataidx
+    @test !isassigned(hode.segments, 3) # no third segment because right child is leaf
+
+    @test isassigned(hode.tree_kernels, 1)
+    @test isassigned(hode.tree_kernels, 2)
+    @test !isassigned(hode.tree_kernels, 3)
+
+    @test isapprox( 0.0, mean(hode.tree_kernels[1])[1]; atol = 1e-6)
+    @test isapprox(-1.5, mean(hode.tree_kernels[2])[1]; atol = 1e-6)
+
+    @test isassigned(hode.leaf_kernels, 1)
+    @test isassigned(hode.leaf_kernels, 2)
+    @test isassigned(hode.leaf_kernels, 3)
+
+    # leaf kernels are sorted in geometric order along eigen axis
+    @test isapprox(-2.0, mean(hode.leaf_kernels[1])[1]; atol = 1e-6)
+    @test isapprox(-1.0, mean(hode.leaf_kernels[2])[1]; atol = 1e-6)
+    @test isapprox( 3.0, mean(hode.leaf_kernels[3])[1]; atol = 1e-6)
+
+    @test !ApproxManifoldProducts.isLeaf_BTLabel(hode, 1)
+    @test !ApproxManifoldProducts.isLeaf_BTLabel(hode, 2)
+    @test ApproxManifoldProducts.isLeaf_BTLabel(hode, 3)
+
+    @test ApproxManifoldProducts.isLeaf_BTLabel(hode, 4)
+    @test ApproxManifoldProducts.isLeaf_BTLabel(hode, 5)
+    @test ApproxManifoldProducts.isLeaf_BTLabel(hode, 6) # there for binary tree defaults, although undef
+    @test ApproxManifoldProducts.isLeaf_BTLabel(hode, 7) # there for binary tree defaults, although undef
+
+    @test ApproxManifoldProducts.exists_BTLabel(hode, 1)
+    @test ApproxManifoldProducts.exists_BTLabel(hode, 2)
+    @test ApproxManifoldProducts.exists_BTLabel(hode, 3)
+    @test ApproxManifoldProducts.exists_BTLabel(hode, 4)
+    @test ApproxManifoldProducts.exists_BTLabel(hode, 5)
+    @test !ApproxManifoldProducts.exists_BTLabel(hode, 6)
+    @test !ApproxManifoldProducts.exists_BTLabel(hode, 7)
+    @test !ApproxManifoldProducts.exists_BTLabel(hode, 8) # why is this here
+
+##
+end
+
+
+@testset "HomotopyDensity 1D unbalanced tree construction, left but shuffled" begin
 ## 
 
     M = LieGroups.TranslationGroup(1)
@@ -115,9 +190,16 @@ end
     @test isassigned(hode.tree_kernels, 2)
     @test !isassigned(hode.tree_kernels, 3)
 
+    @test isapprox( 0.0, mean(hode.tree_kernels[1])[1]; atol = 1e-6)
+    @test isapprox(-1.5, mean(hode.tree_kernels[2])[1]; atol = 1e-6)
+
     @test isassigned(hode.leaf_kernels, 1)
     @test isassigned(hode.leaf_kernels, 2)
     @test isassigned(hode.leaf_kernels, 3)
+
+    @test isapprox(-2.0, mean(hode.leaf_kernels[1])[1]; atol = 1e-6)
+    @test isapprox(-1.0, mean(hode.leaf_kernels[2])[1]; atol = 1e-6)
+    @test isapprox( 3.0, mean(hode.leaf_kernels[3])[1]; atol = 1e-6)
 
     @test !ApproxManifoldProducts.isLeaf_BTLabel(hode, 1)
     @test !ApproxManifoldProducts.isLeaf_BTLabel(hode, 2)
@@ -135,7 +217,7 @@ end
     @test ApproxManifoldProducts.exists_BTLabel(hode, 5)
     @test !ApproxManifoldProducts.exists_BTLabel(hode, 6)
     @test !ApproxManifoldProducts.exists_BTLabel(hode, 7)
-
+    @test !ApproxManifoldProducts.exists_BTLabel(hode, 8)
 
 ##
 end
@@ -169,39 +251,47 @@ end
     )
 
 ##
-    @error "WORK IN PROGRESS"
-    # @test 1 == Ndim(hode)
-    # @test 3 == Npts(hode)
 
-    # @test hode.permute == [3;1;2]
-    # @test hode.segments[1] == Set(1:3)
-    # @test !isassigned(hode.segments, 2) # no second segment because left child is leaf
-    # @test hode.segments[3] == Set(1:2) # TBD these are dataidx not permuted dataidx
+    @test 1 == Ndim(hode)
+    @test 3 == Npts(hode)
 
-    # @test isassigned(hode.tree_kernels, 1)
-    # @test isassigned(hode.tree_kernels, 2)
-    # @test !isassigned(hode.tree_kernels, 3)
+    @test hode.permute == [3;1;2]
+    @test hode.segments[1] == Set(1:3)
+    @test !isassigned(hode.segments, 2) # no third segment because right child is leaf
+    @test hode.segments[3] == Set(1:2)
 
-    # @test isassigned(hode.leaf_kernels, 1)
-    # @test isassigned(hode.leaf_kernels, 2)
-    # @test isassigned(hode.leaf_kernels, 3)
+    @test isassigned(hode.tree_kernels, 1)
+    @test !isassigned(hode.tree_kernels, 2)
+    @test isassigned(hode.tree_kernels, 3)
 
-    # @test !ApproxManifoldProducts.isLeaf_BTLabel(hode, 1)
-    # @test !ApproxManifoldProducts.isLeaf_BTLabel(hode, 2)
-    # @test ApproxManifoldProducts.isLeaf_BTLabel(hode, 3)
+    @test isapprox( 0.0, mean(hode.tree_kernels[1])[1]; atol = 1e-6)
+    @test isapprox( 1.5, mean(hode.tree_kernels[3])[1]; atol = 1e-6)
 
-    # @test ApproxManifoldProducts.isLeaf_BTLabel(hode, 4) # undef but there for binary tree defaults
-    # @test ApproxManifoldProducts.isLeaf_BTLabel(hode, 5) # undef but there for binary tree defaults
-    # @test ApproxManifoldProducts.isLeaf_BTLabel(hode, 6)
-    # @test ApproxManifoldProducts.isLeaf_BTLabel(hode, 7)
+    @test isassigned(hode.leaf_kernels, 1)
+    @test isassigned(hode.leaf_kernels, 2)
+    @test isassigned(hode.leaf_kernels, 3)
 
-    # @test ApproxManifoldProducts.exists_BTLabel(hode, 1)
-    # @test ApproxManifoldProducts.exists_BTLabel(hode, 2)
-    # @test ApproxManifoldProducts.exists_BTLabel(hode, 3)
-    # @test ApproxManifoldProducts.exists_BTLabel(hode, 4)
-    # @test ApproxManifoldProducts.exists_BTLabel(hode, 5)
-    # @test !ApproxManifoldProducts.exists_BTLabel(hode, 6)
-    # @test !ApproxManifoldProducts.exists_BTLabel(hode, 7)
+    @test isapprox(-3.0, mean(hode.leaf_kernels[1])[1]; atol = 1e-6)
+    @test isapprox( 1.0, mean(hode.leaf_kernels[2])[1]; atol = 1e-6)
+    @test isapprox( 2.0, mean(hode.leaf_kernels[3])[1]; atol = 1e-6)
+
+    @test !ApproxManifoldProducts.isLeaf_BTLabel(hode, 1)
+    @test_broken ApproxManifoldProducts.isLeaf_BTLabel(hode, 2)
+    @test_broken !ApproxManifoldProducts.isLeaf_BTLabel(hode, 3)
+
+    @test ApproxManifoldProducts.isLeaf_BTLabel(hode, 4)
+    @test ApproxManifoldProducts.isLeaf_BTLabel(hode, 5)
+    @test ApproxManifoldProducts.isLeaf_BTLabel(hode, 6) # there for binary tree defaults, although undef
+    @test ApproxManifoldProducts.isLeaf_BTLabel(hode, 7) # there for binary tree defaults, although undef
+
+    @test ApproxManifoldProducts.exists_BTLabel(hode, 1)
+    @test !ApproxManifoldProducts.exists_BTLabel(hode, 2)
+    @test ApproxManifoldProducts.exists_BTLabel(hode, 3)
+    @test ApproxManifoldProducts.exists_BTLabel(hode, 4) # not sure about this
+    @test_broken !ApproxManifoldProducts.exists_BTLabel(hode, 5)
+    # @test ApproxManifoldProducts.exists_BTLabel(hode, 6) # not sure about this
+    @test_broken ApproxManifoldProducts.exists_BTLabel(hode, 7)
+    @test_broken ApproxManifoldProducts.exists_BTLabel(hode, 8)
 
 ##
 end
