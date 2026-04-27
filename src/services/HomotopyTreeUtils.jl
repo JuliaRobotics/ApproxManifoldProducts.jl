@@ -18,6 +18,7 @@ function childIndices(
 )
     N = Npts(mt)
     btleft = 2 * krnIdx
+    # FIXME, isleaf for right children only (can happen when doing geometric split)
     # e.g. for N=length(data)=32, left child of 1*2 = 2, and left child of 2*2=4, whose left child is 4*2 = 8, similarly 8*2=16.  
     #  Now the left child of node 16*2 = 32, which is the first leaf node (but careful with index == N)
     #  i.e. right child of node 15 is 2*15+1 = 31, so 15's right child (31) is the last nonleaf
@@ -66,14 +67,11 @@ function exists_BTLabel(hode::HomotopyDensity, idx::Int)
 end
 
 function isLeaf_BTLabel(mt::HomotopyDensity, idx::Int)
-    if exists_BTLabel(mt, leftIndex(mt, idx))
+    # right unbalanced trees are also possible, so cannot base false on lack of left
+    if exists_BTLabel(mt, leftIndex(mt, idx)) || exists_BTLabel(mt, rightIndex(mt, idx))
         return false
-    elseif exists_BTLabel(mt, rightIndex(mt, idx))
-        # TODO likely not needed to check for right child existence
-        return false
-    else
-        return true
     end
+    return true
 end
 
 

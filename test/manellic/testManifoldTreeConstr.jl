@@ -275,6 +275,9 @@ end
     @test isapprox( 1.0, mean(hode.leaf_kernels[2])[1]; atol = 1e-6)
     @test isapprox( 2.0, mean(hode.leaf_kernels[3])[1]; atol = 1e-6)
 
+    @test !ApproxManifoldProducts.exists_BTLabel(hode, ApproxManifoldProducts.leftIndex(hode, 2))
+    @test ApproxManifoldProducts.exists_BTLabel(hode, ApproxManifoldProducts.rightIndex(hode, 2))
+
     @test !ApproxManifoldProducts.isLeaf_BTLabel(hode, 1)
     @test_broken ApproxManifoldProducts.isLeaf_BTLabel(hode, 2)
     @test_broken !ApproxManifoldProducts.isLeaf_BTLabel(hode, 3)
