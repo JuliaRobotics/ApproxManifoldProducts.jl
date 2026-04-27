@@ -42,10 +42,8 @@ function buildTree_Manellic!(
         manifold = M,
         data = r_PP,
         weights,
-        permute = collect(1:N),
         leaf_kernels = lkern,
         tree_kernels = Vector{KT}(undef, N),
-        segments = Vector{Set{Int}}(undef, N),
     )
 
     #
@@ -76,31 +74,29 @@ function buildTree_Manellic!(
     partial::Union{Nothing, <:Tuple, AbstractVector{<:Integer}} = nothing,  # TODO remove, get from hode internally
     partl_cb::Union{Nothing, <:Function} = nothing,
 )
-    # DX bug stop, FIXME remove, ensure bugfree with tests
+    # DX bug stop, FIXME remove, ensure bugfree with tests -- see testManifoldTreeConstr.jl and others
     if index < 0
-        @error "details:" N leaf_size index low high partial
+        @error "DX bug stop, details:" N leaf_size index low high partial
         error("HomotopyDensity tree build error, index=($index) should not be negative")
     end
 
     # Must always sort down into leaf_size pool (which might be > 1) before terminating recursion
-    mid_idx, stopbranching = splitsortBinary!(
+    mid_idx = splitsortBinary!(
         hode,
         low,
         high,
         index;
         leaf_size,
-        kernel,
+        # kernel,
         kernel_bw,
         partial, # TODO remove, get from hode internally
         partl_cb,
     )
 
     # Terminate recursion as determined by splitsort, and after necessary sort in leaf nodes of tree
-    if stopbranching
+    if mid_idx < 0
         return hode
     end
-    # !(Npts(hode) <= index) && error("DX bug stop. This should not have happened since npts<=leaf_size should have stopped tree build recursion, but now Npts(hode)=$(Npts(hode)) > index=$(index)")
-
 
     # recursively check need for left subtree
     if low < mid_idx
@@ -147,7 +143,7 @@ function splitsortBinary!(
     high::Integer,
     index::Integer;
     leaf_size::Integer = 1,
-    kernel,
+    # kernel,
     kernel_bw = nothing,
     partial::Union{Nothing, <:Tuple},
     partl_cb,
@@ -157,48 +153,55 @@ function splitsortBinary!(
     _legacybw(s::AbstractMatrix) = s
     _legacybw(s::AbstractVector) = diagm(s)
 
+    N = Npts(hode)
     # take a slice of data
     idc = low:high
     
     # according to current index permutation (i.e. sort data as you build the tree)
     ido = view(hode.permute, idc)
+    # gido = view(hode.geomtric_permute, idc .+ N)
 
     # split the slice of order-permuted data
-    _, mask, knl = splitPointsEigen(
+    _, mask, midoffset, p, bw = splitPointsEigen(
         getManifold(hode),
         view(hode.data, ido),
         view(hode.weights, ido);
-        kernel,
+        # kernel,
         kernel_bw = _legacybw(kernel_bw),
         partial,
-        partl_cb,
+        # partl_cb,
     )
     imask = xor.(mask, true)
-
+    
     # sort the data as 'small' and 'big' elements either side of the eigen split
-    big = view(ido, mask)  |> collect
-    sml = view(ido, imask) |> collect
-    # inplace reorder the slice portion of hode.permute towards accending
-    _ido = SA[sml...; big...]
-    # ido .= SA[sml...; big...]
-    for (i,v) in enumerate(_ido)
-        ido[i] = v
-    end
-    mid_idx = low + sum(imask) - 1
+    # towards accending (in-place) reorder of the slice portion
+    # in-place replacement requires a temporary buffer -- achived by vcat, else can use collect here
+    big = view(ido, mask)  # |> collect
+    sml = view(ido, imask) # |> collect
+    ido .= vcat(sml, big)  # vcat buffers elements for in-place "swap", else elements overwritten prematurely 
 
     # store tree kernel and segment indices; after sorting
-    if (index <= Npts(hode))
+    if (index <= N)
         # set tree kernel
         # NOTE, THIS USED TO BE AFTER recursive subtree build
         tkT = eltype(hode.tree_kernels)
+        knl = ConcentratedGaussianKernel(
+            p, bw, sum(view(hode.weights, ido)); 
+            partial, partl_cb
+        )
         hode.tree_kernels[index] = tkT(knl; partl_cb)
         hode.segments[index] = Set(ido)
     end
-
+    
     # recursion termination case
+    # geometric split made possible by sum(imask) instead of just data split (classification labeling must happen in cosort) 
     # TBD, untested leaf_size is not 1
     npts = high - low + 1
-    stopbranching = (npts <= leaf_size) || (Npts(hode) < index)
+    mid_idx = if (npts <= leaf_size) || (N < index)
+        -1
+    else
+        low + midoffset
+    end
 
-    return mid_idx, stopbranching
+    return mid_idx
 end

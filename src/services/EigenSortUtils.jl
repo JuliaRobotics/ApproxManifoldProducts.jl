@@ -36,6 +36,7 @@ function eigenCoords!(
 end
 
 
+
 """
     $SIGNATURES
 
@@ -50,18 +51,16 @@ function splitPointsEigen(
     M::AbstractLieGroup,
     r_PP::AbstractVector{P},
     weights::AbstractVector{<:Real} = ones(length(r_PP)); # FIXME, make static vector unless large
-    kernel = ConcentratedGaussianKernel,
+    # kernel = ConcentratedGaussianKernel,
     kernel_bw = nothing,
     partial::Union{Nothing, <:Tuple} = nothing,
-    partl_cb::Union{Nothing, <:Function} = nothing,
+    # partl_cb::Union{Nothing, <:Function} = nothing,
 ) where {P <: AbstractArray}
     #
     
     # important, covariance is calculated around mean of points, which enables log to avoid singularities
     # do calculations around mean point on manifold, i.e. towards Riemannian
-    p = mean(M, r_PP)
     len = length(r_PP)
-    weight = sum(weights)
     D = manifold_dimension(M)
     ndia = ((D - 1) ÷ 2 + 1) * D
 
@@ -80,64 +79,54 @@ function splitPointsEigen(
         SMatrix{D, D, Float64}(zeros(D, D))
     end
 
-    knl = kernel(p, cv, weight; partial, partl_cb)
-    
-
-    r_XXp = log.(Ref(M), Ref(p), r_PP)      # FIXME replace with on-manifold distance
-    r_CCp = vee.(Ref(LieAlgebra(M)), r_XXp) # TODO, remove LieGroup/LieAlgebra restriction 
-
-    # TODO, handle these if-else cases better
-    if isapprox(0.0, norm(cv)) 
+    # handle some edge cases relating to covariance estimation
+    bw = if isapprox(0.0, norm(cv)) 
         # Fall back case
-        bw = if isnothing(kernel_bw)
-            @error "Not enough points to estimate covariance" maxlog=5
-            # SMatrix{D, D, Float64}(diagm(eps(Float64) * ones(D)))
-            cv
+        if isnothing(kernel_bw)
+            error("Provided data points have no measurable covariance and no kernel bandwidth was provided.")
         else
             kernel_bw
         end
-        return r_CCp, BitVector(ntuple(i -> true, Val(len))), kernel(p, bw)
+    else
+        cv
     end
 
-    # expecting largest variation on coord dimension `pidx[end]`
-    r_R_ax, Λ, pidx = eigenCoords!(cv; partial)
-    ax_R_r = r_R_ax'
+    p = mean(M, r_PP)
+    r_XXp = log.(Ref(M), Ref(p), r_PP)      # FIXME replace with on-manifold distance
+    r_CCp = vee.(Ref(LieAlgebra(M)), r_XXp) # TODO, remove LieGroup/LieAlgebra restriction 
 
-    # rotate coordinates
-    ax_CCp = _rotateCoordsPartial(M, r_CCp, ax_R_r; partial)
+    # default return values
+    #     weight = sum(weights)
+    # knl = kernel(p, bw, weight; partial, partl_cb)
+    mask = BitVector(ntuple(i -> true, Val(len)))
+    # geometric split made possible by sum(imask) instead of just data split (classification labeling must happen in cosort) 
+    midoffset = sum(xor.(mask, true)) - 1
+    ax_CCp = r_CCp
 
-    # this is a local test around base point p (not at global 0)
-    mask = 0 .<= (ax_CCp .|> (s -> isnothing(partial) ? s[1] : s[partial[1]]))
+    # TODO, handle these if-else cases better
+    if !isapprox(0.0, norm(cv)) 
+        # NOTE, this if block started out with coordinates only, so `partial` while ignoring `partl_cb`.
+        # expecting largest variation on coord dimension `pidx[end]`
+        r_R_ax, Λ, pidx = eigenCoords!(cv; partial)
+        ax_R_r = r_R_ax'
 
-    # TODO ALLOW BOTH BALANCED OR UNBALANCED MASK RETRIEVAL, STARTING WITH FORCED MASK BALANCING
-    # NOTE, rebalancing reason: deadcenter of covariance is not halfway between points (unconfirmed)
-    # rebalance if stochastic nearest estimates fall in wrong mask
-    # see #328 for more details and discussion
-    function _flipmask_minormax!(smlmask, bigmask, data; argminmax::Function = argmin)
-        N = length(smlmask)
-        # move minimum mask points over to imask
-        for k = 1:((sum(bigmask) - sum(smlmask)) ÷ 2)
-            # keep flipping the minimum element from mask into imask set
-            # note using first coord, ie.. x-axis as the split axis: `s->s[1]`
-            mlis = (1:sum(bigmask))
-            ami = argminmax(view(data, bigmask))
-            idx = mlis[ami]
-            # get idx from orginal list
-            flipidx = view(1:N, bigmask)[idx]
-            data[flipidx]
-            bigmask[flipidx] = xor(bigmask[flipidx], true)
-            smlmask[flipidx] = xor(smlmask[flipidx], true)
-        end
-        return nothing
+        # rotate coordinates
+        ax_CCp = _rotateCoordsPartial(M, r_CCp, ax_R_r; partial)
+
+        # this is a local test around base point p (not at global 0)
+        mask = 0 .<= (ax_CCp .|> (s -> isnothing(partial) ? s[1] : s[partial[1]]))
+
+        imask = xor.(mask, true)
+        ax_CC1 = (s -> s[1]).(ax_CCp)
+        _flipmask_minormax!(imask, mask, ax_CC1; argminmax = argmin)
+        _flipmask_minormax!(mask, imask, ax_CC1; argminmax = argmax)
+
+        # geometric split made possible by sum(imask) instead of just data split (classification labeling must happen in cosort) 
+        midoffset = sum(xor.(mask, true)) - 1
     end
-
-    imask = xor.(mask, true)
-    ax_CC1 = (s -> s[1]).(ax_CCp)
-    _flipmask_minormax!(imask, mask, ax_CC1; argminmax = argmin)
-    _flipmask_minormax!(mask, imask, ax_CC1; argminmax = argmax)
 
     # return rotated coordinates and split mask
-    return ax_CCp, mask, knl
+    return ax_CCp, mask, midoffset, p, bw
 end
 
 

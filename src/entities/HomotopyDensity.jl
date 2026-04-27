@@ -34,6 +34,14 @@ Minor eigenvectors are sometimes called "trailing eigenvectors," or "residual mo
     segments::Vector{Set{Int}} = Vector{Set{Int}}(undef, length(data))
     infoPerCoord::Vector{Float64} = zeros(manifold_dimension(manifold))
     # _unibw::U
+    """ 
+    Geometric data permute field, allows fast binary tree operations and geometric data splits for manellic (ball) trees. 
+    - Geometric split reqs at most 2*(N+1)-1 elements -- e.g. when nodes have only right children, data=[-3,1,2].
+    """
+    geomtric_permute::SparseArrays.SparseVector{Vector{Int}, Int} = SparseArrays.sparsevec(
+      Dict(1 => collect(1:length(data))), 
+      2*(length(data)+1)-1
+    )
 end
 
 

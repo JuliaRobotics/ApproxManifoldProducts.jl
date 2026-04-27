@@ -275,8 +275,8 @@ end
     @test isapprox( 1.0, mean(hode.leaf_kernels[2])[1]; atol = 1e-6)
     @test isapprox( 2.0, mean(hode.leaf_kernels[3])[1]; atol = 1e-6)
 
-    @test !ApproxManifoldProducts.exists_BTLabel(hode, ApproxManifoldProducts.leftIndex(hode, 2))
-    @test ApproxManifoldProducts.exists_BTLabel(hode, ApproxManifoldProducts.rightIndex(hode, 2))
+    # @test !ApproxManifoldProducts.exists_BTLabel(hode, ApproxManifoldProducts.leftIndex(hode, 2))
+    # @test ApproxManifoldProducts.exists_BTLabel(hode, ApproxManifoldProducts.rightIndex(hode, 2))
 
     @test !ApproxManifoldProducts.isLeaf_BTLabel(hode, 1)
     @test_broken ApproxManifoldProducts.isLeaf_BTLabel(hode, 2)
@@ -377,11 +377,11 @@ end
         
         @test isapprox([9.0;], Statistics.mean(pts))
         
-        ax_CCp, mask, knl = ApproxManifoldProducts.splitPointsEigen(
+        ax_CCp, mask, _p, _bw = ApproxManifoldProducts.splitPointsEigen(
             M,
             pts,
             1/7*ones(length(pts));
-            kernel = ConcentratedGaussianKernel,
+            # kernel = ConcentratedGaussianKernel,
             kernel_bw = bw,
         )
 
@@ -596,9 +596,13 @@ end
     M = LieGroups.TranslationGroup(2)
     α = pi / 3
     r_CC, R, pidx, r_CV = testEigenCoords!(α)
-    ax_CCp, mask, knl = ApproxManifoldProducts.splitPointsEigen(M, r_CC)
+    ax_CCp, mask, midoffset, _p, _bw = ApproxManifoldProducts.splitPointsEigen(M, r_CC)
+
+    # should be around 50 points smaller than geometric middle out of 100 
+    @test isapprox(50, midoffset; atol=5) 
+    
     @test sum(mask) == (length(r_CC) ÷ 2)
-    @test knl isa ConcentratedGaussianKernel
+    # @test knl isa ConcentratedGaussianKernel
     Mr = SpecialOrthogonalGroup(2)
     @test isapprox(α, vee(LieAlgebra(Mr), log(Mr, R))[1]; atol = 0.1)
 

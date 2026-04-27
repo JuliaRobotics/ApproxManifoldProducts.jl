@@ -10,7 +10,7 @@ using Manifolds
 using LieGroups
 import Rotations as Rot_
 using Distributions
-import ApproxManifoldProducts: eigenCoords!, splitPointsEigen
+import ApproxManifoldProducts: splitPointsEigen
 
 using Optim
 
@@ -49,9 +49,10 @@ end
     M = TranslationGroup(2)
     α = pi / 3
     r_CC, R, pidx, r_CV = testEigenCoords!(α)
-    ax_CCp, mask, knl = splitPointsEigen(M, r_CC)
+    ax_CCp, mask, _p, _bw = splitPointsEigen(M, r_CC)
+    @warn "Improve tests on return tuple values of splitPointsEigen"
+    # @test knl isa ConcentratedGaussianKernel
     @test sum(mask) == (length(r_CC) ÷ 2)
-    @test knl isa ConcentratedGaussianKernel
     Mr = SpecialOrthogonalGroup(2)
     @test isapprox(α, vee(Mr, Identity(Mr), log(Mr, R))[1]; atol = 0.1)
 

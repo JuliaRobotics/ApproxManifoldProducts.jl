@@ -168,4 +168,26 @@ function getKernelTree(
 end
 
 
+# TODO ALLOW BOTH BALANCED OR UNBALANCED MASK RETRIEVAL, STARTING WITH FORCED MASK BALANCING
+# NOTE, rebalancing reason: deadcenter of covariance is not halfway between points (unconfirmed)
+# rebalance if stochastic nearest estimates fall in wrong mask
+# see #328 for more details and discussion
+function _flipmask_minormax!(smlmask, bigmask, data; argminmax::Function = argmin)
+    N = length(smlmask)
+    # move minimum mask points over to imask
+    for k = 1:((sum(bigmask) - sum(smlmask)) ÷ 2)
+        # keep flipping the minimum element from mask into imask set
+        # note using first coord, ie.. x-axis as the split axis: `s->s[1]`
+        mlis = (1:sum(bigmask))
+        ami = argminmax(view(data, bigmask))
+        idx = mlis[ami]
+        # get idx from orginal list
+        flipidx = view(1:N, bigmask)[idx]
+        data[flipidx]
+        bigmask[flipidx] = xor(bigmask[flipidx], true)
+        smlmask[flipidx] = xor(smlmask[flipidx], true)
+    end
+    return nothing
+end
+
 ##

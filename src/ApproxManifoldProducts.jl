@@ -4,6 +4,7 @@ import Base: *, isapprox, convert, show, eltype, length
 
 using Logging
 using StaticArrays
+import SparseArrays
 using LinearAlgebra
 import LinearAlgebra: rotate!, det
 

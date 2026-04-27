@@ -304,14 +304,14 @@ end
     # preemptively check splitPoints 
     begin
         
-        ax_CCp, mask, knl = ApproxManifoldProducts.splitPointsEigen(
+        ax_CCp, mask, _p, _bw = ApproxManifoldProducts.splitPointsEigen(
             M,
             pts,
             1/7*ones(length(pts));
-            kernel = ConcentratedGaussianKernel,
+            # kernel = ConcentratedGaussianKernel,
             kernel_bw = bw,
             partial,
-            partl_cb,
+            # partl_cb,
         )
 
         @test mask[1:4] == BitVector([0,0,0,0])
@@ -367,14 +367,14 @@ end
     # preemptively check splitPoints 
     begin
         
-        ax_CCp, mask, knl = ApproxManifoldProducts.splitPointsEigen(
+        ax_CCp, mask, _p, _bw = ApproxManifoldProducts.splitPointsEigen(
             M,
             pts,
             1/7*ones(length(pts));
-            kernel = ConcentratedGaussianKernel,
+            # kernel = ConcentratedGaussianKernel,
             kernel_bw = bw,
             partial,
-            partl_cb,
+            # partl_cb,
         )
 
         @test mask[1:4] == BitVector([0,0,0,0])
