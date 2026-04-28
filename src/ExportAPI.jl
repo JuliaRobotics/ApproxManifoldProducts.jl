@@ -12,6 +12,7 @@ export
     calcProductGaussians
 
 export getPoints, getBW, Ndim, Npts, getWeights
+export getKernelLeaf, getKernelTree #, getKernelLeafAsTreeKer
 # export getKDERange, getKDEMax, getKDEMean, getKDEfit
 export sample, rand, resample, kld, minkld
 export calcMean

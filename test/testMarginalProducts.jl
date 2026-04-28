@@ -181,7 +181,7 @@ end
 ##
 
     @test !isPartial(P12_)
-    @test isnothing(ApproxManifoldProducts._getprl(P12_.leaf_kernels[1]))
+    @test isnothing(ApproxManifoldProducts._getprl(getKernelLeaf(P12_, 1)))
 
     @test isapprox(mean(P12_)[1], 0, atol = 1)
     @test isapprox(mean(P12_)[2], 0, atol = 1)
@@ -241,11 +241,11 @@ end
 
 ##
 
-    @test (1,) == ApproxManifoldProducts._getprl(P1.leaf_kernels[1])
-    @test (1,) == ApproxManifoldProducts._getprl(P1.tree_kernels[1])
+    @test (1,) == ApproxManifoldProducts._getprl(getKernelLeaf(P1, 1))
+    @test (1,) == ApproxManifoldProducts._getprl(getKernelTree(P1, 1))
 
-    @test (2,) == ApproxManifoldProducts._getprl(P3.leaf_kernels[1])
-    @test (2,) == ApproxManifoldProducts._getprl(P3.tree_kernels[1])
+    @test (2,) == ApproxManifoldProducts._getprl(getKernelLeaf(P3, 1))
+    @test (2,) == ApproxManifoldProducts._getprl(getKernelTree(P3, 1))
 
 ## check marginal kernel products
 

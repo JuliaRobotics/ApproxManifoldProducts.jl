@@ -65,7 +65,8 @@ function Base.show(io::IO, hode::HomotopyDensity{partial, M, P, HL, HT}) where {
             print(io, "1]:  ")
             # printstyled(io, "  .tkernels[1] = "; color=:light_black)
             if isassigned(hode.leaf_kernels, 1)
-                printstyled(io, hode.leaf_kernels[1]; color = :light_black)
+                lk = getKernelLeaf(hode, 1)
+                printstyled(io, lk; color = :light_black)
             else
                 printstyled(io, "undef"; color = :red)
                 println(io)
@@ -74,7 +75,8 @@ function Base.show(io::IO, hode::HomotopyDensity{partial, M, P, HL, HT}) where {
             if 1 < Npts(hode)
                 printstyled(io, "         [end]:  "; color = :light_black)
                 if isassigned(hode.leaf_kernels, length(hode.leaf_kernels))
-                    printstyled(io, hode.leaf_kernels[end]; color = :light_black)
+                    lk = getKernelLeaf(hode, Npts(hode))
+                    printstyled(io, lk; color = :light_black)
                 else
                     printstyled(io, "undef"; color = :red)
                     println(io)
@@ -267,8 +269,8 @@ function buildTree_Manellic!(
         partl_cb = prlcb,
     )
 
-    # manual reset leaves in the order discovered
-    permute!(tosort_leaves.leaf_kernels, tosort_leaves.geometric_permute[1])
+    # # manual reset leaves in the order discovered
+    # permute!(tosort_leaves.leaf_kernels, tosort_leaves.geometric_permute[1])
 
     return tosort_leaves
 end
@@ -481,14 +483,16 @@ uniWT(mt::HomotopyDensity) = 1 === length(union(diff(getWeights(mt))))
 
 
 # check for uniform bandwidths in kernels
-function uniBW(mt::HomotopyDensity)
-    N = Npts(mt)
-    if 1 < length(mt.leaf_kernels)
-        if !isassigned(mt.leaf_kernels, 1)
+function uniBW(hode::HomotopyDensity)
+    N = Npts(hode)
+    if 1 < length(hode.leaf_kernels)
+        if !isassigned(hode.leaf_kernels, 1)
             return false
         end
-        bw = cov(mt.leaf_kernels[1])
-        for lk in view(mt.leaf_kernels, 2:N)
+        lk = getKernelLeaf(hode, 1)
+        bw = cov(lk)
+        for i in 2:N
+            lk = getKernelLeaf(hode, i)
             if !isapprox(bw, cov(lk))
                 return false
             end
@@ -650,9 +654,9 @@ function evaluate(
     pts = getPoints(hode, false)
     w = getWeights(hode)
 
+    manif = getManifold(hode)
     # isapprox uses partial version
-    M_, reprl, cb = getManifoldPartial(getManifold(hode), partl)
-
+    M_, reprl, cb = getManifoldPartial(manif, partl)
     sumval = 0.0
     # FIXME, brute force for loop
     for (i, t) in enumerate(pts)
@@ -660,10 +664,10 @@ function evaluate(
         # if !LOO || !isapprox(getManifold(hode), pt, t)
             # TBD, is this assuming length(pts) and length(hode.leaf_kernels) are the same?
             # FIXME use consolidated getKernelLeaf instead
-            ekr = hode.leaf_kernels[i]
+            ekr = getKernelLeaf(hode, i)
             ekr = updateKernelBW(ekr, force_kbw)
             # remember special handling for partials via ekr itself
-            oneval = hode.weights[i] * evaluate(getManifold(hode), ekr, pt)
+            oneval = w[i] * evaluate(manif, ekr, pt)
             # leave one out requires kernel weighting to removal of leave out weight
             oneval *= !LOO ? 1 : 1 / (1 - w[i])
             sumval += oneval

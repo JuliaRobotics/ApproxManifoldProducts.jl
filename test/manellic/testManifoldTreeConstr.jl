@@ -109,7 +109,7 @@ end
     @test hode.geometric_permute[1] == [3;1;2]
     @test hode.geometric_permute[2] == [3;1]              # segments are raw dataidx, not permuted dataidx
     @test hode.geometric_permute[3] == [2]
-    @test_broken Base.isstored(hode.geometric_permute, 4) # no third segment because right child is leaf
+    @test Base.isstored(hode.geometric_permute, 4) # no third segment because right child is leaf
 
     @test isassigned(hode.tree_kernels, 1)
     @test isassigned(hode.tree_kernels, 2)
@@ -123,9 +123,9 @@ end
     @test isassigned(hode.leaf_kernels, 3)
 
     # leaf kernels are sorted in geometric order along eigen axis
-    @test isapprox(-2.0, mean(hode.leaf_kernels[1])[1]; atol = 1e-6)
-    @test isapprox(-1.0, mean(hode.leaf_kernels[2])[1]; atol = 1e-6)
-    @test isapprox( 3.0, mean(hode.leaf_kernels[3])[1]; atol = 1e-6)
+    @test isapprox(-2.0, mean(getKernelLeaf(hode,1))[1]; atol = 1e-6)
+    @test isapprox(-1.0, mean(getKernelLeaf(hode,2))[1]; atol = 1e-6)
+    @test isapprox( 3.0, mean(getKernelLeaf(hode,3))[1]; atol = 1e-6)
 
     @test !ApproxManifoldProducts.isLeaf_BTLabel(hode, 1)
     @test !ApproxManifoldProducts.isLeaf_BTLabel(hode, 2)
@@ -184,7 +184,8 @@ end
     @test hode.geometric_permute[1] == [1;2;3]
     @test hode.geometric_permute[2] == [1;2]
     @test hode.geometric_permute[3] == [3]
-    @test !Base.isstored(hode.geometric_permute, 4) # no third segment because right child is leaf
+    @test hode.geometric_permute[4] == [1]
+    @test hode.geometric_permute[5] == [2]
 
     @test isassigned(hode.tree_kernels, 1)
     @test isassigned(hode.tree_kernels, 2)
@@ -197,9 +198,9 @@ end
     @test isassigned(hode.leaf_kernels, 2)
     @test isassigned(hode.leaf_kernels, 3)
 
-    @test isapprox(-2.0, mean(hode.leaf_kernels[1])[1]; atol = 1e-6)
-    @test isapprox(-1.0, mean(hode.leaf_kernels[2])[1]; atol = 1e-6)
-    @test isapprox( 3.0, mean(hode.leaf_kernels[3])[1]; atol = 1e-6)
+    @test isapprox(-2.0, mean(getKernelLeaf(hode,1))[1]; atol = 1e-6)
+    @test isapprox(-1.0, mean(getKernelLeaf(hode,2))[1]; atol = 1e-6)
+    @test isapprox( 3.0, mean(getKernelLeaf(hode,3))[1]; atol = 1e-6)
 
     @test !ApproxManifoldProducts.isLeaf_BTLabel(hode, 1)
     @test !ApproxManifoldProducts.isLeaf_BTLabel(hode, 2)
@@ -258,7 +259,8 @@ end
     @test hode.geometric_permute[1] == [3;1;2]
     @test hode.geometric_permute[2] == [3]
     @test hode.geometric_permute[3] == [1;2]
-    @test !Base.isstored(hode.geometric_permute, 6) # no third segment because right child is leaf
+    @test hode.geometric_permute[6] == [1]
+    @test hode.geometric_permute[7] == [2]
 
     @test isassigned(hode.tree_kernels, 1)
     @test !isassigned(hode.tree_kernels, 2)
@@ -271,16 +273,16 @@ end
     @test isassigned(hode.leaf_kernels, 2)
     @test isassigned(hode.leaf_kernels, 3)
 
-    @test isapprox(-3.0, mean(hode.leaf_kernels[1])[1]; atol = 1e-6)
-    @test isapprox( 1.0, mean(hode.leaf_kernels[2])[1]; atol = 1e-6)
-    @test isapprox( 2.0, mean(hode.leaf_kernels[3])[1]; atol = 1e-6)
+    @test isapprox(-3.0, mean(getKernelLeaf(hode,1))[1]; atol = 1e-6)
+    @test isapprox( 1.0, mean(getKernelLeaf(hode,2))[1]; atol = 1e-6)
+    @test isapprox( 2.0, mean(getKernelLeaf(hode,3))[1]; atol = 1e-6)
 
     # @test !ApproxManifoldProducts.exists_BTLabel(hode, ApproxManifoldProducts.leftIndex(hode, 2))
     # @test ApproxManifoldProducts.exists_BTLabel(hode, ApproxManifoldProducts.rightIndex(hode, 2))
 
     @test !ApproxManifoldProducts.isLeaf_BTLabel(hode, 1)
-    @test_broken ApproxManifoldProducts.isLeaf_BTLabel(hode, 2)
-    @test_broken !ApproxManifoldProducts.isLeaf_BTLabel(hode, 3)
+    @test ApproxManifoldProducts.isLeaf_BTLabel(hode, 2)
+    @test !ApproxManifoldProducts.isLeaf_BTLabel(hode, 3)
 
     @test ApproxManifoldProducts.isLeaf_BTLabel(hode, 4)
     @test ApproxManifoldProducts.isLeaf_BTLabel(hode, 5)
@@ -288,13 +290,12 @@ end
     @test ApproxManifoldProducts.isLeaf_BTLabel(hode, 7) # there for binary tree defaults, although undef
 
     @test ApproxManifoldProducts.exists_BTLabel(hode, 1)
-    @test !ApproxManifoldProducts.exists_BTLabel(hode, 2)
+    @test ApproxManifoldProducts.exists_BTLabel(hode, 2)
     @test ApproxManifoldProducts.exists_BTLabel(hode, 3)
-    @test ApproxManifoldProducts.exists_BTLabel(hode, 4) # not sure about this
-    @test_broken !ApproxManifoldProducts.exists_BTLabel(hode, 5)
-    # @test ApproxManifoldProducts.exists_BTLabel(hode, 6) # not sure about this
-    @test_broken ApproxManifoldProducts.exists_BTLabel(hode, 7)
-    @test_broken ApproxManifoldProducts.exists_BTLabel(hode, 8)
+    @test !ApproxManifoldProducts.exists_BTLabel(hode, 4)
+    @test !ApproxManifoldProducts.exists_BTLabel(hode, 5)
+    @test ApproxManifoldProducts.exists_BTLabel(hode, 6) 
+    @test ApproxManifoldProducts.exists_BTLabel(hode, 7)
 
 ##
 end
@@ -348,12 +349,17 @@ end
     @test all(hode.geometric_permute[1] .== shf[hode_.geometric_permute[1]])
 
     @test hode.geometric_permute[1] == [5; 3; 1; 4; 2]
+
     @test hode.geometric_permute[2] == [5; 3; 1]
-    @test hode.geometric_permute[3] == [4; 2]
     @test hode.geometric_permute[4] == [5]
     @test hode.geometric_permute[5] == [3; 1]
-    @test_broken Base.isstored(hode.geometric_permute,6) # == [4]
-    @test_broken hode.geometric_permute[7] == [2]
+
+    @test hode.geometric_permute[3] == [4; 2]
+    @test hode.geometric_permute[6] == [4]
+    @test hode.geometric_permute[7] == [2]
+
+    @test hode.geometric_permute[10] == [3]
+    @test hode.geometric_permute[11] == [1]
 
 
 ##
@@ -562,13 +568,13 @@ end
     @test 17 == ApproxManifoldProducts.rightIndex(mtree, 8)
 
     # children are now leaf nodes (assuming first N=[1..32] are tree kernels, while [33..64] are leaf kernels)
-    @test 33 == ApproxManifoldProducts.leftIndex(mtree, 16)
-    @test 34 == ApproxManifoldProducts.rightIndex(mtree, 16)
+    @test 32 == ApproxManifoldProducts.leftIndex(mtree, 16)
+    @test 33 == ApproxManifoldProducts.rightIndex(mtree, 16)
 
-    @test 35  == ApproxManifoldProducts.leftIndex(mtree, 17)
-    @test 36 == ApproxManifoldProducts.rightIndex(mtree, 17)
+    @test 34  == ApproxManifoldProducts.leftIndex(mtree, 17)
+    @test 35 == ApproxManifoldProducts.rightIndex(mtree, 17)
 
-    @test 64 == ApproxManifoldProducts.rightIndex(mtree, 31)
+    @test 63 == ApproxManifoldProducts.rightIndex(mtree, 31)
 
 
     # @test 11 == ApproxManifoldProducts.leftIndex(mtree, 5)
@@ -580,8 +586,8 @@ end
     # @test 16 == ApproxManifoldProducts.rightIndex(mtree, 7)
 
     # leaf kernel indices
-    @test N + 1 == ApproxManifoldProducts.leftIndex(mtree, floor(Int, N / 2))
-    @test N + 2 == ApproxManifoldProducts.rightIndex(mtree, floor(Int, N / 2))
+    @test N == ApproxManifoldProducts.leftIndex(mtree, floor(Int, N / 2))
+    @test N + 1 == ApproxManifoldProducts.rightIndex(mtree, floor(Int, N / 2))
     
 ##
 
@@ -733,11 +739,11 @@ end
 
     @test 0 == sum(
         collect(sortperm(mtree.leaf_kernels; by = s -> mean(s))) -
-        collect(1:length(mtree.leaf_kernels)),
+        collect(1:Npts(mtree)),
     )
 
     #and leaf kernel sorting
-    @test norm((pts[mtree.geometric_permute[1]] .- mean.(mtree.leaf_kernels)) .|> s -> s[1]) < 1e-6
+    @test norm((pts .- mean.(mtree.leaf_kernels)) .|> s -> s[1]) < 1e-6
 
     # for (i,v) in enumerate(dict[:evaltest_1_at])
     #   # @show ApproxManifoldProducts.evaluate(mtree, [v;]), dict[:evaltest_1_dens][i]

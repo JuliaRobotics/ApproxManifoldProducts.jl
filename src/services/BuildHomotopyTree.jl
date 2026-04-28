@@ -56,8 +56,8 @@ function buildTree_Manellic!(
         kernel_bw,
     )
 
-    # manual reset leaves in the order discovered
-    permute!(tosort_leaves.leaf_kernels, tosort_leaves.geometric_permute[1])
+    # # manual reset leaves in the order discovered
+    # permute!(tosort_leaves.leaf_kernels, tosort_leaves.geometric_permute[1])
 
     return tosort_leaves
 end

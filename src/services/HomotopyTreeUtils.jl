@@ -1,78 +1,21 @@
 
 
-# _getleft(i::Integer, N) = 2*i + (2*i < N ? 0 : 1)
-# _getright(i::Integer, N) = _getleft(i,N) + 1
-
 # either tree or leaf kernel, if larger than N
-leftIndex(mt::HomotopyDensity, krnIdx::Int = 1) = childIndices(mt, krnIdx).left
-    # return 2 * krnIdx + (2 * krnIdx < length(mt) ? 0 : 1)
-
-rightIndex(mt::HomotopyDensity, krnIdx::Int) = childIndices(mt, krnIdx).right
-    #leftIndex(mt, krnIdx) + 1
-
-# EXPERIMENTAL, untested, likely buggy
-function childIndices(
-    mt::HomotopyDensity, 
-    krnIdx::Int;
-    mixturedepth::Int = 999,
-)
-    N = Npts(mt)
-    btleft = 2 * krnIdx
-    # FIXME, isleaf for right children only (can happen when doing geometric split)
-    # e.g. for N=length(data)=32, left child of 1*2 = 2, and left child of 2*2=4, whose left child is 4*2 = 8, similarly 8*2=16.  
-    #  Now the left child of node 16*2 = 32, which is the first leaf node (but careful with index == N)
-    #  i.e. right child of node 15 is 2*15+1 = 31, so 15's right child (31) is the last nonleaf
-    isleaf = N <= btleft
-    # Before BeliefTreeIndices nonisleaf are [1..N], while isleaf are [N+1..2N].
-    left = btleft + (isleaf ? 1 : 0) 
-    nonleaf_left = isleaf ? -1 : btleft
-    leaf_left = isleaf ? nonleaf_left : -1
-    right = left + 1 
-    nonleaf_right = isleaf ? -1 : nonleaf_left + 1
-    leaf_right = isleaf ? nonleaf_left + 1 : -1
-    # return a pseudo type representing a composite index of the belief tree
-    left_ci = (;
-        nonleaf_left,
-        leaf_left,
-        isleaf,
-        # TBD permuted indices?
-    )
-    right_ci = (;
-        nonleaf_right,
-        leaf_right,
-        isleaf,
-        # TBD permuted indices?
-    )
-    return (;
-        left_ci,
-        right_ci,
-        # legacy values below
-        N,
-        left,
-        right, 
-    )
-end
-
-
+leftIndex(hode::HomotopyDensity, idx::Int = 1) = 2 * idx
+rightIndex(hode::HomotopyDensity, idx::Int) = leftIndex(hode, idx) + 1
 
 
 # check for existence in tree or leaves
-function exists_BTLabel(hode::HomotopyDensity, idx::Int)
-    N = Npts(hode)
-    if idx < N
-        return isassigned(hode.tree_kernels, idx)
+function isassigned(hode::HomotopyDensity, idx::Int)
+    if idx < 2*(Npts(hode)+1)
+        return Base.isstored(hode.geometric_permute, idx)
     else
-        return isassigned(hode.leaf_kernels, idx - N + 1)
+        return false
     end
 end
 
-function isLeaf_BTLabel(mt::HomotopyDensity, idx::Int)
-    # right unbalanced trees are also possible, so cannot base false on lack of left
-    if exists_BTLabel(mt, leftIndex(mt, idx)) || exists_BTLabel(mt, rightIndex(mt, idx))
-        return false
-    end
-    return true
-end
+# right unbalanced trees are also possible, so cannot base false on lack of left
+isLeaf_BTLabel(hode::HomotopyDensity, idx::Int) = !isassigned(hode, leftIndex(hode, idx)) || !isassigned(hode, rightIndex(hode, idx))
 
 
 
@@ -87,15 +30,15 @@ DevNotes:
   - Makes unpermuted lookup really slow among the torrent of other issues.  FIXME
 """
 function getKernelLeaf(
-    mt::HomotopyDensity, 
+    hode::HomotopyDensity, 
     i::Int, 
     permuted::Bool = true
 )
-    invpermute(s::Int) = findfirst(==(s), mt.geometric_permute[1])
+    # invpermute(s::Int) = findfirst(==(s), hode.geometric_permute[1])
     if permuted
-        return mt.leaf_kernels[i]
+        return hode.leaf_kernels[hode.geometric_permute[1][i]]
     else
-        return mt.leaf_kernels[invpermute(i)]
+        return hode.leaf_kernels[i]
     end
 end
 

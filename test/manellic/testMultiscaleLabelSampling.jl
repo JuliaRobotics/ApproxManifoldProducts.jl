@@ -90,7 +90,7 @@ using JSON3
         [floor(Int, N / 2); 2 * N],
     )
     @test !all_leaves
-    @test [N + 1; N + 2] == child_label_pools[1]
+    @test [N; N + 1] == child_label_pools[1]
     @test [2 * N;] == child_label_pools[2]
 
     child_label_pools, all_leaves =

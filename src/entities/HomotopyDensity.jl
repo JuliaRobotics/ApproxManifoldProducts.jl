@@ -33,7 +33,7 @@ Minor eigenvectors are sometimes called "trailing eigenvectors," or "residual mo
     """
     geometric_permute::SparseArrays.SparseVector{Vector{Int}, Int} = SparseArrays.sparsevec(
       Dict(1 => collect(1:length(data))), 
-      2*(length(data)+1) #-1  FIXME, restore the -1 here
+      2*(length(data)+1)-1
     )
     leaf_kernels::Vector{HL}  # TODO rename to trailing
     tree_kernels::Vector{HT}  # TODO rename to leading

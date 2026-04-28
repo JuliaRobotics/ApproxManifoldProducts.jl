@@ -1,6 +1,7 @@
 module ApproxManifoldProducts
 
 import Base: *, isapprox, convert, show, eltype, length
+import Base: isassigned
 
 using Logging
 using StaticArrays
