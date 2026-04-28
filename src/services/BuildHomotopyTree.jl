@@ -194,7 +194,7 @@ function splitsortBinary!(
             partial, partl_cb
         )
         hode.tree_kernels[index] = tkT(knl; partl_cb)
-        hode.segments[index] = Set(gido)
+        # hode.segments[index] = Set(gido)
     end
     
     # recursion termination case

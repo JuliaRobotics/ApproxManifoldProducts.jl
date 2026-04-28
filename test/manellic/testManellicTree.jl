@@ -123,12 +123,12 @@ end
         kernel = ConcentratedGaussianKernel,
     )
 
-    @test 7 == length(intersect(mtree.segments[1], Set(1:7)))
-    @test 4 == length(intersect(mtree.segments[2], Set(1:4)))
-    @test 3 == length(intersect(mtree.segments[3], Set(5:7)))
-    @test 2 == length(intersect(mtree.segments[4], Set(1:2)))
-    @test 2 == length(intersect(mtree.segments[5], Set(3:4)))
-    @test 2 == length(intersect(mtree.segments[6], Set(5:6)))
+    @test 7 == length(intersect(mtree.geometric_permute[1], collect(1:7)))
+    @test 4 == length(intersect(mtree.geometric_permute[2], collect(1:4)))
+    @test 3 == length(intersect(mtree.geometric_permute[3], collect(5:7)))
+    @test 2 == length(intersect(mtree.geometric_permute[4], collect(1:2)))
+    @test 2 == length(intersect(mtree.geometric_permute[5], collect(3:4)))
+    @test 2 == length(intersect(mtree.geometric_permute[6], collect(5:6)))
 
     @test isapprox(mean(M, pts), mean(mtree.tree_kernels[1]); atol = 1e-6)
     @test isapprox(mean(M, pts[1:4]), mean(mtree.tree_kernels[2]); atol = 1e-6)
@@ -157,9 +157,9 @@ end
         )
         @test permref == mtree.geometric_permute[1]
         @test isapprox(mean(M, pts), mean(mtree.tree_kernels[1]); atol = 1e-10)
-        @test Set(mtree.segments[1]) == Set(union(lseg, rseg))
-        @test Set(mtree.segments[2]) == Set(mtree.geometric_permute[1][lseg])
-        @test Set(mtree.segments[3]) == Set(mtree.geometric_permute[1][rseg])
+        @test collect(mtree.geometric_permute[1]) == collect(union(lseg, rseg))
+        @test collect(mtree.geometric_permute[2]) == collect(mtree.geometric_permute[1][lseg])
+        @test collect(mtree.geometric_permute[3]) == collect(mtree.geometric_permute[1][rseg])
         @test isapprox(
             mean(M, pts[mtree.geometric_permute[1][lseg]]),
             mean(mtree.tree_kernels[2]);

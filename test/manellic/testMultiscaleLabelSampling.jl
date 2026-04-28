@@ -19,8 +19,8 @@ using JSON3
 
 ##
 
-@testset "Product of two Manellic beliefs, Sequential Gibbs, LieGroups.TranslationGroup(1)" begin
-    ##
+@testset "Product of two Homotopy Densities, Sequential Gibbs, LieGroups.TranslationGroup(1)" begin
+##
 
     M = LGr.TranslationGroup(1)
     N = 64
@@ -30,7 +30,7 @@ using JSON3
         M,
         pts1;
         kernel_bw = [0.1;;],
-        kernel = ConcentratedGaussianKernel,
+        # kernel = ConcentratedGaussianKernel,
     )
 
     pts2 = [randn(1) .+ 1 for _ = 1:N]
@@ -38,10 +38,10 @@ using JSON3
         M,
         pts2;
         kernel_bw = [0.1;;],
-        kernel = ConcentratedGaussianKernel,
+        # kernel = ConcentratedGaussianKernel,
     )
 
-    ##
+##
 
     # leaves only in binary tree indexing
     bt_label_pool = [
@@ -69,7 +69,7 @@ using JSON3
         M,
         pts;
         kernel_bw,
-        kernel = ConcentratedGaussianKernel,
+        # kernel = ConcentratedGaussianKernel,
     )
 
     @test isapprox(0, mean(ApproxManifoldProducts.getKernelTree(mtr, 1))[1]; atol = 0.75)
@@ -99,8 +99,11 @@ using JSON3
     @test [N + 1;] == child_label_pools[1]
     @test [2 * N;] == child_label_pools[2]
 
-    # test sampling
+## test sampling
+
     ApproxManifoldProducts.sampleProductSeqGibbsBTLabel(M, [p1; p2])
+
+##
 
     lbls = ApproxManifoldProducts.sampleProductSeqGibbsBTLabels(M, [p1; p2])
     post = ApproxManifoldProducts.calcProductKernelsBTLabels(M, [p1; p2], lbls, false) # ?? was permute=false?
@@ -111,12 +114,12 @@ using JSON3
         M,
         pts;
         kernel_bw,
-        kernel = ConcentratedGaussianKernel,
+        # kernel = ConcentratedGaussianKernel,
     )
 
     @test isapprox(0, mean(ApproxManifoldProducts.getKernelTree(mtr, 1))[1]; atol = 0.75)
 
-    ##
+##
 end
 
 ##
@@ -134,9 +137,9 @@ end
 # lines!((s->s[1]).(XX),YY, color=:red)
 
 @testset "Multi-scale label sampling version (Gibbs), LieGroups.TranslationGroup(2)" begin
-    ##
+##
 
-    M = LieGroups.TranslationGroup(2)
+    M = LGr.TranslationGroup(2)
     N = 64
 
     pts1 = [1 * randn(2) for _ = 1:N]
@@ -170,7 +173,7 @@ end
     # NOTE, resulting tree might not have N number of data points 
     mtr12 = ApproxManifoldProducts.buildTree_Manellic!(M, post)
 
-    ##
+##
 end
 
 

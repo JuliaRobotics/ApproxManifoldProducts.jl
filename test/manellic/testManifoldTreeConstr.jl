@@ -61,9 +61,9 @@ function testMDEConstr(
     )
     @test permref == mtree.geometric_permute[1]
     @test isapprox(mean(M, pts), mean(mtree.tree_kernels[1]); atol = 1e-10)
-    @test Set(mtree.segments[1]) == Set(union(lseg, rseg))
-    @test Set(mtree.segments[2]) == Set(mtree.geometric_permute[1][lseg])
-    @test Set(mtree.segments[3]) == Set(mtree.geometric_permute[1][rseg])
+    @test Set(mtree.geometric_permute[1]) == Set(union(lseg, rseg))
+    @test Set(mtree.geometric_permute[2]) == Set(mtree.geometric_permute[1][lseg])
+    @test Set(mtree.geometric_permute[3]) == Set(mtree.geometric_permute[1][rseg])
     @test isapprox(mean(M, pts[mtree.geometric_permute[1][lseg]]), mean(mtree.tree_kernels[2]); atol)
     @test isapprox(mean(M, pts[mtree.geometric_permute[1][rseg]]), mean(mtree.tree_kernels[3]); atol)
     return nothing
@@ -107,9 +107,8 @@ end
     @test 3 == Npts(hode)
 
     @test hode.geometric_permute[1] == [3;1;2]
-    @test hode.segments[1] == Set(1:3)
-    @test hode.segments[2] == Set([1,3]) # segments are raw dataidx, not permuted dataidx
-    @test !isassigned(hode.segments, 3) # no third segment because right child is leaf
+    @test hode.geometric_permute[2] == [3;1]        # segments are raw dataidx, not permuted dataidx
+    @test !Base.isstored(hode.geometric_permute, 3) # no third segment because right child is leaf
 
     @test isassigned(hode.tree_kernels, 1)
     @test isassigned(hode.tree_kernels, 2)
@@ -182,9 +181,9 @@ end
     @test 3 == Npts(hode)
 
     @test hode.geometric_permute[1] == [1;2;3]
-    @test hode.segments[1] == Set(1:3)
-    @test hode.segments[2] == Set(1:2)
-    @test !isassigned(hode.segments, 3) # no third segment because right child is leaf
+    @test hode.geometric_permute[1] == collect(1:3)
+    @test hode.geometric_permute[2] == collect(1:2)
+    @test !Base.isstored(hode.geometric_permute, 3) # no third segment because right child is leaf
 
     @test isassigned(hode.tree_kernels, 1)
     @test isassigned(hode.tree_kernels, 2)
@@ -256,9 +255,8 @@ end
     @test 3 == Npts(hode)
 
     @test hode.geometric_permute[1] == [3;1;2]
-    @test hode.segments[1] == Set(1:3)
-    @test !isassigned(hode.segments, 2) # no third segment because right child is leaf
-    @test hode.segments[3] == Set(1:2)
+    @test !Base.isstored(hode.geometric_permute, 2) # no third segment because right child is leaf
+    @test hode.geometric_permute[3] == collect(1:2)
 
     @test isassigned(hode.tree_kernels, 1)
     @test !isassigned(hode.tree_kernels, 2)
@@ -320,9 +318,9 @@ end
     #
     #               {1}1:5
     #              /      \
-    #          (2)135     {3}24
+    #          {2}531     {3}42
     #          /   \     /     \
-    #         *     *  (6)1    (7)2
+    #         *  {5}31 (6)4    (7)2
     #
     hode = ApproxManifoldProducts.buildTree_Manellic!(
         M,
@@ -347,10 +345,13 @@ end
     @test all(refperm .== shf[hode_.geometric_permute[1]])
     @test all(hode.geometric_permute[1] .== shf[hode_.geometric_permute[1]])
 
-    @test hode.segments[1] == Set(1:5)
-    @test hode.segments[2] == Set([1,3,5])
-    @test hode.segments[3] == Set([2,4])
-    
+    @test hode.geometric_permute[1] == [5; 3; 1; 4; 2]
+    @test hode.geometric_permute[2] == [5; 3; 1]
+    @test hode.geometric_permute[3] == [4; 2]
+    @test_broken Base.isstored(hode.geometric_permute,4) # == [5]
+    @test hode.geometric_permute[5] == [3; 1]
+    @test_broken Base.isstored(hode.geometric_permute,6) # == [4]
+    @test_broken Base.isstored(hode.geometric_permute,7) # == [2]
 
 
 ##
@@ -407,13 +408,13 @@ end
 ##
     @test mtree.geometric_permute[1] == [1;2;3;4;5;6;7]
 
-    @test 7 == length(intersect(mtree.segments[1], Set(1:7))) # root is parent to all
-    @test 4 == length(intersect(mtree.segments[2], Set(1:4))) # first left is parent to 1:4
-    @test 3 == length(intersect(mtree.segments[3], Set(5:7))) # first right is parent to 5:7
-    @test 2 == length(intersect(mtree.segments[4], Set(1:2))) # second left is parent to 1:2
-    @test 2 == length(intersect(mtree.segments[5], Set(3:4))) # second right is parent to 3:4
-    @test 2 == length(intersect(mtree.segments[6], Set(5:6))) # third left is parent to 5:6
-    @test !isassigned(mtree.segments, 7)                      # third right is unused
+    @test 7 == length(intersect(mtree.geometric_permute[1], collect(1:7))) # root is parent to all
+    @test 4 == length(intersect(mtree.geometric_permute[2], collect(1:4))) # first left is parent to 1:4
+    @test 3 == length(intersect(mtree.geometric_permute[3], collect(5:7))) # first right is parent to 5:7
+    @test 2 == length(intersect(mtree.geometric_permute[4], collect(1:2))) # second left is parent to 1:2
+    @test 2 == length(intersect(mtree.geometric_permute[5], collect(3:4))) # second right is parent to 3:4
+    @test 2 == length(intersect(mtree.geometric_permute[6], collect(5:6))) # third left is parent to 5:6
+    @test !Base.isstored(mtree.geometric_permute, 7)                      # third right is unused
     
     @test isapprox(mean(M, pts),      mean(mtree.tree_kernels[1]); atol = 1e-6)
     @test isapprox(mean(M, pts[1:4]), mean(mtree.tree_kernels[2]); atol = 1e-6)
