@@ -23,24 +23,21 @@ Minor eigenvectors are sometimes called "trailing eigenvectors," or "residual mo
   P <: AbstractArray,
   HL, 
   HT,
-  # U <: Union{<:StaticArray, <:PDMats.AbstractPDMat}
 }
     manifold::M
     data::Vector{P}
     weights::Vector{Float64} = Vector{Float64}(ones(length(data))) ./ length(data)  # TODO rename to mixture_weights
     """ 
     Geometric data permute field, allows fast binary tree operations and geometric data splits for manellic (ball) trees. 
-    - Geometric split reqs at most 2*(N+1)-1 elements -- e.g. when nodes have only right children, data=[-3,1,2].
+    - Geometric split reqs at most 2*(N+1)-1 elements -- e.g. when nodes have only right children, data=[1,2,-3].
     """
     geometric_permute::SparseArrays.SparseVector{Vector{Int}, Int} = SparseArrays.sparsevec(
       Dict(1 => collect(1:length(data))), 
-      2*(length(data)+1)-1
+      2*(length(data)+1) #-1  FIXME, restore the -1 here
     )
     leaf_kernels::Vector{HL}  # TODO rename to trailing
     tree_kernels::Vector{HT}  # TODO rename to leading
-    segments::Vector{Set{Int}} = Vector{Set{Int}}(undef, length(data))
     infoPerCoord::Vector{Float64} = zeros(manifold_dimension(manifold))
-    # _unibw::U
 end
 
 

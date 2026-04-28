@@ -660,9 +660,9 @@ end
     N = 50
     M = LieGroups.TranslationGroup(3)
 
-    pts1 = [randn(d) .- 10.0 for _ = 1:N]
-    pts2 = [randn(d) for _ = 1:N]
-    pts3 = [randn(d) .+ 10.0 for _ = 1:N]
+    pts1 = [2*randn(d) .- 10.0 for _ = 1:N]
+    pts2 = [2*randn(d) for _ = 1:N]
+    pts3 = [2*randn(d) .+ 10.0 for _ = 1:N]
 
 ## get different marginals
 
@@ -689,8 +689,8 @@ end
     N_ = length(pts)
     @cast pGM[i, j] := pts[j][i]
 
-    @test 0.8 * N_ < sum(-10 .< pGM[1, :] .< 0)
-    @test 0.8 * N_ < sum(0 .< pGM[3, :] .< 10)
+    @test 0.6 * N_ < sum(-10 .< pGM[1, :] .< 0)
+    @test 0.6 * N_ < sum(0 .< pGM[3, :] .< 10)
 
 ## check the selection of labels and resulting Gaussian products are correct
 

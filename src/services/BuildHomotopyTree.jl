@@ -98,10 +98,10 @@ function buildTree_Manellic!(
     end
 
     # recursively check need for left subtree
+    lftidx = leftIndex(hode, index)
+    hode.geometric_permute[lftidx] = collect(sml)
     if low < mid_idx
         # build of new child node requires expansion of geometric permute field
-        lftidx = leftIndex(hode, index)
-        hode.geometric_permute[lftidx] = collect(sml)
         buildTree_Manellic!(
             hode,
             lftidx,
@@ -115,10 +115,10 @@ function buildTree_Manellic!(
         sml = hode.geometric_permute[lftidx] # update sml since tree build will continue
     end
     # recursively check need for right subtree
+    rhtidx = rightIndex(hode, index)
+    hode.geometric_permute[rhtidx] = collect(big)
     if (mid_idx + 1) < high
         # build of new child node requires expansion of geometric permute field
-        rhtidx = rightIndex(hode, index)
-        hode.geometric_permute[rhtidx] = collect(big)
         buildTree_Manellic!(
             hode,
             rhtidx,
@@ -194,7 +194,6 @@ function splitsortBinary!(
             partial, partl_cb
         )
         hode.tree_kernels[index] = tkT(knl; partl_cb)
-        # hode.segments[index] = Set(gido)
     end
     
     # recursion termination case

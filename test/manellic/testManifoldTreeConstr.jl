@@ -90,7 +90,7 @@ end
     #
     #               {1}1:3
     #              /      \
-    #         {2}1,3      (3)2
+    #         {2}3,1      (3)2
     #          /   \      /   \
     #       (4)3  (5)1   *     *
     #
@@ -107,8 +107,9 @@ end
     @test 3 == Npts(hode)
 
     @test hode.geometric_permute[1] == [3;1;2]
-    @test hode.geometric_permute[2] == [3;1]        # segments are raw dataidx, not permuted dataidx
-    @test !Base.isstored(hode.geometric_permute, 3) # no third segment because right child is leaf
+    @test hode.geometric_permute[2] == [3;1]              # segments are raw dataidx, not permuted dataidx
+    @test hode.geometric_permute[3] == [2]
+    @test_broken Base.isstored(hode.geometric_permute, 4) # no third segment because right child is leaf
 
     @test isassigned(hode.tree_kernels, 1)
     @test isassigned(hode.tree_kernels, 2)
@@ -181,9 +182,9 @@ end
     @test 3 == Npts(hode)
 
     @test hode.geometric_permute[1] == [1;2;3]
-    @test hode.geometric_permute[1] == collect(1:3)
-    @test hode.geometric_permute[2] == collect(1:2)
-    @test !Base.isstored(hode.geometric_permute, 3) # no third segment because right child is leaf
+    @test hode.geometric_permute[2] == [1;2]
+    @test hode.geometric_permute[3] == [3]
+    @test !Base.isstored(hode.geometric_permute, 4) # no third segment because right child is leaf
 
     @test isassigned(hode.tree_kernels, 1)
     @test isassigned(hode.tree_kernels, 2)
@@ -255,8 +256,9 @@ end
     @test 3 == Npts(hode)
 
     @test hode.geometric_permute[1] == [3;1;2]
-    @test !Base.isstored(hode.geometric_permute, 2) # no third segment because right child is leaf
-    @test hode.geometric_permute[3] == collect(1:2)
+    @test hode.geometric_permute[2] == [3]
+    @test hode.geometric_permute[3] == [1;2]
+    @test !Base.isstored(hode.geometric_permute, 6) # no third segment because right child is leaf
 
     @test isassigned(hode.tree_kernels, 1)
     @test !isassigned(hode.tree_kernels, 2)
@@ -348,10 +350,10 @@ end
     @test hode.geometric_permute[1] == [5; 3; 1; 4; 2]
     @test hode.geometric_permute[2] == [5; 3; 1]
     @test hode.geometric_permute[3] == [4; 2]
-    @test_broken Base.isstored(hode.geometric_permute,4) # == [5]
+    @test hode.geometric_permute[4] == [5]
     @test hode.geometric_permute[5] == [3; 1]
     @test_broken Base.isstored(hode.geometric_permute,6) # == [4]
-    @test_broken Base.isstored(hode.geometric_permute,7) # == [2]
+    @test_broken hode.geometric_permute[7] == [2]
 
 
 ##
@@ -414,7 +416,7 @@ end
     @test 2 == length(intersect(mtree.geometric_permute[4], collect(1:2))) # second left is parent to 1:2
     @test 2 == length(intersect(mtree.geometric_permute[5], collect(3:4))) # second right is parent to 3:4
     @test 2 == length(intersect(mtree.geometric_permute[6], collect(5:6))) # third left is parent to 5:6
-    @test !Base.isstored(mtree.geometric_permute, 7)                      # third right is unused
+    @test mtree.geometric_permute[7] == [7]                                
     
     @test isapprox(mean(M, pts),      mean(mtree.tree_kernels[1]); atol = 1e-6)
     @test isapprox(mean(M, pts[1:4]), mean(mtree.tree_kernels[2]); atol = 1e-6)

@@ -182,7 +182,6 @@ function HomotopyDensity(
             leaf_kernels,
             tree_kernels,
             infoPerCoord,
-            # segments = bel.segments,
         )
 
         # call the constructor direct
@@ -305,7 +304,6 @@ function HomotopyDensity{
     tree_kernels = hode.tree_kernels,
     weights = getWeights(hode),
     geometric_permute = hode.geometric_permute,
-    # segments = hode.segments,
     infoPerCoord = hode.infoPerCoord,
   )
 end
@@ -589,7 +587,6 @@ function updateBandwidths(
         geometric_permute = hode.geometric_permute,
         leaf_kernels,
         tree_kernels = hode.tree_kernels,
-        # segments = hode.segments,
     )
 end
 

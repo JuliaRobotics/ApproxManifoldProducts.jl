@@ -140,11 +140,11 @@ function getKernelTree(
             # depth of this index
             ances_depth = floor(Int, log2(currIdx))
             # how many leaf offsp
-            offsp_depth = log2(length(hode.geometric_permute[currIdx])) # .segments
+            offsp_depth = log2(length(hode.geometric_permute[currIdx]))
             # get approx continuous depth fraction of this index
             λ = (ances_depth) / (ances_depth + offsp_depth)
             # mean bandwidth of all leaf children
-            leafIdxs = hode.geometric_permute[currIdx] .|> s -> findfirst(==(s), hode.geometric_permute[1]) # .segments
+            leafIdxs = hode.geometric_permute[currIdx] .|> s -> findfirst(==(s), hode.geometric_permute[1])
             leafIdxs .+= N
             # TBD, why permuted hard false here, maybe because tree nodes not leaves?
             bws = [cov(getKernelTree(hode, lidx, false)) for lidx in leafIdxs] 
