@@ -89,8 +89,8 @@ end
 
     @cast pts[i, d] := r_PP[i][d]
 
-    ptsl = pts[mtree.permute[1:50], :]
-    ptsr = pts[mtree.permute[51:100], :]
+    ptsl = pts[mtree.geometric_permute[1][1:50], :]
+    ptsr = pts[mtree.geometric_permute[1][51:100], :]
 
 ##
 
@@ -155,18 +155,18 @@ end
             kernel_bw = bw,
             kernel = ConcentratedGaussianKernel,
         )
-        @test permref == mtree.permute
+        @test permref == mtree.geometric_permute[1]
         @test isapprox(mean(M, pts), mean(mtree.tree_kernels[1]); atol = 1e-10)
         @test Set(mtree.segments[1]) == Set(union(lseg, rseg))
-        @test Set(mtree.segments[2]) == Set(mtree.permute[lseg])
-        @test Set(mtree.segments[3]) == Set(mtree.permute[rseg])
+        @test Set(mtree.segments[2]) == Set(mtree.geometric_permute[1][lseg])
+        @test Set(mtree.segments[3]) == Set(mtree.geometric_permute[1][rseg])
         @test isapprox(
-            mean(M, pts[mtree.permute[lseg]]),
+            mean(M, pts[mtree.geometric_permute[1][lseg]]),
             mean(mtree.tree_kernels[2]);
             atol = 1e-6,
         )
         @test isapprox(
-            mean(M, pts[mtree.permute[rseg]]),
+            mean(M, pts[mtree.geometric_permute[1][rseg]]),
             mean(mtree.tree_kernels[3]);
             atol = 1e-6,
         )
@@ -268,7 +268,7 @@ end
     # test sorting order of data 
     permref = sortperm(pts; by = s -> getindex(s, 1))
 
-    @test 0 == sum(permref - mtree.permute)
+    @test 0 == sum(permref - mtree.geometric_permute[1])
 
     @test 0 == sum(
         collect(sortperm(mtree.leaf_kernels; by = s -> mean(s))) -
@@ -276,7 +276,7 @@ end
     )
 
     #and leaf kernel sorting
-    @test norm((pts[mtree.permute] .- mean.(mtree.leaf_kernels)) .|> s -> s[1]) < 1e-6
+    @test norm((pts[mtree.geometric_permute[1]] .- mean.(mtree.leaf_kernels)) .|> s -> s[1]) < 1e-6
 
     # for (i,v) in enumerate(dict[:evaltest_1_at])
     #   # @show ApproxManifoldProducts.evaluate(mtree, [v;]), dict[:evaltest_1_dens][i]

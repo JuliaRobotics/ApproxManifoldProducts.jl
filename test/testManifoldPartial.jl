@@ -306,12 +306,9 @@ end
         
         ax_CCp, mask, _p, _bw = ApproxManifoldProducts.splitPointsEigen(
             M,
-            pts,
-            1/7*ones(length(pts));
-            # kernel = ConcentratedGaussianKernel,
+            pts;
             kernel_bw = bw,
             partial,
-            # partl_cb,
         )
 
         @test mask[1:4] == BitVector([0,0,0,0])
@@ -330,7 +327,7 @@ end
 
 ##
 
-    @test mtree.permute == [1, 2, 3, 4, 5, 6, 7]
+    @test mtree.geometric_permute[1] == [1, 2, 3, 4, 5, 6, 7]
     @test 9.0 ≈ mean(ApproxManifoldProducts.getKernelTree(mtree, 1))[1]
     @test isnan(mean(ApproxManifoldProducts.getKernelTree(mtree, 1))[2])
 
@@ -345,7 +342,7 @@ end
         partial,
     )
 
-    if mtree.permute == perm
+    if mtree.geometric_permute[1] == perm
         @test true
     else
         @error "Unreliable permute test, FIXME for consistent results"
@@ -369,12 +366,9 @@ end
         
         ax_CCp, mask, _p, _bw = ApproxManifoldProducts.splitPointsEigen(
             M,
-            pts,
-            1/7*ones(length(pts));
-            # kernel = ConcentratedGaussianKernel,
+            pts;
             kernel_bw = bw,
             partial,
-            # partl_cb,
         )
 
         @test mask[1:4] == BitVector([0,0,0,0])
@@ -392,7 +386,7 @@ end
 
 ##
 
-    @test mtree.permute == [1, 2, 3, 4, 5, 6, 7]
+    @test mtree.geometric_permute[1] == [1, 2, 3, 4, 5, 6, 7]
     @test isnan(mean(ApproxManifoldProducts.getKernelTree(mtree, 1))[1])
     @test 9.0 ≈ mean(ApproxManifoldProducts.getKernelTree(mtree, 1))[2]
 
@@ -412,7 +406,7 @@ end
 
     ps3 = getPoints(X_)
 
-    for (i, pt) in enumerate(pts[X_.permute])
+    for (i, pt) in enumerate(pts[X_.geometric_permute[1]])
         @test isapprox(ps3[i][1], pt[3])
     end
 

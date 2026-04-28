@@ -49,15 +49,18 @@ DevNotes:
 """
 function splitPointsEigen(
     M::AbstractLieGroup,
-    r_PP::AbstractVector{P},
-    weights::AbstractVector{<:Real} = ones(length(r_PP)); # FIXME, make static vector unless large
+    r_PP::AbstractVector{P};
+    # weights::AbstractVector{<:Real} = ones(length(r_PP)); # FIXME, make static vector unless large
     # kernel = ConcentratedGaussianKernel,
     kernel_bw = nothing,
     partial::Union{Nothing, <:Tuple} = nothing,
     # partl_cb::Union{Nothing, <:Function} = nothing,
 ) where {P <: AbstractArray}
     #
-    
+    _legacybw(s::Nothing) = s
+    _legacybw(s::AbstractMatrix) = s
+    _legacybw(s::AbstractVector) = diagm(s)
+
     # important, covariance is calculated around mean of points, which enables log to avoid singularities
     # do calculations around mean point on manifold, i.e. towards Riemannian
     len = length(r_PP)
@@ -85,7 +88,7 @@ function splitPointsEigen(
         if isnothing(kernel_bw)
             error("Provided data points have no measurable covariance and no kernel bandwidth was provided.")
         else
-            kernel_bw
+            _legacybw(kernel_bw)
         end
     else
         cv

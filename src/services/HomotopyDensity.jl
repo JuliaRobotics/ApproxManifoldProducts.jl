@@ -5,6 +5,7 @@
 ## ==========================================================================================
 
 
+# FIXME, heavy legacy -- update this to a prettier show of modern HomotopyDensity
 function Base.show(io::IO, hode::HomotopyDensity{partial, M, P, HL, HT}) where {partial, M, P, HL, HT}
     printstyled(io, "HomotopyDensity{"; bold = true, color = :blue)
     println(io)
@@ -30,8 +31,8 @@ function Base.show(io::IO, hode::HomotopyDensity{partial, M, P, HL, HT}) where {
         println(io, "  .weights[1:]:  ", hode.weights[1], " ... ", hode.weights[end])
         printstyled(io, "     (uniwt)  :   ", uniWT(hode); color = :light_black)
         println(io)
-        print(io, "  .permute[1:]:  ")
-        printstyled(io, hode.permute[1], " ... ", hode.permute[end]; color = :light_black)
+        print(io, "  .geometric_permute[1][-]:  ")
+        printstyled(io, hode.geometric_permute[1][1], " ... ", hode.geometric_permute[1][end]; color = :light_black)
         println(io)
         print(io, "  .tkernels[") # " __see below__"; color=:light_black)
         if 0 < Npts(hode)
@@ -177,7 +178,7 @@ function HomotopyDensity(
             manifold = getManifold(bel),
             data = bel.data,
             weights = bel.weights,
-            permute = bel.permute,
+            geometric_permute = bel.geometric_permute,
             leaf_kernels,
             tree_kernels,
             infoPerCoord,
@@ -268,7 +269,7 @@ function buildTree_Manellic!(
     )
 
     # manual reset leaves in the order discovered
-    permute!(tosort_leaves.leaf_kernels, tosort_leaves.permute)
+    permute!(tosort_leaves.leaf_kernels, tosort_leaves.geometric_permute[1])
 
     return tosort_leaves
 end
@@ -303,7 +304,7 @@ function HomotopyDensity{
     leaf_kernels = hode.leaf_kernels,
     tree_kernels = hode.tree_kernels,
     weights = getWeights(hode),
-    permute = hode.permute,
+    geometric_permute = hode.geometric_permute,
     segments = hode.segments,
     infoPerCoord = hode.infoPerCoord,
   )
@@ -425,7 +426,8 @@ Base.length(hode::HomotopyDensity) = Ndim(hode)
 Npts(hode::HomotopyDensity) = length(hode.data)
 Ndim(hode::HomotopyDensity) = manifold_dimension(getManifold(hode))
 
-getWeights(mt::HomotopyDensity; permute::Bool = true) = permute ? view(mt.weights, mt.permute) : mt.weights
+getWeights(mt::HomotopyDensity; permute::Bool = true) = permute ? view(mt.weights, mt.geometric_permute[1]) : mt.weights
+
 
 """
     $SIGNATURES
@@ -445,8 +447,7 @@ function getPoints(
     permute::Bool = true,
 ) where {partl}
     #
-    pts = permute ? view(hode.data, hode.permute) : hode.data
-    # pts = getPoints(x.shim; permute)
+    pts = permute ? view(hode.data, hode.geometric_permute[1]) : hode.data
 
     if !aspartial || isnothing(partl)
         # error("MKD getPoints aspartial=true but MKD is not partial")
@@ -585,7 +586,7 @@ function updateBandwidths(
         manifold = getManifold(hode),
         data = hode.data,
         weights = hode.weights,
-        permute = hode.permute,
+        geometric_permute = hode.geometric_permute,
         leaf_kernels,
         tree_kernels = hode.tree_kernels,
         segments = hode.segments,

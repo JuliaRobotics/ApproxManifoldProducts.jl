@@ -83,7 +83,7 @@ Default returns leaf kernel associated with permuted input data element `i` (i.e
 but returns the leaf_kernel inverse permuted `i` when `permuted=false` (i.e. similar to unsorted input data).
 
 DevNotes:
-- Very bad practice to have duplicate of .data[.permuted] deepcopied into .leaf_kernels
+- Very bad practice to have duplicate of .data[.geometric_permute[1]] deepcopied into .leaf_kernels
   - Makes unpermuted lookup really slow among the torrent of other issues.  FIXME
 """
 function getKernelLeaf(
@@ -91,7 +91,7 @@ function getKernelLeaf(
     i::Int, 
     permuted::Bool = true
 )
-    invpermute(s::Int) = findfirst(==(s), mt.permute)
+    invpermute(s::Int) = findfirst(==(s), mt.geometric_permute[1])
     if permuted
         return mt.leaf_kernels[i]
     else
@@ -144,7 +144,7 @@ function getKernelTree(
             # get approx continuous depth fraction of this index
             λ = (ances_depth) / (ances_depth + offsp_depth)
             # mean bandwidth of all leaf children
-            leafIdxs = hode.segments[currIdx] .|> s -> findfirst(==(s), hode.permute)
+            leafIdxs = hode.segments[currIdx] .|> s -> findfirst(==(s), hode.geometric_permute[1])
             leafIdxs .+= N
             # TBD, why permuted hard false here, maybe because tree nodes not leaves?
             bws = [cov(getKernelTree(hode, lidx, false)) for lidx in leafIdxs] 

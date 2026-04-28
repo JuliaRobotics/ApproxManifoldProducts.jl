@@ -59,13 +59,13 @@ function testMDEConstr(
         kernel_bw = bw,
         kernel = ConcentratedGaussianKernel,
     )
-    @test permref == mtree.permute
+    @test permref == mtree.geometric_permute[1]
     @test isapprox(mean(M, pts), mean(mtree.tree_kernels[1]); atol = 1e-10)
     @test Set(mtree.segments[1]) == Set(union(lseg, rseg))
-    @test Set(mtree.segments[2]) == Set(mtree.permute[lseg])
-    @test Set(mtree.segments[3]) == Set(mtree.permute[rseg])
-    @test isapprox(mean(M, pts[mtree.permute[lseg]]), mean(mtree.tree_kernels[2]); atol)
-    @test isapprox(mean(M, pts[mtree.permute[rseg]]), mean(mtree.tree_kernels[3]); atol)
+    @test Set(mtree.segments[2]) == Set(mtree.geometric_permute[1][lseg])
+    @test Set(mtree.segments[3]) == Set(mtree.geometric_permute[1][rseg])
+    @test isapprox(mean(M, pts[mtree.geometric_permute[1][lseg]]), mean(mtree.tree_kernels[2]); atol)
+    @test isapprox(mean(M, pts[mtree.geometric_permute[1][rseg]]), mean(mtree.tree_kernels[3]); atol)
     return nothing
 end
 
@@ -106,7 +106,7 @@ end
     @test 1 == Ndim(hode)
     @test 3 == Npts(hode)
 
-    @test hode.permute == [3;1;2]
+    @test hode.geometric_permute[1] == [3;1;2]
     @test hode.segments[1] == Set(1:3)
     @test hode.segments[2] == Set([1,3]) # segments are raw dataidx, not permuted dataidx
     @test !isassigned(hode.segments, 3) # no third segment because right child is leaf
@@ -181,7 +181,7 @@ end
     @test 1 == Ndim(hode)
     @test 3 == Npts(hode)
 
-    @test hode.permute == [1;2;3]
+    @test hode.geometric_permute[1] == [1;2;3]
     @test hode.segments[1] == Set(1:3)
     @test hode.segments[2] == Set(1:2)
     @test !isassigned(hode.segments, 3) # no third segment because right child is leaf
@@ -255,7 +255,7 @@ end
     @test 1 == Ndim(hode)
     @test 3 == Npts(hode)
 
-    @test hode.permute == [3;1;2]
+    @test hode.geometric_permute[1] == [3;1;2]
     @test hode.segments[1] == Set(1:3)
     @test !isassigned(hode.segments, 2) # no third segment because right child is leaf
     @test hode.segments[3] == Set(1:2)
@@ -343,9 +343,9 @@ end
 
     @test 5 == Npts(hode)
     
-    @test all(refperm .== hode.permute)
-    @test all(refperm .== shf[hode_.permute])
-    @test all(hode.permute .== shf[hode_.permute])
+    @test all(refperm .== hode.geometric_permute[1])
+    @test all(refperm .== shf[hode_.geometric_permute[1]])
+    @test all(hode.geometric_permute[1] .== shf[hode_.geometric_permute[1]])
 
     @test hode.segments[1] == Set(1:5)
     @test hode.segments[2] == Set([1,3,5])
@@ -356,8 +356,8 @@ end
 ##
 
 
-    @error "expand sorting test to trivial TranslateGroup(2) with pts = [[*; 0], ...] producing same mtree.permute"
-    @error "expand sorting test to trivial TranslateGroup(2) with pts = [[0; *], ...] producing same mtree.permute"
+    @error "expand sorting test to trivial TranslateGroup(2) with pts = [[*; 0], ...] producing same mtree.geometric_permute[1]"
+    @error "expand sorting test to trivial TranslateGroup(2) with pts = [[0; *], ...] producing same mtree.geometric_permute[1]"
 
 ##
 end
@@ -379,9 +379,7 @@ end
         
         ax_CCp, mask, _p, _bw = ApproxManifoldProducts.splitPointsEigen(
             M,
-            pts,
-            1/7*ones(length(pts));
-            # kernel = ConcentratedGaussianKernel,
+            pts;
             kernel_bw = bw,
         )
 
@@ -407,7 +405,7 @@ end
     )
 
 ##
-    @test mtree.permute == [1;2;3;4;5;6;7]
+    @test mtree.geometric_permute[1] == [1;2;3;4;5;6;7]
 
     @test 7 == length(intersect(mtree.segments[1], Set(1:7))) # root is parent to all
     @test 4 == length(intersect(mtree.segments[2], Set(1:4))) # first left is parent to 1:4
@@ -638,20 +636,20 @@ end
     # test input data vs leaf kernels
     for i in eachindex(r_PP)
         @test isapprox(r_PP[i], getPoints(mtree, permute = false)[i])
-        @test isapprox(r_PP[mtree.permute[i]], getPoints(mtree, permute = true)[i])
+        @test isapprox(r_PP[mtree.geometric_permute[1][i]], getPoints(mtree, permute = true)[i])
         # FIXME, test is useful but underneath is a yucky duplication of permuted raw data in leaf_kernels[]
         @test isapprox(r_PP[i], mean(ApproxManifoldProducts.getKernelLeaf(mtree, i, false)))
-        @test isapprox(r_PP[mtree.permute[i]], mean(ApproxManifoldProducts.getKernelLeaf(mtree, i, true)))
+        @test isapprox(r_PP[mtree.geometric_permute[1][i]], mean(ApproxManifoldProducts.getKernelLeaf(mtree, i, true)))
     end
 
-    @test all(isapprox.(mtree.weights[mtree.permute], getWeights(mtree, permute = true)))
+    @test all(isapprox.(mtree.weights[mtree.geometric_permute[1]], getWeights(mtree, permute = true)))
 
 ##
 
     @cast pts[i, d] := r_PP[i][d]
 
-    ptsl = pts[mtree.permute[1:50], :]
-    ptsr = pts[mtree.permute[51:100], :]
+    ptsl = pts[mtree.geometric_permute[1][1:50], :]
+    ptsr = pts[mtree.geometric_permute[1][51:100], :]
 
 ##
 
@@ -696,7 +694,7 @@ end
         kernel = ConcentratedGaussianKernel,
     )
 
-    mtree.permute
+    mtree.geometric_permute[1]
     shf = shuffle(1:length(pts))
     mtree_ = ApproxManifoldProducts.buildTree_Manellic!(
         M,
@@ -724,11 +722,11 @@ end
     refperm = sortperm(pts)
     permref = sortperm(pts; by = s -> getindex(s, 1))
 
-    @test all(refperm .== mtree.permute)
-    @test all(refperm .== shf[mtree_.permute])
-    @test all(mtree.permute .== shf[mtree_.permute])
+    @test all(refperm .== mtree.geometric_permute[1])
+    @test all(refperm .== shf[mtree_.geometric_permute[1]])
+    @test all(mtree.geometric_permute[1] .== shf[mtree_.geometric_permute[1]])
 
-    @test 0 == sum(permref - mtree.permute)
+    @test 0 == sum(permref - mtree.geometric_permute[1])
 
     @test 0 == sum(
         collect(sortperm(mtree.leaf_kernels; by = s -> mean(s))) -
@@ -736,7 +734,7 @@ end
     )
 
     #and leaf kernel sorting
-    @test norm((pts[mtree.permute] .- mean.(mtree.leaf_kernels)) .|> s -> s[1]) < 1e-6
+    @test norm((pts[mtree.geometric_permute[1]] .- mean.(mtree.leaf_kernels)) .|> s -> s[1]) < 1e-6
 
     # for (i,v) in enumerate(dict[:evaltest_1_at])
     #   # @show ApproxManifoldProducts.evaluate(mtree, [v;]), dict[:evaltest_1_dens][i]
