@@ -7,6 +7,7 @@
 
 # FIXME, heavy legacy -- update this to a prettier show of modern HomotopyDensity
 function Base.show(io::IO, hode::HomotopyDensity{partial, M, P, HL, HT}) where {partial, M, P, HL, HT}
+    N = Npts(hode)
     printstyled(io, "HomotopyDensity{"; bold = true, color = :blue)
     println(io)
     printstyled(io, "    partial"; bold = true, color = :magenta)
@@ -17,7 +18,7 @@ function Base.show(io::IO, hode::HomotopyDensity{partial, M, P, HL, HT}) where {
     println(io)
     printstyled(io, "  P  = ", P; color = :magenta)
     println(io)
-    printstyled(io, "  N  = ", Npts(hode); color = :magenta)
+    printstyled(io, "  N  = ", N; color = :magenta)
     println(io)
     printstyled(io, "  HL = ", HL; color = :magenta)
     println(io)
@@ -64,7 +65,7 @@ function Base.show(io::IO, hode::HomotopyDensity{partial, M, P, HL, HT}) where {
         if 0 < Npts(hode)
             print(io, "1]:  ")
             # printstyled(io, "  .tkernels[1] = "; color=:light_black)
-            if isassigned(hode.leaf_kernels, 1)
+            if isassigned(hode, 1+N)
                 lk = getKernelLeaf(hode, 1)
                 printstyled(io, lk; color = :light_black)
             else
@@ -153,6 +154,7 @@ function HomotopyDensity(
     infoPerCoord::AbstractVector{<:Real} = bel.infoPerCoord,
 ) where {L <: Union{<:AbstractVector{<:Integer}, <:Tuple}}
     #
+    N = Npts(bel)
     partial = _tuple(partial_)
     mani = getManifold(bel)
     partl = _intersect(getPartial(bel), partial)
@@ -268,9 +270,6 @@ function buildTree_Manellic!(
         partial = _tuple(partial),
         partl_cb = prlcb,
     )
-
-    # # manual reset leaves in the order discovered
-    # permute!(tosort_leaves.leaf_kernels, tosort_leaves.geometric_permute[1])
 
     return tosort_leaves
 end
@@ -466,10 +465,11 @@ end
 
 
 function getBW(
-    x::HomotopyDensity{partl},
+    hode::HomotopyDensity{partl},
     aspartial::Bool = true,
 ) where {partl}
-    bws = getBW.(x.leaf_kernels)
+
+    bws = (s->getBW(getKernelLeaf(hode, s))).(1:Npts(hode))
     if isnothing(partl) && aspartial
         return (bw->_getpartial(partl, bw)).(bws)
     end
@@ -485,17 +485,16 @@ uniWT(mt::HomotopyDensity) = 1 === length(union(diff(getWeights(mt))))
 # check for uniform bandwidths in kernels
 function uniBW(hode::HomotopyDensity)
     N = Npts(hode)
-    if 1 < length(hode.leaf_kernels)
-        if !isassigned(hode.leaf_kernels, 1)
+    if !isassigned(hode, N+1)
+        return false
+    end
+    # check equality on all bandwidths and return false if difference found
+    lk = getKernelLeaf(hode, 1)
+    bw = cov(lk)
+    for i in 2:N
+        lk = getKernelLeaf(hode, i)
+        if !isapprox(bw, cov(lk))
             return false
-        end
-        lk = getKernelLeaf(hode, 1)
-        bw = cov(lk)
-        for i in 2:N
-            lk = getKernelLeaf(hode, i)
-            if !isapprox(bw, cov(lk))
-                return false
-            end
         end
     end
     return true
@@ -661,9 +660,6 @@ function evaluate(
     # FIXME, brute force for loop
     for (i, t) in enumerate(pts)
         if !LOO || !isapprox(M_, cb(pt), cb(t))
-        # if !LOO || !isapprox(getManifold(hode), pt, t)
-            # TBD, is this assuming length(pts) and length(hode.leaf_kernels) are the same?
-            # FIXME use consolidated getKernelLeaf instead
             ekr = getKernelLeaf(hode, i)
             ekr = updateKernelBW(ekr, force_kbw)
             # remember special handling for partials via ekr itself

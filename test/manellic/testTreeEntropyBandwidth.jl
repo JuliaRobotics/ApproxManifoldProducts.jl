@@ -17,7 +17,7 @@ using JSON3
 ##
 
 @testset "HomotopyDensity kernel bandwidth 1D LOO evaluation/entropy checks" begin
-    ##
+##
 
     M = LieGroups.TranslationGroup(1)
 
@@ -52,11 +52,11 @@ using JSON3
     # S = [1e-3; 1e-2; 1e-1; 1e0; 1e1; 1e2]
     # Y = cost.(S)
 
-    ##
+##
 end
 
 @testset "HomotopyDensity bandwidth optimization 1D section search" begin
-    ##
+##
 
     M = LieGroups.TranslationGroup(1)
     # pts = [[0.;],[0.1],[0.2;],[0.3;]]
@@ -69,13 +69,9 @@ end
         kernel_bw = bw,
         kernel = ConcentratedGaussianKernel,
     )
-    # TODO isdefined does not work here (upstream bug somewhere)
-    # @test isdefined(mtree.tree_kernels, 1)
-    # @test isdefined(mtree.tree_kernels, 2)
-    # @test isdefined(mtree.tree_kernels, 3)
-    # @test !isdefined(mtree.tree_kernels, 4)
+    
 
-    ## ASSUMING SCALAR
+## ASSUMING SCALAR
     # do linesearch for best selection of bw_scl
     # MINIMIZE(entropy, mtree, p0)
 
@@ -125,7 +121,7 @@ end
     @test isapprox(0.5, best_cov; atol = 0.35)
     bcov_ = deepcopy(best_cov)
 
-    ## Test more efficient updateKernelBW version
+## Test more efficient updateKernelBW version
 
     cost2(σ) = begin
         mtr = ApproxManifoldProducts.updateBandwidths(mtree_0, [σ;;])
@@ -152,12 +148,12 @@ end
 
     @test isapprox(bcov_, best_cov; atol = 1e-3)
 
-    ##
+##
 end
 
 # TODO
 @testset "HomotopyDensity all up construction with bandwith optimization" begin
-    ##
+##
 
     M = LieGroups.TranslationGroup(1)
     # pts = [[0.;],[0.1],[0.2;],[0.3;]]
@@ -173,12 +169,12 @@ end
     pts = [1 * randn(1) for _ = 1:100]
     mkd = ApproxManifoldProducts.manikde!(M, pts)
 
-    ##
+##
 end
 
 
 @testset "Multidimensional LOOCV bandwidth optimization, LieGroups.TranslationGroup(2)" begin
-    ##
+##
 
     M = LieGroups.TranslationGroup(2)
     pts = [1 * randn(2) for _ = 1:64]
@@ -209,12 +205,12 @@ end
 
     @test isapprox([0.7 0; 0 0.7], getBW(mkd)[1]; atol = 0.3)
 
-    ##
+##
 end
 
 if !(v"1.11" < VERSION < v"1.12.0-beta99")
     @testset "Multidimensional LOOCV bandwidth optimization, SpecialEuclideanGroup(2; variant = :right)" begin
-        ##
+    ##
 
         M = SpecialEuclideanGroup(2; variant = :right)
         pts = [ArrayPartition(randn(2), Rot_.RotMatrix{2}(0.1 * randn()).mat) for _ = 1:64]
@@ -247,11 +243,11 @@ if !(v"1.11" < VERSION < v"1.12.0-beta99")
         @test isapprox([0.6 0; 0 0.6], getBW(mkd)[1][1:2, 1:2] .^2; atol = 0.4)
         @test isapprox(0.06, getBW(mkd)[1][3, 3] .^2; atol = 0.04)
 
-        ##
+    ##
     end
 
     @testset "Multidimensional LOOCV bandwidth optimization, SpecialEuclideanGroup(3; variant = :right)" begin
-        ##
+    ##
 
         M = SpecialEuclideanGroup(3; variant = :right)
         pts = [
@@ -292,7 +288,7 @@ if !(v"1.11" < VERSION < v"1.12.0-beta99")
             atol = 0.055,
         )
 
-        ##
+    ##
     end
 
 else

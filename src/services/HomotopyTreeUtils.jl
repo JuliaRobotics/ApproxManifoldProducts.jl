@@ -26,8 +26,8 @@ Default returns leaf kernel associated with permuted input data element `i` (i.e
 but returns the leaf_kernel inverse permuted `i` when `permuted=false` (i.e. similar to unsorted input data).
 
 DevNotes:
-- Very bad practice to have duplicate of .data[.geometric_permute[1]] deepcopied into .leaf_kernels
-  - Makes unpermuted lookup really slow among the torrent of other issues.  FIXME
+- FIXME Very bad practice to have duplicate of .data[.geometric_permute[1]] deepcopied into .leaf_kernels
+  - Makes unpermuted lookup really slow among the torrent of other issues.
 """
 function getKernelLeaf(
     hode::HomotopyDensity, 
@@ -76,7 +76,8 @@ function getKernelTree(
     #
     N = Npts(hode)
     # BinaryTree (BT) index goes from root=1 to largest leaf 2*N
-    if currIdx < N
+    if isassigned(hode, currIdx) && !isLeaf_BTLabel(hode, currIdx)
+    # if currIdx < N
         # cov_continuation correction so that we may build trees with sensible convariance to bandwidth transition from root to leaf
         raw_ker = hode.tree_kernels[currIdx]
         if cov_continuation

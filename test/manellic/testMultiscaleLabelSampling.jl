@@ -63,6 +63,24 @@ using JSON3
     )
     post = ApproxManifoldProducts.calcProductKernelsBTLabels(M, [p1; p2], lbls, false) # ?? was permute=false?
 
+##
+
+    randp = randn(1)
+
+    # split the slice of order-permuted data
+    _, mask, midoffset, p, bw = ApproxManifoldProducts.splitPointsEigen(
+        M,
+        [randp, randp];
+        kernel_bw = [1;;],
+    )
+
+    @test !mask[1]
+    @test mask[2]
+    @test 0 === midoffset
+    @test isapprox(randp, p)
+    @test isapprox([1;;], bw)
+
+##
     pts = mean.(post)
     kernel_bw = mean(cov.(post))
     mtr = ApproxManifoldProducts.buildTree_Manellic!(
@@ -71,6 +89,8 @@ using JSON3
         kernel_bw,
         # kernel = ConcentratedGaussianKernel,
     )
+
+##
 
     @test isapprox(0, mean(ApproxManifoldProducts.getKernelTree(mtr, 1))[1]; atol = 0.75)
 

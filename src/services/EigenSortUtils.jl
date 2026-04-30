@@ -17,11 +17,20 @@ function eigenCoords!(
         evl::AbstractVector, 
         _toflip::Bool = det(evc) < 0
     )
-        pidx = _toflip ? sortperm(evl; rev = true) : 1:length(evl)
+        pidx = _toflip ? sortperm(evl; rev = true) : collect(1:length(evl))
         Q = evc[:, pidx]
         L = diagm(evl[pidx])
         # FIXME, handle partials -- i.e. embed in larger matrices
         return Q, L, pidx
+    end
+
+    # workaround for zero covariance
+    if isapprox(0.0, norm(f_CVp))
+        len = isnothing(partial) ? size(f_CVp, 1) : length(partial)
+        f_Q_ax = Matrix{Float64}(I, len, len)
+        Λ = zeros(len, len)
+        pidx = collect(1:len)
+        return f_Q_ax, Λ, pidx
     end
 
     # FIXME embed partial dimensions inside the full non-partial covariance.
@@ -50,16 +59,14 @@ DevNotes:
 function splitPointsEigen(
     M::AbstractLieGroup,
     r_PP::AbstractVector{P};
-    # weights::AbstractVector{<:Real} = ones(length(r_PP)); # FIXME, make static vector unless large
-    # kernel = ConcentratedGaussianKernel,
     kernel_bw = nothing,
     partial::Union{Nothing, <:Tuple} = nothing,
     # partl_cb::Union{Nothing, <:Function} = nothing,
 ) where {P <: AbstractArray}
     #
-    _legacybw(s::Nothing) = s
-    _legacybw(s::AbstractMatrix) = s
-    _legacybw(s::AbstractVector) = diagm(s)
+    _legacybw(b::Nothing, c::AbstractMatrix) = c
+    _legacybw(b::AbstractMatrix, c::AbstractMatrix) = isapprox(0.0, norm(c)) ? b : c
+    _legacybw(b::AbstractVector, c::AbstractMatrix) = isapprox(0.0, norm(c)) ? diagm(b) : c
 
     # important, covariance is calculated around mean of points, which enables log to avoid singularities
     # do calculations around mean point on manifold, i.e. towards Riemannian
@@ -82,32 +89,17 @@ function splitPointsEigen(
         SMatrix{D, D, Float64}(zeros(D, D))
     end
 
-    # handle some edge cases relating to covariance estimation
-    bw = if isapprox(0.0, norm(cv)) 
-        # Fall back case
-        if isnothing(kernel_bw)
-            error("Provided data points have no measurable covariance and no kernel bandwidth was provided.")
-        else
-            _legacybw(kernel_bw)
-        end
-    else
-        cv
-    end
-
     p = mean(M, r_PP)
     r_XXp = log.(Ref(M), Ref(p), r_PP)      # FIXME replace with on-manifold distance
     r_CCp = vee.(Ref(LieAlgebra(M)), r_XXp) # TODO, remove LieGroup/LieAlgebra restriction 
 
     # default return values
-    #     weight = sum(weights)
-    # knl = kernel(p, bw, weight; partial, partl_cb)
     mask = BitVector(ntuple(i -> true, Val(len)))
     # geometric split made possible by sum(imask) instead of just data split (classification labeling must happen in cosort) 
-    midoffset = sum(xor.(mask, true)) - 1
     ax_CCp = r_CCp
 
-    # TODO, handle these if-else cases better
-    if !isapprox(0.0, norm(cv)) 
+    # # TODO, handle these if-else cases better
+    # if !isapprox(0.0, norm(cv)) 
         # NOTE, this if block started out with coordinates only, so `partial` while ignoring `partl_cb`.
         # expecting largest variation on coord dimension `pidx[end]`
         r_R_ax, Λ, pidx = eigenCoords!(cv; partial)
@@ -116,7 +108,8 @@ function splitPointsEigen(
         # rotate coordinates
         ax_CCp = _rotateCoordsPartial(M, r_CCp, ax_R_r; partial)
 
-        # this is a local test around base point p (not at global 0)
+        # Sort data along the major eigen vector direction -- i.e. first coord after rotation
+        #  this is a local test around base point p (not at global 0)
         mask = 0 .<= (ax_CCp .|> (s -> isnothing(partial) ? s[1] : s[partial[1]]))
 
         imask = xor.(mask, true)
@@ -125,8 +118,21 @@ function splitPointsEigen(
         _flipmask_minormax!(mask, imask, ax_CC1; argminmax = argmax)
 
         # geometric split made possible by sum(imask) instead of just data split (classification labeling must happen in cosort) 
-        midoffset = sum(xor.(mask, true)) - 1
-    end
+    # end
+    midoffset = sum(xor.(mask, true)) - 1
+
+    # handle some edge cases relating to covariance estimation
+    bw = _legacybw(kernel_bw, cv)
+    # bw = if isapprox(0.0, norm(cv)) 
+    #     # Fall back case
+    #     if isnothing(kernel_bw)
+    #         error("Provided data points have no measurable covariance and no kernel bandwidth was provided.")
+    #     else
+    #         _legacybw(kernel_bw)
+    #     end
+    # else
+    #     cv
+    # end
 
     # return rotated coordinates and split mask
     return ax_CCp, mask, midoffset, p, bw

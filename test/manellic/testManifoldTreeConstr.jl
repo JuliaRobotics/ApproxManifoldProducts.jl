@@ -16,6 +16,8 @@ using Optim
 
 using JSON3
 
+# import ApproxManifoldProducts: isassigned
+
 ##
 
 DATADIR = joinpath(dirname(@__DIR__), "testdata")
@@ -111,16 +113,17 @@ end
     @test hode.geometric_permute[3] == [2]
     @test Base.isstored(hode.geometric_permute, 4) # no third segment because right child is leaf
 
-    @test isassigned(hode.tree_kernels, 1)
-    @test isassigned(hode.tree_kernels, 2)
-    @test !isassigned(hode.tree_kernels, 3)
+    @test isassigned(hode, 1)
+    @test isassigned(hode, 2)
+    @test isassigned(hode, 3)
 
     @test isapprox( 0.0, mean(hode.tree_kernels[1])[1]; atol = 1e-6)
     @test isapprox(-1.5, mean(hode.tree_kernels[2])[1]; atol = 1e-6)
 
-    @test isassigned(hode.leaf_kernels, 1)
-    @test isassigned(hode.leaf_kernels, 2)
-    @test isassigned(hode.leaf_kernels, 3)
+    N = Npts(hode)
+    @test isassigned(hode, 1 + N)
+    @test isassigned(hode, 2 + N)
+    @test !isassigned(hode, 3 + N)
 
     # leaf kernels are sorted in geometric order along eigen axis
     @test isapprox(-2.0, mean(getKernelLeaf(hode,1))[1]; atol = 1e-6)
@@ -187,16 +190,18 @@ end
     @test hode.geometric_permute[4] == [1]
     @test hode.geometric_permute[5] == [2]
 
-    @test isassigned(hode.tree_kernels, 1)
-    @test isassigned(hode.tree_kernels, 2)
-    @test !isassigned(hode.tree_kernels, 3)
+    @test isassigned(hode, 1)
+    @test isassigned(hode, 2)
+    @test isassigned(hode, 3)
 
     @test isapprox( 0.0, mean(hode.tree_kernels[1])[1]; atol = 1e-6)
     @test isapprox(-1.5, mean(hode.tree_kernels[2])[1]; atol = 1e-6)
 
-    @test isassigned(hode.leaf_kernels, 1)
-    @test isassigned(hode.leaf_kernels, 2)
-    @test isassigned(hode.leaf_kernels, 3)
+    N = Npts(hode)
+    @test isassigned(hode, 1 + N)
+    @test isassigned(hode, 2 + N)
+    @test !isassigned(hode, 3 + N)
+    @test !isassigned(hode, 4 + N)
 
     @test isapprox(-2.0, mean(getKernelLeaf(hode,1))[1]; atol = 1e-6)
     @test isapprox(-1.0, mean(getKernelLeaf(hode,2))[1]; atol = 1e-6)
@@ -262,16 +267,18 @@ end
     @test hode.geometric_permute[6] == [1]
     @test hode.geometric_permute[7] == [2]
 
-    @test isassigned(hode.tree_kernels, 1)
-    @test !isassigned(hode.tree_kernels, 2)
-    @test isassigned(hode.tree_kernels, 3)
+    @test isassigned(hode, 1)
+    @test isassigned(hode, 2)
+    @test isassigned(hode, 3)
 
     @test isapprox( 0.0, mean(hode.tree_kernels[1])[1]; atol = 1e-6)
     @test isapprox( 1.5, mean(hode.tree_kernels[3])[1]; atol = 1e-6)
 
-    @test isassigned(hode.leaf_kernels, 1)
-    @test isassigned(hode.leaf_kernels, 2)
-    @test isassigned(hode.leaf_kernels, 3)
+    N = Npts(hode)
+    @test !isassigned(hode, 1 + N)
+    @test !isassigned(hode, 2 + N)
+    @test isassigned(hode, 3 + N)
+    @test isassigned(hode, 3 + N)
 
     @test isapprox(-3.0, mean(getKernelLeaf(hode,1))[1]; atol = 1e-6)
     @test isapprox( 1.0, mean(getKernelLeaf(hode,2))[1]; atol = 1e-6)
@@ -323,7 +330,9 @@ end
     #              /      \
     #          {2}531     {3}42
     #          /   \     /     \
-    #         *  {5}31 (6)4    (7)2
+    #       (4)5 {5}31 (6)4    (7)2
+    #            /  \
+    #        (10)3 (11)1
     #
     hode = ApproxManifoldProducts.buildTree_Manellic!(
         M,
@@ -737,13 +746,15 @@ end
 
     @test 0 == sum(permref - mtree.geometric_permute[1])
 
+    lkmeans = 1:Npts(mtree) .|> i -> mean(getKernelLeaf(mtree, i))
+
     @test 0 == sum(
-        collect(sortperm(mtree.leaf_kernels; by = s -> mean(s))) -
+        collect(sortperm(lkmeans)) -
         collect(1:Npts(mtree)),
     )
 
     #and leaf kernel sorting
-    @test norm((pts .- mean.(mtree.leaf_kernels)) .|> s -> s[1]) < 1e-6
+    @test norm((pts[mtree.geometric_permute[1]] .- lkmeans) .|> s -> s[1]) < 1e-6
 
     # for (i,v) in enumerate(dict[:evaltest_1_at])
     #   # @show ApproxManifoldProducts.evaluate(mtree, [v;]), dict[:evaltest_1_dens][i]

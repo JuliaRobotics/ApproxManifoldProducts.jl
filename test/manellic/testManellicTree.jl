@@ -270,13 +270,14 @@ end
 
     @test 0 == sum(permref - mtree.geometric_permute[1])
 
+    lkmeans = 1:Npts(mtree) .|> i -> mean(getKernelLeaf(mtree, i))
     @test 0 == sum(
-        collect(sortperm(mtree.leaf_kernels; by = s -> mean(s))) -
+        collect(sortperm(lkmeans)) -
         collect(1:Npts(mtree)),
     )
 
     #and leaf kernel sorting
-    @test norm((pts .- mean.(mtree.leaf_kernels)) .|> s -> s[1]) < 1e-6
+    @test norm((pts .- lkmeans) .|> s -> s[1]) < 1e-6
 
     # for (i,v) in enumerate(dict[:evaltest_1_at])
     #   # @show ApproxManifoldProducts.evaluate(mtree, [v;]), dict[:evaltest_1_dens][i]

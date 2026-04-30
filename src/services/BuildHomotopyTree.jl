@@ -56,9 +56,6 @@ function buildTree_Manellic!(
         kernel_bw,
     )
 
-    # # manual reset leaves in the order discovered
-    # permute!(tosort_leaves.leaf_kernels, tosort_leaves.geometric_permute[1])
-
     return tosort_leaves
 end
 
@@ -98,9 +95,9 @@ function buildTree_Manellic!(
     end
 
     # recursively check need for left subtree
-    lftidx = leftIndex(hode, index)
-    hode.geometric_permute[lftidx] = collect(sml)
-    if low < mid_idx
+    if 0 < length(sml)
+        lftidx = leftIndex(hode, index)
+        hode.geometric_permute[lftidx] = (sml)
         # build of new child node requires expansion of geometric permute field
         buildTree_Manellic!(
             hode,
@@ -115,9 +112,9 @@ function buildTree_Manellic!(
         sml = hode.geometric_permute[lftidx] # update sml since tree build will continue
     end
     # recursively check need for right subtree
-    rhtidx = rightIndex(hode, index)
-    hode.geometric_permute[rhtidx] = collect(big)
-    if (mid_idx + 1) < high
+    if 0 < length(big)
+        rhtidx = rightIndex(hode, index)
+        hode.geometric_permute[rhtidx] = (big)
         # build of new child node requires expansion of geometric permute field
         buildTree_Manellic!(
             hode,
@@ -160,12 +157,19 @@ function splitsortBinary!(
 )
 
     N = Npts(hode)
-    # take a slice of data
-    idc = low:high
+    
+    # recursion termination case
+    # geometric split instead of data split (must happen in cosort classification labeling) 
+    # TBD, untested leaf_size is not 1
+    npts = high - low + 1
+    if (npts <= leaf_size)
+        return -1, Int[], Int[]
+    end
     
     # according to current index permutation (i.e. sort data as you build the tree)
     gido = hode.geometric_permute[index]
-    # gido = view(hode.geometric_permute[index], 1:length(idc)) #idc)
+        # reminder which slice of permuteidxs to use
+        # idc = low:high
 
     # split the slice of order-permuted data
     _, mask, midoffset, p, bw = splitPointsEigen(
@@ -176,6 +180,10 @@ function splitsortBinary!(
     )
     imask = xor.(mask, true)
     
+    if 2 < abs(sum(mask) - sum(imask))
+        error("DX bug stop, eigen split not well defined for two population groups.")
+    end
+
     # sort the data as 'small' and 'big' elements either side of the eigen split
     # towards accending (in-place) reorder of the slice portion
     # in-place replacement requires a temporary buffer -- achieved by vcat, else can use collect here
@@ -184,8 +192,12 @@ function splitsortBinary!(
     # TODO, reduce mem with gido[1:nsml] .= sml ... instead :::: vcat buffers elements for in-place "swap", else elements overwritten prematurely 
     gido .= vcat(sml, big)  
 
+    # 
+    mid_idx = low + midoffset
+
+    # TBD, this part is likely to be removed
     # store tree kernel and segment indices; after sorting
-    if (index <= N)
+    if (leaf_size < npts) && (index <= N)
         # set tree kernel
         # NOTE, THIS USED TO BE AFTER recursive subtree build
         tkT = eltype(hode.tree_kernels)
@@ -195,18 +207,6 @@ function splitsortBinary!(
         )
         hode.tree_kernels[index] = tkT(knl; partl_cb)
     end
-    
-    # recursion termination case
-    # geometric split instead of data split (must happen in cosort classification labeling) 
-    # TBD, untested leaf_size is not 1
-    npts = high - low + 1
-    mid_idx = if (npts <= leaf_size) || (N < index)
-        -1
-    else
-        # TODO update gido since tree build will continue
-        # return valid mid_idx
-        low + midoffset
-    end
 
-    return mid_idx, sml, big
+    return mid_idx, collect(sml), collect(big)
 end
