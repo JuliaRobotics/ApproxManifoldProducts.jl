@@ -155,8 +155,6 @@ function splitsortBinary!(
     partial::Union{Nothing, <:Tuple},
     partl_cb,
 )
-
-    N = Npts(hode)
     
     # recursion termination case
     # geometric split instead of data split (must happen in cosort classification labeling) 
@@ -192,12 +190,12 @@ function splitsortBinary!(
     # TODO, reduce mem with gido[1:nsml] .= sml ... instead :::: vcat buffers elements for in-place "swap", else elements overwritten prematurely 
     gido .= vcat(sml, big)  
 
-    # 
+    # for binary split
     mid_idx = low + midoffset
 
     # TBD, this part is likely to be removed
     # store tree kernel and segment indices; after sorting
-    if (leaf_size < npts) && (index <= N)
+    if (leaf_size < npts) && (index <= Npts(hode))
         # set tree kernel
         # NOTE, THIS USED TO BE AFTER recursive subtree build
         tkT = eltype(hode.tree_kernels)
