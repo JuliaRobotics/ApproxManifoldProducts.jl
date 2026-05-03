@@ -6,17 +6,17 @@
 
 
 function buildTree_Manellic!(
-    M::AbstractManifold,
+    manif::M,
     r_ker::AbstractVector{KL}; # vector of points referenced to the r_frame
     N = length(r_ker),
     weights::AbstractVector{<:Real} = ones(N) .* (1 / N),
     kernel = KL,
     kernel_bw = nothing, # TODO
     # partial = ??? TBD -- it should already be in the kernels
-) where {KL <: ConcentratedGaussianKernel}
+) where {M <: AbstractManifold, KL <: ConcentratedGaussianKernel}
     #
     _μT() = typeof(mean(r_ker[1]))
-    D = manifold_dimension(M)
+    D = manifold_dimension(manif)
     CV = SMatrix{D, D, Float64, D * D}(collect(cov(r_ker[1])))
     _KLT(k) = getfield(ApproxManifoldProducts, k.name.name)
     _KLT(k::UnionAll) = k
@@ -39,7 +39,13 @@ function buildTree_Manellic!(
     mtree = HomotopyDensity{
         _getprl(r_ker[1]),
     }(;
-        manifold = M,
+        representationkind = HomotopyRepresentation{
+            M,
+            _tuple(partial),
+            ConcentratedGaussianKernel,
+            MajorMaxDepth{3},
+        },
+        manifold = manif,
         data = r_PP,
         weights,
         leaf_kernels = lkern,

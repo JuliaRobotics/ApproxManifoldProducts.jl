@@ -39,6 +39,8 @@ const MB = ManifoldsBase
 const CTs = CoordinateTransformations
 
 
+include("../ext/HomotopyRepr.jl")
+
 # the exported API
 include("ExportAPI.jl")
 

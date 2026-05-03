@@ -62,33 +62,33 @@ function Base.show(io::IO, hode::HomotopyDensity{partial, M, P, HL, HT}) where {
         printstyled(io, "     (blncd)  :   ", "true : _wip_"; color = :light_black)
         println(io)
         print(io, "  .lkernels[")
-        if 0 < Npts(hode)
-            print(io, "1]:  ")
-            # printstyled(io, "  .tkernels[1] = "; color=:light_black)
-            if isassigned(hode, 1+N)
-                lk = getKernelLeaf(hode, 1)
-                printstyled(io, lk; color = :light_black)
-            else
-                printstyled(io, "undef"; color = :red)
-                println(io)
-            end
-            # print(io, "  ...,")
-            if 1 < Npts(hode)
-                printstyled(io, "         [end]:  "; color = :light_black)
-                if isassigned(hode.leaf_kernels, length(hode.leaf_kernels))
-                    lk = getKernelLeaf(hode, Npts(hode))
-                    printstyled(io, lk; color = :light_black)
-                else
-                    printstyled(io, "undef"; color = :red)
-                    println(io)
-                end
-            end
-        else
-            print(io, "]:   ")
-            println(io)
-        end
-        # printstyled(io, "{1..$N}"; color=:light_black)
-        # println(io)
+        # if 0 < Npts(hode)
+        #     print(io, "1]:  ")
+        #     # printstyled(io, "  .tkernels[1] = "; color=:light_black)
+        #     if isassigned(hode, 1+N)
+        #         lk = getKernelLeaf(hode, 1)
+        #         printstyled(io, lk; color = :light_black)
+        #     else
+        #         printstyled(io, "undef"; color = :red)
+        #         println(io)
+        #     end
+        #     # print(io, "  ...,")
+        #     if 1 < Npts(hode)
+        #         printstyled(io, "         [end]:  "; color = :light_black)
+        #         if isassigned(hode.leaf_kernels, length(hode.leaf_kernels))
+        #             lk = getKernelLeaf(hode, Npts(hode))
+        #             printstyled(io, lk; color = :light_black)
+        #         else
+        #             printstyled(io, "undef"; color = :red)
+        #             println(io)
+        #         end
+        #     end
+        # else
+        #     print(io, "]:   ")
+        #     println(io)
+        # end
+        # # printstyled(io, "{1..$N}"; color=:light_black)
+        # # println(io)
         uBW = uniBW(hode)
         printstyled(io, "     (unibw)  :   ", uBW; color = :light_black)
         println(io)
@@ -179,6 +179,7 @@ function HomotopyDensity(
         bel_ = HomotopyDensity{
             _getprl(eltype(tree_kernels)),
         }(;
+            representationkind = bel.representationkind,
             manifold = getManifold(bel),
             data = bel.data,
             weights = bel.weights,
@@ -211,7 +212,7 @@ DevNotes:
   - https://github.com/JuliaStats/Distributions.jl/blob/a9b0e3c99c8dda367f69b2dbbdfa4530c810e3d7/src/multivariate/mvnormal.jl#L220-L224
 """
 function buildTree_Manellic!(
-    M::AbstractManifold,
+    manif::M,
     r_PP::AbstractVector{P}; # vector of points referenced to the r_frame
     N = length(r_PP),
     weights::AbstractVector{<:Real} = ones(N) .* (1 / N),
@@ -219,28 +220,25 @@ function buildTree_Manellic!(
     kernel_bw = nothing, # TODO
     partial::Union{Nothing, <:Tuple, AbstractVector{<:Integer}} = nothing,
     partl_cb::Union{Nothing, <:Function} = nothing,
-) where {P <: AbstractArray}
+) where {M <: AbstractManifold, P <: AbstractArray}
     #
     
-    D = manifold_dimension(M)
+    D = manifold_dimension(manif)
     CV = SMatrix{D, D, Float64, D * D}(diagm(ones(D)))
     prlcb = if isnothing(partl_cb) && !isnothing(partial)
-        M_, reprl, cb = getManifoldPartial(M, partial)
+        M_, reprl, cb = getManifoldPartial(manif, partial)
         cb
     else
         partl_cb
     end
-    tknlT = kernel(r_PP[1], CV; partial=_tuple(partial), partl_cb=prlcb) |> typeof
-
+    
     _legacybw(s::AbstractMatrix) = s
     _legacybw(s::AbstractVector) = diagm(s)
     _legacybw(::Nothing) = CV
-
+        
     lCV = _legacybw(kernel_bw)
-
+    tknlT = kernel(r_PP[1], CV; partial=_tuple(partial), partl_cb=prlcb) |> typeof
     lknlT = kernel(r_PP[1], lCV; partial = _tuple(partial), partl_cb=prlcb) |> typeof
-
-    # kernel scale
 
     # leaf kernels
     lkern = Vector{lknlT}(undef, N)
@@ -248,16 +246,41 @@ function buildTree_Manellic!(
         nkr = kernel(r_PP[i], lCV; partial = _tuple(partial), partl_cb=prlcb)
         lkern[i] = nkr
     end
+    tkern = Vector{tknlT}(undef, N)
+
+    representationkind = HomotopyRepresentation{
+        M,
+        _tuple(partial),
+        ConcentratedGaussianKernel,
+        MajorMaxDepth{3},
+    }()
 
     _hode = HomotopyDensity{
         _tuple(partial),
+        typeof(manif), 
+        eltype(r_PP),
+        lknlT,
+        tknlT,
+        typeof(representationkind)
     }(;
-        manifold = M,
+        representationkind,
         data = r_PP,
-        weights,
-        leaf_kernels = lkern,                      # leaf_kernels
-        tree_kernels = Vector{tknlT}(undef, N),    # tree_kernels
-    );
+        # TODO deprecating fields below
+        manifold = manif,
+        leaf_kernels = lkern,
+        tree_kernels = tkern,
+    )
+    # _hode = HomotopyDensity{
+    #     _tuple(partial),
+    # }(;
+    #     representationkind,
+    #     data = r_PP,
+    #     weights,
+    #     # TODO deprecating fields below
+    #     manifold = manif,
+    #     leaf_kernels = lkern,                      # leaf_kernels
+    #     tree_kernels = Vector{tknlT}(undef, N),    # tree_kernels
+    # )
 
     #
     tosort_leaves = buildTree_Manellic!(
@@ -312,13 +335,22 @@ end
 function HomotopyDensity{
     partial
 }(
-    manifold::AbstractManifold,
+    kind::Union{<:AbstractManifold, <:StateType},
     pts::AbstractVector;
-    bw = diagm(ones(manifold_dimension(manifold))),
+    bw = diagm(ones(manifold_dimension(getManifold(kind)))),
     algo = Optim.NelderMead(),
     kw...
 ) where {partial}
     #
+    manifold = getManifold(kind)
+    # get representationkind
+    reprkind = HomotopyRepresentation{
+        kind, 
+        partial, 
+        ConcentratedGaussianKernel, 
+        MajorMaxDepth{3}
+    }
+
     M_, reprl, partl_cb = getManifoldPartial(manifold, partial, pts[1])
 
     hode = ApproxManifoldProducts.buildTree_Manellic!(

@@ -36,6 +36,7 @@ function getKernelLeaf(
 )
     # invpermute(s::Int) = findfirst(==(s), hode.geometric_permute[1])
     if permuted
+        # FIXME, can only use geometric_permute[1] when leaf_size=1
         return hode.leaf_kernels[hode.geometric_permute[1][i]]
     else
         return hode.leaf_kernels[i]
