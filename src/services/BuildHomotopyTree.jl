@@ -40,7 +40,7 @@ function buildTree_Manellic!(
     mtree = HomotopyDensity_legacy(;
         partial,
         manifold = manif,
-        data = r_PP,
+        elements = r_PP,
         weights,
         leaf_kernels = lkern,
         tree_kernels = Vector{KT}(undef, N),
@@ -172,7 +172,7 @@ function splitsortBinary!(
     # split the slice of order-permuted data
     _, mask, midoffset, p, bw = splitPointsEigen(
         getManifold(hode),
-        view(hode.data, gido);
+        view(hode.elements, gido);
         kernel_bw,
         partial,
     )

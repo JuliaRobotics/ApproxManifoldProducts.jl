@@ -76,7 +76,7 @@ HomotopyDensity{
   lknlT,
 }(;
   representationkind = hr,
-  data = pts,
+  elements = pts,
   # TODO deprecating fields below
   leaf_kernels = lkern,
   tree_kernels = lkern,

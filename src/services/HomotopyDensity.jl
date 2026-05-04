@@ -26,9 +26,9 @@ function Base.show(io::IO, hode::HomotopyDensity{H, P, HL, HT}) where {H, P, HL,
     println(io)
     printstyled(io, "}"; bold = true, color = :blue)
     println(io, "(")
-    @assert Npts(hode) == length(hode.data) "show(::HomotopyDensity,) noticed a data size issue, expecting N$(Npts(hode)) == length(.data)$(length(hode.data))"
+    @assert Npts(hode) == length(hode.elements) "show(::HomotopyDensity,) noticed a data size issue, expecting N$(Npts(hode)) == length(.elements)$(length(hode.elements))"
     if 0 < Npts(hode)
-        println(io, "  .data[1:]   :  ", hode.data[1], " ... ", hode.data[end])
+        println(io, "  .elements[1:]   :  ", hode.elements[1], " ... ", hode.elements[end])
         println(io, "  .weights[1:]:  ", hode.weights[1], " ... ", hode.weights[end])
         printstyled(io, "     (uniwt)  :   ", uniWT(hode); color = :light_black)
         println(io)
@@ -161,7 +161,7 @@ function HomotopyDensity(
     M_, reprl, partl_cb = getManifoldPartial(
         mani, 
         partl, 
-        bel.data[1],
+        bel.elements[1],
     )
     if length(partl) != manifold_dimension(mani)
         # assuming there are tree and leaf nodes at [1]...
@@ -181,7 +181,7 @@ function HomotopyDensity(
         # partial = _getprl(eltype(tree_kernels))
         bel_ = HomotopyDensity(;
             representationkind = _partialrepr(bel.representationkind),
-            data = bel.data,
+            elements = bel.elements,
             weights = bel.weights,
             geometric_permute = bel.geometric_permute,
             leaf_kernels,
@@ -262,7 +262,7 @@ function buildTree_Manellic!(
         tknlT,
     }(;
         representationkind,
-        data = r_PP,
+        elements = r_PP,
         weights,
         # TODO deprecating fields below
         # manifold = manif,
@@ -289,7 +289,7 @@ end
 function HomotopyDensity_legacy(;
   partial::Union{Nothing, <:Tuple, AbstractVector{<:Integer}} = nothing,
   manifold::M, 
-  data::Vector{P},
+  elements::Vector{P},
   leaf_kernels::Vector{HL},
   tree_kernels::Vector{HT},
   kw...
@@ -308,7 +308,7 @@ function HomotopyDensity_legacy(;
     }(;
         representationkind,
         # manifold = getManifold(manifold),
-        data,
+        elements,
         leaf_kernels,
         tree_kernels,
         kw...
@@ -324,7 +324,7 @@ function HomotopyDensity(
   HomotopyDensity_legacy(;
     partial = _partl,
     manifold = getManifold(hode),
-    data = hode.data,
+    elements = hode.elements,
     leaf_kernels = hode.leaf_kernels,
     tree_kernels = hode.tree_kernels,
     weights = getWeights(hode),
@@ -448,7 +448,7 @@ end
 
 # number of data points (aka particles) in tree, i.e. N
 Base.length(hode::HomotopyDensity) = Ndim(hode)
-Npts(hode::HomotopyDensity) = length(hode.data)
+Npts(hode::HomotopyDensity) = length(hode.elements)
 Ndim(hode::HomotopyDensity) = manifold_dimension(getManifold(hode))
 
 getWeights(mt::HomotopyDensity; permute::Bool = true) = permute ? view(mt.weights, mt.geometric_permute[1]) : mt.weights
@@ -473,7 +473,7 @@ function getPoints(
 )
     #
     partl = getPartial(hode)
-    pts = permute ? view(hode.data, hode.geometric_permute[1]) : hode.data
+    pts = permute ? view(hode.elements, hode.geometric_permute[1]) : hode.elements
 
     if !aspartial || isnothing(partl)
         # error("MKD getPoints aspartial=true but MKD is not partial")
@@ -529,12 +529,12 @@ end
 
 
 
-getPointRepr(x::HomotopyDensity) = eltype(x.data) # TODO use HomotopyDensity{T} style instead
+getPointRepr(x::HomotopyDensity) = eltype(x.elements) # TODO use HomotopyDensity{T} style instead
 function getManifold(x::HomotopyDensity, aspartial::Bool = false)
     return if !aspartial
         getManifold(x.representationkind)
     else
-        M_, _, _ = getManifoldPartial(getManifold(x), getPartial(x), x.data[1])
+        M_, _, _ = getManifoldPartial(getManifold(x), getPartial(x), x.elements[1])
         M_
     end
 end
@@ -555,9 +555,9 @@ function sample(belief::HomotopyDensity, N::Integer = 1)
     # get legacy matrix of coordinates and selected labels
     coords, lbls = sample(belief, N)
     # pack samples into vector of point type P
-    vecP = Vector{eltype(belief.data)}(undef, N)
+    vecP = Vector{eltype(belief.elements)}(undef, N)
     for j = 1:N
-        vecP[j] = makePointFromCoords(getManifold(belief), view(coords, :, j), belief.data[1])
+        vecP[j] = makePointFromCoords(getManifold(belief), view(coords, :, j), belief.elements[1])
     end
 
     return vecP, lbls
@@ -618,7 +618,7 @@ function updateBandwidths(
 
     return HomotopyDensity(;
         representationkind,
-        data = hode.data,
+        elements = hode.elements,
         weights = hode.weights,
         geometric_permute = hode.geometric_permute,
         leaf_kernels,

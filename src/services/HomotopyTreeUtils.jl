@@ -26,7 +26,7 @@ Default returns leaf kernel associated with permuted input data element `i` (i.e
 but returns the leaf_kernel inverse permuted `i` when `permuted=false` (i.e. similar to unsorted input data).
 
 DevNotes:
-- FIXME Very bad practice to have duplicate of .data[.geometric_permute[1]] deepcopied into .leaf_kernels
+- FIXME Very bad practice to have duplicate of .elements[.geometric_permute[1]] deepcopied into .leaf_kernels
   - Makes unpermuted lookup really slow among the torrent of other issues.
 """
 function getKernelLeaf(

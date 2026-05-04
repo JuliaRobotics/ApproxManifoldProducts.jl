@@ -210,7 +210,7 @@ for (i, idx) in enumerate(index_range)
     col = cols[i]
     # Get the indices of the leaf nodes into the tree data
     range = NearestNeighbors.get_leaf_range(tree.tree_data, idx)
-    d = tree.data[range]
+    d = tree.elements[range]
 
     # Plot the points in the hyper spehre
     plot(getindex.(d, 1), getindex.(d, 2), "*"; color = (col.r, col.g, col.b))
