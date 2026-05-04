@@ -37,9 +37,8 @@ function buildTree_Manellic!(
     end
 
     partial = _getprl(r_ker[1])
-    mtree = HomotopyDensity{
+    mtree = HomotopyDensity_legacy(;
         partial,
-    }(;
         manifold = manif,
         data = r_PP,
         weights,

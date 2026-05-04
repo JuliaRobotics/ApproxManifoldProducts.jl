@@ -70,8 +70,6 @@ lkern = Vector{lknlT}(undef, length(pts))
 ##
 
 HomotopyDensity{
-  nothing,
-  # typeof(manif), 
   eltype(pts),
   lknlT,
   lknlT,
@@ -80,22 +78,10 @@ HomotopyDensity{
   representationkind = hr,
   data = pts,
   # TODO deprecating fields below
-  # manifold = manif,
   leaf_kernels = lkern,
   tree_kernels = lkern,
 )
 
-
-# _hode = HomotopyDensity{
-#     nothing,
-# }(;
-#     representationkind = hr,
-#     data = pts,
-#     # TODO deprecating fields below
-#     manifold = manif,
-#     leaf_kernels = lkern,
-#     tree_kernels = lkern,
-# );
 
 
 

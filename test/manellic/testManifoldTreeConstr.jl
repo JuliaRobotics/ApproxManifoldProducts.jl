@@ -547,9 +547,7 @@ end
 
 ##
 
-    mtree = ApproxManifoldProducts.HomotopyDensity{
-        nothing
-    }(;
+    mtree = HomotopyDensity_legacy(;
         manifold = M,
         data = pts,
         leaf_kernels = lkern,                           # leaf_kernels

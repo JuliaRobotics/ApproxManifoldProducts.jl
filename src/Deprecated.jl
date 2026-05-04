@@ -19,12 +19,11 @@ function manikde!(
   kw...
 ) 
   _partial = _tuple(partial)
-  @warn "manikde!(manif, pts; partial, kw...) is deprecated, use HomotopyDensity{partial}(manif, pts; kw...) instead"
-  HomotopyDensity{
-    _partial
-  }(
+  @warn "manikde!(manif, pts; partial, kw...) is deprecated, use HomotopyDensity_legacy(manif, pts; partial, kw...) instead"
+  HomotopyDensity_legacy(
     manifold,
     pts;
+    partial = _partial,
     bw,
     kw...
   )

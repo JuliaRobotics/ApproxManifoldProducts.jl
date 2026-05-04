@@ -52,10 +52,10 @@ Notes:
 - use `permute=true` (default) for sorted index retrieval.
 """
 getKernelLeafAsTreeKer(
-    mtr::HomotopyDensity{L, P, HL, HT},
+    mtr::HomotopyDensity{P, HL, HT},
     idx::Int,
     permuted::Bool = false,
-) where {L, P, HL, HT} = convert(HT, getKernelLeaf(mtr, (idx - 1) % Npts(mtr) + 1, permuted))
+) where {P, HL, HT} = convert(HT, getKernelLeaf(mtr, (idx - 1) % Npts(mtr) + 1, permuted))
 
 """
     $SIGNATURES
@@ -68,12 +68,12 @@ Notes:
 See also: [`getKernelLeafAsTreeKer`](@ref)
 """
 function getKernelTree(
-    hode::HomotopyDensity{L, P, HL, HT},
+    hode::HomotopyDensity{P, HL, HT},
     currIdx::Int,
     # must return sorted given name signature "Tree"
     permuted::Bool = false,
     cov_continuation::Bool = false,
-) where {L, P, HL, HT}
+) where {P, HL, HT}
     #
     N = Npts(hode)
     # BinaryTree (BT) index goes from root=1 to largest leaf 2*N

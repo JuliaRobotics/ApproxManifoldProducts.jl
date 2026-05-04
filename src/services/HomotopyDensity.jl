@@ -6,12 +6,12 @@
 
 
 # FIXME, heavy legacy -- update this to a prettier show of modern HomotopyDensity
-function Base.show(io::IO, hode::HomotopyDensity{partial, P, HL, HT}) where {partial, M, P, HL, HT}
+function Base.show(io::IO, hode::HomotopyDensity{P, HL, HT}) where {P, HL, HT}
     N = Npts(hode)
     printstyled(io, "HomotopyDensity{"; bold = true, color = :blue)
     println(io)
     printstyled(io, "    partial"; bold = true, color = :magenta)
-    print(io, " = ", partial, ",")
+    print(io, " = ", getPartial(hode), ",")
     println(io)
     printstyled(io, "    M"; bold = true, color = :magenta)
     print(io, " = ", typeof(getManifold(hode.representationkind)), ",")
@@ -178,9 +178,8 @@ function HomotopyDensity(
         # update representation kind to have correct partials
         _partialrepr(::HomotopyRepresentation{M, L, K, D}) where {M, L, K, D} = HomotopyRepresentation{M, partl, K, D}(mani)
         # update density to have correct partials
-        bel_ = HomotopyDensity{
-            _getprl(eltype(tree_kernels)),
-        }(;
+        # partial = _getprl(eltype(tree_kernels))
+        bel_ = HomotopyDensity(;
             representationkind = _partialrepr(bel.representationkind),
             manifold = getManifold(bel),
             data = bel.data,
@@ -258,8 +257,6 @@ function buildTree_Manellic!(
     }(manif)
 
     _hode = HomotopyDensity{
-        _tuple(partial),
-        # typeof(manif), 
         eltype(r_PP),
         lknlT,
         tknlT,
@@ -290,15 +287,14 @@ function buildTree_Manellic!(
 end
 
 
-function HomotopyDensity{
-  partial
-}(;
+function HomotopyDensity_legacy(;
+  partial::Union{Nothing, <:Tuple, AbstractVector{<:Integer}} = nothing,
   manifold::M, 
   data::Vector{P},
   leaf_kernels::Vector{HL},
   tree_kernels::Vector{HT},
   kw...
-) where {partial, M, P, HL, HT}
+) where {M, P, HL, HT}
     representationkind = HomotopyRepresentation{
         M, 
         partial, 
@@ -306,8 +302,6 @@ function HomotopyDensity{
         MajorMaxDepth{3}
     }(manifold)
     HomotopyDensity{
-        partial, 
-        # M, 
         P, 
         HL,
         HT,
@@ -322,13 +316,14 @@ function HomotopyDensity{
     )
 end
 
-function HomotopyDensity{
-  partial
-}(
-  hode::HomotopyDensity{partl}
-) where {partial, partl}
+function HomotopyDensity(
+  hode::HomotopyDensity;
+  partial::Union{Nothing, <:Tuple, AbstractVector{<:Integer}} = nothing,
+)
+  partl = getPartial(hode)
   _partl = _intersect(partial, partl)
-  HomotopyDensity{_partl}(;
+  HomotopyDensity_legacy(;
+    partial = _partl,
     manifold = getManifold(hode),
     data = hode.data,
     leaf_kernels = hode.leaf_kernels,
@@ -339,15 +334,15 @@ function HomotopyDensity{
   )
 end
 
-function HomotopyDensity{
-    partial
-}(
+
+function HomotopyDensity_legacy(
     kind::Union{<:AbstractManifold, <:StateType},
     pts::AbstractVector;
+    partial = nothing,
     bw = diagm(ones(manifold_dimension(getManifold(kind)))),
     algo = Optim.NelderMead(),
     kw...
-) where {partial}
+)
     #
     manifold = getManifold(kind)
 
@@ -473,11 +468,12 @@ DevNotes
 - Currently converts down to manifold from matrix of coordinates (legacy), to be deprecated TODO
 """
 function getPoints(
-    hode::HomotopyDensity{partl},
+    hode::HomotopyDensity,
     aspartial::Bool = true;
     permute::Bool = true,
-) where {partl}
+)
     #
+    partl = getPartial(hode)
     pts = permute ? view(hode.data, hode.geometric_permute[1]) : hode.data
 
     if !aspartial || isnothing(partl)
@@ -497,10 +493,10 @@ end
 
 
 function getBW(
-    hode::HomotopyDensity{partl},
+    hode::HomotopyDensity,
     aspartial::Bool = true,
-) where {partl}
-
+)
+    partl = getPartial(hode)
     bws = (s->getBW(getKernelLeaf(hode, s))).(1:Npts(hode))
     if isnothing(partl) && aspartial
         return (bw->_getpartial(partl, bw)).(bws)
@@ -596,10 +592,10 @@ end
 
 
 function updateBandwidths(
-    hode::HomotopyDensity{L, P, HL}, 
+    hode::HomotopyDensity{P, HL}, 
     bws;
     partl_cb::Union{Nothing, <:Function} = nothing,
-) where {L, P, HL}
+) where {P, HL}
     #
     _getBW(s::Float64, ::Int) = [s;;]
     _getBW(s::AbstractVector{<:Real}, ::Int) = s
@@ -613,10 +609,16 @@ function updateBandwidths(
         nkl = ConcentratedGaussianKernel(lk; Σ = _getBW(bws, i), partl_cb)
         leaf_kernels[i] = nkl # updateKernelBW(lk, _getBW(bws, i))
     end
-    return HomotopyDensity{
-        L,
-    }(;
-        manifold = getManifold(hode),
+    kind = getManifold(hode) 
+    representationkind = HomotopyRepresentation{
+        typeof(kind),
+        getPartial(hode),
+        ConcentratedGaussianKernel,
+        MajorMaxDepth{3},
+    }(kind)
+
+    return HomotopyDensity(;
+        representationkind,
         data = hode.data,
         weights = hode.weights,
         geometric_permute = hode.geometric_permute,
@@ -673,11 +675,12 @@ DevNotes:
 - Parallel transport shortcuts?
 """
 function evaluate(
-    hode::HomotopyDensity{partl},
+    hode::HomotopyDensity,
     pt,
     LOO::Bool = false,
     force_kbw = nothing,
-) where {partl}
+)
+    partl = getPartial(hode)
     # # force function barrier, just to be sure dyndispatch is limited
     # _F() = getfield(ApproxManifoldProducts,HL.name.name)
     # _F_ = _F() 
@@ -837,15 +840,16 @@ marginal(
 ) = HomotopyDensity(hode, partl)
 
 
-getPartial(::HomotopyDensity{partial}) where {partial} = partial
+getPartial(hode::HomotopyDensity) = getPartial(hode.representationkind)
 
 
 
 function _getFieldPartials(
-    mkd::HomotopyDensity{partial},
+    mkd::HomotopyDensity,
     field::Function,
     aspartial::Bool = true,
-) where {partial}
+)
+    partial = getPartial(mkd)
     if isnothing(partial)
         return field(mkd)
     end
@@ -875,7 +879,7 @@ end
 
 Return true if this HomotopyDensity is a partial.
 """
-isPartial(::HomotopyDensity{partl}) where partl = !isnothing(partl)
+isPartial(hode::HomotopyDensity) = !isnothing(getPartial(hode))
 
 
 

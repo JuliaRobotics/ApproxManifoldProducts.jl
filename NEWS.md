@@ -2,8 +2,11 @@ Major news relating to breaking changes in ApproxManifoldProducts.jl
 
 ## v0.15 (26Q2)
 
+ Better support for unbalanced trees, including right-child-only-nodes.
 - Refactoring `partial::Union{Nothing, <:Tuple>}` for `HomotopyDensity` constructors, utils, and helpers.  This replaces legacy code that used partials as vector type. 
-- `HomotopyDensity.representationkind` replaces multiple parameters and fields, including `.manifold`, ... (breaking change)
+- `HomotopyDensity.representationkind` replaces multiple parameters and fields, including `.manifold`, `{partial}`, ... (breaking change)
+- Use `HomotopyDensity_legacy(; partial)` instead of `HomotopyDensity{partial}(.;.)` (breaking change)
+- Refactored `HomotopyDensity` parameters. (breaking change)
 
 ## v0.14 (26Q2)
 

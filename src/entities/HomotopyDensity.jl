@@ -18,15 +18,12 @@ Major eigenvectors are often called "dominant eigenvectors," or simply "leading 
 Minor eigenvectors are sometimes called "trailing eigenvectors," or "residual modes." In PCA, these correspond to the components with the smallest variance.
 """
 @kwdef struct HomotopyDensity{
-  partial,
-  # M, 
   P <: AbstractArray,
   HL, 
   HT,
   H <: HomotopyRepresentation
 }
     representationkind::H
-    # manifold::M
     data::Vector{P}
     weights::Vector{Float64} = Vector{Float64}(ones(length(data))) ./ length(data)  # TODO rename to mixture_weights
     """ 

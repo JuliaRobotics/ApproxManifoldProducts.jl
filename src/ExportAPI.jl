@@ -28,3 +28,6 @@ export getPointRepr
 
 
 export ConcentratedGaussianKernel
+
+# TODO deprecate below
+export HomotopyDensity_legacy
