@@ -18,17 +18,18 @@ Major eigenvectors are often called "dominant eigenvectors," or simply "leading 
 Minor eigenvectors are sometimes called "trailing eigenvectors," or "residual modes." In PCA, these correspond to the components with the smallest variance.
 """
 @kwdef struct HomotopyDensity{
+  H <: HomotopyRepresentation,
   P <: AbstractArray,
   HL, 
   HT,
-  H <: HomotopyRepresentation
 }
     representationkind::H
+    observability::Vector{Float64} = zeros(manifold_dimension(getManifold(representationkind)))
     data::Vector{P}
     weights::Vector{Float64} = Vector{Float64}(ones(length(data))) ./ length(data)  # TODO rename to mixture_weights
     """ 
     Geometric data permute field, allows fast binary tree operations and geometric data splits for manellic (ball) trees. 
-    - Geometric split reqs at most 2*(N+1)-1 elements -- e.g. when nodes have only right children, data=[1,2,-3].
+    - Geometric split reqs at least 2*(N+1)-1 elements -- e.g. when nodes have only right children, data=[1,2,-3].
     """
     geometric_permute::SparseArrays.SparseVector{Vector{Int}, Int} = SparseArrays.sparsevec(
       Dict(1 => collect(1:length(data))), 
@@ -36,7 +37,6 @@ Minor eigenvectors are sometimes called "trailing eigenvectors," or "residual mo
     )
     leaf_kernels::Vector{HL}  # TODO rename to trailing
     tree_kernels::Vector{HT}  # TODO rename to leading
-    infoPerCoord::Vector{Float64} = zeros(manifold_dimension(getManifold(representationkind)))
 end
 
 

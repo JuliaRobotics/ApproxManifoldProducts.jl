@@ -5,6 +5,7 @@
 ## Remove below before v0.17
 ## ======================================================================================================
 
+@deprecate getInfoPerCoord(mkd::HomotopyDensity, aspartial::Bool = true) getObservability(mkd, aspartial)
 
 @deprecate exists_BTLabel(hode::HomotopyDensity, idx::Int) isassigned(hode, idx)
 

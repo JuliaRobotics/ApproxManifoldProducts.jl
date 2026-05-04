@@ -17,7 +17,7 @@ export getKernelLeaf, getKernelTree #, getKernelLeafAsTreeKer
 export sample, rand, resample, kld, minkld
 export calcMean
 export mean, cov, std, var
-export getInfoPerCoord, getBandwidth
+export getObservability, getBandwidth
 export marginal, antimarginal
 
 export mmd!, mmd

@@ -7,6 +7,7 @@ Major news relating to breaking changes in ApproxManifoldProducts.jl
 - `HomotopyDensity.representationkind` replaces multiple parameters and fields, including `.manifold`, `{partial}`, ... (breaking change)
 - Use `HomotopyDensity_legacy(; partial)` instead of `HomotopyDensity{partial}(.;.)` (breaking change)
 - Refactored `HomotopyDensity` parameters. (breaking change)
+- Rename `HomotopyDensity.observability` instead of `.infoPerCoord` (breaking change)
 
 ## v0.14 (26Q2)
 

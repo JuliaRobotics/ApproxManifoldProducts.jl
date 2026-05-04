@@ -6,7 +6,7 @@
 
 
 # FIXME, heavy legacy -- update this to a prettier show of modern HomotopyDensity
-function Base.show(io::IO, hode::HomotopyDensity{P, HL, HT}) where {P, HL, HT}
+function Base.show(io::IO, hode::HomotopyDensity{H, P, HL, HT}) where {H, P, HL, HT}
     N = Npts(hode)
     printstyled(io, "HomotopyDensity{"; bold = true, color = :blue)
     println(io)
@@ -117,7 +117,7 @@ function Base.show(io::IO, hode::HomotopyDensity{P, HL, HT}) where {P, HL, HT}
     # bw = (getBW(hode).^2)[1]
     # pvec = isPartial(hode) ? getPartial(hode) : collect(1:length(bw))
     # println(io, "  bws:   ", getBandwidth(hode, true) |> x -> _round(x; digits = 4)) # .|> x->round(x,digits=4))
-    println(io, "  ipc:   ", getInfoPerCoord(hode, true) .|> x -> round(x; digits = 4))
+    println(io, "  ipc:   ", getObservability(hode, true) .|> x -> round(x; digits = 4))
     print(io, "   mean: ")
     try
         mn = mean(hode)
@@ -151,7 +151,7 @@ end
 function HomotopyDensity(
     bel::HomotopyDensity,
     partial_::L;
-    infoPerCoord::AbstractVector{<:Real} = bel.infoPerCoord,
+    observability::AbstractVector{<:Real} = bel.observability,
 ) where {L <: Union{<:AbstractVector{<:Integer}, <:Tuple}}
     #
     N = Npts(bel)
@@ -186,7 +186,7 @@ function HomotopyDensity(
             geometric_permute = bel.geometric_permute,
             leaf_kernels,
             tree_kernels,
-            infoPerCoord,
+            observability,
         )
 
         # call the constructor direct
@@ -256,10 +256,10 @@ function buildTree_Manellic!(
     }(manif)
 
     _hode = HomotopyDensity{
+        typeof(representationkind),
         eltype(r_PP),
         lknlT,
         tknlT,
-        typeof(representationkind)
     }(;
         representationkind,
         data = r_PP,
@@ -301,10 +301,10 @@ function HomotopyDensity_legacy(;
         MajorMaxDepth{3}
     }(manifold)
     HomotopyDensity{
+        typeof(representationkind),
         P, 
         HL,
         HT,
-        typeof(representationkind)
     }(;
         representationkind,
         # manifold = getManifold(manifold),
@@ -329,7 +329,7 @@ function HomotopyDensity(
     tree_kernels = hode.tree_kernels,
     weights = getWeights(hode),
     geometric_permute = hode.geometric_permute,
-    infoPerCoord = hode.infoPerCoord,
+    observability = hode.observability,
   )
 end
 
@@ -541,8 +541,8 @@ end
 
 
 
-function getInfoPerCoord(mkd::HomotopyDensity, aspartial::Bool = true)
-    return _getFieldPartials(mkd, x -> x.infoPerCoord, aspartial)
+function getObservability(mkd::HomotopyDensity, aspartial::Bool = true)
+    return _getFieldPartials(mkd, x -> x.observability, aspartial)
 end
 
 function getBandwidth(mkd::HomotopyDensity, aspartial::Bool = true)
@@ -585,16 +585,16 @@ function resample(x::HomotopyDensity, N::Int)
         getManifold(x),
         pts;
         partial = getPartial(x),
-        infoPerCoord = x.infoPerCoord,
+        observability = x.observability,
     )
 end
 
 
 function updateBandwidths(
-    hode::HomotopyDensity{P, HL}, 
+    hode::HomotopyDensity{H, P, HL}, 
     bws;
     partl_cb::Union{Nothing, <:Function} = nothing,
-) where {P, HL}
+) where {H, P, HL}
     #
     _getBW(s::Float64, ::Int) = [s;;]
     _getBW(s::AbstractVector{<:Real}, ::Int) = s
@@ -820,9 +820,9 @@ function antimarginal(
     bw = zeros(manifold_dimension(newM))
     bw[finalpartial] .= getBW(mkd)[:, 1]
     ipc = zeros(manifold_dimension(newM))
-    ipc[finalpartial] .= getInfoPerCoord(mkd, true)
+    ipc[finalpartial] .= getObservability(mkd, true)
 
-    return manikde!(newM, nPts, u0; bw, partial = finalpartial, infoPerCoord = ipc)
+    return manikde!(newM, nPts, u0; bw, partial = finalpartial, observability = ipc)
 end
 
 

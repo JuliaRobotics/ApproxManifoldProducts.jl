@@ -70,10 +70,10 @@ lkern = Vector{lknlT}(undef, length(pts))
 ##
 
 HomotopyDensity{
+  typeof(hr),
   eltype(pts),
   lknlT,
   lknlT,
-  typeof(hr)
 }(;
   representationkind = hr,
   data = pts,

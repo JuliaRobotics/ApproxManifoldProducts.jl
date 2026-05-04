@@ -188,7 +188,7 @@ end
     # @test isapprox(getBW(X_, false)[[1; 3], 1], getBW(X, false)[[1; 3], 1])
     # @test !isapprox(getBW(X_, false)[[1; 3], 1], getBW(X0, false)[[1; 3], 1])
 
-    # @test isapprox(X_.infoPerCoord[[1; 3]], X.infoPerCoord[[1; 3]])
+    # @test isapprox(X_.observability[[1; 3]], X.observability[[1; 3]])
 
     # @test !isPartial(X_)
 
@@ -221,12 +221,12 @@ end
     # ## union of two partials over all dimensions should drop the partial status
 
     # pts12 = [randn(3) for _ = 1:N]
-    # X12 = manikde!(M, pts12; partial = [1; 2], infoPerCoord = 2 * ones(3))
+    # X12 = manikde!(M, pts12; partial = [1; 2], observability = 2 * ones(3))
 
     # X_np = replace(X12, X3)
 
     # @test !isPartial(X_np)
-    # @test isapprox(X_np.infoPerCoord, [2; 2; 1])
+    # @test isapprox(X_np.observability, [2; 2; 1])
 
 ##
 end
