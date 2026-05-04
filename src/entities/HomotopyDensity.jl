@@ -31,7 +31,7 @@ Minor eigenvectors are sometimes called "trailing eigenvectors," or "residual mo
     Geometric elements permute field, allows fast binary tree operations and geometric elements splits for manellic (ball) trees. 
     - Geometric split reqs at least 2*(N+1)-1 elements -- e.g. when nodes have only right children, elements=[1,2,-3].
     """
-    geometric_permute::SparseArrays.SparseVector{Vector{Int}, Int} = SparseArrays.sparsevec(
+    structure::SparseArrays.SparseVector{Vector{Int}, Int} = SparseArrays.sparsevec(
       Dict(1 => collect(1:length(elements))), 
       5*(length(elements)) # large buffer space where impact on resources mitigated via sparsevec
     )

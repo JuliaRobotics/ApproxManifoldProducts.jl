@@ -310,8 +310,8 @@ end
 
     # (TODO drop duplication) Yuck -- slightly horrible legacy test so that leaf kernels have correct duplicate of the permuted data.
     for i in 1:N
-        @test isapprox( P1.elements[P1.geometric_permute[1][i]], mean(getKernelLeaf(P1, i)))
-        @test isapprox( P2.elements[P2.geometric_permute[1][i]], mean(getKernelLeaf(P2, i)))
+        @test isapprox( P1.elements[P1.structure[1][i]], mean(getKernelLeaf(P1, i)))
+        @test isapprox( P2.elements[P2.structure[1][i]], mean(getKernelLeaf(P2, i)))
     end
 
 
@@ -369,7 +369,7 @@ end
     )
 
 
-    # invpermute(B::ApproxManifoldProducts.ManellicTree, s::Int) = findfirst(==(s), B.geometric_permute[1])
+    # invpermute(B::ApproxManifoldProducts.ManellicTree, s::Int) = findfirst(==(s), B.structure[1])
     # # use idx 1 assuming all leaf bandwidths are the same
     # bw1 = getBW(P1)[invpermute(P1,1)]
     # bw2 = getBW(P2)[invpermute(P2,1)]

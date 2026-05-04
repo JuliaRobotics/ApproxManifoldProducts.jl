@@ -61,13 +61,13 @@ function testMDEConstr(
         kernel_bw = bw,
         kernel = ConcentratedGaussianKernel,
     )
-    @test permref == mtree.geometric_permute[1]
+    @test permref == mtree.structure[1]
     @test isapprox(mean(M, pts), mean(mtree.tree_kernels[1]); atol = 1e-10)
-    @test Set(mtree.geometric_permute[1]) == Set(union(lseg, rseg))
-    @test Set(mtree.geometric_permute[2]) == Set(mtree.geometric_permute[1][lseg])
-    @test Set(mtree.geometric_permute[3]) == Set(mtree.geometric_permute[1][rseg])
-    @test isapprox(mean(M, pts[mtree.geometric_permute[1][lseg]]), mean(mtree.tree_kernels[2]); atol)
-    @test isapprox(mean(M, pts[mtree.geometric_permute[1][rseg]]), mean(mtree.tree_kernels[3]); atol)
+    @test Set(mtree.structure[1]) == Set(union(lseg, rseg))
+    @test Set(mtree.structure[2]) == Set(mtree.structure[1][lseg])
+    @test Set(mtree.structure[3]) == Set(mtree.structure[1][rseg])
+    @test isapprox(mean(M, pts[mtree.structure[1][lseg]]), mean(mtree.tree_kernels[2]); atol)
+    @test isapprox(mean(M, pts[mtree.structure[1][rseg]]), mean(mtree.tree_kernels[3]); atol)
     return nothing
 end
 
@@ -108,10 +108,10 @@ end
     @test 1 == Ndim(hode)
     @test 3 == Npts(hode)
 
-    @test hode.geometric_permute[1] == [3;1;2]
-    @test hode.geometric_permute[2] == [3;1]              # segments are raw dataidx, not permuted dataidx
-    @test hode.geometric_permute[3] == [2]
-    @test Base.isstored(hode.geometric_permute, 4) # no third segment because right child is leaf
+    @test hode.structure[1] == [3;1;2]
+    @test hode.structure[2] == [3;1]              # segments are raw dataidx, not permuted dataidx
+    @test hode.structure[3] == [2]
+    @test Base.isstored(hode.structure, 4) # no third segment because right child is leaf
 
     @test isassigned(hode, 1)
     @test isassigned(hode, 2)
@@ -184,11 +184,11 @@ end
     @test 1 == Ndim(hode)
     @test 3 == Npts(hode)
 
-    @test hode.geometric_permute[1] == [1;2;3]
-    @test hode.geometric_permute[2] == [1;2]
-    @test hode.geometric_permute[3] == [3]
-    @test hode.geometric_permute[4] == [1]
-    @test hode.geometric_permute[5] == [2]
+    @test hode.structure[1] == [1;2;3]
+    @test hode.structure[2] == [1;2]
+    @test hode.structure[3] == [3]
+    @test hode.structure[4] == [1]
+    @test hode.structure[5] == [2]
 
     @test isassigned(hode, 1)
     @test isassigned(hode, 2)
@@ -261,11 +261,11 @@ end
     @test 1 == Ndim(hode)
     @test 3 == Npts(hode)
 
-    @test hode.geometric_permute[1] == [3;1;2]
-    @test hode.geometric_permute[2] == [3]
-    @test hode.geometric_permute[3] == [1;2]
-    @test hode.geometric_permute[6] == [1]
-    @test hode.geometric_permute[7] == [2]
+    @test hode.structure[1] == [3;1;2]
+    @test hode.structure[2] == [3]
+    @test hode.structure[3] == [1;2]
+    @test hode.structure[6] == [1]
+    @test hode.structure[7] == [2]
 
     @test isassigned(hode, 1)
     @test isassigned(hode, 2)
@@ -353,29 +353,29 @@ end
 
     @test 5 == Npts(hode)
     
-    @test all(refperm .== hode.geometric_permute[1])
-    @test all(refperm .== shf[hode_.geometric_permute[1]])
-    @test all(hode.geometric_permute[1] .== shf[hode_.geometric_permute[1]])
+    @test all(refperm .== hode.structure[1])
+    @test all(refperm .== shf[hode_.structure[1]])
+    @test all(hode.structure[1] .== shf[hode_.structure[1]])
 
-    @test hode.geometric_permute[1] == [5; 3; 1; 4; 2]
+    @test hode.structure[1] == [5; 3; 1; 4; 2]
 
-    @test hode.geometric_permute[2] == [5; 3; 1]
-    @test hode.geometric_permute[4] == [5]
-    @test hode.geometric_permute[5] == [3; 1]
+    @test hode.structure[2] == [5; 3; 1]
+    @test hode.structure[4] == [5]
+    @test hode.structure[5] == [3; 1]
 
-    @test hode.geometric_permute[3] == [4; 2]
-    @test hode.geometric_permute[6] == [4]
-    @test hode.geometric_permute[7] == [2]
+    @test hode.structure[3] == [4; 2]
+    @test hode.structure[6] == [4]
+    @test hode.structure[7] == [2]
 
-    @test hode.geometric_permute[10] == [3]
-    @test hode.geometric_permute[11] == [1]
+    @test hode.structure[10] == [3]
+    @test hode.structure[11] == [1]
 
 
 ##
 
 
-    @error "expand sorting test to trivial TranslateGroup(2) with pts = [[*; 0], ...] producing same mtree.geometric_permute[1]"
-    @error "expand sorting test to trivial TranslateGroup(2) with pts = [[0; *], ...] producing same mtree.geometric_permute[1]"
+    @error "expand sorting test to trivial TranslateGroup(2) with pts = [[*; 0], ...] producing same mtree.structure[1]"
+    @error "expand sorting test to trivial TranslateGroup(2) with pts = [[0; *], ...] producing same mtree.structure[1]"
 
 ##
 end
@@ -423,15 +423,15 @@ end
     )
 
 ##
-    @test mtree.geometric_permute[1] == [1;2;3;4;5;6;7]
+    @test mtree.structure[1] == [1;2;3;4;5;6;7]
 
-    @test 7 == length(intersect(mtree.geometric_permute[1], collect(1:7))) # root is parent to all
-    @test 4 == length(intersect(mtree.geometric_permute[2], collect(1:4))) # first left is parent to 1:4
-    @test 3 == length(intersect(mtree.geometric_permute[3], collect(5:7))) # first right is parent to 5:7
-    @test 2 == length(intersect(mtree.geometric_permute[4], collect(1:2))) # second left is parent to 1:2
-    @test 2 == length(intersect(mtree.geometric_permute[5], collect(3:4))) # second right is parent to 3:4
-    @test 2 == length(intersect(mtree.geometric_permute[6], collect(5:6))) # third left is parent to 5:6
-    @test mtree.geometric_permute[7] == [7]                                
+    @test 7 == length(intersect(mtree.structure[1], collect(1:7))) # root is parent to all
+    @test 4 == length(intersect(mtree.structure[2], collect(1:4))) # first left is parent to 1:4
+    @test 3 == length(intersect(mtree.structure[3], collect(5:7))) # first right is parent to 5:7
+    @test 2 == length(intersect(mtree.structure[4], collect(1:2))) # second left is parent to 1:2
+    @test 2 == length(intersect(mtree.structure[5], collect(3:4))) # second right is parent to 3:4
+    @test 2 == length(intersect(mtree.structure[6], collect(5:6))) # third left is parent to 5:6
+    @test mtree.structure[7] == [7]                                
     
     @test isapprox(mean(M, pts),      mean(mtree.tree_kernels[1]); atol = 1e-6)
     @test isapprox(mean(M, pts[1:4]), mean(mtree.tree_kernels[2]); atol = 1e-6)
@@ -652,20 +652,20 @@ end
     # test input data vs leaf kernels
     for i in eachindex(r_PP)
         @test isapprox(r_PP[i], getPoints(mtree, permute = false)[i])
-        @test isapprox(r_PP[mtree.geometric_permute[1][i]], getPoints(mtree, permute = true)[i])
+        @test isapprox(r_PP[mtree.structure[1][i]], getPoints(mtree, permute = true)[i])
         # FIXME, test is useful but underneath is a yucky duplication of permuted raw data in leaf_kernels[]
         @test isapprox(r_PP[i], mean(ApproxManifoldProducts.getKernelLeaf(mtree, i, false)))
-        @test isapprox(r_PP[mtree.geometric_permute[1][i]], mean(ApproxManifoldProducts.getKernelLeaf(mtree, i, true)))
+        @test isapprox(r_PP[mtree.structure[1][i]], mean(ApproxManifoldProducts.getKernelLeaf(mtree, i, true)))
     end
 
-    @test all(isapprox.(mtree.weights[mtree.geometric_permute[1]], getWeights(mtree, permute = true)))
+    @test all(isapprox.(mtree.weights[mtree.structure[1]], getWeights(mtree, permute = true)))
 
 ##
 
     @cast pts[i, d] := r_PP[i][d]
 
-    ptsl = pts[mtree.geometric_permute[1][1:50], :]
-    ptsr = pts[mtree.geometric_permute[1][51:100], :]
+    ptsl = pts[mtree.structure[1][1:50], :]
+    ptsr = pts[mtree.structure[1][51:100], :]
 
 ##
 
@@ -710,7 +710,7 @@ end
         kernel = ConcentratedGaussianKernel,
     )
 
-    mtree.geometric_permute[1]
+    mtree.structure[1]
     shf = shuffle(1:length(pts))
     mtree_ = ApproxManifoldProducts.buildTree_Manellic!(
         M,
@@ -738,11 +738,11 @@ end
     refperm = sortperm(pts)
     permref = sortperm(pts; by = s -> getindex(s, 1))
 
-    @test all(refperm .== mtree.geometric_permute[1])
-    @test all(refperm .== shf[mtree_.geometric_permute[1]])
-    @test all(mtree.geometric_permute[1] .== shf[mtree_.geometric_permute[1]])
+    @test all(refperm .== mtree.structure[1])
+    @test all(refperm .== shf[mtree_.structure[1]])
+    @test all(mtree.structure[1] .== shf[mtree_.structure[1]])
 
-    @test 0 == sum(permref - mtree.geometric_permute[1])
+    @test 0 == sum(permref - mtree.structure[1])
 
     lkmeans = 1:Npts(mtree) .|> i -> mean(getKernelLeaf(mtree, i))
 
@@ -752,7 +752,7 @@ end
     )
 
     #and leaf kernel sorting
-    @test norm((pts[mtree.geometric_permute[1]] .- lkmeans) .|> s -> s[1]) < 1e-6
+    @test norm((pts[mtree.structure[1]] .- lkmeans) .|> s -> s[1]) < 1e-6
 
     # for (i,v) in enumerate(dict[:evaltest_1_at])
     #   # @show ApproxManifoldProducts.evaluate(mtree, [v;]), dict[:evaltest_1_dens][i]

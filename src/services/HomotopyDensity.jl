@@ -32,8 +32,8 @@ function Base.show(io::IO, hode::HomotopyDensity{H, P, HL, HT}) where {H, P, HL,
         println(io, "  .weights[1:]:  ", hode.weights[1], " ... ", hode.weights[end])
         printstyled(io, "     (uniwt)  :   ", uniWT(hode); color = :light_black)
         println(io)
-        print(io, "  .geometric_permute[1][-]:  ")
-        printstyled(io, hode.geometric_permute[1][1], " ... ", hode.geometric_permute[1][end]; color = :light_black)
+        print(io, "  .structure[1][-]:  ")
+        printstyled(io, hode.structure[1][1], " ... ", hode.structure[1][end]; color = :light_black)
         println(io)
         print(io, "  .tkernels[") # " __see below__"; color=:light_black)
         if 0 < Npts(hode)
@@ -183,7 +183,7 @@ function HomotopyDensity(
             representationkind = _partialrepr(bel.representationkind),
             elements = bel.elements,
             weights = bel.weights,
-            geometric_permute = bel.geometric_permute,
+            structure = bel.structure,
             leaf_kernels,
             tree_kernels,
             observability,
@@ -328,7 +328,7 @@ function HomotopyDensity(
     leaf_kernels = hode.leaf_kernels,
     tree_kernels = hode.tree_kernels,
     weights = getWeights(hode),
-    geometric_permute = hode.geometric_permute,
+    structure = hode.structure,
     observability = hode.observability,
   )
 end
@@ -451,7 +451,7 @@ Base.length(hode::HomotopyDensity) = Ndim(hode)
 Npts(hode::HomotopyDensity) = length(hode.elements)
 Ndim(hode::HomotopyDensity) = manifold_dimension(getManifold(hode))
 
-getWeights(mt::HomotopyDensity; permute::Bool = true) = permute ? view(mt.weights, mt.geometric_permute[1]) : mt.weights
+getWeights(mt::HomotopyDensity; permute::Bool = true) = permute ? view(mt.weights, mt.structure[1]) : mt.weights
 
 
 """
@@ -473,7 +473,7 @@ function getPoints(
 )
     #
     partl = getPartial(hode)
-    pts = permute ? view(hode.elements, hode.geometric_permute[1]) : hode.elements
+    pts = permute ? view(hode.elements, hode.structure[1]) : hode.elements
 
     if !aspartial || isnothing(partl)
         # error("MKD getPoints aspartial=true but MKD is not partial")
@@ -620,7 +620,7 @@ function updateBandwidths(
         representationkind,
         elements = hode.elements,
         weights = hode.weights,
-        geometric_permute = hode.geometric_permute,
+        structure = hode.structure,
         leaf_kernels,
         tree_kernels = hode.tree_kernels,
     )

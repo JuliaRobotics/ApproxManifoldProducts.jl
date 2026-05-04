@@ -8,7 +8,7 @@ rightIndex(hode::HomotopyDensity, idx::Int) = leftIndex(hode, idx) + 1
 # check for existence in tree or leaves
 function isassigned(hode::HomotopyDensity, idx::Int)
     if idx < 2*(Npts(hode)+1)
-        return Base.isstored(hode.geometric_permute, idx)
+        return Base.isstored(hode.structure, idx)
     else
         return false
     end
@@ -26,7 +26,7 @@ Default returns leaf kernel associated with permuted input data element `i` (i.e
 but returns the leaf_kernel inverse permuted `i` when `permuted=false` (i.e. similar to unsorted input data).
 
 DevNotes:
-- FIXME Very bad practice to have duplicate of .elements[.geometric_permute[1]] deepcopied into .leaf_kernels
+- FIXME Very bad practice to have duplicate of .elements[.structure[1]] deepcopied into .leaf_kernels
   - Makes unpermuted lookup really slow among the torrent of other issues.
 """
 function getKernelLeaf(
@@ -34,10 +34,10 @@ function getKernelLeaf(
     i::Int, 
     permuted::Bool = true
 )
-    # invpermute(s::Int) = findfirst(==(s), hode.geometric_permute[1])
+    # invpermute(s::Int) = findfirst(==(s), hode.structure[1])
     if permuted
-        # FIXME, can only use geometric_permute[1] when leaf_size=1
-        return hode.leaf_kernels[hode.geometric_permute[1][i]]
+        # FIXME, can only use structure[1] when leaf_size=1
+        return hode.leaf_kernels[hode.structure[1][i]]
     else
         return hode.leaf_kernels[i]
     end
@@ -85,11 +85,11 @@ function getKernelTree(
             # depth of this index
             ances_depth = floor(Int, log2(currIdx))
             # how many leaf offsp
-            offsp_depth = log2(length(hode.geometric_permute[currIdx]))
+            offsp_depth = log2(length(hode.structure[currIdx]))
             # get approx continuous depth fraction of this index
             λ = (ances_depth) / (ances_depth + offsp_depth)
             # mean bandwidth of all leaf children
-            leafIdxs = hode.geometric_permute[currIdx] .|> s -> findfirst(==(s), hode.geometric_permute[1])
+            leafIdxs = hode.structure[currIdx] .|> s -> findfirst(==(s), hode.structure[1])
             leafIdxs .+= N
             # TBD, why permuted hard false here, maybe because tree nodes not leaves?
             bws = [cov(getKernelTree(hode, lidx, false)) for lidx in leafIdxs] 

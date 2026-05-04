@@ -327,7 +327,7 @@ end
 
 ##
 
-    @test mtree.geometric_permute[1] == [1, 2, 3, 4, 5, 6, 7]
+    @test mtree.structure[1] == [1, 2, 3, 4, 5, 6, 7]
     @test 9.0 ≈ mean(ApproxManifoldProducts.getKernelTree(mtree, 1))[1]
     @test isnan(mean(ApproxManifoldProducts.getKernelTree(mtree, 1))[2])
 
@@ -342,7 +342,7 @@ end
         partial,
     )
 
-    if mtree.geometric_permute[1] == perm
+    if mtree.structure[1] == perm
         @test true
     else
         @error "Unreliable permute test, FIXME for consistent results"
@@ -386,7 +386,7 @@ end
 
 ##
 
-    @test mtree.geometric_permute[1] == [1, 2, 3, 4, 5, 6, 7]
+    @test mtree.structure[1] == [1, 2, 3, 4, 5, 6, 7]
     @test isnan(mean(ApproxManifoldProducts.getKernelTree(mtree, 1))[1])
     @test 9.0 ≈ mean(ApproxManifoldProducts.getKernelTree(mtree, 1))[2]
 
@@ -406,7 +406,7 @@ end
 
     ps3 = getPoints(X_)
 
-    for (i, pt) in enumerate(pts[X_.geometric_permute[1]])
+    for (i, pt) in enumerate(pts[X_.structure[1]])
         @test isapprox(ps3[i][1], pt[3])
     end
 

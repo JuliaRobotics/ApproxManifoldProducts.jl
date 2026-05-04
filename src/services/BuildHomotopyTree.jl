@@ -97,7 +97,7 @@ function buildTree_Manellic!(
     # recursively check need for left subtree
     if 0 < length(sml)
         lftidx = leftIndex(hode, index)
-        hode.geometric_permute[lftidx] = (sml)
+        hode.structure[lftidx] = (sml)
         # build of new child node requires expansion of geometric permute field
         buildTree_Manellic!(
             hode,
@@ -109,12 +109,12 @@ function buildTree_Manellic!(
             partial,
             partl_cb,
         )
-        sml = hode.geometric_permute[lftidx] # update sml since tree build will continue
+        sml = hode.structure[lftidx] # update sml since tree build will continue
     end
     # recursively check need for right subtree
     if 0 < length(big)
         rhtidx = rightIndex(hode, index)
-        hode.geometric_permute[rhtidx] = (big)
+        hode.structure[rhtidx] = (big)
         # build of new child node requires expansion of geometric permute field
         buildTree_Manellic!(
             hode,
@@ -126,14 +126,14 @@ function buildTree_Manellic!(
             partial,
             partl_cb,
         )
-        big = hode.geometric_permute[rhtidx] # update big since tree build will continue
+        big = hode.structure[rhtidx] # update big since tree build will continue
     end
 
-    # at start, .geometric_permute[1] is spread over all data 1:N and populated by HomotopyDensity constructor
-    # vcat ensures sml, big are buffered for in-place "swap" of the slice portion of geometric_permute, else elements overwritten prematurely
+    # at start, .structure[1] is spread over all data 1:N and populated by HomotopyDensity constructor
+    # vcat ensures sml, big are buffered for in-place "swap" of the slice portion of structure, else elements overwritten prematurely
     # TODO, not sure if this step is needed or if this is the right place for this call
     # must set once for each node, above each child node was permuted and now the parent list must also be permuted so that sorting propagates to top list
-    hode.geometric_permute[index] .= vcat(sml, big)
+    hode.structure[index] .= vcat(sml, big)
 
     return hode
 end
@@ -165,7 +165,7 @@ function splitsortBinary!(
     end
     
     # according to current index permutation (i.e. sort data as you build the tree)
-    gido = hode.geometric_permute[index]
+    gido = hode.structure[index]
         # reminder which slice of permuteidxs to use
         # idc = low:high
 

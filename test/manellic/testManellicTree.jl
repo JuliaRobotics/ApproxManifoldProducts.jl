@@ -89,8 +89,8 @@ end
 
     @cast pts[i, d] := r_PP[i][d]
 
-    ptsl = pts[mtree.geometric_permute[1][1:50], :]
-    ptsr = pts[mtree.geometric_permute[1][51:100], :]
+    ptsl = pts[mtree.structure[1][1:50], :]
+    ptsr = pts[mtree.structure[1][51:100], :]
 
 ##
 
@@ -123,12 +123,12 @@ end
         kernel = ConcentratedGaussianKernel,
     )
 
-    @test 7 == length(intersect(mtree.geometric_permute[1], collect(1:7)))
-    @test 4 == length(intersect(mtree.geometric_permute[2], collect(1:4)))
-    @test 3 == length(intersect(mtree.geometric_permute[3], collect(5:7)))
-    @test 2 == length(intersect(mtree.geometric_permute[4], collect(1:2)))
-    @test 2 == length(intersect(mtree.geometric_permute[5], collect(3:4)))
-    @test 2 == length(intersect(mtree.geometric_permute[6], collect(5:6)))
+    @test 7 == length(intersect(mtree.structure[1], collect(1:7)))
+    @test 4 == length(intersect(mtree.structure[2], collect(1:4)))
+    @test 3 == length(intersect(mtree.structure[3], collect(5:7)))
+    @test 2 == length(intersect(mtree.structure[4], collect(1:2)))
+    @test 2 == length(intersect(mtree.structure[5], collect(3:4)))
+    @test 2 == length(intersect(mtree.structure[6], collect(5:6)))
 
     @test isapprox(mean(M, pts), mean(mtree.tree_kernels[1]); atol = 1e-6)
     @test isapprox(mean(M, pts[1:4]), mean(mtree.tree_kernels[2]); atol = 1e-6)
@@ -155,18 +155,18 @@ end
             kernel_bw = bw,
             kernel = ConcentratedGaussianKernel,
         )
-        @test permref == mtree.geometric_permute[1]
+        @test permref == mtree.structure[1]
         @test isapprox(mean(M, pts), mean(mtree.tree_kernels[1]); atol = 1e-10)
-        @test collect(mtree.geometric_permute[1]) == collect(union(lseg, rseg))
-        @test collect(mtree.geometric_permute[2]) == collect(mtree.geometric_permute[1][lseg])
-        @test collect(mtree.geometric_permute[3]) == collect(mtree.geometric_permute[1][rseg])
+        @test collect(mtree.structure[1]) == collect(union(lseg, rseg))
+        @test collect(mtree.structure[2]) == collect(mtree.structure[1][lseg])
+        @test collect(mtree.structure[3]) == collect(mtree.structure[1][rseg])
         @test isapprox(
-            mean(M, pts[mtree.geometric_permute[1][lseg]]),
+            mean(M, pts[mtree.structure[1][lseg]]),
             mean(mtree.tree_kernels[2]);
             atol = 1e-6,
         )
         @test isapprox(
-            mean(M, pts[mtree.geometric_permute[1][rseg]]),
+            mean(M, pts[mtree.structure[1][rseg]]),
             mean(mtree.tree_kernels[3]);
             atol = 1e-6,
         )
@@ -268,7 +268,7 @@ end
     # test sorting order of data 
     permref = sortperm(pts; by = s -> getindex(s, 1))
 
-    @test 0 == sum(permref - mtree.geometric_permute[1])
+    @test 0 == sum(permref - mtree.structure[1])
 
     lkmeans = 1:Npts(mtree) .|> i -> mean(getKernelLeaf(mtree, i))
     @test 0 == sum(

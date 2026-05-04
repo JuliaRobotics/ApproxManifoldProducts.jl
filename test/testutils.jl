@@ -16,7 +16,7 @@ function directProductGaussianTestHelper(
     N::Int,
 )
 
-    invpermute(B::HomotopyDensity, s::Int) = findfirst(==(s), B.geometric_permute[1])
+    invpermute(B::HomotopyDensity, s::Int) = findfirst(==(s), B.structure[1])
     # use idx 1 assuming all leaf bandwidths are the same
     bw1 = getBW(P1)[invpermute(P1,1)] .^ 2
     bw2 = getBW(P2)[invpermute(P2,1)] .^ 2
