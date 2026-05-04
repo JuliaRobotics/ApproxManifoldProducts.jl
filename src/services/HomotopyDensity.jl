@@ -181,7 +181,6 @@ function HomotopyDensity(
         # partial = _getprl(eltype(tree_kernels))
         bel_ = HomotopyDensity(;
             representationkind = _partialrepr(bel.representationkind),
-            manifold = getManifold(bel),
             data = bel.data,
             weights = bel.weights,
             geometric_permute = bel.geometric_permute,
