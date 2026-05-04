@@ -27,7 +27,9 @@ struct HomotopyRepresentation{
   partial, 
   reprtype, 
   truncation <: AbstractHomotopyTruncation
-} end
+} 
+  _statekind::statetype
+end
 
 
 struct MajorMaxDepth{
@@ -56,13 +58,13 @@ getPartial(::HomotopyRepresentation{
 }) where {statetype, partial, reprtype, truncation} = 
   partial
 
-getManifold(::HomotopyRepresentation{
+getManifold(repr::HomotopyRepresentation{
   statetype, 
   partial, 
   reprtype, 
   truncation
 }) where {statetype, partial, reprtype, truncation} = 
-  getManifold(statetype)
+  getManifold(repr._statekind) # supports both DFG and ManifoldsBase
 
 getReprType(::HomotopyRepresentation{
   statetype, 

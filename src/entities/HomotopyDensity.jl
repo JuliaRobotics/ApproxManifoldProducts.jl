@@ -19,14 +19,14 @@ Minor eigenvectors are sometimes called "trailing eigenvectors," or "residual mo
 """
 @kwdef struct HomotopyDensity{
   partial,
-  M, 
+  # M, 
   P <: AbstractArray,
   HL, 
   HT,
   H <: HomotopyRepresentation
 }
     representationkind::H
-    manifold::M
+    # manifold::M
     data::Vector{P}
     weights::Vector{Float64} = Vector{Float64}(ones(length(data))) ./ length(data)  # TODO rename to mixture_weights
     """ 
@@ -39,7 +39,7 @@ Minor eigenvectors are sometimes called "trailing eigenvectors," or "residual mo
     )
     leaf_kernels::Vector{HL}  # TODO rename to trailing
     tree_kernels::Vector{HT}  # TODO rename to leading
-    infoPerCoord::Vector{Float64} = zeros(manifold_dimension(manifold))
+    infoPerCoord::Vector{Float64} = zeros(manifold_dimension(getManifold(representationkind)))
 end
 
 

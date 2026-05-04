@@ -3,6 +3,7 @@ Major news relating to breaking changes in ApproxManifoldProducts.jl
 ## v0.15 (26Q2)
 
 - Refactoring `partial::Union{Nothing, <:Tuple>}` for `HomotopyDensity` constructors, utils, and helpers.  This replaces legacy code that used partials as vector type. 
+- `HomotopyDensity.representationkind` replaces multiple parameters and fields, including `.manifold`, ... (breaking change)
 
 ## v0.14 (26Q2)
 

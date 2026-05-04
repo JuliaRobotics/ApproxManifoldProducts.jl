@@ -6,7 +6,7 @@
 
 
 # FIXME, heavy legacy -- update this to a prettier show of modern HomotopyDensity
-function Base.show(io::IO, hode::HomotopyDensity{partial, M, P, HL, HT}) where {partial, M, P, HL, HT}
+function Base.show(io::IO, hode::HomotopyDensity{partial, P, HL, HT}) where {partial, M, P, HL, HT}
     N = Npts(hode)
     printstyled(io, "HomotopyDensity{"; bold = true, color = :blue)
     println(io)
@@ -14,7 +14,7 @@ function Base.show(io::IO, hode::HomotopyDensity{partial, M, P, HL, HT}) where {
     print(io, " = ", partial, ",")
     println(io)
     printstyled(io, "    M"; bold = true, color = :magenta)
-    print(io, " = ", M, ",")
+    print(io, " = ", typeof(getManifold(hode.representationkind)), ",")
     println(io)
     printstyled(io, "  P  = ", P; color = :magenta)
     println(io)
@@ -176,7 +176,7 @@ function HomotopyDensity(
         tree_kernels_ .= (s->_intersectpartials(mani, s, partial, partl_cb)).(view(bel.tree_kernels, tkm))
         leaf_kernels_ .= (s->_intersectpartials(mani, s, partial, partl_cb)).(view(bel.leaf_kernels, lkm))
         # update representation kind to have correct partials
-        _partialrepr(::HomotopyRepresentation{M, L, K, D}) where {M, L, K, D} = HomotopyRepresentation{M, partl, K, D}()
+        _partialrepr(::HomotopyRepresentation{M, L, K, D}) where {M, L, K, D} = HomotopyRepresentation{M, partl, K, D}(mani)
         # update density to have correct partials
         bel_ = HomotopyDensity{
             _getprl(eltype(tree_kernels)),
@@ -255,11 +255,11 @@ function buildTree_Manellic!(
         _tuple(partial),
         ConcentratedGaussianKernel,
         MajorMaxDepth{3},
-    }()
+    }(manif)
 
     _hode = HomotopyDensity{
         _tuple(partial),
-        typeof(manif), 
+        # typeof(manif), 
         eltype(r_PP),
         lknlT,
         tknlT,
@@ -269,7 +269,7 @@ function buildTree_Manellic!(
         data = r_PP,
         weights,
         # TODO deprecating fields below
-        manifold = manif,
+        # manifold = manif,
         leaf_kernels = lkern,
         tree_kernels = tkern,
     )
@@ -299,22 +299,22 @@ function HomotopyDensity{
   tree_kernels::Vector{HT},
   kw...
 ) where {partial, M, P, HL, HT}
-    representationkind = ApproxManifoldProducts.HomotopyRepresentation{
+    representationkind = HomotopyRepresentation{
         M, 
         partial, 
         ConcentratedGaussianKernel, 
         MajorMaxDepth{3}
-    }()
+    }(manifold)
     HomotopyDensity{
         partial, 
-        M, 
+        # M, 
         P, 
         HL,
         HT,
         typeof(representationkind)
     }(;
         representationkind,
-        manifold = getManifold(manifold),
+        # manifold = getManifold(manifold),
         data,
         leaf_kernels,
         tree_kernels,
@@ -537,9 +537,9 @@ end
 getPointRepr(x::HomotopyDensity) = eltype(x.data) # TODO use HomotopyDensity{T} style instead
 function getManifold(x::HomotopyDensity, aspartial::Bool = false)
     return if !aspartial
-        x.manifold
+        getManifold(x.representationkind)
     else
-        M_, _, _ = getManifoldPartial(x.manifold, getPartial(x), x.data[1])
+        M_, _, _ = getManifoldPartial(getManifold(x), getPartial(x), x.data[1])
         M_
     end
 end
@@ -596,10 +596,10 @@ end
 
 
 function updateBandwidths(
-    hode::HomotopyDensity{L, M, P, HL}, 
+    hode::HomotopyDensity{L, P, HL}, 
     bws;
     partl_cb::Union{Nothing, <:Function} = nothing,
-) where {L, M, P, HL}
+) where {L, P, HL}
     #
     _getBW(s::Float64, ::Int) = [s;;]
     _getBW(s::AbstractVector{<:Real}, ::Int) = s

@@ -59,7 +59,7 @@ hr = ApproxManifoldProducts.HomotopyRepresentation{
   nothing, 
   ConcentratedGaussianKernel, 
   MajorMaxDepth{3}
-}()
+}(manif)
 
 
 
@@ -71,7 +71,7 @@ lkern = Vector{lknlT}(undef, length(pts))
 
 HomotopyDensity{
   nothing,
-  typeof(manif), 
+  # typeof(manif), 
   eltype(pts),
   lknlT,
   lknlT,
@@ -80,7 +80,7 @@ HomotopyDensity{
   representationkind = hr,
   data = pts,
   # TODO deprecating fields below
-  manifold = manif,
+  # manifold = manif,
   leaf_kernels = lkern,
   tree_kernels = lkern,
 )
