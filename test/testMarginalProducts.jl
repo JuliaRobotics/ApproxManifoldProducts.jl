@@ -260,7 +260,7 @@ end
 
     sl = Vector{Vector{Int}}()
 
-    @warn "suspect numerical cov hard because product between highly disjoint densities reduce fewer unique product labels"
+    @warn "suspect temporary numerical cov issues because product between highly disjoint densities reduce fewer unique product labels -- will get resolved with resample or 'try-harder' after HomotopyDensity refactor."
     P_ = manifoldProduct(
         [P1; P3];
         selectedLabels = sl,
@@ -673,6 +673,7 @@ end
 ##
 
     sl = Vector{Vector{Int}}()
+    @warn "suspect temporary numerical cov issues because product between highly disjoint densities reduce fewer unique product labels -- will get resolved with resample or 'try-harder' after HomotopyDensity refactor."
     P = manifoldProduct(
         [P1; P2; P3];
         selectedLabels = sl,

@@ -175,11 +175,13 @@ function HomotopyDensity(
         leaf_kernels_ = view(leaf_kernels, lkm)
         tree_kernels_ .= (s->_intersectpartials(mani, s, partial, partl_cb)).(view(bel.tree_kernels, tkm))
         leaf_kernels_ .= (s->_intersectpartials(mani, s, partial, partl_cb)).(view(bel.leaf_kernels, lkm))
-        # update belief to have correct partials
+        # update representation kind to have correct partials
+        _partialrepr(::HomotopyRepresentation{M, L, K, D}) where {M, L, K, D} = HomotopyRepresentation{M, partl, K, D}()
+        # update density to have correct partials
         bel_ = HomotopyDensity{
             _getprl(eltype(tree_kernels)),
         }(;
-            representationkind = bel.representationkind,
+            representationkind = _partialrepr(bel.representationkind),
             manifold = getManifold(bel),
             data = bel.data,
             weights = bel.weights,
@@ -265,22 +267,12 @@ function buildTree_Manellic!(
     }(;
         representationkind,
         data = r_PP,
+        weights,
         # TODO deprecating fields below
         manifold = manif,
         leaf_kernels = lkern,
         tree_kernels = tkern,
     )
-    # _hode = HomotopyDensity{
-    #     _tuple(partial),
-    # }(;
-    #     representationkind,
-    #     data = r_PP,
-    #     weights,
-    #     # TODO deprecating fields below
-    #     manifold = manif,
-    #     leaf_kernels = lkern,                      # leaf_kernels
-    #     tree_kernels = Vector{tknlT}(undef, N),    # tree_kernels
-    # )
 
     #
     tosort_leaves = buildTree_Manellic!(
@@ -298,7 +290,7 @@ function buildTree_Manellic!(
 end
 
 
-HomotopyDensity{
+function HomotopyDensity{
   partial
 }(;
   manifold::M, 
@@ -306,14 +298,29 @@ HomotopyDensity{
   leaf_kernels::Vector{HL},
   tree_kernels::Vector{HT},
   kw...
-) where {partial, M, P, HL, HT} = 
-HomotopyDensity{partial, M, P, HL, HT}(;
-  manifold,
-  data,
-  leaf_kernels,
-  tree_kernels,
-  kw...
-)
+) where {partial, M, P, HL, HT}
+    representationkind = ApproxManifoldProducts.HomotopyRepresentation{
+        M, 
+        partial, 
+        ConcentratedGaussianKernel, 
+        MajorMaxDepth{3}
+    }()
+    HomotopyDensity{
+        partial, 
+        M, 
+        P, 
+        HL,
+        HT,
+        typeof(representationkind)
+    }(;
+        representationkind,
+        manifold = getManifold(manifold),
+        data,
+        leaf_kernels,
+        tree_kernels,
+        kw...
+    )
+end
 
 function HomotopyDensity{
   partial
@@ -343,13 +350,6 @@ function HomotopyDensity{
 ) where {partial}
     #
     manifold = getManifold(kind)
-    # get representationkind
-    reprkind = HomotopyRepresentation{
-        kind, 
-        partial, 
-        ConcentratedGaussianKernel, 
-        MajorMaxDepth{3}
-    }
 
     M_, reprl, partl_cb = getManifoldPartial(manifold, partial, pts[1])
 

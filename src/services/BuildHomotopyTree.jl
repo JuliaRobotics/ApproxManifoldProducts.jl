@@ -36,15 +36,10 @@ function buildTree_Manellic!(
         end
     end
 
+    partial = _getprl(r_ker[1])
     mtree = HomotopyDensity{
-        _getprl(r_ker[1]),
+        partial,
     }(;
-        representationkind = HomotopyRepresentation{
-            M,
-            _tuple(partial),
-            ConcentratedGaussianKernel,
-            MajorMaxDepth{3},
-        },
         manifold = manif,
         data = r_PP,
         weights,
