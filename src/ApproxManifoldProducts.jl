@@ -24,7 +24,7 @@ using CoordinateTransformations
 using RecursiveArrayTools: ArrayPartition
 export ArrayPartition
 
-import PDMats
+using PDMats: PDMat
 
 using ManifoldsBase
 using ManifoldsBase: AbstractManifold, distance, TypeParameter, submanifold_component

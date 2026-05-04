@@ -18,10 +18,11 @@ Major eigenvectors are often called "dominant eigenvectors," or simply "leading 
 Minor eigenvectors are sometimes called "trailing eigenvectors," or "residual modes." In PCA, these correspond to the components with the smallest variance.
 """
 @kwdef struct HomotopyDensity{
-  H <: HomotopyRepresentation,
-  P <: AbstractArray,
-  HL, 
-  HT,
+  H <: HomotopyRepresentation, # serde friendly when using DFG.statekind representation, but also supports Manifolds.jl direclty
+  P <: AbstractArray, # serde relies on DFG statekind mechanism, does not guarantee serde when directly using Manifolds wo DFG.statekind
+  HL,  # FIXME, deprecating
+  HT,  # FIXME, deprecating
+  MD # Easy JSON lift lower during serde -- e.g. Dict{Int, Vector{Float64}} when storing just diagonal covariances for leaves of tree, or similar
 }
     representationkind::H
     observability::Vector{Float64} = zeros(manifold_dimension(getManifold(representationkind)))
@@ -35,8 +36,16 @@ Minor eigenvectors are sometimes called "trailing eigenvectors," or "residual mo
       Dict(1 => collect(1:length(elements))), 
       5*(length(elements)) # large buffer space where impact on resources mitigated via sparsevec
     )
-    leaf_kernels::Vector{HL}  # TODO rename to trailing
-    tree_kernels::Vector{HT}  # TODO rename to leading
+    tree_kernels::Vector{HT}        # TODO rename to leading
+    leaf_kernels::Vector{HL}        # FIXME, remove
+    """ 
+    Store minor details such as leaf bandwidth or eigenvectors associated with minor eigenvalues.
+    - When lifted for compute efficiency, this field is likely to hold something like PDMats.
+    - When lowered or for serde, this field is likely to hold Dict{Int, Vector{Float64}}.
+    """
+    minors_detail::SparseArrays.SparseVector{MD, Int} = SparseArrays.sparsevec(Dict(
+      1 => PDMat(SMatrix{Float64}(I, manifold_dimension(getManifold(representationkind)), manifold_dimension(getManifold(representationkind)))),
+    ), 1)
 end
 
 

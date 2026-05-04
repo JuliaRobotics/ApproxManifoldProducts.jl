@@ -3,7 +3,9 @@ using Test
 using ApproxManifoldProducts
 using DistributedFactorGraphs
 using LieGroups, Manifolds
-
+using StaticArrays, SparseArrays
+using PDMats
+using LinearAlgebra
 
 
 ##
@@ -45,8 +47,6 @@ hr = ApproxManifoldProducts.HomotopyRepresentation{
 
 ##
 
-
-
 pts = [
     [-1.0],
     [3.0],
@@ -69,21 +69,27 @@ lkern = Vector{lknlT}(undef, length(pts))
 
 ##
 
-HomotopyDensity{
+d = manifold_dimension(getManifold(hr))
+minors_detail = SparseArrays.sparsevec(Dict(
+  1 => PDMat(
+    SMatrix{d,d}(I)
+    ),
+), 1)
+
+hd = HomotopyDensity{
   typeof(hr),
   eltype(pts),
   lknlT,
   lknlT,
+  eltype(minors_detail)
 }(;
   representationkind = hr,
   elements = pts,
   # TODO deprecating fields below
-  leaf_kernels = lkern,
   tree_kernels = lkern,
+  leaf_kernels = lkern,
+  minors_detail,
 )
-
-
-
 
 
 

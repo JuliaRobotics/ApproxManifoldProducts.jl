@@ -34,13 +34,30 @@ function getKernelLeaf(
     i::Int, 
     permuted::Bool = true
 )
-    # invpermute(s::Int) = findfirst(==(s), hode.structure[1])
-    if permuted
+    # invpermute(s::Int) = findfirst(==(s), hode.structure[1])    
+    lv = if permuted
         # FIXME, can only use structure[1] when leaf_size=1
-        return hode.leaf_kernels[hode.structure[1][i]]
+        hode.leaf_kernels[hode.structure[1][i]]
     else
-        return hode.leaf_kernels[i]
+        hode.leaf_kernels[i]
     end
+
+    # FIXME refactor in transit, use HR{,,,A} to extract leaf and minor relation
+    altcv_ = if 1 == SparseArrays.nnz(hode.minors_detail)
+        hode.minors_detail[1]
+    else
+        hode.minors_detail[i]
+    end
+
+    hr = hode.representationkind
+    partial = getPartial(hr)
+    mn = mean(lv)
+    cv = cov(lv)
+    cv_ = SMatrix{size(cv)...}(cv)
+    # FIXME, hack before reworking partials to common trait -- 
+    #  partial and partl_cb elsewhere assumed to travel together, not recreated post-hoc
+    _, _, partl_cb = getManifoldPartial(getManifold(hode), _tuple(partial), mn)
+    return getReprType(hr)(mn, cv_; partial, partl_cb)
 end
 
 """

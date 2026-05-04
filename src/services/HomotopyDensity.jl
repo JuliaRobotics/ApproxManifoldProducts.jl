@@ -164,6 +164,9 @@ function HomotopyDensity(
         bel.elements[1],
     )
     if length(partl) != manifold_dimension(mani)
+        # update representation kind to have correct partials
+        _partialrepr(::HomotopyRepresentation{M, L, K, D}) where {M, L, K, D} = HomotopyRepresentation{M, partl, K, D}(mani)
+        representationkind = _partialrepr(bel.representationkind)
         # assuming there are tree and leaf nodes at [1]...
         _tkT() = _intersectpartials(mani, getKernelTree(bel, 1), partial) |> typeof
         _lkT() = _intersectpartials(mani, getKernelLeaf(bel, 1), partial) |> typeof
@@ -175,18 +178,27 @@ function HomotopyDensity(
         leaf_kernels_ = view(leaf_kernels, lkm)
         tree_kernels_ .= (s->_intersectpartials(mani, s, partial, partl_cb)).(view(bel.tree_kernels, tkm))
         leaf_kernels_ .= (s->_intersectpartials(mani, s, partial, partl_cb)).(view(bel.leaf_kernels, lkm))
-        # update representation kind to have correct partials
-        _partialrepr(::HomotopyRepresentation{M, L, K, D}) where {M, L, K, D} = HomotopyRepresentation{M, partl, K, D}(mani)
+        # update minors detail to have correct partials
+        nzs, _ = SparseArrays.findnz(bel.minors_detail)
+        for i in nzs
+            cv = bel.minors_detail[i].mat
+            dummy = bel.elements[1]
+            cg = ConcentratedGaussianKernel(dummy, cv)
+            cg_ = _intersectpartials(mani, cg, partial, partl_cb)
+            cv_ = cov(cg_)
+            bel.minors_detail[i] = PDMat(SMatrix{size(cv_)...}(cv_))
+        end
         # update density to have correct partials
         # partial = _getprl(eltype(tree_kernels))
         bel_ = HomotopyDensity(;
-            representationkind = _partialrepr(bel.representationkind),
+            representationkind,
+            observability,
             elements = bel.elements,
             weights = bel.weights,
             structure = bel.structure,
             leaf_kernels,
             tree_kernels,
-            observability,
+            minors_detail = bel.minors_detail,
         )
 
         # call the constructor direct
@@ -255,19 +267,28 @@ function buildTree_Manellic!(
         MajorMaxDepth{3},
     }(manif)
 
+    # TODO consolidate w legacy kernel_bw
+    d = manifold_dimension(getManifold(representationkind))
+    minors_detail = SparseArrays.sparsevec(Dict(
+    1 => PDMat(
+        SMatrix{d,d}(I)
+        ),
+    ), 1) # assume size 1 during refactor -- i.e. universal bandwidth at leaves
+
     _hode = HomotopyDensity{
         typeof(representationkind),
         eltype(r_PP),
         lknlT,
         tknlT,
+        eltype(minors_detail),
     }(;
         representationkind,
         elements = r_PP,
         weights,
         # TODO deprecating fields below
-        # manifold = manif,
         leaf_kernels = lkern,
         tree_kernels = tkern,
+        minors_detail,
     )
 
     #
@@ -300,17 +321,26 @@ function HomotopyDensity_legacy(;
         ConcentratedGaussianKernel, 
         MajorMaxDepth{3}
     }(manifold)
+
+    d = manifold_dimension(getManifold(representationkind))
+    minors_detail = SparseArrays.sparsevec(Dict(
+        1 => PDMat(
+            SMatrix{d,d}(I)
+            ),
+    ), 1)
+
     HomotopyDensity{
         typeof(representationkind),
         P, 
         HL,
         HT,
+        eltype(minors_detail),
     }(;
         representationkind,
-        # manifold = getManifold(manifold),
         elements,
         leaf_kernels,
         tree_kernels,
+        minors_detail,
         kw...
     )
 end
@@ -603,10 +633,17 @@ function updateBandwidths(
 
     N = Npts(hode)
 
+    (nzi,_) = SparseArrays.findnz(hode.minors_detail)
+
     leaf_kernels = Vector{HL}(undef, N)
     for (i, lk) in enumerate(hode.leaf_kernels)
         nkl = ConcentratedGaussianKernel(lk; Σ = _getBW(bws, i), partl_cb)
         leaf_kernels[i] = nkl # updateKernelBW(lk, _getBW(bws, i))
+        # new replacement field instead of .leaf_kernels
+        if i in nzi
+            cv = cov(nkl)
+            hode.minors_detail[i] = PDMat(SMatrix{size(cv)...}(cv))
+        end
     end
     kind = getManifold(hode) 
     representationkind = HomotopyRepresentation{
@@ -623,6 +660,7 @@ function updateBandwidths(
         structure = hode.structure,
         leaf_kernels,
         tree_kernels = hode.tree_kernels,
+        minors_detail = hode.minors_detail,
     )
 end
 
