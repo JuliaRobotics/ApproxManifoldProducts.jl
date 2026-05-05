@@ -76,16 +76,18 @@ minors_detail = SparseArrays.sparsevec(Dict(
     ),
 ), 1)
 
+
 hd = HomotopyDensity{
   typeof(hr),
   eltype(points),
   lknlT,
+  eltype(points),
+  Matrix{Float64},
   eltype(minors_detail)
 }(;
   representationkind = hr,
   points,
-  # TODO deprecating fields below
-  tree_kernels = lkern,
+  tree_kernels = lkern,  # TODO deprecating fields below
   minors_detail,
 )
 

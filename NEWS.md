@@ -11,6 +11,7 @@ Major news relating to breaking changes in ApproxManifoldProducts.jl
 - Rename `HomotopyDensity.points` instead of `.data` (breaking change)
 - Rename `HomotopyDensity.structure` instead of `.geometric_permute` (breaking change)
 - Drop `HomotopyDensity.leaf_kernels`, switch to new approach with `.minors_detail` (breaking change)
+- Adding `HomotopyDensity.majors_*` fields 
 
 ## v0.14 (26Q2)
 

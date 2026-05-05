@@ -6,7 +6,7 @@
 
 
 # FIXME, heavy legacy -- update this to a prettier show of modern HomotopyDensity
-function Base.show(io::IO, hode::HomotopyDensity{H, P, HT}) where {H, P, HT}
+function Base.show(io::IO, hode::HomotopyDensity{H, P, HT, ME, MJ, MI}) where {H, P, HT, ME, MJ, MI}
     N = Npts(hode)
     printstyled(io, "HomotopyDensity{"; bold = true, color = :blue)
     println(io)
@@ -196,8 +196,10 @@ function HomotopyDensity(
             points = bel.points,
             weights = bel.weights,
             structure = bel.structure,
-            # leaf_kernels,
             tree_kernels,
+            majors_coeff = bel.majors_coeff,
+            majors_element = bel.majors_element,
+            majors_detail = bel.majors_detail,
             minors_detail = bel.minors_detail,
         )
 
@@ -276,8 +278,9 @@ function buildTree_Manellic!(
     _hode = HomotopyDensity{
         typeof(representationkind),
         eltype(r_PP),
-        # lknlT,
         tknlT,
+        eltype(r_PP),
+        Matrix{Float64},
         eltype(minors_detail),
     }(;
         representationkind,
@@ -335,8 +338,9 @@ function HomotopyDensity_legacy(;
     HomotopyDensity{
         typeof(representationkind),
         P, 
-        # HL,
         HT,
+        P,
+        Matrix{Float64},
         eltype(minors_detail),
     }(;
         representationkind,
@@ -662,8 +666,10 @@ function updateBandwidths(
         points = hode.points,
         weights = hode.weights,
         structure = hode.structure,
-        # leaf_kernels,
         tree_kernels = hode.tree_kernels,
+        majors_coeff = hode.majors_coeff,
+        majors_element = hode.majors_element,
+        majors_detail = hode.majors_detail,
         minors_detail = hode.minors_detail,
     )
 end

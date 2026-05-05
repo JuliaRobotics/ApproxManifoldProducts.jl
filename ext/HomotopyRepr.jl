@@ -19,6 +19,8 @@ export
 
 abstract type AbstractHomotopyTruncation end
 
+getMajorsLength(::Type{<:AbstractHomotopyTruncation}) = 1
+
 # abstract type AbstractDensityRepresentation{partial, truncation} end
 # const ReprType = AbstractDensityRepresentation
 
@@ -31,10 +33,16 @@ struct HomotopyRepresentation{
   _statekind::statetype
 end
 
+getMajorsLength(repr::HomotopyRepresentation) = getMajorsLength(getTruncation(repr))
+
 
 struct MajorMaxDepth{
   N
 } <: AbstractHomotopyTruncation end
+
+# Binary tree with N major levels
+getMajorsLength(::Type{MajorMaxDepth{N}}) where {N} = N^2 - 1
+
 
 
 # trivial case -- should be in DFG instead FIXME

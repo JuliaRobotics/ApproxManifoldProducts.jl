@@ -21,12 +21,26 @@ Minor eigenvectors are sometimes called "trailing eigenvectors," or "residual mo
   H <: HomotopyRepresentation, # serde friendly when using DFG.statekind representation, but also supports Manifolds.jl direclty
   P <: AbstractArray, # serde relies on DFG statekind mechanism, does not guarantee serde when directly using Manifolds wo DFG.statekind
   HT,  # FIXME, deprecating
-  MD # Use only easy to JSON.jl lift lower serde -- e.g. Dict{Int, Vector{Float64}} when storing just diagonal covariances for leaves of tree, or similar
+  ME,  # Major elements can be points or eigen vectors etc.
+  MJ,  # Use only easy to JSON.jl lift lower serde -- e.g. Dict{Int, Vector{Float64}} when storing just diagonal covariances for leaves of tree, or similar
+  MI,  # Use only easy to JSON.jl lift lower serde -- e.g. Dict{Int, Vector{Float64}} when storing just diagonal covariances for leaves of tree, or similar
 }
     representationkind::H
     observability::Vector{Float64} = zeros(manifold_dimension(getManifold(representationkind)))
     points::Vector{P}
     weights::Vector{Float64} = Vector{Float64}(ones(length(points))) ./ length(points)  # TODO rename to mixture_weights
+    tree_kernels::Vector{HT}        # TODO rename to leading
+    majors_coeff::Vector{Float64} = Vector{Float64}(undef, getMajorsLength(representationkind))
+    majors_element::Vector{ME} = Vector{P}(undef, getMajorsLength(representationkind))
+    majors_detail::Vector{MJ} = Vector{Matrix{Float64}}(undef, getMajorsLength(representationkind))
+    """ 
+    Store minor details such as leaf bandwidth or eigenvectors associated with minor eigenvalues.
+    - When lifted for compute efficiency, this field is likely to hold something like PDMats.
+    - When lowered or for serde, this field is likely to hold Dict{Int, Vector{Float64}}.
+    """
+    minors_detail::SparseArrays.SparseVector{MI, Int} = SparseArrays.sparsevec(Dict(
+      1 => PDMat(SMatrix{Float64}(I, manifold_dimension(getManifold(representationkind)), manifold_dimension(getManifold(representationkind)))),
+    ), 1)
     """ 
     Geometric points permute field, allows fast binary tree operations and geometric points splits for manellic (ball) trees. 
     - Geometric split reqs at least 2*(N+1)-1 points -- e.g. when nodes have only right children, points=[1,2,-3].
@@ -35,15 +49,6 @@ Minor eigenvectors are sometimes called "trailing eigenvectors," or "residual mo
       Dict(1 => collect(1:length(points))), 
       5*(length(points)) # large buffer space where impact on resources mitigated via sparsevec
     )
-    tree_kernels::Vector{HT}        # TODO rename to leading
-    """ 
-    Store minor details such as leaf bandwidth or eigenvectors associated with minor eigenvalues.
-    - When lifted for compute efficiency, this field is likely to hold something like PDMats.
-    - When lowered or for serde, this field is likely to hold Dict{Int, Vector{Float64}}.
-    """
-    minors_detail::SparseArrays.SparseVector{MD, Int} = SparseArrays.sparsevec(Dict(
-      1 => PDMat(SMatrix{Float64}(I, manifold_dimension(getManifold(representationkind)), manifold_dimension(getManifold(representationkind)))),
-    ), 1)
 end
 
 
