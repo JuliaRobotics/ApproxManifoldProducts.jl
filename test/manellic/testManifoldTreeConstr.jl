@@ -542,17 +542,12 @@ end
     M = LieGroups.TranslationGroup(1)
     N = 32
     pts = [randn(1) for _ = 1:N]
-    # weights = ones(N) ./ N
-    KT = ConcentratedGaussianKernel
-    KL = ConcentratedGaussianKernel
-    # lkern = Vector{KL}(undef, N)
 
 ##
 
     mtree = HomotopyDensity_legacy(;
         manifold = M,
         points = pts,
-        # tree_kernels = Vector{KT}(undef, N),
     );
     
 ##

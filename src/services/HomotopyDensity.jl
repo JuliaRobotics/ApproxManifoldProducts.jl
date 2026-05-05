@@ -14,7 +14,7 @@ function Base.show(io::IO, hode::HomotopyDensity{H, P, ME, MJ, MI}) where {H, P,
     print(io, " = ", getPartial(hode), ",")
     println(io)
     printstyled(io, "    M"; bold = true, color = :magenta)
-    print(io, " = ", typeof(getManifold(hode.representationkind)), ",")
+    print(io, " = ", typeof(getManifold(hode.reprkind)), ",")
     println(io)
     printstyled(io, "  P  = ", P; color = :magenta)
     println(io)
@@ -55,7 +55,7 @@ function Base.show(io::IO, hode::HomotopyDensity{H, P, ME, MJ, MI}) where {H, P,
         printstyled(
             io,
             "     (trunc)  :   ",
-            getTruncation(hode.representationkind);
+            getTruncation(hode.reprkind);
             color = :light_black,
         )
         println(io)
@@ -166,7 +166,7 @@ function HomotopyDensity(
     if length(partl) != manifold_dimension(mani)
         # update representation kind to have correct partials
         _partialrepr(::HomotopyRepresentation{M, L, K, D}) where {M, L, K, D} = HomotopyRepresentation{M, partl, K, D}(mani)
-        representationkind = _partialrepr(bel.representationkind)
+        reprkind = _partialrepr(bel.reprkind)
         # update majors to have correct partials
         for i in 1:length(bel.majors_element)
             if isassigned(bel.majors_element, i)
@@ -175,11 +175,7 @@ function HomotopyDensity(
                 bel.majors_detail[i] = cov(nkn)
             end
         end
-            # _tkT() = _intersectpartials(mani, getKernelTree(bel, 1), partial) |> typeof
-            # tree_kernels  = Vector{_tkT()}(undef, length(bel.tree_kernels))
-            # tkm = (s->isassigned(bel.tree_kernels, s)).(1:length(bel.tree_kernels))
-            # tree_kernels_ = view(tree_kernels, tkm)
-            # tree_kernels_ .= (s->_intersectpartials(mani, s, partial, partl_cb)).(view(bel.tree_kernels, tkm))
+
         # update minors detail to have correct partials
         nzs, _ = SparseArrays.findnz(bel.minors_detail)
         for i in nzs
@@ -192,12 +188,11 @@ function HomotopyDensity(
         end
         # update density to have correct partials
         bel_ = HomotopyDensity(;
-            representationkind,
+            reprkind,
             observability,
             points = bel.points,
             weights = bel.weights,
             structure = bel.structure,
-            # tree_kernels,
             majors_coeff = bel.majors_coeff,
             majors_element = bel.majors_element,
             majors_detail = bel.majors_detail,
@@ -263,7 +258,7 @@ function buildTree_Manellic!(
     end
     tkern = Vector{tknlT}(undef, N)
 
-    representationkind = HomotopyRepresentation{
+    reprkind = HomotopyRepresentation{
         M,
         _tuple(partial),
         ConcentratedGaussianKernel,
@@ -271,20 +266,20 @@ function buildTree_Manellic!(
     }(manif)
 
     # TODO consolidate w legacy kernel_bw
-    d = manifold_dimension(getManifold(representationkind))
+    d = manifold_dimension(getManifold(reprkind))
     minors_detail = SparseArrays.sparsevec(Dict(
         1 => PDMat(SMatrix{d,d,Float64}(cov(lkern[1]))),
     ), 1) # assume size 1 during refactor -- i.e. universal bandwidth at leaves
 
     _hode = HomotopyDensity{
-        typeof(representationkind),
+        typeof(reprkind),
         eltype(r_PP),
         # tknlT,
         eltype(r_PP),
         Matrix{Float64},
         eltype(minors_detail),
     }(;
-        representationkind,
+        reprkind,
         points = r_PP,
         weights,
         minors_detail,
@@ -310,8 +305,6 @@ function HomotopyDensity_legacy(;
   partial::Union{Nothing, <:Tuple, AbstractVector{<:Integer}} = nothing,
   manifold::M, 
   points::Vector{P},
-#   leaf_kernels::Vector{HL},
-#   tree_kernels::Vector{HT},
   kernel_bw = nothing,
   kw...
 ) where {M, P}
@@ -321,30 +314,28 @@ function HomotopyDensity_legacy(;
         
     lCV = _legacybw(kernel_bw)
 
-    representationkind = HomotopyRepresentation{
+    reprkind = HomotopyRepresentation{
         M, 
         partial, 
         ConcentratedGaussianKernel, 
         MajorMaxDepth{3}
     }(manifold)
 
-    d = manifold_dimension(getManifold(representationkind))
+    d = manifold_dimension(getManifold(reprkind))
     minors_detail = SparseArrays.sparsevec(Dict(
         1 => PDMat(SMatrix{d,d,Float64}(lCV)),
     ), 1)
 
     HomotopyDensity{
-        typeof(representationkind),
+        typeof(reprkind),
         P, 
         # HT,
         P,
         Matrix{Float64},
         eltype(minors_detail),
     }(;
-        representationkind,
+        reprkind,
         points,
-        # leaf_kernels,
-        # tree_kernels,
         minors_detail,
         kw...
     )
@@ -360,7 +351,6 @@ function HomotopyDensity(
     partial = _partl,
     manifold = getManifold(hode),
     points = hode.points,
-    # tree_kernels = hode.tree_kernels,
     majors_coeff = hode.majors_coeff,
     majors_element = hode.majors_element,
     majors_detail = hode.majors_detail,
@@ -569,7 +559,7 @@ end
 getPointType(x::HomotopyDensity) = eltype(x.points) # TODO use HomotopyDensity{T} style instead
 function getManifold(x::HomotopyDensity, aspartial::Bool = false)
     return if !aspartial
-        getManifold(x.representationkind)
+        getManifold(x.reprkind)
     else
         M_, _, _ = getManifoldPartial(getManifold(x), getPartial(x), x.points[1])
         M_
@@ -586,7 +576,7 @@ function getBandwidth(mkd::HomotopyDensity, aspartial::Bool = true)
     return _getFieldPartials(mkd, x -> getBW(x)[1], aspartial)
 end
 
-getPartial(hode::HomotopyDensity) = getPartial(hode.representationkind)
+getPartial(hode::HomotopyDensity) = getPartial(hode.reprkind)
 
 
 
@@ -657,7 +647,7 @@ function updateBandwidths(
         # end
     end
     kind = getManifold(hode) 
-    representationkind = HomotopyRepresentation{
+    reprkind = HomotopyRepresentation{
         typeof(kind),
         getPartial(hode),
         ConcentratedGaussianKernel,
@@ -665,11 +655,10 @@ function updateBandwidths(
     }(kind)
 
     return HomotopyDensity(;
-        representationkind,
+        reprkind,
         points = hode.points,
         weights = hode.weights,
         structure = hode.structure,
-        # tree_kernels = hode.tree_kernels,
         majors_coeff = hode.majors_coeff,
         majors_element = hode.majors_element,
         majors_detail = hode.majors_detail,

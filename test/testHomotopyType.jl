@@ -85,9 +85,8 @@ hd = HomotopyDensity{
   Matrix{Float64},
   eltype(minors_detail)
 }(;
-  representationkind = hr,
+  reprkind = hr,
   points,
-  # tree_kernels = lkern,  # TODO deprecating fields below
   minors_detail,
 )
 

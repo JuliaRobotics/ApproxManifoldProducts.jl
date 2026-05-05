@@ -1,7 +1,7 @@
 
 
 # either tree or leaf kernel, if larger than N
-leftIndex(hode::HomotopyDensity, idx::Int = 1) = 2 * idx
+leftIndex(::HomotopyDensity, idx::Int = 1) = 2 * idx
 rightIndex(hode::HomotopyDensity, idx::Int) = leftIndex(hode, idx) + 1
 
 
@@ -34,20 +34,13 @@ function getKernelLeaf(
     i::Int, 
     permuted::Bool = true
 )
-    # invpermute(s::Int) = findfirst(==(s), hode.structure[1])    
-    # lv = if permuted
-    #     # FIXME, can only use structure[1] when leaf_size=1
-    #     hode.leaf_kernels[hode.structure[1][i]]
-    # else
-    #     hode.leaf_kernels[i]
-    # end
+ 
     idx = if permuted
         # FIXME, can only use structure[1] when leaf_size=1
         hode.structure[1][i]
     else
         i
     end
-
 
     # FIXME refactor in transit, use HR{,,,A} to extract leaf and minor relation
     # TODO consolidate with uniBW()
@@ -57,7 +50,7 @@ function getKernelLeaf(
         hode.minors_detail[i]
     end
 
-    hr = hode.representationkind
+    hr = hode.reprkind
     partial = getPartial(hr)
     mn = hode.points[idx] # mean(lv) # 
 
@@ -80,8 +73,8 @@ function getKernelLeafAsTreeKer(
     idx::Int,
     permuted::Bool = false,
 ) where {H, P}
-    reprT = getReprType(mtr.representationkind)
-    partial = getPartial(mtr.representationkind)
+    reprT = getReprType(mtr.reprkind)
+    partial = getPartial(mtr.reprkind)
     mani = getManifold(mtr)
     lidx = (idx - 1) % Npts(mtr) + 1
     lidx_ = if permuted
@@ -116,7 +109,7 @@ function getKernelTree(
     #
     N = Npts(hode)
     partial = getPartial(hode)
-    reprT = getReprType(hode.representationkind)
+    reprT = getReprType(hode.reprkind)
     # BinaryTree (BT) index goes from root=1 to largest leaf 2*N
     return if isassigned(hode, currIdx) && !isLeaf_BTLabel(hode, currIdx)
         # cov_continuation correction so that we may build trees with sensible convariance to bandwidth transition from root to leaf
@@ -130,7 +123,6 @@ function getKernelTree(
             hode.majors_coeff[currIdx];
             partial, partl_cb
         )
-        # raw_ker = hode.tree_kernels[currIdx]
         if cov_continuation
             # depth of this index
             ances_depth = floor(Int, log2(currIdx))

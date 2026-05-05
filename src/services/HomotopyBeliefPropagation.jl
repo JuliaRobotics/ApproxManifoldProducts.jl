@@ -21,7 +21,6 @@ function calcProductKernelBTLabels(
         # tuple of which leave-one-out-proposal and its new latest label selection
         push!(prop_and_label, (s, labels_sampled[s]))
     end
-    # get raw kernels from tree, also as tree_kernel type
     # TODO COVARIANCE CONTINUATION CORRECTION FOR DEPTH OF TREE KERNELS
     components = map(
         pr_lb -> getKernelTree(proposals[pr_lb[1]], pr_lb[2], permute, true),

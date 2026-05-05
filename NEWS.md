@@ -4,15 +4,17 @@ Major news relating to breaking changes in ApproxManifoldProducts.jl
 
  Better support for unbalanced trees, including right-child-only-nodes.
 - Refactoring `partial::Union{Nothing, <:Tuple>}` for `HomotopyDensity` constructors, utils, and helpers.  This replaces legacy code that used partials as vector type. 
-- `HomotopyDensity.representationkind` replaces multiple parameters and fields, including `.manifold`, `{partial}`, ... (breaking change)
+- `HomotopyDensity.reprkind` replaces multiple parameters and fields, including `.manifold`, `{partial}`, ... (breaking change)
 - Use `HomotopyDensity_legacy(; partial)` instead of `HomotopyDensity{partial}(.;.)` (breaking change)
 - Refactored `HomotopyDensity{...}` parameters. (breaking change)
 - Rename `HomotopyDensity.observability` instead of `.infoPerCoord` (breaking change)
 - Rename `HomotopyDensity.points` instead of `.data` (breaking change)
 - Rename `HomotopyDensity.structure` instead of `.geometric_permute` (breaking change)
 - Drop `HomotopyDensity.leaf_kernels`, switch to new approach with `.minors_detail` (breaking change)
-- Adding `HomotopyDensity.majors_*` fields 
-- Deprecation, use `getPointType` instead of `getPointRepr`. (breaking change)
+- Adding `HomotopyDensity.majors_*` fields as new alternative and dropping `.tree_kernels` (breaking change)
+- Deprecation, use `getPointType` instead of `getPointRepr` (breaking change)
+- Large refactoring and restructuring of code towards a reduce implementation and DFG/JSON serde support
+
 
 ## v0.14 (26Q2)
 
