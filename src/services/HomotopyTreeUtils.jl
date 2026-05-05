@@ -26,7 +26,7 @@ Default returns leaf kernel associated with permuted input data element `i` (i.e
 but returns the leaf_kernel inverse permuted `i` when `permuted=false` (i.e. similar to unsorted input data).
 
 DevNotes:
-- FIXME Very bad practice to have duplicate of .elements[.structure[1]] deepcopied into .leaf_kernels
+- FIXME Very bad practice to have duplicate of .points[.structure[1]] deepcopied into .leaf_kernels
   - Makes unpermuted lookup really slow among the torrent of other issues.
 """
 function getKernelLeaf(
@@ -59,16 +59,7 @@ function getKernelLeaf(
 
     hr = hode.representationkind
     partial = getPartial(hr)
-    mn = hode.elements[idx] # mean(lv) # 
-    # cv = cov(lv)
-    # cv_ = SMatrix{size(cv)...}(cv)
-
-    # if !isapprox(cv_, altcv_.mat)
-    #     @error "wrong cov" cv_ altcv_.mat
-    #     error("STOP COV MISMATCH")
-    # end
-
-     # FIXME, hack before reworking partials to common trait --
+    mn = hode.points[idx] # mean(lv) # 
 
     # FIXME, hack before reworking partials to common trait -- 
     #  partial and partl_cb elsewhere assumed to travel together, not recreated post-hoc

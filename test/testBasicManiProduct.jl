@@ -310,8 +310,8 @@ end
 
     # (TODO drop duplication) Yuck -- slightly horrible legacy test so that leaf kernels have correct duplicate of the permuted data.
     for i in 1:N
-        @test isapprox( P1.elements[P1.structure[1][i]], mean(getKernelLeaf(P1, i)))
-        @test isapprox( P2.elements[P2.structure[1][i]], mean(getKernelLeaf(P2, i)))
+        @test isapprox( P1.points[P1.structure[1][i]], mean(getKernelLeaf(P1, i)))
+        @test isapprox( P2.points[P2.structure[1][i]], mean(getKernelLeaf(P2, i)))
     end
 
 
@@ -448,7 +448,7 @@ end
     # P12 = P1 * P2
     P12 = manifoldProduct([P1; P2])
 ##    
-    @test typeof(P12.elements[1]) <: Vector{Float64}
+    @test typeof(P12.points[1]) <: Vector{Float64}
 
     pts_ = getPoints(P12)
 

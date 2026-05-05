@@ -26,9 +26,9 @@ function Base.show(io::IO, hode::HomotopyDensity{H, P, HT}) where {H, P, HT}
     println(io)
     printstyled(io, "}"; bold = true, color = :blue)
     println(io, "(")
-    @assert Npts(hode) == length(hode.elements) "show(::HomotopyDensity,) noticed a data size issue, expecting N$(Npts(hode)) == length(.elements)$(length(hode.elements))"
+    @assert Npts(hode) == length(hode.points) "show(::HomotopyDensity,) noticed a data size issue, expecting N$(Npts(hode)) == length(.points)$(length(hode.points))"
     if 0 < Npts(hode)
-        println(io, "  .elements[1:]   :  ", hode.elements[1], " ... ", hode.elements[end])
+        println(io, "  .points[1:]   :  ", hode.points[1], " ... ", hode.points[end])
         println(io, "  .weights[1:]:  ", hode.weights[1], " ... ", hode.weights[end])
         printstyled(io, "     (uniwt)  :   ", uniWT(hode); color = :light_black)
         println(io)
@@ -161,7 +161,7 @@ function HomotopyDensity(
     M_, reprl, partl_cb = getManifoldPartial(
         mani, 
         partl, 
-        bel.elements[1],
+        bel.points[1],
     )
     if length(partl) != manifold_dimension(mani)
         # update representation kind to have correct partials
@@ -182,7 +182,7 @@ function HomotopyDensity(
         nzs, _ = SparseArrays.findnz(bel.minors_detail)
         for i in nzs
             cv = bel.minors_detail[i].mat
-            dummy = bel.elements[1]
+            dummy = bel.points[1]
             cg = ConcentratedGaussianKernel(dummy, cv)
             cg_ = _intersectpartials(mani, cg, partial, partl_cb)
             cv_ = cov(cg_)
@@ -193,7 +193,7 @@ function HomotopyDensity(
         bel_ = HomotopyDensity(;
             representationkind,
             observability,
-            elements = bel.elements,
+            points = bel.points,
             weights = bel.weights,
             structure = bel.structure,
             # leaf_kernels,
@@ -281,7 +281,7 @@ function buildTree_Manellic!(
         eltype(minors_detail),
     }(;
         representationkind,
-        elements = r_PP,
+        points = r_PP,
         weights,
         # TODO deprecating fields below
         # leaf_kernels = lkern,
@@ -308,7 +308,7 @@ end
 function HomotopyDensity_legacy(;
   partial::Union{Nothing, <:Tuple, AbstractVector{<:Integer}} = nothing,
   manifold::M, 
-  elements::Vector{P},
+  points::Vector{P},
 #   leaf_kernels::Vector{HL},
   tree_kernels::Vector{HT},
   kernel_bw = nothing,
@@ -340,7 +340,7 @@ function HomotopyDensity_legacy(;
         eltype(minors_detail),
     }(;
         representationkind,
-        elements,
+        points,
         # leaf_kernels,
         tree_kernels,
         minors_detail,
@@ -357,7 +357,7 @@ function HomotopyDensity(
   HomotopyDensity_legacy(;
     partial = _partl,
     manifold = getManifold(hode),
-    elements = hode.elements,
+    points = hode.points,
     # leaf_kernels = hode.leaf_kernels,
     tree_kernels = hode.tree_kernels,
     weights = getWeights(hode),
@@ -481,7 +481,7 @@ end
 
 # number of data points (aka particles) in tree, i.e. N
 Base.length(hode::HomotopyDensity) = Ndim(hode)
-Npts(hode::HomotopyDensity) = length(hode.elements)
+Npts(hode::HomotopyDensity) = length(hode.points)
 Ndim(hode::HomotopyDensity) = manifold_dimension(getManifold(hode))
 
 getWeights(mt::HomotopyDensity; permute::Bool = true) = permute ? view(mt.weights, mt.structure[1]) : mt.weights
@@ -506,7 +506,7 @@ function getPoints(
 )
     #
     partl = getPartial(hode)
-    pts = permute ? view(hode.elements, hode.structure[1]) : hode.elements
+    pts = permute ? view(hode.points, hode.structure[1]) : hode.points
 
     if !aspartial || isnothing(partl)
         # error("MKD getPoints aspartial=true but MKD is not partial")
@@ -562,12 +562,12 @@ end
 
 
 
-getPointRepr(x::HomotopyDensity) = eltype(x.elements) # TODO use HomotopyDensity{T} style instead
+getPointRepr(x::HomotopyDensity) = eltype(x.points) # TODO use HomotopyDensity{T} style instead
 function getManifold(x::HomotopyDensity, aspartial::Bool = false)
     return if !aspartial
         getManifold(x.representationkind)
     else
-        M_, _, _ = getManifoldPartial(getManifold(x), getPartial(x), x.elements[1])
+        M_, _, _ = getManifoldPartial(getManifold(x), getPartial(x), x.points[1])
         M_
     end
 end
@@ -588,9 +588,9 @@ function sample(belief::HomotopyDensity, N::Integer = 1)
     # get legacy matrix of coordinates and selected labels
     coords, lbls = sample(belief, N)
     # pack samples into vector of point type P
-    vecP = Vector{eltype(belief.elements)}(undef, N)
+    vecP = Vector{eltype(belief.points)}(undef, N)
     for j = 1:N
-        vecP[j] = makePointFromCoords(getManifold(belief), view(coords, :, j), belief.elements[1])
+        vecP[j] = makePointFromCoords(getManifold(belief), view(coords, :, j), belief.points[1])
     end
 
     return vecP, lbls
@@ -659,7 +659,7 @@ function updateBandwidths(
 
     return HomotopyDensity(;
         representationkind,
-        elements = hode.elements,
+        points = hode.points,
         weights = hode.weights,
         structure = hode.structure,
         # leaf_kernels,

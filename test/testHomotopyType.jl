@@ -47,7 +47,7 @@ hr = ApproxManifoldProducts.HomotopyRepresentation{
 
 ##
 
-pts = [
+points = [
     [-1.0],
     [3.0],
     [-2.0],
@@ -63,9 +63,9 @@ hr = ApproxManifoldProducts.HomotopyRepresentation{
 
 
 
-lknlT = ConcentratedGaussianKernel(pts[1], [1;;]) |> typeof
-# leaf kernels
-lkern = Vector{lknlT}(undef, length(pts))
+lknlT = ConcentratedGaussianKernel(points[1], [1;;]) |> typeof
+# legacy leaf kernels
+lkern = Vector{lknlT}(undef, length(points))
 
 ##
 
@@ -78,16 +78,14 @@ minors_detail = SparseArrays.sparsevec(Dict(
 
 hd = HomotopyDensity{
   typeof(hr),
-  eltype(pts),
-  # lknlT,
+  eltype(points),
   lknlT,
   eltype(minors_detail)
 }(;
   representationkind = hr,
-  elements = pts,
+  points,
   # TODO deprecating fields below
   tree_kernels = lkern,
-  # leaf_kernels = lkern,
   minors_detail,
 )
 

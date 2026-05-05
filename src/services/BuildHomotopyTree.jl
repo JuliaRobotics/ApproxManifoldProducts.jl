@@ -44,7 +44,7 @@ function buildTree_Manellic!(
     mtree = HomotopyDensity_legacy(;
         partial,
         manifold = manif,
-        elements = r_PP,
+        points = r_PP,
         weights,
         # leaf_kernels = lkern,
         tree_kernels = Vector{KT}(undef, N),
@@ -135,7 +135,7 @@ function buildTree_Manellic!(
     end
 
     # at start, .structure[1] is spread over all data 1:N and populated by HomotopyDensity constructor
-    # vcat ensures sml, big are buffered for in-place "swap" of the slice portion of structure, else elements overwritten prematurely
+    # vcat ensures sml, big are buffered for in-place "swap" of the slice portion of structure, else points overwritten prematurely
     # TODO, not sure if this step is needed or if this is the right place for this call
     # must set once for each node, above each child node was permuted and now the parent list must also be permuted so that sorting propagates to top list
     hode.structure[index] .= vcat(sml, big)
@@ -177,7 +177,7 @@ function splitsortBinary!(
     # split the slice of order-permuted data
     _, mask, midoffset, p, bw = splitPointsEigen(
         getManifold(hode),
-        view(hode.elements, gido);
+        view(hode.points, gido);
         kernel_bw,
         partial,
     )
@@ -187,12 +187,12 @@ function splitsortBinary!(
         error("DX bug stop, eigen split not well defined for two population groups.")
     end
 
-    # sort the data as 'small' and 'big' elements either side of the eigen split
+    # sort the data as 'small' and 'big' points either side of the eigen split
     # towards accending (in-place) reorder of the slice portion
     # in-place replacement requires a temporary buffer -- achieved by vcat, else can use collect here
     big = view(gido, mask)  |> collect
     sml = view(gido, imask) |> collect
-    # TODO, reduce mem with gido[1:nsml] .= sml ... instead :::: vcat buffers elements for in-place "swap", else elements overwritten prematurely 
+    # TODO, reduce mem with gido[1:nsml] .= sml ... instead :::: vcat buffers points for in-place "swap", else points overwritten prematurely 
     gido .= vcat(sml, big)  
 
     # for binary split

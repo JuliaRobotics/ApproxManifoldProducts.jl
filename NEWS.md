@@ -8,7 +8,7 @@ Major news relating to breaking changes in ApproxManifoldProducts.jl
 - Use `HomotopyDensity_legacy(; partial)` instead of `HomotopyDensity{partial}(.;.)` (breaking change)
 - Refactored `HomotopyDensity{...}` parameters. (breaking change)
 - Rename `HomotopyDensity.observability` instead of `.infoPerCoord` (breaking change)
-- Rename `HomotopyDensity.elements` instead of `.data` (breaking change)
+- Rename `HomotopyDensity.points` instead of `.data` (breaking change)
 - Rename `HomotopyDensity.structure` instead of `.geometric_permute` (breaking change)
 - Drop `HomotopyDensity.leaf_kernels`, switch to new approach with `.minors_detail` (breaking change)
 
