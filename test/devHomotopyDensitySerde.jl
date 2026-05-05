@@ -63,6 +63,20 @@ rootkernel = getKernelTree(hode, 1)
 @show mean(rootkernel)
 @show cov(rootkernel)
 
+
+## some example data -- conventional non-parametric.
+
+hode = HomotopyDensity_legacy(
+  TestTranslation2(), # LieGroups.TranslationGroup(2) can compute but not DFG-lazyserde compatible 
+  [randn(2) for _ in 1:128];
+)
+
 ##
 
+rootkernel = getKernelTree(hode, 1)
+
+@show mean(rootkernel)
+@show cov(rootkernel)
+
+##
 
