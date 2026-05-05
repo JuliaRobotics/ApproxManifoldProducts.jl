@@ -20,7 +20,7 @@ Minor eigenvectors are sometimes called "trailing eigenvectors," or "residual mo
 @kwdef struct HomotopyDensity{
   H <: HomotopyRepresentation, # serde friendly when using DFG.statekind representation, but also supports Manifolds.jl direclty
   P <: AbstractArray, # serde relies on DFG statekind mechanism, does not guarantee serde when directly using Manifolds wo DFG.statekind
-  HL,  # FIXME, deprecating
+  # HL,  # FIXME, deprecating
   HT,  # FIXME, deprecating
   MD # Use only easy to JSON.jl lift lower serde -- e.g. Dict{Int, Vector{Float64}} when storing just diagonal covariances for leaves of tree, or similar
 }
@@ -37,7 +37,7 @@ Minor eigenvectors are sometimes called "trailing eigenvectors," or "residual mo
       5*(length(elements)) # large buffer space where impact on resources mitigated via sparsevec
     )
     tree_kernels::Vector{HT}        # TODO rename to leading
-    leaf_kernels::Vector{HL}        # FIXME, remove
+    # leaf_kernels::Vector{HL}        # FIXME, remove
     """ 
     Store minor details such as leaf bandwidth or eigenvectors associated with minor eigenvalues.
     - When lifted for compute efficiency, this field is likely to hold something like PDMats.

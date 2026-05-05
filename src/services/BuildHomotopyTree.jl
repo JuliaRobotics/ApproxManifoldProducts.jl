@@ -46,7 +46,7 @@ function buildTree_Manellic!(
         manifold = manif,
         elements = r_PP,
         weights,
-        leaf_kernels = lkern,
+        # leaf_kernels = lkern,
         tree_kernels = Vector{KT}(undef, N),
         minors_detail,
     )

@@ -35,12 +35,12 @@ function getKernelLeaf(
     permuted::Bool = true
 )
     # invpermute(s::Int) = findfirst(==(s), hode.structure[1])    
-    lv = if permuted
-        # FIXME, can only use structure[1] when leaf_size=1
-        hode.leaf_kernels[hode.structure[1][i]]
-    else
-        hode.leaf_kernels[i]
-    end
+    # lv = if permuted
+    #     # FIXME, can only use structure[1] when leaf_size=1
+    #     hode.leaf_kernels[hode.structure[1][i]]
+    # else
+    #     hode.leaf_kernels[i]
+    # end
     idx = if permuted
         # FIXME, can only use structure[1] when leaf_size=1
         hode.structure[1][i]
@@ -51,7 +51,7 @@ function getKernelLeaf(
 
     # FIXME refactor in transit, use HR{,,,A} to extract leaf and minor relation
     # TODO consolidate with uniBW()
-    altcv_ = if 1 == SparseArrays.nnz(hode.minors_detail)
+    cv_ = if 1 == SparseArrays.nnz(hode.minors_detail)
         hode.minors_detail[1]
     else
         hode.minors_detail[i]
@@ -60,8 +60,8 @@ function getKernelLeaf(
     hr = hode.representationkind
     partial = getPartial(hr)
     mn = hode.elements[idx] # mean(lv) # 
-    cv = cov(lv)
-    cv_ = SMatrix{size(cv)...}(cv)
+    # cv = cov(lv)
+    # cv_ = SMatrix{size(cv)...}(cv)
 
     # if !isapprox(cv_, altcv_.mat)
     #     @error "wrong cov" cv_ altcv_.mat
@@ -85,10 +85,10 @@ Notes:
 - use `permute=true` (default) for sorted index retrieval.
 """
 getKernelLeafAsTreeKer(
-    mtr::HomotopyDensity{H, P, HL, HT},
+    mtr::HomotopyDensity{H, P, HT},
     idx::Int,
     permuted::Bool = false,
-) where {H, P, HL, HT} = convert(HT, getKernelLeaf(mtr, (idx - 1) % Npts(mtr) + 1, permuted))
+) where {H, P, HT} = convert(HT, getKernelLeaf(mtr, (idx - 1) % Npts(mtr) + 1, permuted))
 
 """
     $SIGNATURES
@@ -101,12 +101,12 @@ Notes:
 See also: [`getKernelLeafAsTreeKer`](@ref)
 """
 function getKernelTree(
-    hode::HomotopyDensity{H, P, HL, HT},
+    hode::HomotopyDensity{H, P, HT},
     currIdx::Int,
     # must return sorted given name signature "Tree"
     permuted::Bool = false,
     cov_continuation::Bool = false,
-) where {H, P, HL, HT}
+) where {H, P, HT}
     #
     N = Npts(hode)
     # BinaryTree (BT) index goes from root=1 to largest leaf 2*N

@@ -6,10 +6,11 @@ Major news relating to breaking changes in ApproxManifoldProducts.jl
 - Refactoring `partial::Union{Nothing, <:Tuple>}` for `HomotopyDensity` constructors, utils, and helpers.  This replaces legacy code that used partials as vector type. 
 - `HomotopyDensity.representationkind` replaces multiple parameters and fields, including `.manifold`, `{partial}`, ... (breaking change)
 - Use `HomotopyDensity_legacy(; partial)` instead of `HomotopyDensity{partial}(.;.)` (breaking change)
-- Refactored `HomotopyDensity` parameters. (breaking change)
+- Refactored `HomotopyDensity{...}` parameters. (breaking change)
 - Rename `HomotopyDensity.observability` instead of `.infoPerCoord` (breaking change)
 - Rename `HomotopyDensity.elements` instead of `.data` (breaking change)
-- Rename `Homotopy.structure` instead of `.geometric_permute` (breaking change)
+- Rename `HomotopyDensity.structure` instead of `.geometric_permute` (breaking change)
+- Drop `HomotopyDensity.leaf_kernels`, switch to new approach with `.minors_detail` (breaking change)
 
 ## v0.14 (26Q2)
 
