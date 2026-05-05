@@ -130,12 +130,12 @@ end
     @test 2 == length(intersect(mtree.structure[5], collect(3:4)))
     @test 2 == length(intersect(mtree.structure[6], collect(5:6)))
 
-    @test isapprox(mean(M, pts), mean(mtree.tree_kernels[1]); atol = 1e-6)
-    @test isapprox(mean(M, pts[1:4]), mean(mtree.tree_kernels[2]); atol = 1e-6)
-    @test isapprox(mean(M, pts[5:7]), mean(mtree.tree_kernels[3]); atol = 1e-6)
-    @test isapprox(mean(M, pts[1:2]), mean(mtree.tree_kernels[4]); atol = 1e-6)
-    @test isapprox(mean(M, pts[3:4]), mean(mtree.tree_kernels[5]); atol = 1e-6)
-    @test isapprox(mean(M, pts[5:6]), mean(mtree.tree_kernels[6]); atol = 1e-6)
+    @test isapprox(mean(M, pts), mean(getKernelTree(mtree, 1)); atol = 1e-6)
+    @test isapprox(mean(M, pts[1:4]), mean(getKernelTree(mtree, 2)); atol = 1e-6)
+    @test isapprox(mean(M, pts[5:7]), mean(getKernelTree(mtree, 3)); atol = 1e-6)
+    @test isapprox(mean(M, pts[1:2]), mean(getKernelTree(mtree, 4)); atol = 1e-6)
+    @test isapprox(mean(M, pts[3:4]), mean(getKernelTree(mtree, 5)); atol = 1e-6)
+    @test isapprox(mean(M, pts[5:6]), mean(getKernelTree(mtree, 6)); atol = 1e-6)
 
 ## additional test datasets
 
@@ -156,18 +156,18 @@ end
             kernel = ConcentratedGaussianKernel,
         )
         @test permref == mtree.structure[1]
-        @test isapprox(mean(M, pts), mean(mtree.tree_kernels[1]); atol = 1e-10)
+        @test isapprox(mean(M, pts), mean(getKernelTree(mtree, 1)); atol = 1e-10)
         @test collect(mtree.structure[1]) == collect(union(lseg, rseg))
         @test collect(mtree.structure[2]) == collect(mtree.structure[1][lseg])
         @test collect(mtree.structure[3]) == collect(mtree.structure[1][rseg])
         @test isapprox(
             mean(M, pts[mtree.structure[1][lseg]]),
-            mean(mtree.tree_kernels[2]);
+            mean(getKernelTree(mtree, 2));
             atol = 1e-6,
         )
         @test isapprox(
             mean(M, pts[mtree.structure[1][rseg]]),
-            mean(mtree.tree_kernels[3]);
+            mean(getKernelTree(mtree, 3));
             atol = 1e-6,
         )
         return nothing
@@ -842,11 +842,11 @@ end
         kernel_bw = bw,
         kernel = ConcentratedGaussianKernel,
     )
-    # TODO isdefined does not work here (upstream bug somewhere)
-    # @test isdefined(mtree.tree_kernels, 1)
-    # @test isdefined(mtree.tree_kernels, 2)
-    # @test isdefined(mtree.tree_kernels, 3)
-    # @test !isdefined(mtree.tree_kernels, 4)
+    # TBD confirm these next four tests are correct
+    @test isassigned(mtree, 1)
+    @test isassigned(mtree, 2)
+    @test isassigned(mtree, 3)
+    @test !isassigned(mtree, 4)
 
 ## ASSUMING SCALAR
     # do linesearch for best selection of bw_scl

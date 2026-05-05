@@ -198,6 +198,8 @@ function splitsortBinary!(
     # for binary split
     mid_idx = low + midoffset
 
+    # TRUNCATION CRITERIA, only happens for majors
+    # TBD, possible location for populating .majors_ fields here...?
     # TBD, this part is likely to be removed
     # store tree kernel and segment indices; after sorting
     if (leaf_size < npts) && (index <= Npts(hode))

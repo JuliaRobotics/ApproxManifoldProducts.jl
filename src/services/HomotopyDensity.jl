@@ -40,8 +40,8 @@ function Base.show(io::IO, hode::HomotopyDensity{H, P, HT, ME, MJ, MI}) where {H
             # printstyled(io, "  .tkernels[1] = "; color=:light_black)
             print(io, "1]:  ")
             printstyled(io, "::HT "; color = :magenta)
-            if isassigned(hode.tree_kernels, 1)
-                printstyled(io, hode.tree_kernels[1]; color = :light_black)
+            if isassigned(hode, 1)
+                printstyled(io, getKernelTree(hode, 1); color = :light_black)
             else
                 printstyled(io, "undef"; color = :red)
                 println(io)
@@ -54,8 +54,8 @@ function Base.show(io::IO, hode::HomotopyDensity{H, P, HT, ME, MJ, MI}) where {H
         end
         printstyled(
             io,
-            "     (depth)  :   1+",
-            floor(Int, log2(length(hode.tree_kernels)));
+            "     (trunc)  :   ",
+            getTruncation(hode.representationkind);
             color = :light_black,
         )
         println(io)
@@ -169,15 +169,10 @@ function HomotopyDensity(
         representationkind = _partialrepr(bel.representationkind)
         # assuming there are tree and leaf nodes at [1]...
         _tkT() = _intersectpartials(mani, getKernelTree(bel, 1), partial) |> typeof
-        # _lkT() = _intersectpartials(mani, getKernelLeaf(bel, 1), partial) |> typeof
         tree_kernels  = Vector{_tkT()}(undef, length(bel.tree_kernels))
-        # leaf_kernels  = Vector{_lkT()}(undef, length(bel.leaf_kernels))
         tkm = (s->isassigned(bel.tree_kernels, s)).(1:length(bel.tree_kernels))
-        # lkm = (s->isassigned(bel.leaf_kernels, s)).(1:length(bel.leaf_kernels))
         tree_kernels_ = view(tree_kernels, tkm)
-        # leaf_kernels_ = view(leaf_kernels, lkm)
         tree_kernels_ .= (s->_intersectpartials(mani, s, partial, partl_cb)).(view(bel.tree_kernels, tkm))
-        # leaf_kernels_ .= (s->_intersectpartials(mani, s, partial, partl_cb)).(view(bel.leaf_kernels, lkm))
         # update minors detail to have correct partials
         nzs, _ = SparseArrays.findnz(bel.minors_detail)
         for i in nzs
@@ -189,7 +184,6 @@ function HomotopyDensity(
             bel.minors_detail[i] = PDMat(SMatrix{size(cv_)..., Float64}(cv_))
         end
         # update density to have correct partials
-        # partial = _getprl(eltype(tree_kernels))
         bel_ = HomotopyDensity(;
             representationkind,
             observability,
@@ -362,8 +356,10 @@ function HomotopyDensity(
     partial = _partl,
     manifold = getManifold(hode),
     points = hode.points,
-    # leaf_kernels = hode.leaf_kernels,
     tree_kernels = hode.tree_kernels,
+    majors_coeff = hode.majors_coeff,
+    majors_element = hode.majors_element,
+    majors_detail = hode.majors_detail,
     weights = getWeights(hode),
     structure = hode.structure,
     observability = hode.observability,
@@ -683,19 +679,19 @@ Notes:
 - Thought about `det` for covariance volume but long access of pancake (smaller volume) is not minimum compared to circular covariance. 
 """
 function getBandwidthSearchBounds(hode::HomotopyDensity)
-    upper = cov(hode.tree_kernels[1])
+    upper = cov(getKernelTree(hode, 1))
 
     #FIXME isdefined does not work as expected for hode.tree_kernels, so using length-1 for now
     # this will break if number of points is not a power of 2. 
     
-    lower_diag = diag(cov(hode.tree_kernels[1]))
+    lower_diag = diag(cov(getKernelTree(hode, 1)))
     for i in 2:(length(hode.tree_kernels) - 1)
         # FIXME use consolidated getKernelTree instead
         if isassigned(hode.tree_kernels, i)
-            hdg = hcat(lower_diag, diag(cov(hode.tree_kernels[i])))
+            hdg = hcat(lower_diag, diag(cov(getKernelTree(hode, i))))
             lower_diag = minimum(hdg; dims = 2)
         end
-        # lower_diag = minimum(hcat(lower_diag, diag(cov(hode.tree_kernels[i]))); dims = 2)
+        # lower_diag = minimum(hcat(lower_diag, diag(cov(getKernelTree(hode, i)))); dims = 2)
     end
 
     # floors make us feel safe, but hurt when faceplanting
