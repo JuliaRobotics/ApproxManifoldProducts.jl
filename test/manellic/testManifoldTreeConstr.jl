@@ -545,14 +545,14 @@ end
     # weights = ones(N) ./ N
     KT = ConcentratedGaussianKernel
     KL = ConcentratedGaussianKernel
-    lkern = Vector{KL}(undef, N)
+    # lkern = Vector{KL}(undef, N)
 
 ##
 
     mtree = HomotopyDensity_legacy(;
         manifold = M,
         points = pts,
-        tree_kernels = Vector{KT}(undef, N),
+        # tree_kernels = Vector{KT}(undef, N),
     );
     
 ##

@@ -46,7 +46,7 @@ function buildTree_Manellic!(
         manifold = manif,
         points = r_PP,
         weights,
-        tree_kernels = Vector{KT}(undef, N),
+        # tree_kernels = Vector{KT}(undef, N),
         minors_detail,
     )
 
@@ -186,12 +186,12 @@ function truncateOrSplitsort!(
     if (leaf_size < npts) && (index <= Npts(hode))
         # set tree kernel
         # NOTE, THIS USED TO BE AFTER recursive subtree build
-        tkT = eltype(hode.tree_kernels)
+        # tkT = eltype(hode.tree_kernels)
         knl = ConcentratedGaussianKernel(
             p, bw, sum(view(hode.weights, idxsubset)); # TODO, try drop need for p here
             partial, partl_cb
         )
-        hode.tree_kernels[index] = tkT(knl; partl_cb)
+        # hode.tree_kernels[index] = tkT(knl; partl_cb)
         # NEW, set majors_ fields here
         if length(hode.majors_coeff) < index
             resize!(hode.majors_coeff, index)

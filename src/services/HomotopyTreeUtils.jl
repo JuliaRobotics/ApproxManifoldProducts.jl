@@ -75,11 +75,26 @@ Return leaf kernels as tree kernel types, using regular `[1..N]` indexing].
 Notes:
 - use `permute=true` (default) for sorted index retrieval.
 """
-getKernelLeafAsTreeKer(
-    mtr::HomotopyDensity{H, P, HT},
+function getKernelLeafAsTreeKer(
+    mtr::HomotopyDensity{H, P},
     idx::Int,
     permuted::Bool = false,
-) where {H, P, HT} = convert(HT, getKernelLeaf(mtr, (idx - 1) % Npts(mtr) + 1, permuted))
+) where {H, P}
+    reprT = getReprType(mtr.representationkind)
+    partial = getPartial(mtr.representationkind)
+    mani = getManifold(mtr)
+    lidx = (idx - 1) % Npts(mtr) + 1
+    lidx_ = if permuted
+        # FIXME, can only use structure[1] when leaf_size=1
+        mtr.structure[1][lidx]
+    else
+        lidx
+    end
+    lk = getKernelLeaf(mtr, lidx_, permuted)
+    μ = mean(lk)
+    manil_, _, partl_cb = getManifoldPartial(mani, partial, μ)
+    reprT(μ, cov(lk), mtr.weights[lidx_]; partial, partl_cb)
+end
 
 """
     $SIGNATURES
@@ -92,12 +107,12 @@ Notes:
 See also: [`getKernelLeafAsTreeKer`](@ref)
 """
 function getKernelTree(
-    hode::HomotopyDensity{H, P, HT},
+    hode::HomotopyDensity{H, P},
     currIdx::Int,
     # must return sorted given name signature "Tree"
     permuted::Bool = false,
     cov_continuation::Bool = false,
-) where {H, P, HT}
+) where {H, P}
     #
     N = Npts(hode)
     partial = getPartial(hode)

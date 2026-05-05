@@ -6,7 +6,7 @@
 
 
 # FIXME, heavy legacy -- update this to a prettier show of modern HomotopyDensity
-function Base.show(io::IO, hode::HomotopyDensity{H, P, HT, ME, MJ, MI}) where {H, P, HT, ME, MJ, MI}
+function Base.show(io::IO, hode::HomotopyDensity{H, P, ME, MJ, MI}) where {H, P, ME, MJ, MI}
     N = Npts(hode)
     printstyled(io, "HomotopyDensity{"; bold = true, color = :blue)
     println(io)
@@ -22,8 +22,8 @@ function Base.show(io::IO, hode::HomotopyDensity{H, P, HT, ME, MJ, MI}) where {H
     println(io)
     # printstyled(io, "  HL = ", HL; color = :magenta)
     # println(io)
-    printstyled(io, "  HT = ", HT, color = :magenta)
-    println(io)
+    # printstyled(io, "  HT = ", HT, color = :magenta)
+    # println(io)
     printstyled(io, "}"; bold = true, color = :blue)
     println(io, "(")
     @assert Npts(hode) == length(hode.points) "show(::HomotopyDensity,) noticed a data size issue, expecting N$(Npts(hode)) == length(.points)$(length(hode.points))"
@@ -167,12 +167,19 @@ function HomotopyDensity(
         # update representation kind to have correct partials
         _partialrepr(::HomotopyRepresentation{M, L, K, D}) where {M, L, K, D} = HomotopyRepresentation{M, partl, K, D}(mani)
         representationkind = _partialrepr(bel.representationkind)
-        # assuming there are tree and leaf nodes at [1]...
-        _tkT() = _intersectpartials(mani, getKernelTree(bel, 1), partial) |> typeof
-        tree_kernels  = Vector{_tkT()}(undef, length(bel.tree_kernels))
-        tkm = (s->isassigned(bel.tree_kernels, s)).(1:length(bel.tree_kernels))
-        tree_kernels_ = view(tree_kernels, tkm)
-        tree_kernels_ .= (s->_intersectpartials(mani, s, partial, partl_cb)).(view(bel.tree_kernels, tkm))
+        # update majors to have correct partials
+        for i in 1:length(bel.majors_element)
+            if isassigned(bel.majors_element, i)
+                nkn = _intersectpartials(mani, getKernelTree(bel, i), partial, partl_cb)
+                bel.majors_element[i] = mean(nkn)
+                bel.majors_detail[i] = cov(nkn)
+            end
+        end
+            # _tkT() = _intersectpartials(mani, getKernelTree(bel, 1), partial) |> typeof
+            # tree_kernels  = Vector{_tkT()}(undef, length(bel.tree_kernels))
+            # tkm = (s->isassigned(bel.tree_kernels, s)).(1:length(bel.tree_kernels))
+            # tree_kernels_ = view(tree_kernels, tkm)
+            # tree_kernels_ .= (s->_intersectpartials(mani, s, partial, partl_cb)).(view(bel.tree_kernels, tkm))
         # update minors detail to have correct partials
         nzs, _ = SparseArrays.findnz(bel.minors_detail)
         for i in nzs
@@ -190,7 +197,7 @@ function HomotopyDensity(
             points = bel.points,
             weights = bel.weights,
             structure = bel.structure,
-            tree_kernels,
+            # tree_kernels,
             majors_coeff = bel.majors_coeff,
             majors_element = bel.majors_element,
             majors_detail = bel.majors_detail,
@@ -272,7 +279,7 @@ function buildTree_Manellic!(
     _hode = HomotopyDensity{
         typeof(representationkind),
         eltype(r_PP),
-        tknlT,
+        # tknlT,
         eltype(r_PP),
         Matrix{Float64},
         eltype(minors_detail),
@@ -280,9 +287,6 @@ function buildTree_Manellic!(
         representationkind,
         points = r_PP,
         weights,
-        # TODO deprecating fields below
-        # leaf_kernels = lkern,
-        tree_kernels = tkern,
         minors_detail,
     )
 
@@ -307,10 +311,10 @@ function HomotopyDensity_legacy(;
   manifold::M, 
   points::Vector{P},
 #   leaf_kernels::Vector{HL},
-  tree_kernels::Vector{HT},
+#   tree_kernels::Vector{HT},
   kernel_bw = nothing,
   kw...
-) where {M, P, HT}
+) where {M, P}
     _legacybw(s::AbstractMatrix) = s
     _legacybw(s::AbstractVector) = diagm(s)
     _legacybw(::Nothing) = LinearAlgebra.I
@@ -332,7 +336,7 @@ function HomotopyDensity_legacy(;
     HomotopyDensity{
         typeof(representationkind),
         P, 
-        HT,
+        # HT,
         P,
         Matrix{Float64},
         eltype(minors_detail),
@@ -340,7 +344,7 @@ function HomotopyDensity_legacy(;
         representationkind,
         points,
         # leaf_kernels,
-        tree_kernels,
+        # tree_kernels,
         minors_detail,
         kw...
     )
@@ -356,7 +360,7 @@ function HomotopyDensity(
     partial = _partl,
     manifold = getManifold(hode),
     points = hode.points,
-    tree_kernels = hode.tree_kernels,
+    # tree_kernels = hode.tree_kernels,
     majors_coeff = hode.majors_coeff,
     majors_element = hode.majors_element,
     majors_detail = hode.majors_detail,
@@ -665,7 +669,7 @@ function updateBandwidths(
         points = hode.points,
         weights = hode.weights,
         structure = hode.structure,
-        tree_kernels = hode.tree_kernels,
+        # tree_kernels = hode.tree_kernels,
         majors_coeff = hode.majors_coeff,
         majors_element = hode.majors_element,
         majors_detail = hode.majors_detail,
@@ -685,8 +689,8 @@ function getBandwidthSearchBounds(hode::HomotopyDensity)
     upper = cov(getKernelTree(hode, 1))
     
     lower_diag = diag(cov(getKernelTree(hode, 1)))
-    for i in 2:(length(hode.tree_kernels) - 1)
-        if isassigned(hode.tree_kernels, i)
+    for i in 2:(length(hode.majors_detail) - 1)
+        if isassigned(hode.majors_detail, i)
             hdg = hcat(lower_diag, diag(cov(getKernelTree(hode, i))))
             lower_diag = minimum(hdg; dims = 2)
         end

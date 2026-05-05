@@ -20,7 +20,7 @@ Minor eigenvectors are sometimes called "trailing eigenvectors," or "residual mo
 @kwdef struct HomotopyDensity{
   H <: HomotopyRepresentation, # serde friendly when using DFG.statekind representation, but also supports Manifolds.jl direclty
   P <: AbstractArray, # serde relies on DFG statekind mechanism, does not guarantee serde when directly using Manifolds wo DFG.statekind
-  HT,  # FIXME, deprecating
+  # HT,  # FIXME, deprecating
   ME,  # Major elements can be points or eigen vectors etc.
   MJ,  # Use only easy to JSON.jl lift lower serde -- e.g. Dict{Int, Vector{Float64}} when storing just diagonal covariances for leaves of tree, or similar
   MI,  # Use only easy to JSON.jl lift lower serde -- e.g. Dict{Int, Vector{Float64}} when storing just diagonal covariances for leaves of tree, or similar
@@ -29,7 +29,7 @@ Minor eigenvectors are sometimes called "trailing eigenvectors," or "residual mo
     observability::Vector{Float64} = zeros(manifold_dimension(getManifold(representationkind)))
     points::Vector{P}
     weights::Vector{Float64} = Vector{Float64}(ones(length(points))) ./ length(points)  # TODO rename to mixture_weights
-    tree_kernels::Vector{HT}        # TODO rename to leading
+    # tree_kernels::Vector{HT}        # TODO rename to leading
     majors_coeff::Vector{Float64} = Vector{Float64}(undef, getMajorsLength(representationkind))
     majors_element::Vector{ME} = Vector{P}(undef, getMajorsLength(representationkind))
     majors_detail::Vector{MJ} = Vector{Matrix{Float64}}(undef, getMajorsLength(representationkind))
