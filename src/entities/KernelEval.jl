@@ -1,5 +1,5 @@
 
-abstract type AbstractKernel end
+abstract type AbstractKernel <: AbstractDensityBasis end
 
 
 @kwdef struct ConcentratedGaussianKernel{

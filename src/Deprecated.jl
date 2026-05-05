@@ -5,6 +5,10 @@
 ## Remove below before v0.17
 ## ======================================================================================================
 
+# DO NOT EXPORT AbstractPartialLegacyCompat 
+const AbstractPartialLegacyCompat = Union{<:AbstractPartialTraits, Nothing, Tuple, Vector{Int}} 
+# FIXME, drop Nothing rewire using empty tuple during refactor compat period
+
 @deprecate getPointRepr(x::HomotopyDensity) getPointType(x)
 
 @deprecate getInfoPerCoord(mkd::HomotopyDensity, aspartial::Bool = true) getObservability(mkd, aspartial)

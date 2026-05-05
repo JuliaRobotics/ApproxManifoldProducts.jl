@@ -165,7 +165,7 @@ function HomotopyDensity(
     )
     if length(partl) != manifold_dimension(mani)
         # update representation kind to have correct partials
-        _partialrepr(::HomotopyRepresentation{M, L, K, D}) where {M, L, K, D} = HomotopyRepresentation{M, partl, K, D}(mani)
+        _partialrepr(::HomotopyRepresentation{M, L, K, D}) where {M, L, K, D} = HomotopyRepresentation{M, typeof(partl), K, D}(mani, partl)
         reprkind = _partialrepr(bel.reprkind)
         # update majors to have correct partials
         for i in 1:length(bel.majors_element)
@@ -258,12 +258,13 @@ function buildTree_Manellic!(
     end
     tkern = Vector{tknlT}(undef, N)
 
+    _partial = _tuple(partial)
     reprkind = HomotopyRepresentation{
         M,
-        _tuple(partial),
+        typeof(_partial),
         ConcentratedGaussianKernel,
         MajorMaxDepth{3},
-    }(manif)
+    }(manif, _partial)
 
     # TODO consolidate w legacy kernel_bw
     d = manifold_dimension(getManifold(reprkind))
@@ -314,12 +315,13 @@ function HomotopyDensity_legacy(;
         
     lCV = _legacybw(kernel_bw)
 
+    _partial = _tuple(partial)
     reprkind = HomotopyRepresentation{
         M, 
-        partial, 
+        typeof(_partial), 
         ConcentratedGaussianKernel, 
         MajorMaxDepth{3}
-    }(manifold)
+    }(manifold, _partial)
 
     d = manifold_dimension(getManifold(reprkind))
     minors_detail = SparseArrays.sparsevec(Dict(
@@ -329,7 +331,6 @@ function HomotopyDensity_legacy(;
     HomotopyDensity{
         typeof(reprkind),
         P, 
-        # HT,
         P,
         Matrix{Float64},
         eltype(minors_detail),
@@ -647,12 +648,13 @@ function updateBandwidths(
         # end
     end
     kind = getManifold(hode) 
+    _partial = getPartial(hode)
     reprkind = HomotopyRepresentation{
         typeof(kind),
-        getPartial(hode),
+        typeof(_partial),
         ConcentratedGaussianKernel,
         MajorMaxDepth{3},
-    }(kind)
+    }(kind, _partial)
 
     return HomotopyDensity(;
         reprkind,

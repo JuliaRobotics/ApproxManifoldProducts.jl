@@ -21,7 +21,7 @@ using LinearAlgebra
 # NOTE, this type is auto-generated -- not generally seen or used during nominal usage
 hr = ApproxManifoldProducts.HomotopyRepresentation{
   TestTranslation1, 
-  nothing, 
+  Nothing, 
   ConcentratedGaussianKernel, 
   MajorMaxDepth{3}
 }
@@ -35,7 +35,7 @@ hr = ApproxManifoldProducts.HomotopyRepresentation{
 
 hr = ApproxManifoldProducts.HomotopyRepresentation{
   typeof(TranslationGroup(3)), 
-  (1,3), 
+  Tuple{Int,Int}, 
   ConcentratedGaussianKernel, 
   MajorMaxDepth{3}
 }
@@ -56,10 +56,10 @@ points = [
 manif = TranslationGroup(1)
 hr = ApproxManifoldProducts.HomotopyRepresentation{
   typeof(manif), 
-  nothing, 
+  Nothing, 
   ConcentratedGaussianKernel, 
   MajorMaxDepth{3}
-}(manif)
+}(manif, nothing)
 
 
 
