@@ -22,7 +22,7 @@ Minor eigenvectors are sometimes called "trailing eigenvectors," or "residual mo
   P <: AbstractArray, # serde relies on DFG statekind mechanism, does not guarantee serde when directly using Manifolds wo DFG.statekind
   HL,  # FIXME, deprecating
   HT,  # FIXME, deprecating
-  MD # Easy JSON lift lower during serde -- e.g. Dict{Int, Vector{Float64}} when storing just diagonal covariances for leaves of tree, or similar
+  MD # Use only easy to JSON.jl lift lower serde -- e.g. Dict{Int, Vector{Float64}} when storing just diagonal covariances for leaves of tree, or similar
 }
     representationkind::H
     observability::Vector{Float64} = zeros(manifold_dimension(getManifold(representationkind)))

@@ -36,6 +36,10 @@ function buildTree_Manellic!(
         end
     end
 
+    minors_detail = SparseArrays.sparsevec(Dict(
+        1 => PDMat(SMatrix{D,D}(cov(lkern[1]))),
+    ), 1)
+
     partial = _getprl(r_ker[1])
     mtree = HomotopyDensity_legacy(;
         partial,
@@ -44,6 +48,7 @@ function buildTree_Manellic!(
         weights,
         leaf_kernels = lkern,
         tree_kernels = Vector{KT}(undef, N),
+        minors_detail,
     )
 
     #

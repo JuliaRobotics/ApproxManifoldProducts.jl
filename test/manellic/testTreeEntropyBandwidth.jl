@@ -135,7 +135,7 @@ end
 
     @test isapprox(bcov_, best_cov; atol = 1e-3)
 
-    # mask bandwith by passing in an alternative
+## mask bandwith by passing in an alternative
 
     cost3(σ) = begin
         ApproxManifoldProducts.entropy(mtree_0, [σ;;])

@@ -41,8 +41,16 @@ function getKernelLeaf(
     else
         hode.leaf_kernels[i]
     end
+    idx = if permuted
+        # FIXME, can only use structure[1] when leaf_size=1
+        hode.structure[1][i]
+    else
+        i
+    end
+
 
     # FIXME refactor in transit, use HR{,,,A} to extract leaf and minor relation
+    # TODO consolidate with uniBW()
     altcv_ = if 1 == SparseArrays.nnz(hode.minors_detail)
         hode.minors_detail[1]
     else
@@ -51,9 +59,17 @@ function getKernelLeaf(
 
     hr = hode.representationkind
     partial = getPartial(hr)
-    mn = mean(lv)
+    mn = hode.elements[idx] # mean(lv) # 
     cv = cov(lv)
     cv_ = SMatrix{size(cv)...}(cv)
+
+    # if !isapprox(cv_, altcv_.mat)
+    #     @error "wrong cov" cv_ altcv_.mat
+    #     error("STOP COV MISMATCH")
+    # end
+
+     # FIXME, hack before reworking partials to common trait --
+
     # FIXME, hack before reworking partials to common trait -- 
     #  partial and partl_cb elsewhere assumed to travel together, not recreated post-hoc
     _, _, partl_cb = getManifoldPartial(getManifold(hode), _tuple(partial), mn)

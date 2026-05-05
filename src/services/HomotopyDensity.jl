@@ -186,7 +186,7 @@ function HomotopyDensity(
             cg = ConcentratedGaussianKernel(dummy, cv)
             cg_ = _intersectpartials(mani, cg, partial, partl_cb)
             cv_ = cov(cg_)
-            bel.minors_detail[i] = PDMat(SMatrix{size(cv_)...}(cv_))
+            bel.minors_detail[i] = PDMat(SMatrix{size(cv_)..., Float64}(cv_))
         end
         # update density to have correct partials
         # partial = _getprl(eltype(tree_kernels))
@@ -270,9 +270,7 @@ function buildTree_Manellic!(
     # TODO consolidate w legacy kernel_bw
     d = manifold_dimension(getManifold(representationkind))
     minors_detail = SparseArrays.sparsevec(Dict(
-    1 => PDMat(
-        SMatrix{d,d}(I)
-        ),
+        1 => PDMat(SMatrix{d,d,Float64}(cov(lkern[1]))),
     ), 1) # assume size 1 during refactor -- i.e. universal bandwidth at leaves
 
     _hode = HomotopyDensity{
@@ -313,8 +311,15 @@ function HomotopyDensity_legacy(;
   elements::Vector{P},
   leaf_kernels::Vector{HL},
   tree_kernels::Vector{HT},
+  kernel_bw = nothing,
   kw...
 ) where {M, P, HL, HT}
+    _legacybw(s::AbstractMatrix) = s
+    _legacybw(s::AbstractVector) = diagm(s)
+    _legacybw(::Nothing) = LinearAlgebra.I
+        
+    lCV = _legacybw(kernel_bw)
+
     representationkind = HomotopyRepresentation{
         M, 
         partial, 
@@ -324,9 +329,7 @@ function HomotopyDensity_legacy(;
 
     d = manifold_dimension(getManifold(representationkind))
     minors_detail = SparseArrays.sparsevec(Dict(
-        1 => PDMat(
-            SMatrix{d,d}(I)
-            ),
+        1 => PDMat(SMatrix{d,d,Float64}(lCV)),
     ), 1)
 
     HomotopyDensity{
@@ -642,7 +645,7 @@ function updateBandwidths(
         # new replacement field instead of .leaf_kernels
         if i in nzi
             cv = cov(nkl)
-            hode.minors_detail[i] = PDMat(SMatrix{size(cv)...}(cv))
+            hode.minors_detail[i] = PDMat(SMatrix{size(cv)...,Float64}(cv))
         end
     end
     kind = getManifold(hode) 
