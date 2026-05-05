@@ -10,7 +10,6 @@ import Manifolds as MF
 import LieGroups as LGr
 import Rotations as Rot_
 using Distributions
-import ApproxManifoldProducts: splitPointsEigen
 
 using Optim
 
@@ -20,8 +19,8 @@ using JSON3
 
 ##
 
-@testset "Product of two Manellic beliefs, Sequential Gibbs, LieGroups.TranslationGroup(1)" begin
-    ##
+@testset "Product of two Homotopy Densities, Sequential Gibbs, LieGroups.TranslationGroup(1)" begin
+##
 
     M = LGr.TranslationGroup(1)
     N = 64
@@ -31,7 +30,7 @@ using JSON3
         M,
         pts1;
         kernel_bw = [0.1;;],
-        kernel = ConcentratedGaussianKernel,
+        # kernel = ConcentratedGaussianKernel,
     )
 
     pts2 = [randn(1) .+ 1 for _ = 1:N]
@@ -39,10 +38,10 @@ using JSON3
         M,
         pts2;
         kernel_bw = [0.1;;],
-        kernel = ConcentratedGaussianKernel,
+        # kernel = ConcentratedGaussianKernel,
     )
 
-    ##
+##
 
     # leaves only in binary tree indexing
     bt_label_pool = [
@@ -64,14 +63,34 @@ using JSON3
     )
     post = ApproxManifoldProducts.calcProductKernelsBTLabels(M, [p1; p2], lbls, false) # ?? was permute=false?
 
+##
+
+    randp = randn(1)
+
+    # split the slice of order-permuted data
+    _, mask, midoffset, p, bw = ApproxManifoldProducts.splitPointsEigen(
+        M,
+        [randp, randp];
+        kernel_bw = [1;;],
+    )
+
+    @test !mask[1]
+    @test mask[2]
+    @test 0 === midoffset
+    @test isapprox(randp, p)
+    @test isapprox([1;;], bw)
+
+##
     pts = mean.(post)
     kernel_bw = mean(cov.(post))
     mtr = ApproxManifoldProducts.buildTree_Manellic!(
         M,
         pts;
         kernel_bw,
-        kernel = ConcentratedGaussianKernel,
+        # kernel = ConcentratedGaussianKernel,
     )
+
+##
 
     @test isapprox(0, mean(ApproxManifoldProducts.getKernelTree(mtr, 1))[1]; atol = 0.75)
 
@@ -91,7 +110,7 @@ using JSON3
         [floor(Int, N / 2); 2 * N],
     )
     @test !all_leaves
-    @test [N + 1; N + 2] == child_label_pools[1]
+    @test [N; N + 1] == child_label_pools[1]
     @test [2 * N;] == child_label_pools[2]
 
     child_label_pools, all_leaves =
@@ -100,8 +119,11 @@ using JSON3
     @test [N + 1;] == child_label_pools[1]
     @test [2 * N;] == child_label_pools[2]
 
-    # test sampling
+## test sampling
+
     ApproxManifoldProducts.sampleProductSeqGibbsBTLabel(M, [p1; p2])
+
+##
 
     lbls = ApproxManifoldProducts.sampleProductSeqGibbsBTLabels(M, [p1; p2])
     post = ApproxManifoldProducts.calcProductKernelsBTLabels(M, [p1; p2], lbls, false) # ?? was permute=false?
@@ -112,12 +134,12 @@ using JSON3
         M,
         pts;
         kernel_bw,
-        kernel = ConcentratedGaussianKernel,
+        # kernel = ConcentratedGaussianKernel,
     )
 
     @test isapprox(0, mean(ApproxManifoldProducts.getKernelTree(mtr, 1))[1]; atol = 0.75)
 
-    ##
+##
 end
 
 ##
@@ -135,9 +157,9 @@ end
 # lines!((s->s[1]).(XX),YY, color=:red)
 
 @testset "Multi-scale label sampling version (Gibbs), LieGroups.TranslationGroup(2)" begin
-    ##
+##
 
-    M = LieGroups.TranslationGroup(2)
+    M = LGr.TranslationGroup(2)
     N = 64
 
     pts1 = [1 * randn(2) for _ = 1:N]
@@ -171,7 +193,7 @@ end
     # NOTE, resulting tree might not have N number of data points 
     mtr12 = ApproxManifoldProducts.buildTree_Manellic!(M, post)
 
-    ##
+##
 end
 
 

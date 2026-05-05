@@ -188,7 +188,7 @@ end
     # @test isapprox(getBW(X_, false)[[1; 3], 1], getBW(X, false)[[1; 3], 1])
     # @test !isapprox(getBW(X_, false)[[1; 3], 1], getBW(X0, false)[[1; 3], 1])
 
-    # @test isapprox(X_.infoPerCoord[[1; 3]], X.infoPerCoord[[1; 3]])
+    # @test isapprox(X_.observability[[1; 3]], X.observability[[1; 3]])
 
     # @test !isPartial(X_)
 
@@ -221,12 +221,12 @@ end
     # ## union of two partials over all dimensions should drop the partial status
 
     # pts12 = [randn(3) for _ = 1:N]
-    # X12 = manikde!(M, pts12; partial = [1; 2], infoPerCoord = 2 * ones(3))
+    # X12 = manikde!(M, pts12; partial = [1; 2], observability = 2 * ones(3))
 
     # X_np = replace(X12, X3)
 
     # @test !isPartial(X_np)
-    # @test isapprox(X_np.infoPerCoord, [2; 2; 1])
+    # @test isapprox(X_np.observability, [2; 2; 1])
 
 ##
 end
@@ -304,14 +304,11 @@ end
     # preemptively check splitPoints 
     begin
         
-        ax_CCp, mask, knl = ApproxManifoldProducts.splitPointsEigen(
+        ax_CCp, mask, _p, _bw = ApproxManifoldProducts.splitPointsEigen(
             M,
-            pts,
-            1/7*ones(length(pts));
-            kernel = ConcentratedGaussianKernel,
+            pts;
             kernel_bw = bw,
             partial,
-            partl_cb,
         )
 
         @test mask[1:4] == BitVector([0,0,0,0])
@@ -330,7 +327,7 @@ end
 
 ##
 
-    @test mtree.permute == [1, 2, 3, 4, 5, 6, 7]
+    @test mtree.structure[1] == [1, 2, 3, 4, 5, 6, 7]
     @test 9.0 ≈ mean(ApproxManifoldProducts.getKernelTree(mtree, 1))[1]
     @test isnan(mean(ApproxManifoldProducts.getKernelTree(mtree, 1))[2])
 
@@ -345,7 +342,7 @@ end
         partial,
     )
 
-    if mtree.permute == perm
+    if mtree.structure[1] == perm
         @test true
     else
         @error "Unreliable permute test, FIXME for consistent results"
@@ -367,14 +364,11 @@ end
     # preemptively check splitPoints 
     begin
         
-        ax_CCp, mask, knl = ApproxManifoldProducts.splitPointsEigen(
+        ax_CCp, mask, _p, _bw = ApproxManifoldProducts.splitPointsEigen(
             M,
-            pts,
-            1/7*ones(length(pts));
-            kernel = ConcentratedGaussianKernel,
+            pts;
             kernel_bw = bw,
             partial,
-            partl_cb,
         )
 
         @test mask[1:4] == BitVector([0,0,0,0])
@@ -392,7 +386,7 @@ end
 
 ##
 
-    @test mtree.permute == [1, 2, 3, 4, 5, 6, 7]
+    @test mtree.structure[1] == [1, 2, 3, 4, 5, 6, 7]
     @test isnan(mean(ApproxManifoldProducts.getKernelTree(mtree, 1))[1])
     @test 9.0 ≈ mean(ApproxManifoldProducts.getKernelTree(mtree, 1))[2]
 
@@ -412,7 +406,7 @@ end
 
     ps3 = getPoints(X_)
 
-    for (i, pt) in enumerate(pts[X_.permute])
+    for (i, pt) in enumerate(pts[X_.structure[1]])
         @test isapprox(ps3[i][1], pt[3])
     end
 

@@ -21,7 +21,6 @@ function calcProductKernelBTLabels(
         # tuple of which leave-one-out-proposal and its new latest label selection
         push!(prop_and_label, (s, labels_sampled[s]))
     end
-    # get raw kernels from tree, also as tree_kernel type
     # TODO COVARIANCE CONTINUATION CORRECTION FOR DEPTH OF TREE KERNELS
     components = map(
         pr_lb -> getKernelTree(proposals[pr_lb[1]], pr_lb[2], permute, true),
@@ -96,6 +95,9 @@ Notes:
 - To force sequential Gibbs on leaves only, use:
   `label_pools = [[(length(getPoints(prop))+1):(2*length(getPoints(prop)));] for prop in proposals]`
 - References: 
+  - Fourie, D., Leonard, J., 2016, Nonparametric solution to the Bayes tree. IEEE ICRA.
+  - Fourie, D., 2017. Multi-modal and Inertial Sensor Solutions for Navigation-type Factor Graphs. MIT/WHOI PhD Thesis.
+  - Fourie, D., Leonard, J., 2018. On-Manifold Nonparametric Density Estimation.  IEEE IROS.
   - Sudderth, E.B., Ihler, A.T., Isard, M., Freeman, W.T. and Willsky, A.S., 2010. Nonparametric belief propagation. Communications of the ACM, 53(10), pp.95-103.
 """
 function sampleProductSeqGibbsBTLabel(

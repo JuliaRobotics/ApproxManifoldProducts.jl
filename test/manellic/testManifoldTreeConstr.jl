@@ -16,6 +16,8 @@ using Optim
 
 using JSON3
 
+# import ApproxManifoldProducts: isassigned
+
 ##
 
 DATADIR = joinpath(dirname(@__DIR__), "testdata")
@@ -59,13 +61,13 @@ function testMDEConstr(
         kernel_bw = bw,
         kernel = ConcentratedGaussianKernel,
     )
-    @test permref == mtree.permute
-    @test isapprox(mean(M, pts), mean(mtree.tree_kernels[1]); atol = 1e-10)
-    @test Set(mtree.segments[1]) == Set(union(lseg, rseg))
-    @test Set(mtree.segments[2]) == Set(mtree.permute[lseg])
-    @test Set(mtree.segments[3]) == Set(mtree.permute[rseg])
-    @test isapprox(mean(M, pts[mtree.permute[lseg]]), mean(mtree.tree_kernels[2]); atol)
-    @test isapprox(mean(M, pts[mtree.permute[rseg]]), mean(mtree.tree_kernels[3]); atol)
+    @test permref == mtree.structure[1]
+    @test isapprox(mean(M, pts), mean(getKernelTree(mtree, 1)); atol = 1e-10)
+    @test Set(mtree.structure[1]) == Set(union(lseg, rseg))
+    @test Set(mtree.structure[2]) == Set(mtree.structure[1][lseg])
+    @test Set(mtree.structure[3]) == Set(mtree.structure[1][rseg])
+    @test isapprox(mean(M, pts[mtree.structure[1][lseg]]), mean(getKernelTree(mtree, 2)); atol)
+    @test isapprox(mean(M, pts[mtree.structure[1][rseg]]), mean(getKernelTree(mtree, 3)); atol)
     return nothing
 end
 
@@ -74,7 +76,85 @@ end
 ## ===================================================================
 
 
-@testset "HomotopyDensity 1D unbalanced tree construction, left" begin
+@testset "HomotopyDensity 1D unbalanced tree construction, left and sorted" begin
+## 
+
+    M = LieGroups.TranslationGroup(1)
+    # design mean at 0.0
+    pts = [
+        [-1.0],
+        [3.0],
+        [-2.0],
+    ]
+    
+    bw = [0.5;]
+    #
+    #
+    #               {1}1:3
+    #              /      \
+    #         {2}3,1      (3)2
+    #          /   \      /   \
+    #       (4)3  (5)1   *     *
+    #
+    hode = ApproxManifoldProducts.buildTree_Manellic!(
+        M,
+        pts;
+        kernel_bw = bw,
+        kernel = ConcentratedGaussianKernel,
+    )
+
+##
+
+
+
+    @test 1 == Ndim(hode)
+    @test 3 == Npts(hode)
+
+    @test hode.structure[1] == [3;1;2]
+    @test hode.structure[2] == [3;1]              # segments are raw dataidx, not permuted dataidx
+    @test hode.structure[3] == [2]
+    @test Base.isstored(hode.structure, 4) # no third segment because right child is leaf
+
+    @test isassigned(hode, 1)
+    @test isassigned(hode, 2)
+    @test isassigned(hode, 3)
+
+    @test isapprox( 0.0, mean(getKernelTree(hode, 1))[1]; atol = 1e-6)
+    @test isapprox(-1.5, mean(getKernelTree(hode, 2))[1]; atol = 1e-6)
+
+    N = Npts(hode)
+    @test isassigned(hode, 1 + N)
+    @test isassigned(hode, 2 + N)
+    @test !isassigned(hode, 3 + N)
+
+    # leaf kernels are sorted in geometric order along eigen axis
+    @test isapprox(-2.0, mean(getKernelLeaf(hode,1))[1]; atol = 1e-6)
+    @test isapprox(-1.0, mean(getKernelLeaf(hode,2))[1]; atol = 1e-6)
+    @test isapprox( 3.0, mean(getKernelLeaf(hode,3))[1]; atol = 1e-6)
+
+    @test !ApproxManifoldProducts.isLeaf_BTLabel(hode, 1)
+    @test !ApproxManifoldProducts.isLeaf_BTLabel(hode, 2)
+    @test ApproxManifoldProducts.isLeaf_BTLabel(hode, 3)
+
+    @test ApproxManifoldProducts.isLeaf_BTLabel(hode, 4)
+    @test ApproxManifoldProducts.isLeaf_BTLabel(hode, 5)
+    @test ApproxManifoldProducts.isLeaf_BTLabel(hode, 6) # there for binary tree defaults, although undef
+    @test ApproxManifoldProducts.isLeaf_BTLabel(hode, 7) # there for binary tree defaults, although undef
+
+    @test ApproxManifoldProducts.exists_BTLabel(hode, 1)
+    @test ApproxManifoldProducts.exists_BTLabel(hode, 2)
+    @test ApproxManifoldProducts.exists_BTLabel(hode, 3)
+    @test ApproxManifoldProducts.exists_BTLabel(hode, 4)
+    @test ApproxManifoldProducts.exists_BTLabel(hode, 5)
+    @test !ApproxManifoldProducts.exists_BTLabel(hode, 6)
+    @test !ApproxManifoldProducts.exists_BTLabel(hode, 7)
+    @test !ApproxManifoldProducts.exists_BTLabel(hode, 8) # why is this here
+
+##
+end
+
+
+@testset "HomotopyDensity 1D unbalanced tree construction, left but shuffled" begin
 ## 
 
     M = LieGroups.TranslationGroup(1)
@@ -106,18 +186,28 @@ end
     @test 1 == Ndim(hode)
     @test 3 == Npts(hode)
 
-    @test hode.permute == [1;2;3]
-    @test hode.segments[1] == Set(1:3)
-    @test hode.segments[2] == Set(1:2)
-    @test !isassigned(hode.segments, 3) # no third segment because right child is leaf
+    @test hode.structure[1] == [1;2;3]
+    @test hode.structure[2] == [1;2]
+    @test hode.structure[3] == [3]
+    @test hode.structure[4] == [1]
+    @test hode.structure[5] == [2]
 
-    @test isassigned(hode.tree_kernels, 1)
-    @test isassigned(hode.tree_kernels, 2)
-    @test !isassigned(hode.tree_kernels, 3)
+    @test isassigned(hode, 1)
+    @test isassigned(hode, 2)
+    @test isassigned(hode, 3)
 
-    @test isassigned(hode.leaf_kernels, 1)
-    @test isassigned(hode.leaf_kernels, 2)
-    @test isassigned(hode.leaf_kernels, 3)
+    @test isapprox( 0.0, mean(getKernelTree(hode, 1))[1]; atol = 1e-6)
+    @test isapprox(-1.5, mean(getKernelTree(hode, 2))[1]; atol = 1e-6)
+
+    N = Npts(hode)
+    @test isassigned(hode, 1 + N)
+    @test isassigned(hode, 2 + N)
+    @test !isassigned(hode, 3 + N)
+    @test !isassigned(hode, 4 + N)
+
+    @test isapprox(-2.0, mean(getKernelLeaf(hode,1))[1]; atol = 1e-6)
+    @test isapprox(-1.0, mean(getKernelLeaf(hode,2))[1]; atol = 1e-6)
+    @test isapprox( 3.0, mean(getKernelLeaf(hode,3))[1]; atol = 1e-6)
 
     @test !ApproxManifoldProducts.isLeaf_BTLabel(hode, 1)
     @test !ApproxManifoldProducts.isLeaf_BTLabel(hode, 2)
@@ -135,7 +225,7 @@ end
     @test ApproxManifoldProducts.exists_BTLabel(hode, 5)
     @test !ApproxManifoldProducts.exists_BTLabel(hode, 6)
     @test !ApproxManifoldProducts.exists_BTLabel(hode, 7)
-
+    @test !ApproxManifoldProducts.exists_BTLabel(hode, 8)
 
 ##
 end
@@ -169,39 +259,52 @@ end
     )
 
 ##
-    @error "WORK IN PROGRESS"
-    # @test 1 == Ndim(hode)
-    # @test 3 == Npts(hode)
 
-    # @test hode.permute == [3;1;2]
-    # @test hode.segments[1] == Set(1:3)
-    # @test !isassigned(hode.segments, 2) # no second segment because left child is leaf
-    # @test hode.segments[3] == Set(1:2) # TBD these are dataidx not permuted dataidx
+    @test 1 == Ndim(hode)
+    @test 3 == Npts(hode)
 
-    # @test isassigned(hode.tree_kernels, 1)
-    # @test isassigned(hode.tree_kernels, 2)
-    # @test !isassigned(hode.tree_kernels, 3)
+    @test hode.structure[1] == [3;1;2]
+    @test hode.structure[2] == [3]
+    @test hode.structure[3] == [1;2]
+    @test hode.structure[6] == [1]
+    @test hode.structure[7] == [2]
 
-    # @test isassigned(hode.leaf_kernels, 1)
-    # @test isassigned(hode.leaf_kernels, 2)
-    # @test isassigned(hode.leaf_kernels, 3)
+    @test isassigned(hode, 1)
+    @test isassigned(hode, 2)
+    @test isassigned(hode, 3)
 
-    # @test !ApproxManifoldProducts.isLeaf_BTLabel(hode, 1)
-    # @test !ApproxManifoldProducts.isLeaf_BTLabel(hode, 2)
-    # @test ApproxManifoldProducts.isLeaf_BTLabel(hode, 3)
+    @test isapprox( 0.0, mean(getKernelTree(hode, 1))[1]; atol = 1e-6)
+    @test isapprox( 1.5, mean(getKernelTree(hode, 3))[1]; atol = 1e-6)
 
-    # @test ApproxManifoldProducts.isLeaf_BTLabel(hode, 4) # undef but there for binary tree defaults
-    # @test ApproxManifoldProducts.isLeaf_BTLabel(hode, 5) # undef but there for binary tree defaults
-    # @test ApproxManifoldProducts.isLeaf_BTLabel(hode, 6)
-    # @test ApproxManifoldProducts.isLeaf_BTLabel(hode, 7)
+    N = Npts(hode)
+    @test !isassigned(hode, 1 + N)
+    @test !isassigned(hode, 2 + N)
+    @test isassigned(hode, 3 + N)
+    @test isassigned(hode, 3 + N)
 
-    # @test ApproxManifoldProducts.exists_BTLabel(hode, 1)
-    # @test ApproxManifoldProducts.exists_BTLabel(hode, 2)
-    # @test ApproxManifoldProducts.exists_BTLabel(hode, 3)
-    # @test ApproxManifoldProducts.exists_BTLabel(hode, 4)
-    # @test ApproxManifoldProducts.exists_BTLabel(hode, 5)
-    # @test !ApproxManifoldProducts.exists_BTLabel(hode, 6)
-    # @test !ApproxManifoldProducts.exists_BTLabel(hode, 7)
+    @test isapprox(-3.0, mean(getKernelLeaf(hode,1))[1]; atol = 1e-6)
+    @test isapprox( 1.0, mean(getKernelLeaf(hode,2))[1]; atol = 1e-6)
+    @test isapprox( 2.0, mean(getKernelLeaf(hode,3))[1]; atol = 1e-6)
+
+    # @test !ApproxManifoldProducts.exists_BTLabel(hode, ApproxManifoldProducts.leftIndex(hode, 2))
+    # @test ApproxManifoldProducts.exists_BTLabel(hode, ApproxManifoldProducts.rightIndex(hode, 2))
+
+    @test !ApproxManifoldProducts.isLeaf_BTLabel(hode, 1)
+    @test ApproxManifoldProducts.isLeaf_BTLabel(hode, 2)
+    @test !ApproxManifoldProducts.isLeaf_BTLabel(hode, 3)
+
+    @test ApproxManifoldProducts.isLeaf_BTLabel(hode, 4)
+    @test ApproxManifoldProducts.isLeaf_BTLabel(hode, 5)
+    @test ApproxManifoldProducts.isLeaf_BTLabel(hode, 6) # there for binary tree defaults, although undef
+    @test ApproxManifoldProducts.isLeaf_BTLabel(hode, 7) # there for binary tree defaults, although undef
+
+    @test ApproxManifoldProducts.exists_BTLabel(hode, 1)
+    @test ApproxManifoldProducts.exists_BTLabel(hode, 2)
+    @test ApproxManifoldProducts.exists_BTLabel(hode, 3)
+    @test !ApproxManifoldProducts.exists_BTLabel(hode, 4)
+    @test !ApproxManifoldProducts.exists_BTLabel(hode, 5)
+    @test ApproxManifoldProducts.exists_BTLabel(hode, 6) 
+    @test ApproxManifoldProducts.exists_BTLabel(hode, 7)
 
 ##
 end
@@ -227,9 +330,11 @@ end
     #
     #               {1}1:5
     #              /      \
-    #          (2)135     {3}24
+    #          {2}531     {3}42
     #          /   \     /     \
-    #         *     *  (6)1    (7)2
+    #       (4)5 {5}31 (6)4    (7)2
+    #            /  \
+    #        (10)3 (11)1
     #
     hode = ApproxManifoldProducts.buildTree_Manellic!(
         M,
@@ -250,21 +355,29 @@ end
 
     @test 5 == Npts(hode)
     
-    @test all(refperm .== hode.permute)
-    @test all(refperm .== shf[hode_.permute])
-    @test all(hode.permute .== shf[hode_.permute])
+    @test all(refperm .== hode.structure[1])
+    @test all(refperm .== shf[hode_.structure[1]])
+    @test all(hode.structure[1] .== shf[hode_.structure[1]])
 
-    @test hode.segments[1] == Set(1:5)
-    @test hode.segments[2] == Set([1,3,5])
-    @test hode.segments[3] == Set([2,4])
-    
+    @test hode.structure[1] == [5; 3; 1; 4; 2]
+
+    @test hode.structure[2] == [5; 3; 1]
+    @test hode.structure[4] == [5]
+    @test hode.structure[5] == [3; 1]
+
+    @test hode.structure[3] == [4; 2]
+    @test hode.structure[6] == [4]
+    @test hode.structure[7] == [2]
+
+    @test hode.structure[10] == [3]
+    @test hode.structure[11] == [1]
 
 
 ##
 
 
-    @error "expand sorting test to trivial TranslateGroup(2) with pts = [[*; 0], ...] producing same mtree.permute"
-    @error "expand sorting test to trivial TranslateGroup(2) with pts = [[0; *], ...] producing same mtree.permute"
+    @error "expand sorting test to trivial TranslateGroup(2) with pts = [[*; 0], ...] producing same mtree.structure[1]"
+    @error "expand sorting test to trivial TranslateGroup(2) with pts = [[0; *], ...] producing same mtree.structure[1]"
 
 ##
 end
@@ -284,11 +397,9 @@ end
         
         @test isapprox([9.0;], Statistics.mean(pts))
         
-        ax_CCp, mask, knl = ApproxManifoldProducts.splitPointsEigen(
+        ax_CCp, mask, _p, _bw = ApproxManifoldProducts.splitPointsEigen(
             M,
-            pts,
-            1/7*ones(length(pts));
-            kernel = ConcentratedGaussianKernel,
+            pts;
             kernel_bw = bw,
         )
 
@@ -314,22 +425,22 @@ end
     )
 
 ##
-    @test mtree.permute == [1;2;3;4;5;6;7]
+    @test mtree.structure[1] == [1;2;3;4;5;6;7]
 
-    @test 7 == length(intersect(mtree.segments[1], Set(1:7))) # root is parent to all
-    @test 4 == length(intersect(mtree.segments[2], Set(1:4))) # first left is parent to 1:4
-    @test 3 == length(intersect(mtree.segments[3], Set(5:7))) # first right is parent to 5:7
-    @test 2 == length(intersect(mtree.segments[4], Set(1:2))) # second left is parent to 1:2
-    @test 2 == length(intersect(mtree.segments[5], Set(3:4))) # second right is parent to 3:4
-    @test 2 == length(intersect(mtree.segments[6], Set(5:6))) # third left is parent to 5:6
-    @test !isassigned(mtree.segments, 7)                      # third right is unused
+    @test 7 == length(intersect(mtree.structure[1], collect(1:7))) # root is parent to all
+    @test 4 == length(intersect(mtree.structure[2], collect(1:4))) # first left is parent to 1:4
+    @test 3 == length(intersect(mtree.structure[3], collect(5:7))) # first right is parent to 5:7
+    @test 2 == length(intersect(mtree.structure[4], collect(1:2))) # second left is parent to 1:2
+    @test 2 == length(intersect(mtree.structure[5], collect(3:4))) # second right is parent to 3:4
+    @test 2 == length(intersect(mtree.structure[6], collect(5:6))) # third left is parent to 5:6
+    @test mtree.structure[7] == [7]                                
     
-    @test isapprox(mean(M, pts),      mean(mtree.tree_kernels[1]); atol = 1e-6)
-    @test isapprox(mean(M, pts[1:4]), mean(mtree.tree_kernels[2]); atol = 1e-6)
-    @test isapprox(mean(M, pts[5:7]), mean(mtree.tree_kernels[3]); atol = 1e-6)
-    @test isapprox(mean(M, pts[1:2]), mean(mtree.tree_kernels[4]); atol = 1e-6)
-    @test isapprox(mean(M, pts[3:4]), mean(mtree.tree_kernels[5]); atol = 1e-6)
-    @test isapprox(mean(M, pts[5:6]), mean(mtree.tree_kernels[6]); atol = 1e-6)
+    @test isapprox(mean(M, pts),      mean(getKernelTree(mtree, 1)); atol = 1e-6)
+    @test isapprox(mean(M, pts[1:4]), mean(getKernelTree(mtree, 2)); atol = 1e-6)
+    @test isapprox(mean(M, pts[5:7]), mean(getKernelTree(mtree, 3)); atol = 1e-6)
+    @test isapprox(mean(M, pts[1:2]), mean(getKernelTree(mtree, 4)); atol = 1e-6)
+    @test isapprox(mean(M, pts[3:4]), mean(getKernelTree(mtree, 5)); atol = 1e-6)
+    @test isapprox(mean(M, pts[5:6]), mean(getKernelTree(mtree, 6)); atol = 1e-6)
 
     @test !ApproxManifoldProducts.isLeaf_BTLabel(mtree, 1)
     @test !ApproxManifoldProducts.isLeaf_BTLabel(mtree, 2)
@@ -431,20 +542,12 @@ end
     M = LieGroups.TranslationGroup(1)
     N = 32
     pts = [randn(1) for _ = 1:N]
-    # weights = ones(N) ./ N
-    KT = ConcentratedGaussianKernel
-    KL = ConcentratedGaussianKernel
-    lkern = Vector{KL}(undef, N)
 
 ##
 
-    mtree = ApproxManifoldProducts.HomotopyDensity{
-        nothing
-    }(;
+    mtree = HomotopyDensity_legacy(;
         manifold = M,
-        data = pts,
-        leaf_kernels = lkern,                           # leaf_kernels
-        tree_kernels = Vector{KT}(undef, N),       # tree_kernels
+        points = pts,
     );
     
 ##
@@ -468,13 +571,13 @@ end
     @test 17 == ApproxManifoldProducts.rightIndex(mtree, 8)
 
     # children are now leaf nodes (assuming first N=[1..32] are tree kernels, while [33..64] are leaf kernels)
-    @test 33 == ApproxManifoldProducts.leftIndex(mtree, 16)
-    @test 34 == ApproxManifoldProducts.rightIndex(mtree, 16)
+    @test 32 == ApproxManifoldProducts.leftIndex(mtree, 16)
+    @test 33 == ApproxManifoldProducts.rightIndex(mtree, 16)
 
-    @test 35  == ApproxManifoldProducts.leftIndex(mtree, 17)
-    @test 36 == ApproxManifoldProducts.rightIndex(mtree, 17)
+    @test 34  == ApproxManifoldProducts.leftIndex(mtree, 17)
+    @test 35 == ApproxManifoldProducts.rightIndex(mtree, 17)
 
-    @test 64 == ApproxManifoldProducts.rightIndex(mtree, 31)
+    @test 63 == ApproxManifoldProducts.rightIndex(mtree, 31)
 
 
     # @test 11 == ApproxManifoldProducts.leftIndex(mtree, 5)
@@ -486,8 +589,8 @@ end
     # @test 16 == ApproxManifoldProducts.rightIndex(mtree, 7)
 
     # leaf kernel indices
-    @test N + 1 == ApproxManifoldProducts.leftIndex(mtree, floor(Int, N / 2))
-    @test N + 2 == ApproxManifoldProducts.rightIndex(mtree, floor(Int, N / 2))
+    @test N == ApproxManifoldProducts.leftIndex(mtree, floor(Int, N / 2))
+    @test N + 1 == ApproxManifoldProducts.rightIndex(mtree, floor(Int, N / 2))
     
 ##
 
@@ -503,9 +606,13 @@ end
     M = LieGroups.TranslationGroup(2)
     α = pi / 3
     r_CC, R, pidx, r_CV = testEigenCoords!(α)
-    ax_CCp, mask, knl = ApproxManifoldProducts.splitPointsEigen(M, r_CC)
+    ax_CCp, mask, midoffset, _p, _bw = ApproxManifoldProducts.splitPointsEigen(M, r_CC)
+
+    # should be around 50 points smaller than geometric middle out of 100 
+    @test isapprox(50, midoffset; atol=5) 
+    
     @test sum(mask) == (length(r_CC) ÷ 2)
-    @test knl isa ConcentratedGaussianKernel
+    # @test knl isa ConcentratedGaussianKernel
     Mr = SpecialOrthogonalGroup(2)
     @test isapprox(α, vee(LieAlgebra(Mr), log(Mr, R))[1]; atol = 0.1)
 
@@ -541,20 +648,20 @@ end
     # test input data vs leaf kernels
     for i in eachindex(r_PP)
         @test isapprox(r_PP[i], getPoints(mtree, permute = false)[i])
-        @test isapprox(r_PP[mtree.permute[i]], getPoints(mtree, permute = true)[i])
+        @test isapprox(r_PP[mtree.structure[1][i]], getPoints(mtree, permute = true)[i])
         # FIXME, test is useful but underneath is a yucky duplication of permuted raw data in leaf_kernels[]
         @test isapprox(r_PP[i], mean(ApproxManifoldProducts.getKernelLeaf(mtree, i, false)))
-        @test isapprox(r_PP[mtree.permute[i]], mean(ApproxManifoldProducts.getKernelLeaf(mtree, i, true)))
+        @test isapprox(r_PP[mtree.structure[1][i]], mean(ApproxManifoldProducts.getKernelLeaf(mtree, i, true)))
     end
 
-    @test all(isapprox.(mtree.weights[mtree.permute], getWeights(mtree, permute = true)))
+    @test all(isapprox.(mtree.weights[mtree.structure[1]], getWeights(mtree, permute = true)))
 
 ##
 
     @cast pts[i, d] := r_PP[i][d]
 
-    ptsl = pts[mtree.permute[1:50], :]
-    ptsr = pts[mtree.permute[51:100], :]
+    ptsl = pts[mtree.structure[1][1:50], :]
+    ptsr = pts[mtree.structure[1][51:100], :]
 
 ##
 
@@ -599,7 +706,7 @@ end
         kernel = ConcentratedGaussianKernel,
     )
 
-    mtree.permute
+    mtree.structure[1]
     shf = shuffle(1:length(pts))
     mtree_ = ApproxManifoldProducts.buildTree_Manellic!(
         M,
@@ -627,19 +734,21 @@ end
     refperm = sortperm(pts)
     permref = sortperm(pts; by = s -> getindex(s, 1))
 
-    @test all(refperm .== mtree.permute)
-    @test all(refperm .== shf[mtree_.permute])
-    @test all(mtree.permute .== shf[mtree_.permute])
+    @test all(refperm .== mtree.structure[1])
+    @test all(refperm .== shf[mtree_.structure[1]])
+    @test all(mtree.structure[1] .== shf[mtree_.structure[1]])
 
-    @test 0 == sum(permref - mtree.permute)
+    @test 0 == sum(permref - mtree.structure[1])
+
+    lkmeans = 1:Npts(mtree) .|> i -> mean(getKernelLeaf(mtree, i))
 
     @test 0 == sum(
-        collect(sortperm(mtree.leaf_kernels; by = s -> mean(s))) -
-        collect(1:length(mtree.leaf_kernels)),
+        collect(sortperm(lkmeans)) -
+        collect(1:Npts(mtree)),
     )
 
     #and leaf kernel sorting
-    @test norm((pts[mtree.permute] .- mean.(mtree.leaf_kernels)) .|> s -> s[1]) < 1e-6
+    @test norm((pts[mtree.structure[1]] .- lkmeans) .|> s -> s[1]) < 1e-6
 
     # for (i,v) in enumerate(dict[:evaltest_1_at])
     #   # @show ApproxManifoldProducts.evaluate(mtree, [v;]), dict[:evaltest_1_dens][i]

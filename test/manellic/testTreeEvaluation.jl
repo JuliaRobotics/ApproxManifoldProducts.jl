@@ -10,7 +10,6 @@ using TensorCast
 using LieGroups
 import Rotations as Rot_
 using Distributions
-import ApproxManifoldProducts: splitPointsEigen
 
 using Optim
 
@@ -38,9 +37,9 @@ DATADIR = joinpath(dirname(@__DIR__), "testdata")
         kernel = kType,
     )
 
-    @test mtree.tree_kernels[1] isa kType
-    @test mtree.tree_kernels[2] isa kType
-    @test mtree.tree_kernels[3] isa kType
+    @test getKernelTree(mtree, 1) isa kType
+    @test getKernelTree(mtree, 2) isa kType
+    @test getKernelTree(mtree, 3) isa kType
 
     @test isapprox(pdf(Normal(0, 1), 0), ApproxManifoldProducts.evaluate(mtree, SA[0.0;]); atol=0.15)
 

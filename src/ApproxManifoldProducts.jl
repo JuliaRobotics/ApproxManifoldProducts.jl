@@ -1,9 +1,11 @@
 module ApproxManifoldProducts
 
 import Base: *, isapprox, convert, show, eltype, length
+import Base: isassigned
 
 using Logging
 using StaticArrays
+import SparseArrays
 using LinearAlgebra
 import LinearAlgebra: rotate!, det
 
@@ -22,7 +24,7 @@ using CoordinateTransformations
 using RecursiveArrayTools: ArrayPartition
 export ArrayPartition
 
-import PDMats
+using PDMats: PDMat
 
 using ManifoldsBase
 using ManifoldsBase: AbstractManifold, distance, TypeParameter, submanifold_component
@@ -37,6 +39,8 @@ const MB = ManifoldsBase
 const CTs = CoordinateTransformations
 
 
+include("../ext/HomotopyRepr.jl")
+
 # the exported API
 include("ExportAPI.jl")
 
@@ -47,9 +51,10 @@ include("entities/KernelEval.jl")
 include("entities/HomotopyDensity.jl")
 
 include("services/ManifoldsOverloads.jl")
-include("CommonUtils.jl")
 include("services/EigenSortUtils.jl")
 include("services/HomotopyTreeUtils.jl")
+include("services/BuildHomotopyTree.jl")
+include("services/GaussianProductUtils.jl")
 include("services/HomotopyBeliefPropagation.jl")
 
 # AMP types and some legacy support 

@@ -8,6 +8,8 @@ using Test
 
 ##
 
+include("testHomotopyType.jl")
+
 include("testLieFundamentals.jl")
 include("testManifoldConventions.jl")
 # Manellic tree, (on-Manifold Ellipse Ball Tree)

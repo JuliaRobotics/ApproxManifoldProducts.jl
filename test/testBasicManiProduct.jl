@@ -101,8 +101,8 @@ end
     @test 2 == ApproxManifoldProducts.leftIndex(p1, 1)
     @test 3 == ApproxManifoldProducts.rightIndex(p1, 1)
     # leaf kernel indices
-    @test N + 1 == ApproxManifoldProducts.leftIndex(p1, floor(Int, N / 2))
-    @test N + 2 == ApproxManifoldProducts.rightIndex(p1, floor(Int, N / 2))
+    @test N == ApproxManifoldProducts.leftIndex(p1, floor(Int, N / 2))
+    @test N + 1 == ApproxManifoldProducts.rightIndex(p1, floor(Int, N / 2))
 
     @test ApproxManifoldProducts.exists_BTLabel(p1, floor(Int, N / 2))
     @test ApproxManifoldProducts.exists_BTLabel(
@@ -162,7 +162,7 @@ end
         [floor(Int, N / 2); 2 * N],
     )
     @test !all_leaves
-    @test [N + 1; N + 2] == child_label_pools[1]
+    @test [N; N + 1] == child_label_pools[1]
     @test [2 * N;] == child_label_pools[2]
 
     child_label_pools, all_leaves =
@@ -305,13 +305,13 @@ end
     @test !alv
 
     clp, alv = ApproxManifoldProducts.generateLabelPoolRecursive([P1; P2], [4;5])
-    @test clp == [[9; 10], [11; 12]]
+    @test clp == [[8; 9], [10; 11]]
     @test !alv
 
     # (TODO drop duplication) Yuck -- slightly horrible legacy test so that leaf kernels have correct duplicate of the permuted data.
     for i in 1:N
-        @test isapprox( P1.data[P1.permute[i]], mean(P1.leaf_kernels[i]))
-        @test isapprox( P2.data[P2.permute[i]], mean(P2.leaf_kernels[i]))
+        @test isapprox( P1.points[P1.structure[1][i]], mean(getKernelLeaf(P1, i)))
+        @test isapprox( P2.points[P2.structure[1][i]], mean(getKernelLeaf(P2, i)))
     end
 
 
@@ -369,7 +369,7 @@ end
     )
 
 
-    # invpermute(B::ApproxManifoldProducts.ManellicTree, s::Int) = findfirst(==(s), B.permute)
+    # invpermute(B::ApproxManifoldProducts.ManellicTree, s::Int) = findfirst(==(s), B.structure[1])
     # # use idx 1 assuming all leaf bandwidths are the same
     # bw1 = getBW(P1)[invpermute(P1,1)]
     # bw2 = getBW(P2)[invpermute(P2,1)]
@@ -444,11 +444,11 @@ end
 
     P1 = manikde!(LieGroups.TranslationGroup(3), pts1)
     P2 = manikde!(LieGroups.TranslationGroup(3), pts2)
-
+##
     # P12 = P1 * P2
     P12 = manifoldProduct([P1; P2])
-    
-    @test typeof(P12.data[1]) <: Vector{Float64}
+##    
+    @test typeof(P12.points[1]) <: Vector{Float64}
 
     pts_ = getPoints(P12)
 
