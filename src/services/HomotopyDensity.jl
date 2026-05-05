@@ -562,7 +562,7 @@ end
 
 
 
-getPointRepr(x::HomotopyDensity) = eltype(x.points) # TODO use HomotopyDensity{T} style instead
+getPointType(x::HomotopyDensity) = eltype(x.points) # TODO use HomotopyDensity{T} style instead
 function getManifold(x::HomotopyDensity, aspartial::Bool = false)
     return if !aspartial
         getManifold(x.representationkind)
@@ -581,6 +581,9 @@ end
 function getBandwidth(mkd::HomotopyDensity, aspartial::Bool = true)
     return _getFieldPartials(mkd, x -> getBW(x)[1], aspartial)
 end
+
+getPartial(hode::HomotopyDensity) = getPartial(hode.representationkind)
+
 
 
 # TODO check that partials / marginals are sampled correctly
@@ -680,13 +683,9 @@ Notes:
 """
 function getBandwidthSearchBounds(hode::HomotopyDensity)
     upper = cov(getKernelTree(hode, 1))
-
-    #FIXME isdefined does not work as expected for hode.tree_kernels, so using length-1 for now
-    # this will break if number of points is not a power of 2. 
     
     lower_diag = diag(cov(getKernelTree(hode, 1)))
     for i in 2:(length(hode.tree_kernels) - 1)
-        # FIXME use consolidated getKernelTree instead
         if isassigned(hode.tree_kernels, i)
             hdg = hcat(lower_diag, diag(cov(getKernelTree(hode, i))))
             lower_diag = minimum(hdg; dims = 2)
@@ -883,7 +882,6 @@ marginal(
 ) = HomotopyDensity(hode, partl)
 
 
-getPartial(hode::HomotopyDensity) = getPartial(hode.representationkind)
 
 
 

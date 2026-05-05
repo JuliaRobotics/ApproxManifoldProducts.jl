@@ -46,7 +46,6 @@ function buildTree_Manellic!(
         manifold = manif,
         points = r_PP,
         weights,
-        # leaf_kernels = lkern,
         tree_kernels = Vector{KT}(undef, N),
         minors_detail,
     )
@@ -83,7 +82,7 @@ function buildTree_Manellic!(
     end
 
     # Must always sort down into leaf_size pool (which might be > 1) before terminating recursion
-    mid_idx, sml, big = splitsortBinary!(
+    mid_idx, sml, big = truncateOrSplitsort!(
         hode,
         low,
         high,
@@ -116,6 +115,7 @@ function buildTree_Manellic!(
         )
         sml = hode.structure[lftidx] # update sml since tree build will continue
     end
+
     # recursively check need for right subtree
     if 0 < length(big)
         rhtidx = rightIndex(hode, index)
@@ -149,8 +149,7 @@ end
 ## ================================================================================
 
 
-
-function splitsortBinary!(
+function truncateOrSplitsort!(
     hode::HomotopyDensity,
     low::Integer,
     high::Integer,
@@ -158,9 +157,8 @@ function splitsortBinary!(
     leaf_size::Integer = 1,
     kernel_bw = nothing,
     partial::Union{Nothing, <:Tuple},
-    partl_cb,
+    partl_cb::Union{Nothing, <:Function},
 )
-    
     # recursion termination case
     # geometric split instead of data split (must happen in cosort classification labeling) 
     # TBD, untested leaf_size is not 1
@@ -168,18 +166,64 @@ function splitsortBinary!(
     if (npts <= leaf_size)
         return -1, Int[], Int[]
     end
-    
-    # according to current index permutation (i.e. sort data as you build the tree)
-    gido = hode.structure[index]
+
+    # according to current index permutation (i.e. sort data as you build the tree root to leaves)
+    idxsubset = hode.structure[index]
         # reminder which slice of permuteidxs to use
         # idc = low:high
 
+    midoffset, sml, big, p, bw = splitsortBinary!(
+        hode,
+        idxsubset;
+        kernel_bw,
+        # partial, # TODO remove, get from hode internally
+    )
+
+    # TRUNCATION CRITERIA, only happens for majors
+    # TBD, possible location for populating .majors_ fields here...?
+    # TBD, this part will likely be refactored with `.majors_*` fields
+    # store tree kernel and segment indices; after sorting
+    if (leaf_size < npts) && (index <= Npts(hode))
+        # set tree kernel
+        # NOTE, THIS USED TO BE AFTER recursive subtree build
+        tkT = eltype(hode.tree_kernels)
+        knl = ConcentratedGaussianKernel(
+            p, bw, sum(view(hode.weights, idxsubset)); # TODO, try drop need for p here
+            partial, partl_cb
+        )
+        hode.tree_kernels[index] = tkT(knl; partl_cb)
+        # NEW, set majors_ fields here
+        if length(hode.majors_coeff) < index
+            resize!(hode.majors_coeff, index)
+            resize!(hode.majors_element, index) 
+            resize!(hode.majors_detail, index)
+        end
+        hode.majors_coeff[index] = sum(view(hode.weights, idxsubset))
+        hode.majors_element[index] = mean(knl)
+        hode.majors_detail[index] = cov(knl)
+    end
+
+    # for binary split
+    mid_idx = low + midoffset
+
+    return mid_idx, sml, big
+end
+
+
+
+function splitsortBinary!(
+    hode::HomotopyDensity,
+    idxsubset::AbstractVector{<:Integer};
+    kernel_bw = nothing,
+    # partial::Union{Nothing, <:Tuple},
+)
+        
     # split the slice of order-permuted data
     _, mask, midoffset, p, bw = splitPointsEigen(
         getManifold(hode),
-        view(hode.points, gido);
+        view(hode.points, idxsubset);
         kernel_bw,
-        partial,
+        partial = getPartial(hode),
     )
     imask = xor.(mask, true)
     
@@ -190,28 +234,11 @@ function splitsortBinary!(
     # sort the data as 'small' and 'big' points either side of the eigen split
     # towards accending (in-place) reorder of the slice portion
     # in-place replacement requires a temporary buffer -- achieved by vcat, else can use collect here
-    big = view(gido, mask)  |> collect
-    sml = view(gido, imask) |> collect
-    # TODO, reduce mem with gido[1:nsml] .= sml ... instead :::: vcat buffers points for in-place "swap", else points overwritten prematurely 
-    gido .= vcat(sml, big)  
+    big = view(idxsubset, mask)  |> collect
+    sml = view(idxsubset, imask) |> collect
+    # TODO, reduce mem with idxsubset[1:nsml] .= sml ... instead :::: vcat buffers points for in-place "swap", else points overwritten prematurely 
+    idxsubset .= vcat(sml, big)  
 
-    # for binary split
-    mid_idx = low + midoffset
-
-    # TRUNCATION CRITERIA, only happens for majors
-    # TBD, possible location for populating .majors_ fields here...?
-    # TBD, this part is likely to be removed
-    # store tree kernel and segment indices; after sorting
-    if (leaf_size < npts) && (index <= Npts(hode))
-        # set tree kernel
-        # NOTE, THIS USED TO BE AFTER recursive subtree build
-        tkT = eltype(hode.tree_kernels)
-        knl = ConcentratedGaussianKernel(
-            p, bw, sum(view(hode.weights, gido)); 
-            partial, partl_cb
-        )
-        hode.tree_kernels[index] = tkT(knl; partl_cb)
-    end
-
-    return mid_idx, collect(sml), collect(big)
+    return midoffset, collect(sml), collect(big), p, bw
 end
+

@@ -100,11 +100,22 @@ function getKernelTree(
 ) where {H, P, HT}
     #
     N = Npts(hode)
+    partial = getPartial(hode)
+    reprT = getReprType(hode.representationkind)
     # BinaryTree (BT) index goes from root=1 to largest leaf 2*N
-    if isassigned(hode, currIdx) && !isLeaf_BTLabel(hode, currIdx)
-    # if currIdx < N
+    return if isassigned(hode, currIdx) && !isLeaf_BTLabel(hode, currIdx)
         # cov_continuation correction so that we may build trees with sensible convariance to bandwidth transition from root to leaf
-        raw_ker = hode.tree_kernels[currIdx]
+        μ = hode.majors_element[currIdx]
+            # FIXME, hack before reworking partials to common trait -- 
+            #  partial and partl_cb elsewhere assumed to travel together, not recreated post-hoc
+            _, _, partl_cb = getManifoldPartial(getManifold(hode), _tuple(partial), μ)
+        raw_ker = reprT(
+            μ, 
+            hode.majors_detail[currIdx], 
+            hode.majors_coeff[currIdx];
+            partial, partl_cb
+        )
+        # raw_ker = hode.tree_kernels[currIdx]
         if cov_continuation
             # depth of this index
             ances_depth = floor(Int, log2(currIdx))
@@ -122,12 +133,7 @@ function getKernelTree(
             # corrected cov varies from root (only Monte Carlo cov est) to leaves (only selected bandwdith)
             nC = (1 - λ) * (cov(raw_ker)) + λ * mean_bw
             # return a new kernel with cov_continuation, of tree kernel type
-            # FIXME, remember partial information
-            kernelType = getfield(ApproxManifoldProducts, HT.name.name)
-            partial = _getprl(raw_ker)
-            μ = mean(raw_ker)
-            M_, reprl, partl_cb = getManifoldPartial(getManifold(hode), _tuple(partial), μ)
-            kernelType(μ, nC, hode.weights[currIdx]; partial, partl_cb)
+            reprT(μ, nC, hode.weights[currIdx]; partial, partl_cb)
         else
             raw_ker
         end

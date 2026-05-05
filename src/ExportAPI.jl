@@ -24,7 +24,7 @@ export mmd!, mmd
 
 # partial specific functions
 export getManifold, getManifoldPartial, getPartial
-export getPointRepr
+export getPointType
 export getMajorsLength
 
 export ConcentratedGaussianKernel

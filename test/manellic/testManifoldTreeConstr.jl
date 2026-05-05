@@ -552,8 +552,7 @@ end
     mtree = HomotopyDensity_legacy(;
         manifold = M,
         points = pts,
-        # leaf_kernels = lkern,                           # leaf_kernels
-        tree_kernels = Vector{KT}(undef, N),       # tree_kernels
+        tree_kernels = Vector{KT}(undef, N),
     );
     
 ##
