@@ -61,11 +61,11 @@
 #     lCV = _legacybw(kernel_bw)
 
 #     _partial = _tuple(partial)
-#     reprkind = HomotopyRepresentation{
+#     reprkind = HomotopyRepr{
+#         MajorMaxDepth{3},
+#         ConcentratedGaussianKernel, 
 #         M, 
 #         typeof(_partial), 
-#         ConcentratedGaussianKernel, 
-#         MajorMaxDepth{3}
 #     }(manifold, _partial)
 
 #     d = manifold_dimension(getManifold(reprkind))

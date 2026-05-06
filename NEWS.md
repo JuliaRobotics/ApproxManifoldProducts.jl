@@ -14,7 +14,7 @@ Major news relating to breaking changes in ApproxManifoldProducts.jl
 - Adding `HomotopyDensity.majors_*` fields as new alternative and dropping `.tree_kernels`. (breaking change)
 - Deprecation, use `getPointType` instead of `getPointRepr`. (breaking change)
 - Large refactoring and restructuring of code towards a reduce implementation and DFG/JSON serde support
-- Introduce abstract types related to `HomotopyRepresentation`, including `AbstractPartialTrait`, `AbstractDensityBasis`, `AbstractHomotopyTruncation`.
+- Introduce abstract types related to `HomotopyRepr`, including `AbstractPartialTrait`, `AbstractDensityBasis`, `AbstractHomotopyTruncation`.
 - Split new types, w new const-union-dispatch pattern `const HomotopyDensity = Union{<:HomotopyDensityDFG, <:HomotopyDensityLive}` f0r JSONable and compute-performant, respectively.
 
 

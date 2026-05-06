@@ -17,7 +17,7 @@ Major eigenvectors are often called "dominant eigenvectors," or simply "leading 
 Minor eigenvectors are sometimes called "trailing eigenvectors," or "residual modes." In PCA, these correspond to the components with the smallest variance.
 """
 @kwdef struct HomotopyDensityDFG{
-  H <: HomotopyRepresentation, # serde friendly when using DFG.statekind representation, but also supports Manifolds.jl direclty
+  H <: HomotopyRepr, # serde friendly when using DFG.statekind representation, but also supports Manifolds.jl direclty
   # parameters below auto generate during JSON lift, only above needs to be serde friendly
   P <: AbstractArray, # serde relies on DFG statekind mechanism, does not guarantee serde when directly using Manifolds wo DFG.statekind
 }
@@ -50,7 +50,7 @@ end
 
 
 @kwdef struct HomotopyDensityLive{
-  H <: HomotopyRepresentation, # serde friendly when using DFG.statekind representation, but also supports Manifolds.jl direclty
+  H <: HomotopyRepr, # serde friendly when using DFG.statekind representation, but also supports Manifolds.jl direclty
   # parameters below auto generate during JSON lift, only above needs to be serde friendly
   P <: AbstractArray, # serde relies on DFG statekind mechanism, does not guarantee serde when directly using Manifolds wo DFG.statekind
   ME,  # Major elements can be points or eigen vectors etc.
@@ -84,7 +84,7 @@ end
 end
 
 
-const HomotopyDensity = Union{<:HomotopyDensityLive,<:HomotopyDensityDFG}
+const HomotopyDensity = Union{<:HomotopyDensityDFG, <:HomotopyDensityLive}
 
 
 

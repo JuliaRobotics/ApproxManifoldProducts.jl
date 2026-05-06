@@ -55,11 +55,11 @@ function buildTree_Manellic!(
     tkern = Vector{tknlT}(undef, N)
 
     _partial = _tuple(partial)
-    reprkind = HomotopyRepresentation{
+    reprkind = HomotopyRepr{
+        MajorMaxDepth{3},
+        ConcentratedGaussianKernel,
         M,
         typeof(_partial),
-        ConcentratedGaussianKernel,
-        MajorMaxDepth{3},
     }(manif, _partial)
 
     # TODO consolidate w legacy kernel_bw
@@ -71,7 +71,6 @@ function buildTree_Manellic!(
     _hode = HomotopyDensityLive{
         typeof(reprkind),
         eltype(r_PP),
-        # tknlT,
         eltype(r_PP),
         Matrix{Float64},
         eltype(minors_detail),

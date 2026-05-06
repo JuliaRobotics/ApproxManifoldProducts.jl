@@ -32,7 +32,7 @@ const AbstractPartialLegacyCompat = Union{<:AbstractPartialTraits, Nothing, Tupl
 
 
 """
-HomotopyRepresentation is a struct that encapsulates the representation of a homotopy density.
+HomotopyRepr is a struct that encapsulates the representation of a homotopy density.
   HomotopyDensity is a very broad and 99% agnostic serialization type whose method implementations should dispatch
   on the type of the representation, which is expected to be a concrete type with necessary dispatch info.
 
@@ -40,7 +40,7 @@ Comment on future-proofing: at time of writing (26Q2), we anticipate a long and 
   hybrid-(non)parametric computational methods which can all fit in the same general LTS framework (i.e. DFG v1).
 
 Future-proofing is achieved by making the representation type a concrete struct which is JSON.jl compliant, barr
-- elementary lift and lower implementations for HomotopyRepresentation.
+- elementary lift and lower implementations for HomotopyRepr.
 
 Comments on type parameters:
 - statetype is the type of the state, 
@@ -52,16 +52,16 @@ Comments on type parameters:
 - truncation type relates to model order reduction technique embedded in the HomotopyDensity, 
   e.g. MajorMaxDepth is a simple binary tree truncation with N major levels. 
 """
-struct HomotopyRepresentation{
+struct HomotopyRepr{
+  truncation <: AbstractHomotopyTruncation,
+  reprtype <: AbstractDensityBasis, 
   statetype <: Union{<:AbstractManifold, <:DistributedFactorGraphs.AbstractStateType},
   L <: AbstractPartialLegacyCompat, # Future use <:AbstractPartialTraits
-  reprtype <: AbstractDensityBasis, 
-  truncation <: AbstractHomotopyTruncation
 } 
   """ 
   Used for either DistributedFactorGraphs statetype or Manifolds.jl manifold type, depending on context. 
   Expect official support for serde only for DFG statetypes.  Note, DFG statetypes are built on top of Manifolds.jl.
-  Use `getManifold(::HomotopyRepresentation)` to get the manifold type regardless of context.
+  Use `getManifold(::HomotopyRepr)` to get the manifold type regardless of context.
 
   Note, and explicit object `_statekind` is needed for the Manifolds.jl only context, but note this field is not serialized
   """
@@ -81,7 +81,7 @@ struct MajorMaxDepth{
 
 
 getMajorsLength(::Type{<:AbstractHomotopyTruncation}) = 1
-getMajorsLength(repr::HomotopyRepresentation) = getMajorsLength(getTruncation(repr))
+getMajorsLength(repr::HomotopyRepr) = getMajorsLength(getTruncation(repr))
 
 # Binary tree with N major levels
 getMajorsLength(::Type{MajorMaxDepth{N}}) where {N} = N^2 - 1
@@ -89,11 +89,11 @@ getMajorsLength(::Type{MajorMaxDepth{N}}) where {N} = N^2 - 1
 # trivial case -- should be in DFG instead FIXME
 getManifold(manif::AbstractManifold) = manif
 
-getStateType(::HomotopyRepresentation{statetype}) where {statetype} = statetype
-getPartial(hr::HomotopyRepresentation) = hr.partial
-getReprType(::HomotopyRepresentation{S,L,reprtype}) where {S, L, reprtype} = reprtype
-getTruncation(::HomotopyRepresentation{S,L,R,truncation}) where {S,L,R,truncation} = truncation
+getStateType(::HomotopyRepr{T,R,statetype}) where {T,R,statetype} = statetype
+getPartial(hr::HomotopyRepr) = hr.partial
+getReprType(::HomotopyRepr{T,reprtype}) where {T, reprtype} = reprtype
+getTruncation(::HomotopyRepr{truncation}) where {truncation} = truncation
 # supports both DFG and ManifoldsBase
-getManifold(repr::HomotopyRepresentation) = getManifold(repr.statekind_noserde) 
+getManifold(repr::HomotopyRepr) = getManifold(repr.statekind_noserde) 
 
 

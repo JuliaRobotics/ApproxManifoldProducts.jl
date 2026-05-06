@@ -4,7 +4,7 @@ using ApproxManifoldProducts
 using DistributedFactorGraphs
 using LieGroups, Manifolds
 using StaticArrays, SparseArrays
-using PDMats
+# using PDMats
 using LinearAlgebra
 
 
@@ -19,11 +19,11 @@ using LinearAlgebra
 ##
 
 # NOTE, this type is auto-generated -- not generally seen or used during nominal usage
-hr = ApproxManifoldProducts.HomotopyRepresentation{
+hr = ApproxManifoldProducts.HomotopyRepr{
+  MajorMaxDepth{3},
+  ConcentratedGaussianKernel, 
   TestTranslation1, 
   Nothing, 
-  ConcentratedGaussianKernel, 
-  MajorMaxDepth{3}
 }
 
 @show string(hr)
@@ -33,11 +33,11 @@ hr = ApproxManifoldProducts.HomotopyRepresentation{
 
 ## check non-default serialization type
 
-hr = ApproxManifoldProducts.HomotopyRepresentation{
+hr = ApproxManifoldProducts.HomotopyRepr{
+  MajorMaxDepth{3},
+  ConcentratedGaussianKernel, 
   typeof(TranslationGroup(3)), 
   Tuple{Int,Int}, 
-  ConcentratedGaussianKernel, 
-  MajorMaxDepth{3}
 }
 
 @show string(hr)
@@ -54,11 +54,11 @@ points = [
 ]
 
 manif = TranslationGroup(1)
-hr = ApproxManifoldProducts.HomotopyRepresentation{
+hr = ApproxManifoldProducts.HomotopyRepr{
+  MajorMaxDepth{3},
+  ConcentratedGaussianKernel, 
   typeof(manif), 
   Nothing, 
-  ConcentratedGaussianKernel, 
-  MajorMaxDepth{3}
 }(manif, nothing)
 
 

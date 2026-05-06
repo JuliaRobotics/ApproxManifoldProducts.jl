@@ -376,11 +376,11 @@ function updateBandwidths(
     end
     kind = getManifold(hode) 
     _partial = getPartial(hode)
-    reprkind = HomotopyRepresentation{
+    reprkind = HomotopyRepr{
+        MajorMaxDepth{3},
+        ConcentratedGaussianKernel,
         typeof(kind),
         typeof(_partial),
-        ConcentratedGaussianKernel,
-        MajorMaxDepth{3},
     }(kind, _partial)
 
     return HD(;
