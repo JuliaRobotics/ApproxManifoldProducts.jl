@@ -16,7 +16,7 @@
 #   partial::Union{Nothing, <:Tuple, AbstractVector{<:Integer}} = nothing,
 # )
 #   _workaround(::HomotopyDensityLive) = HomotopyDensityLive
-#   _workaround(::HomotopyDensityHold) = HomotopyDensityHold
+#   _workaround(::HomotopyDensityDFG) = HomotopyDensityDFG
 #   _HD = _workaround(hode) # FIXME remove after partial types are stable - i.e. drop Nothing vs Tuple
 
 #   partl = getPartial(hode)

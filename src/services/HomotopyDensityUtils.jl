@@ -8,7 +8,7 @@
 
 # FIXME, heavy legacy -- update this to a prettier show of modern HomotopyDensity
 function Base.show(io::IO, hode::HomotopyDensity)
-    _getP(::HomotopyDensityHold{H, P}) where {H,P} = P
+    _getP(::HomotopyDensityDFG{H, P}) where {H,P} = P
     _getP(::HomotopyDensityLive{H, P}) where {H,P} = P
     N = Npts(hode)
     printstyled(io, "HomotopyDensity{"; bold = true, color = :blue)

@@ -5,11 +5,11 @@
 ## ==========================================================================================
 
 # overload Base.convert for easy conversion between live and hold representations
-convert(::Type{<:HomotopyDensityLive}, src::HomotopyDensityHold) = HomotopyDensityLive(src)
-convert(::Type{<:HomotopyDensityHold}, src::HomotopyDensityLive) = HomotopyDensityHold(src)
+convert(::Type{<:HomotopyDensityLive}, src::HomotopyDensityDFG) = HomotopyDensityLive(src)
+convert(::Type{<:HomotopyDensityDFG}, src::HomotopyDensityLive) = HomotopyDensityDFG(src)
 
 
-HomotopyDensityLive(hode::HomotopyDensityHold) = HomotopyDensityLive(
+HomotopyDensityLive(hode::HomotopyDensityDFG) = HomotopyDensityLive(
   hode.reprkind,
   hode.observability,
   hode.points,
@@ -20,7 +20,7 @@ HomotopyDensityLive(hode::HomotopyDensityHold) = HomotopyDensityLive(
   hode.minors_detail,
   hode.structure
 )
-HomotopyDensityHold(hode::HomotopyDensityLive) = HomotopyDensityHold(
+HomotopyDensityDFG(hode::HomotopyDensityLive) = HomotopyDensityDFG(
   hode.reprkind,
   hode.observability,
   hode.points,
@@ -40,7 +40,7 @@ function HomotopyDensity(
 ) where {HD <: HomotopyDensity, L <: Union{Nothing, <:AbstractVector{<:Integer}, <:Tuple}}
     #
     _workaround(::HomotopyDensityLive) = HomotopyDensityLive
-    _workaround(::HomotopyDensityHold) = HomotopyDensityHold
+    _workaround(::HomotopyDensityDFG) = HomotopyDensityDFG
 
     N = Npts(bel)
     partial = _tuple(partial_)

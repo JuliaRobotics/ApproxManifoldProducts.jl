@@ -16,7 +16,7 @@ In model order reduction, PCA, and modal analysis, the terms for the eigenvector
 Major eigenvectors are often called "dominant eigenvectors," or simply "leading modes." In Principal Component Analysis (PCA), these are the "principal components."
 Minor eigenvectors are sometimes called "trailing eigenvectors," or "residual modes." In PCA, these correspond to the components with the smallest variance.
 """
-@kwdef struct HomotopyDensityHold{
+@kwdef struct HomotopyDensityDFG{
   H <: HomotopyRepresentation, # serde friendly when using DFG.statekind representation, but also supports Manifolds.jl direclty
   # parameters below auto generate during JSON lift, only above needs to be serde friendly
   P <: AbstractArray, # serde relies on DFG statekind mechanism, does not guarantee serde when directly using Manifolds wo DFG.statekind
@@ -84,7 +84,7 @@ end
 end
 
 
-const HomotopyDensity = Union{<:HomotopyDensityLive,<:HomotopyDensityHold}
+const HomotopyDensity = Union{<:HomotopyDensityLive,<:HomotopyDensityDFG}
 
 
 
