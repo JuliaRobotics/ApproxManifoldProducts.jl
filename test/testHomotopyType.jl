@@ -69,23 +69,16 @@ lkern = Vector{lknlT}(undef, length(points))
 
 ##
 
-d = manifold_dimension(getManifold(hr))
-minors_detail = SparseArrays.sparsevec(Dict(
-  1 => SMatrix{d,d}(I),
-), 1)
+# d = manifold_dimension(getManifold(hr))
+# minors_detail = SparseArrays.sparsevec(Dict(
+#   1 => SMatrix{d,d}(I),
+# ), 1)
 
 
-hd = HomotopyDensity{
-  typeof(hr),
-  eltype(points),
-  # lknlT,
-  eltype(points),
-  Matrix{Float64},
-  eltype(minors_detail)
-}(;
-  reprkind = hr,
+hd = HomotopyDensity_legacy(
+  manif,
   points,
-  minors_detail,
+  # minors_detail,
 )
 
 

@@ -5,6 +5,100 @@
 
 
 
+"""
+    $SIGNATURES
+
+Notes:
+- Bandwidths for leaves (i.e. `kernel_bw`) must be passed in as covariances when `ConcentratedGaussianKernel`.
+
+DevNotes:
+- Design Decision 24Q1, Manellic.MvNormalKernel bandwidth defs should ALWAYS ONLY BE covariances, because
+  - Vision state is multiple bandwidth kernels including off diagonals in both tree or leaf kernels
+  - Hybrid parametric to leafs covariance continuity
+  - https://github.com/JuliaStats/Distributions.jl/blob/a9b0e3c99c8dda367f69b2dbbdfa4530c810e3d7/src/multivariate/mvnormal.jl#L220-L224
+"""
+function buildTree_Manellic!(
+    manif::M,
+    r_PP::AbstractVector{P}; # vector of points referenced to the r_frame
+    N = length(r_PP),
+    weights::AbstractVector{<:Real} = ones(N) .* (1 / N),
+    kernel = ConcentratedGaussianKernel,
+    kernel_bw = nothing, # TODO
+    partial::Union{Nothing, <:Tuple, AbstractVector{<:Integer}} = nothing,
+    partl_cb::Union{Nothing, <:Function} = nothing,
+) where {M <: AbstractManifold, P <: AbstractArray}
+    #
+    
+    D = manifold_dimension(manif)
+    CV = SMatrix{D, D, Float64, D * D}(diagm(ones(D)))
+    prlcb = if isnothing(partl_cb) && !isnothing(partial)
+        M_, reprl, cb = getManifoldPartial(manif, partial)
+        cb
+    else
+        partl_cb
+    end
+    
+    _legacybw(s::AbstractMatrix) = s
+    _legacybw(s::AbstractVector) = diagm(s)
+    _legacybw(::Nothing) = CV
+        
+    lCV = _legacybw(kernel_bw)
+    tknlT = kernel(r_PP[1], CV; partial=_tuple(partial), partl_cb=prlcb) |> typeof
+    lknlT = kernel(r_PP[1], lCV; partial = _tuple(partial), partl_cb=prlcb) |> typeof
+
+    # leaf kernels
+    lkern = Vector{lknlT}(undef, N)
+    for i = 1:N
+        nkr = kernel(r_PP[i], lCV; partial = _tuple(partial), partl_cb=prlcb)
+        lkern[i] = nkr
+    end
+    tkern = Vector{tknlT}(undef, N)
+
+    _partial = _tuple(partial)
+    reprkind = HomotopyRepresentation{
+        M,
+        typeof(_partial),
+        ConcentratedGaussianKernel,
+        MajorMaxDepth{3},
+    }(manif, _partial)
+
+    # TODO consolidate w legacy kernel_bw
+    d = manifold_dimension(getManifold(reprkind))
+    minors_detail = SparseArrays.sparsevec(Dict(
+        1 => SMatrix{d,d,Float64}(cov(lkern[1])),
+    ), 1) # assume size 1 during refactor -- i.e. universal bandwidth at leaves
+
+    _hode = HomotopyDensityLive{
+        typeof(reprkind),
+        eltype(r_PP),
+        # tknlT,
+        eltype(r_PP),
+        Matrix{Float64},
+        eltype(minors_detail),
+    }(;
+        reprkind,
+        points = r_PP,
+        weights,
+        minors_detail,
+    )
+
+    #
+    tosort_leaves = buildTree_Manellic!(
+        _hode,
+        1, # start at root
+        1, # spanning all data
+        N; # to end of data
+        kernel,
+        kernel_bw,
+        partial = _tuple(partial),
+        partl_cb = prlcb,
+    )
+
+    return tosort_leaves
+end
+
+
+
 function buildTree_Manellic!(
     manif::M,
     r_ker::AbstractVector{KL}; # vector of points referenced to the r_frame

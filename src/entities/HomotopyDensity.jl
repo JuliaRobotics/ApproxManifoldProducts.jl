@@ -84,35 +84,7 @@ end
 end
 
 
-
-HomotopyDensityLive(hode::HomotopyDensityHold) = HomotopyDensityLive(
-  hode.reprkind,
-  hode.observability,
-  hode.points,
-  hode.weights,
-  hode.majors_coeff,
-  hode.majors_element,
-  hode.majors_detail,
-  hode.minors_detail,
-  hode.structure
-)
-HomotopyDensityHold(hode::HomotopyDensityLive) = HomotopyDensityHold(
-  hode.reprkind,
-  hode.observability,
-  hode.points,
-  hode.weights,
-  hode.majors_coeff,
-  hode.majors_element,
-  hode.majors_detail,
-  hode.minors_detail,
-  hode.structure
-)
-# overload Base.convert for easy conversion between live and hold representations
-convert(::Type{<:HomotopyDensityLive}, src::HomotopyDensityHold) = HomotopyDensityLive(src)
-convert(::Type{<:HomotopyDensityHold}, src::HomotopyDensityLive) = HomotopyDensityHold(src)
-
-
-const HomotopyDensity = Union{<:HomotopyDensityLive}
+const HomotopyDensity = Union{<:HomotopyDensityLive,<:HomotopyDensityHold}
 
 
 

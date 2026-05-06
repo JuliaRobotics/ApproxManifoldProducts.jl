@@ -5,6 +5,96 @@
 ## Remove below before v0.17
 ## ======================================================================================================
 
+
+@deprecate HomotopyDensity(
+  hode::HomotopyDensity;
+  partial::Union{Nothing, <:Tuple, AbstractVector{<:Integer}} = nothing,
+) HomotopyDensity(hode, partial; observability = hode.observability)
+
+# function HomotopyDensity(
+#   hode::HomotopyDensity;
+#   partial::Union{Nothing, <:Tuple, AbstractVector{<:Integer}} = nothing,
+# )
+#   _workaround(::HomotopyDensityLive) = HomotopyDensityLive
+#   _workaround(::HomotopyDensityHold) = HomotopyDensityHold
+#   _HD = _workaround(hode) # FIXME remove after partial types are stable - i.e. drop Nothing vs Tuple
+
+#   partl = getPartial(hode)
+#   _partl = _intersect(partial, partl)
+#   _HD(HomotopyDensity_legacy(
+#     hode.reprkind, 
+#     hode.points; 
+#     partial=_partl,
+#     majors_coeff = hode.majors_coeff,
+#     majors_element = hode.majors_element,
+#     majors_detail = hode.majors_detail,
+#     weights = getWeights(hode),
+#     structure = hode.structure,
+#     observability = hode.observability, 
+#     # kernel_bw, 
+#     # kw...
+#   ))
+# #   HomotopyDensity_legacy(;
+# #     partial = _partl,
+# #     manifold = getManifold(hode),
+# #     points = hode.points,
+# #     majors_coeff = hode.majors_coeff,
+# #     majors_element = hode.majors_element,
+# #     majors_detail = hode.majors_detail,
+# #     weights = getWeights(hode),
+# #     structure = hode.structure,
+# #     observability = hode.observability,
+# #   )
+# end
+
+# function HomotopyDensity_legacy(;
+#   partial::Union{Nothing, <:Tuple, AbstractVector{<:Integer}} = nothing,
+#   manifold::M, 
+#   points::Vector{P},
+#   kernel_bw = nothing,
+#   kw...
+# ) where {M, P}
+#     _legacybw(s::AbstractMatrix) = s
+#     _legacybw(s::AbstractVector) = diagm(s)
+#     _legacybw(::Nothing) = LinearAlgebra.I
+        
+#     lCV = _legacybw(kernel_bw)
+
+#     _partial = _tuple(partial)
+#     reprkind = HomotopyRepresentation{
+#         M, 
+#         typeof(_partial), 
+#         ConcentratedGaussianKernel, 
+#         MajorMaxDepth{3}
+#     }(manifold, _partial)
+
+#     d = manifold_dimension(getManifold(reprkind))
+#     minors_detail = SparseArrays.sparsevec(Dict(
+#         1 => SMatrix{d,d,Float64}(lCV),
+#     ), 1)
+
+#     HomotopyDensity{
+#         typeof(reprkind),
+#         P, 
+#         P,
+#         Matrix{Float64},
+#         eltype(minors_detail),
+#     }(;
+#         reprkind,
+#         points,
+#         minors_detail,
+#         kw...
+#     )
+# end
+
+@deprecate HomotopyDensity_legacy(;
+  partial::Union{Nothing, <:Tuple, AbstractVector{<:Integer}} = nothing,
+  manifold::M, 
+  points::Vector{P},
+  kernel_bw = nothing,
+  kw...
+) where {M, P} HomotopyDensity_legacy(manifold, points; partial, kernel_bw, kw...)
+
 @deprecate getPointRepr(x::HomotopyDensity) getPointType(x)
 
 @deprecate getInfoPerCoord(mkd::HomotopyDensity, aspartial::Bool = true) getObservability(mkd, aspartial)

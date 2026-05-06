@@ -6,7 +6,9 @@
 
 
 # FIXME, heavy legacy -- update this to a prettier show of modern HomotopyDensity
-function Base.show(io::IO, hode::HomotopyDensity{H, P, ME, MJ, MI}) where {H, P, ME, MJ, MI}
+function Base.show(io::IO, hode::HomotopyDensity)
+    _getP(::HomotopyDensityHold{H, P}) where {H,P} = P
+    _getP(::HomotopyDensityLive{H, P}) where {H,P} = P
     N = Npts(hode)
     printstyled(io, "HomotopyDensity{"; bold = true, color = :blue)
     println(io)
@@ -16,7 +18,7 @@ function Base.show(io::IO, hode::HomotopyDensity{H, P, ME, MJ, MI}) where {H, P,
     printstyled(io, "    M"; bold = true, color = :magenta)
     print(io, " = ", typeof(getManifold(hode.reprkind)), ",")
     println(io)
-    printstyled(io, "  P  = ", P; color = :magenta)
+    printstyled(io, "  P  = ", _getP(hode); color = :magenta)
     println(io)
     printstyled(io, "  N  = ", N; color = :magenta)
     println(io)
@@ -147,13 +149,44 @@ end
 ## HomotopyDensity constructorhelper functions
 ## ==========================================================================================
 
+# overload Base.convert for easy conversion between live and hold representations
+convert(::Type{<:HomotopyDensityLive}, src::HomotopyDensityHold) = HomotopyDensityLive(src)
+convert(::Type{<:HomotopyDensityHold}, src::HomotopyDensityLive) = HomotopyDensityHold(src)
 
+
+HomotopyDensityLive(hode::HomotopyDensityHold) = HomotopyDensityLive(
+  hode.reprkind,
+  hode.observability,
+  hode.points,
+  hode.weights,
+  hode.majors_coeff,
+  hode.majors_element,
+  hode.majors_detail,
+  hode.minors_detail,
+  hode.structure
+)
+HomotopyDensityHold(hode::HomotopyDensityLive) = HomotopyDensityHold(
+  hode.reprkind,
+  hode.observability,
+  hode.points,
+  hode.weights,
+  hode.majors_coeff,
+  hode.majors_element,
+  hode.majors_detail,
+  hode.minors_detail,
+  hode.structure
+)
+
+# FIXME, see near duplicate signature below -- must consolidate
 function HomotopyDensity(
-    bel::HomotopyDensity,
+    bel::HD,
     partial_::L;
     observability::AbstractVector{<:Real} = bel.observability,
-) where {L <: Union{<:AbstractVector{<:Integer}, <:Tuple}}
+) where {HD <: HomotopyDensity, L <: Union{Nothing, <:AbstractVector{<:Integer}, <:Tuple}}
     #
+    _workaround(::HomotopyDensityLive) = HomotopyDensityLive
+    _workaround(::HomotopyDensityHold) = HomotopyDensityHold
+
     N = Npts(bel)
     partial = _tuple(partial_)
     mani = getManifold(bel)
@@ -187,7 +220,8 @@ function HomotopyDensity(
             bel.minors_detail[i] = SMatrix{size(cv_)..., Float64}(cv_)
         end
         # update density to have correct partials
-        bel_ = HomotopyDensity(;
+        _HD = _workaround(bel) # FIXME remove after partial types are stable - i.e. drop Nothing vs Tuple
+        bel_ = _HD(;
             reprkind,
             observability,
             points = bel.points,
@@ -205,160 +239,6 @@ function HomotopyDensity(
         # full manifold, i.e. partial=nothing
         return bel
     end
-end
-
-
-
-"""
-    $SIGNATURES
-
-Notes:
-- Bandwidths for leaves (i.e. `kernel_bw`) must be passed in as covariances when `ConcentratedGaussianKernel`.
-
-DevNotes:
-- Design Decision 24Q1, Manellic.MvNormalKernel bandwidth defs should ALWAYS ONLY BE covariances, because
-  - Vision state is multiple bandwidth kernels including off diagonals in both tree or leaf kernels
-  - Hybrid parametric to leafs covariance continuity
-  - https://github.com/JuliaStats/Distributions.jl/blob/a9b0e3c99c8dda367f69b2dbbdfa4530c810e3d7/src/multivariate/mvnormal.jl#L220-L224
-"""
-function buildTree_Manellic!(
-    manif::M,
-    r_PP::AbstractVector{P}; # vector of points referenced to the r_frame
-    N = length(r_PP),
-    weights::AbstractVector{<:Real} = ones(N) .* (1 / N),
-    kernel = ConcentratedGaussianKernel,
-    kernel_bw = nothing, # TODO
-    partial::Union{Nothing, <:Tuple, AbstractVector{<:Integer}} = nothing,
-    partl_cb::Union{Nothing, <:Function} = nothing,
-) where {M <: AbstractManifold, P <: AbstractArray}
-    #
-    
-    D = manifold_dimension(manif)
-    CV = SMatrix{D, D, Float64, D * D}(diagm(ones(D)))
-    prlcb = if isnothing(partl_cb) && !isnothing(partial)
-        M_, reprl, cb = getManifoldPartial(manif, partial)
-        cb
-    else
-        partl_cb
-    end
-    
-    _legacybw(s::AbstractMatrix) = s
-    _legacybw(s::AbstractVector) = diagm(s)
-    _legacybw(::Nothing) = CV
-        
-    lCV = _legacybw(kernel_bw)
-    tknlT = kernel(r_PP[1], CV; partial=_tuple(partial), partl_cb=prlcb) |> typeof
-    lknlT = kernel(r_PP[1], lCV; partial = _tuple(partial), partl_cb=prlcb) |> typeof
-
-    # leaf kernels
-    lkern = Vector{lknlT}(undef, N)
-    for i = 1:N
-        nkr = kernel(r_PP[i], lCV; partial = _tuple(partial), partl_cb=prlcb)
-        lkern[i] = nkr
-    end
-    tkern = Vector{tknlT}(undef, N)
-
-    _partial = _tuple(partial)
-    reprkind = HomotopyRepresentation{
-        M,
-        typeof(_partial),
-        ConcentratedGaussianKernel,
-        MajorMaxDepth{3},
-    }(manif, _partial)
-
-    # TODO consolidate w legacy kernel_bw
-    d = manifold_dimension(getManifold(reprkind))
-    minors_detail = SparseArrays.sparsevec(Dict(
-        1 => SMatrix{d,d,Float64}(cov(lkern[1])),
-    ), 1) # assume size 1 during refactor -- i.e. universal bandwidth at leaves
-
-    _hode = HomotopyDensity{
-        typeof(reprkind),
-        eltype(r_PP),
-        # tknlT,
-        eltype(r_PP),
-        Matrix{Float64},
-        eltype(minors_detail),
-    }(;
-        reprkind,
-        points = r_PP,
-        weights,
-        minors_detail,
-    )
-
-    #
-    tosort_leaves = buildTree_Manellic!(
-        _hode,
-        1, # start at root
-        1, # spanning all data
-        N; # to end of data
-        kernel,
-        kernel_bw,
-        partial = _tuple(partial),
-        partl_cb = prlcb,
-    )
-
-    return tosort_leaves
-end
-
-
-function HomotopyDensity_legacy(;
-  partial::Union{Nothing, <:Tuple, AbstractVector{<:Integer}} = nothing,
-  manifold::M, 
-  points::Vector{P},
-  kernel_bw = nothing,
-  kw...
-) where {M, P}
-    _legacybw(s::AbstractMatrix) = s
-    _legacybw(s::AbstractVector) = diagm(s)
-    _legacybw(::Nothing) = LinearAlgebra.I
-        
-    lCV = _legacybw(kernel_bw)
-
-    _partial = _tuple(partial)
-    reprkind = HomotopyRepresentation{
-        M, 
-        typeof(_partial), 
-        ConcentratedGaussianKernel, 
-        MajorMaxDepth{3}
-    }(manifold, _partial)
-
-    d = manifold_dimension(getManifold(reprkind))
-    minors_detail = SparseArrays.sparsevec(Dict(
-        1 => SMatrix{d,d,Float64}(lCV),
-    ), 1)
-
-    HomotopyDensity{
-        typeof(reprkind),
-        P, 
-        P,
-        Matrix{Float64},
-        eltype(minors_detail),
-    }(;
-        reprkind,
-        points,
-        minors_detail,
-        kw...
-    )
-end
-
-function HomotopyDensity(
-  hode::HomotopyDensity;
-  partial::Union{Nothing, <:Tuple, AbstractVector{<:Integer}} = nothing,
-)
-  partl = getPartial(hode)
-  _partl = _intersect(partial, partl)
-  HomotopyDensity_legacy(;
-    partial = _partl,
-    manifold = getManifold(hode),
-    points = hode.points,
-    majors_coeff = hode.majors_coeff,
-    majors_element = hode.majors_element,
-    majors_detail = hode.majors_detail,
-    weights = getWeights(hode),
-    structure = hode.structure,
-    observability = hode.observability,
-  )
 end
 
 
@@ -622,10 +502,10 @@ end
 
 
 function updateBandwidths(
-    hode::HomotopyDensity{H, P}, 
+    hode::HD, 
     bws;
     partl_cb::Union{Nothing, <:Function} = nothing,
-) where {H, P}
+) where {HD <: HomotopyDensity}
     #
     _getBW(s::Float64, ::Int) = [s;;]
     _getBW(s::AbstractVector{<:Real}, ::Int) = s
@@ -656,7 +536,7 @@ function updateBandwidths(
         MajorMaxDepth{3},
     }(kind, _partial)
 
-    return HomotopyDensity(;
+    return HD(;
         reprkind,
         points = hode.points,
         weights = hode.weights,
