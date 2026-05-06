@@ -235,7 +235,6 @@ end
 
 
 @testset "test getPoints of marginal with representation on LieGroups.ProductLieGroup" begin
-
 ##
 
     N = 100

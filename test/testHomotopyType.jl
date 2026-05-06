@@ -4,7 +4,7 @@ using ApproxManifoldProducts
 using DistributedFactorGraphs
 using LieGroups, Manifolds
 using StaticArrays, SparseArrays
-using PDMats
+# using PDMats
 using LinearAlgebra
 
 
@@ -19,11 +19,11 @@ using LinearAlgebra
 ##
 
 # NOTE, this type is auto-generated -- not generally seen or used during nominal usage
-hr = ApproxManifoldProducts.HomotopyRepresentation{
-  TestTranslation1, 
-  nothing, 
+hr = ApproxManifoldProducts.HomotopyRepr{
+  MajorMaxDepth{3},
   ConcentratedGaussianKernel, 
-  MajorMaxDepth{3}
+  TestTranslation1, 
+  Nothing, 
 }
 
 @show string(hr)
@@ -33,11 +33,11 @@ hr = ApproxManifoldProducts.HomotopyRepresentation{
 
 ## check non-default serialization type
 
-hr = ApproxManifoldProducts.HomotopyRepresentation{
-  typeof(TranslationGroup(3)), 
-  (1,3), 
+hr = ApproxManifoldProducts.HomotopyRepr{
+  MajorMaxDepth{3},
   ConcentratedGaussianKernel, 
-  MajorMaxDepth{3}
+  typeof(TranslationGroup(3)), 
+  Tuple{Int,Int}, 
 }
 
 @show string(hr)
@@ -54,12 +54,12 @@ points = [
 ]
 
 manif = TranslationGroup(1)
-hr = ApproxManifoldProducts.HomotopyRepresentation{
-  typeof(manif), 
-  nothing, 
+hr = ApproxManifoldProducts.HomotopyRepr{
+  MajorMaxDepth{3},
   ConcentratedGaussianKernel, 
-  MajorMaxDepth{3}
-}(manif)
+  typeof(manif), 
+  Nothing, 
+}(manif, nothing)
 
 
 
@@ -69,25 +69,16 @@ lkern = Vector{lknlT}(undef, length(points))
 
 ##
 
-d = manifold_dimension(getManifold(hr))
-minors_detail = SparseArrays.sparsevec(Dict(
-  1 => PDMat(
-    SMatrix{d,d}(I)
-    ),
-), 1)
+# d = manifold_dimension(getManifold(hr))
+# minors_detail = SparseArrays.sparsevec(Dict(
+#   1 => SMatrix{d,d}(I),
+# ), 1)
 
 
-hd = HomotopyDensity{
-  typeof(hr),
-  eltype(points),
-  # lknlT,
-  eltype(points),
-  Matrix{Float64},
-  eltype(minors_detail)
-}(;
-  reprkind = hr,
+hd = HomotopyDensity_legacy(
+  manif,
   points,
-  minors_detail,
+  # minors_detail,
 )
 
 
