@@ -37,7 +37,7 @@ function buildTree_Manellic!(
     end
 
     minors_detail = SparseArrays.sparsevec(Dict(
-        1 => PDMat(SMatrix{D,D}(cov(lkern[1]))),
+        1 => SMatrix{D,D}(cov(lkern[1])),
     ), 1)
 
     partial = _getprl(r_ker[1])

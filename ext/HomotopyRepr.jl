@@ -24,6 +24,13 @@ abstract type AbstractHomotopyTruncation end
 
 abstract type AbstractDensityBasis end
 
+
+# DO NOT EXPORT AbstractPartialLegacyCompat 
+const AbstractPartialLegacyCompat = Union{<:AbstractPartialTraits, Nothing, Tuple, Vector{Int}} 
+# FIXME, drop Nothing rewire using empty tuple during refactor compat period
+
+
+
 """
 HomotopyRepresentation is a struct that encapsulates the representation of a homotopy density.
   HomotopyDensity is a very broad and 99% agnostic serialization type whose method implementations should dispatch
