@@ -65,6 +65,7 @@ include("Interface.jl")
 # regular features
 include("services/KernelEval.jl")
 include("services/HomotopyDensity.jl")
+include("services/HomotopyDensityUtils.jl")
 include("KernelHilbertEmbeddings.jl")
 
 include("TrackingLabels.jl")
