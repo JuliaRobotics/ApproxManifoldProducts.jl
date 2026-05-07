@@ -58,7 +58,7 @@ function Base.show(io::IO, hode::HomotopyDensity)
         printstyled(
             io,
             "     (trunc)  :   ",
-            getTruncation(hode.reprkind);
+            getTopology(hode.reprkind);
             color = :light_black,
         )
         println(io)
@@ -361,7 +361,7 @@ function updateBandwidths(
 
     N = Npts(hode)
 
-    (nzi,_) = SparseArrays.findnz(hode.minors_detail)
+    (nzi,_) = SparseArrays.findnz(hode.trailing_details)
 
     # leaf_kernels = Vector{HL}(undef, N)
     # for (i, lk) in enumerate(hode.leaf_kernels)
@@ -371,7 +371,7 @@ function updateBandwidths(
         # new replacement field instead of .leaf_kernels
         # if i in nzi
             cv = cov(nkl)
-            hode.minors_detail[i] = SMatrix{size(cv)...,Float64}(cv)
+            hode.trailing_details[i] = SMatrix{size(cv)...,Float64}(cv)
         # end
     end
     kind = getManifold(hode) 
@@ -388,10 +388,10 @@ function updateBandwidths(
         points = hode.points,
         weights = hode.weights,
         structure = hode.structure,
-        majors_coeff = hode.majors_coeff,
-        majors_element = hode.majors_element,
-        majors_detail = hode.majors_detail,
-        minors_detail = hode.minors_detail,
+        principal_coeffs = hode.principal_coeffs,
+        principal_elements = hode.principal_elements,
+        principal_details = hode.principal_details,
+        trailing_details = hode.trailing_details,
     )
 end
 
@@ -407,8 +407,8 @@ function getBandwidthSearchBounds(hode::HomotopyDensity)
     upper = cov(getKernelTree(hode, 1))
     
     lower_diag = diag(cov(getKernelTree(hode, 1)))
-    for i in 2:(length(hode.majors_detail) - 1)
-        if isassigned(hode.majors_detail, i)
+    for i in 2:(length(hode.principal_details) - 1)
+        if isassigned(hode.principal_details, i)
             hdg = hcat(lower_diag, diag(cov(getKernelTree(hode, i))))
             lower_diag = minimum(hdg; dims = 2)
         end

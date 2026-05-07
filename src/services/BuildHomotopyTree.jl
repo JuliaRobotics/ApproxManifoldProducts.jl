@@ -64,7 +64,7 @@ function buildTree_Manellic!(
 
     # TODO consolidate w legacy kernel_bw
     d = manifold_dimension(getManifold(reprkind))
-    minors_detail = SparseArrays.sparsevec(Dict(
+    trailing_details = SparseArrays.sparsevec(Dict(
         1 => SMatrix{d,d,Float64}(cov(lkern[1])),
     ), 1) # assume size 1 during refactor -- i.e. universal bandwidth at leaves
 
@@ -73,12 +73,12 @@ function buildTree_Manellic!(
         eltype(r_PP),
         eltype(r_PP),
         Matrix{Float64},
-        eltype(minors_detail),
+        eltype(trailing_details),
     }(;
         reprkind,
         points = r_PP,
         weights,
-        minors_detail,
+        trailing_details,
     )
 
     #
@@ -129,7 +129,7 @@ function buildTree_Manellic!(
         end
     end
 
-    minors_detail = SparseArrays.sparsevec(Dict(
+    trailing_details = SparseArrays.sparsevec(Dict(
         1 => SMatrix{D,D}(cov(lkern[1])),
     ), 1)
 
@@ -139,7 +139,7 @@ function buildTree_Manellic!(
         manifold = manif,
         points = r_PP,
         weights,
-        minors_detail,
+        trailing_details,
     )
 
     #
@@ -283,14 +283,14 @@ function truncateOrSplitsort!(
             partial, partl_cb
         )
         # NEW, set majors_ fields here
-        if length(hode.majors_coeff) < index
-            resize!(hode.majors_coeff, index)
-            resize!(hode.majors_element, index) 
-            resize!(hode.majors_detail, index)
+        if length(hode.principal_coeffs) < index
+            resize!(hode.principal_coeffs, index)
+            resize!(hode.principal_elements, index) 
+            resize!(hode.principal_details, index)
         end
-        hode.majors_coeff[index] = sum(view(hode.weights, idxsubset))
-        hode.majors_element[index] = mean(knl)
-        hode.majors_detail[index] = cov(knl)
+        hode.principal_coeffs[index] = sum(view(hode.weights, idxsubset))
+        hode.principal_elements[index] = mean(knl)
+        hode.principal_details[index] = cov(knl)
     end
 
     # for binary split

@@ -29,5 +29,8 @@ export getMajorsLength
 
 export ConcentratedGaussianKernel
 
+export HomotopyRepr
+export MajorMaxDepth
+
 # TODO deprecate below
 export HomotopyDensity_legacy

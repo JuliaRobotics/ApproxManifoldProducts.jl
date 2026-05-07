@@ -4,33 +4,7 @@
 ## HomotopyDensity constructorhelper functions
 ## ==========================================================================================
 
-# overload Base.convert for easy conversion between live and hold representations
-convert(::Type{<:HomotopyDensityLive}, src::HomotopyDensityDFG) = HomotopyDensityLive(src)
-convert(::Type{<:HomotopyDensityDFG}, src::HomotopyDensityLive) = HomotopyDensityDFG(src)
 
-
-HomotopyDensityLive(hode::HomotopyDensityDFG) = HomotopyDensityLive(
-  hode.reprkind,
-  hode.observability,
-  hode.points,
-  hode.weights,
-  hode.majors_coeff,
-  hode.majors_element,
-  hode.majors_detail,
-  hode.minors_detail,
-  hode.structure
-)
-HomotopyDensityDFG(hode::HomotopyDensityLive) = HomotopyDensityDFG(
-  hode.reprkind,
-  hode.observability,
-  hode.points,
-  hode.weights,
-  hode.majors_coeff,
-  hode.majors_element,
-  hode.majors_detail,
-  hode.minors_detail,
-  hode.structure
-)
 
 # FIXME, see near duplicate signature below -- must consolidate
 function HomotopyDensity(
@@ -56,23 +30,23 @@ function HomotopyDensity(
         _partialrepr(::HomotopyRepr{T, R, M, L}) where {T, R, M, L} = HomotopyRepr{T, R, M, typeof(partl)}(mani, partl)
         reprkind = _partialrepr(bel.reprkind)
         # update majors to have correct partials
-        for i in 1:length(bel.majors_element)
-            if isassigned(bel.majors_element, i)
+        for i in 1:length(bel.principal_elements)
+            if isassigned(bel.principal_elements, i)
                 nkn = _intersectpartials(mani, getKernelTree(bel, i), partial, partl_cb)
-                bel.majors_element[i] = mean(nkn)
-                bel.majors_detail[i] = cov(nkn)
+                bel.principal_elements[i] = mean(nkn)
+                bel.principal_details[i] = cov(nkn)
             end
         end
 
         # update minors detail to have correct partials
-        nzs, _ = SparseArrays.findnz(bel.minors_detail)
+        nzs, _ = SparseArrays.findnz(bel.trailing_details)
         for i in nzs
-            cv = bel.minors_detail[i]
+            cv = bel.trailing_details[i]
             dummy = bel.points[1]
             cg = ConcentratedGaussianKernel(dummy, cv)
             cg_ = _intersectpartials(mani, cg, partial, partl_cb)
             cv_ = cov(cg_)
-            bel.minors_detail[i] = SMatrix{size(cv_)..., Float64}(cv_)
+            bel.trailing_details[i] = SMatrix{size(cv_)..., Float64}(cv_)
         end
         # update density to have correct partials
         _HD = _workaround(bel) # FIXME remove after partial types are stable - i.e. drop Nothing vs Tuple
@@ -82,10 +56,10 @@ function HomotopyDensity(
             points = bel.points,
             weights = bel.weights,
             structure = bel.structure,
-            majors_coeff = bel.majors_coeff,
-            majors_element = bel.majors_element,
-            majors_detail = bel.majors_detail,
-            minors_detail = bel.minors_detail,
+            principal_coeffs = bel.principal_coeffs,
+            principal_elements = bel.principal_elements,
+            principal_details = bel.principal_details,
+            trailing_details = bel.trailing_details,
         )
 
         # call the constructor direct
