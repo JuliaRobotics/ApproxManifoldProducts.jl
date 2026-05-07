@@ -21,7 +21,7 @@ import ApproxManifoldProducts: HomotopyRepr
 ##
 
 hr = HomotopyRepr{
-  MajorMaxDepth{3},
+  BinaryTruncFixedDepth{3},
   ConcentratedGaussianKernel, 
   TestTranslation2, 
   Nothing, 
@@ -168,7 +168,7 @@ import ApproxManifoldProducts: HomotopyRepr
 ##
 
 hr = HomotopyRepr{
-  MajorMaxDepth{3},
+  BinaryTruncFixedDepth{3},
   ConcentratedGaussianKernel, 
   TestTranslation2, 
   Nothing, 

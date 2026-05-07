@@ -30,7 +30,7 @@ export getMajorsLength
 export ConcentratedGaussianKernel
 
 export HomotopyRepr
-export MajorMaxDepth
+export AbstractBinaryTreeDensity, BinaryTreeDensity, BinaryTruncFixedDepth
 
 # TODO deprecate below
 export HomotopyDensity_legacy

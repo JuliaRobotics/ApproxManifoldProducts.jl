@@ -20,7 +20,7 @@ using LinearAlgebra
 
 # NOTE, this type is auto-generated -- not generally seen or used during nominal usage
 hr = ApproxManifoldProducts.HomotopyRepr{
-  MajorMaxDepth{3},
+  BinaryTruncFixedDepth{3},
   ConcentratedGaussianKernel, 
   TestTranslation1, 
   Nothing, 
@@ -34,7 +34,7 @@ hr = ApproxManifoldProducts.HomotopyRepr{
 ## check non-default serialization type
 
 hr = ApproxManifoldProducts.HomotopyRepr{
-  MajorMaxDepth{3},
+  BinaryTruncFixedDepth{3},
   ConcentratedGaussianKernel, 
   typeof(TranslationGroup(3)), 
   Tuple{Int,Int}, 
@@ -55,7 +55,7 @@ points = [
 
 manif = TranslationGroup(1)
 hr = ApproxManifoldProducts.HomotopyRepr{
-  MajorMaxDepth{3},
+  BinaryTruncFixedDepth{3},
   ConcentratedGaussianKernel, 
   typeof(manif), 
   Nothing, 

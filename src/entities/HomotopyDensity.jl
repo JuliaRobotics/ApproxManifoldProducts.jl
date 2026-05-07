@@ -1,15 +1,15 @@
 
 
-# # FIXME deprecate trunction naming
-# const AbstractHomotopyTrunction = AbstractHomotopyTopology 
 
-# FIXME, rename to BinaryTruncFixedDepth{3}
-struct MajorMaxDepth{N} <: AbstractHomotopyTopology end
-# struct PrincipalInjectivityThres{N} <: AbstractHomotopyTopology{N} end
+abstract type AbstractBinaryTreeDensity <: AbstractHomotopyTopology end
+const BinaryTreeDensity = AbstractBinaryTreeDensity
+
+struct BinaryTruncFixedDepth{N} <: AbstractBinaryTreeDensity end
+# struct PrincipalInjectivityThres{N} <: AbstractBinaryTreeDensity{N} end
 # struct PrincipalEnergyThres{N} <: AbstractHomotopyTopology{N} end
 
 # Binary tree with N major levels
-getMajorsLength(::Type{MajorMaxDepth{N}}) where {N} = N^2 - 1
+getMajorsLength(::Type{BinaryTruncFixedDepth{N}}) where {N} = N^2 - 1
 
 
 

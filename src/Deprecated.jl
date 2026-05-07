@@ -62,7 +62,7 @@
 
 #     _partial = _tuple(partial)
 #     reprkind = HomotopyRepr{
-#         MajorMaxDepth{3},
+#         BinaryTruncFixedDepth{3},
 #         ConcentratedGaussianKernel, 
 #         M, 
 #         typeof(_partial), 
