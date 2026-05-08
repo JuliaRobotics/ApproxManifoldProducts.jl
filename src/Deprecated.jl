@@ -27,7 +27,7 @@
 #     partial=_partl,
 #     principal_coeffs = hode.principal_coeffs,
 #     principal_elements = hode.principal_elements,
-#     principal_details = hode.principal_details,
+#     principal_forms = hode.principal_forms,
 #     weights = getWeights(hode),
 #     structure = hode.structure,
 #     observability = hode.observability, 
@@ -40,7 +40,7 @@
 # #     points = hode.points,
 # #     principal_coeffs = hode.principal_coeffs,
 # #     principal_elements = hode.principal_elements,
-# #     principal_details = hode.principal_details,
+# #     principal_forms = hode.principal_forms,
 # #     weights = getWeights(hode),
 # #     structure = hode.structure,
 # #     observability = hode.observability,
@@ -69,7 +69,7 @@
 #     }(manifold, _partial)
 
 #     d = manifold_dimension(getManifold(reprkind))
-#     trailing_details = SparseArrays.sparsevec(Dict(
+#     trailing_forms = SparseArrays.sparsevec(Dict(
 #         1 => SMatrix{d,d,Float64}(lCV),
 #     ), 1)
 
@@ -78,11 +78,11 @@
 #         P, 
 #         P,
 #         Matrix{Float64},
-#         eltype(trailing_details),
+#         eltype(trailing_forms),
 #     }(;
 #         reprkind,
 #         points,
-#         trailing_details,
+#         trailing_forms,
 #         kw...
 #     )
 # end

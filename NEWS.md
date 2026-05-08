@@ -10,7 +10,7 @@ Major news relating to breaking changes in ApproxManifoldProducts.jl
 - Rename `HomotopyDensity.observability` instead of `.infoPerCoord`. (breaking change)
 - Rename `HomotopyDensity.points` instead of `.data`. (breaking change)
 - Rename `HomotopyDensity.structure` instead of `.geometric_permute`. (breaking change)
-- Drop `HomotopyDensity.leaf_kernels`, switch to new approach with `.trailing_details`. (breaking change)
+- Drop `HomotopyDensity.leaf_kernels`, switch to new approach with `.trailing_forms`. (breaking change)
 - Adding `HomotopyDensity.majors_*` fields as new alternative and dropping `.tree_kernels`. (breaking change)
 - Deprecation, use `getPointType` instead of `getPointRepr`. (breaking change)
 - Large refactoring and restructuring of code towards a reduce implementation and DFG/JSON serde support

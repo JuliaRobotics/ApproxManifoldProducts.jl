@@ -64,7 +64,7 @@ function buildTree_Manellic!(
 
     # TODO consolidate w legacy kernel_bw
     d = manifold_dimension(getManifold(reprkind))
-    trailing_details = SparseArrays.sparsevec(Dict(
+    trailing_forms = SparseArrays.sparsevec(Dict(
         1 => SMatrix{d,d,Float64}(cov(lkern[1])),
     ), 1) # assume size 1 during refactor -- i.e. universal bandwidth at leaves
 
@@ -73,12 +73,12 @@ function buildTree_Manellic!(
         eltype(r_PP),
         eltype(r_PP),
         Matrix{Float64},
-        eltype(trailing_details),
+        eltype(trailing_forms),
     }(;
         reprkind,
         points = r_PP,
         weights,
-        trailing_details,
+        trailing_forms,
     )
 
     #
@@ -129,7 +129,7 @@ function buildTree_Manellic!(
         end
     end
 
-    trailing_details = SparseArrays.sparsevec(Dict(
+    trailing_forms = SparseArrays.sparsevec(Dict(
         1 => SMatrix{D,D}(cov(lkern[1])),
     ), 1)
 
@@ -139,7 +139,7 @@ function buildTree_Manellic!(
         manifold = manif,
         points = r_PP,
         weights,
-        trailing_details,
+        trailing_forms,
     )
 
     #
@@ -286,11 +286,11 @@ function truncateOrSplitsort!(
         if length(hode.principal_coeffs) < index
             resize!(hode.principal_coeffs, index)
             resize!(hode.principal_elements, index) 
-            resize!(hode.principal_details, index)
+            resize!(hode.principal_forms, index)
         end
         hode.principal_coeffs[index] = sum(view(hode.weights, idxsubset))
         hode.principal_elements[index] = mean(knl)
-        hode.principal_details[index] = cov(knl)
+        hode.principal_forms[index] = cov(knl)
     end
 
     # for binary split

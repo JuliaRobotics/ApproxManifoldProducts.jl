@@ -44,10 +44,10 @@ function getKernelLeaf(
 
     # FIXME refactor in transit, use HR{,,,A} to extract leaf and minor relation
     # TODO consolidate with uniBW()
-    cv_ = if 1 == SparseArrays.nnz(hode.trailing_details)
-        hode.trailing_details[1]
+    cv_ = if 1 == SparseArrays.nnz(hode.trailing_forms)
+        hode.trailing_forms[1]
     else
-        hode.trailing_details[i]
+        hode.trailing_forms[i]
     end
 
     hr = hode.reprkind
@@ -119,7 +119,7 @@ function getKernelTree(
             _, _, partl_cb = getManifoldPartial(getManifold(hode), _tuple(partial), μ)
         raw_ker = reprT(
             μ, 
-            hode.principal_details[currIdx], 
+            hode.principal_forms[currIdx], 
             hode.principal_coeffs[currIdx];
             partial, partl_cb
         )

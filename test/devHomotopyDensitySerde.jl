@@ -83,8 +83,8 @@ function demo_lowerpack(
     :weights => hode.weights,
     :principal_coeffs => hode.principal_coeffs,
     :principal_elements => hode.principal_elements, # use same technique as DFG.statekind for points (possible hint from reprkind)
-    :principal_details => hode.principal_details,   # likely cov matrices
-    :trailing_details => Dict(hode.trailing_details.nzind .=> hode.trailing_details.nzval), # likely diagonal covs
+    :principal_forms => hode.principal_forms,   # likely cov matrices
+    :trailing_forms => Dict(hode.trailing_forms.nzind .=> hode.trailing_forms.nzval), # likely diagonal covs
     :structure => Dict(hode.structure.nzind .=> hode.structure.nzval),
   )
 end
@@ -100,8 +100,8 @@ function demo_liftunpack(
     weights = jsondict["weights"],
     principal_coeffs = jsondict["principal_coeffs"],
     principal_elements = jsondict["principal_elements"], # use same technique as DFG.statekind for points
-    principal_details = jsondict["principal_details"],
-    trailing_details = sparsevec(jsondict["trailing_details"]),
+    principal_forms = jsondict["principal_forms"],
+    trailing_forms = sparsevec(jsondict["trailing_forms"]),
     structure = sparsevec(jsondict["structure"]),
   )
 end

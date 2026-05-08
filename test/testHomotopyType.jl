@@ -70,7 +70,7 @@ lkern = Vector{lknlT}(undef, length(points))
 ##
 
 # d = manifold_dimension(getManifold(hr))
-# trailing_details = SparseArrays.sparsevec(Dict(
+# trailing_forms = SparseArrays.sparsevec(Dict(
 #   1 => SMatrix{d,d}(I),
 # ), 1)
 
@@ -78,7 +78,7 @@ lkern = Vector{lknlT}(undef, length(points))
 hd = HomotopyDensity_legacy(
   manif,
   points,
-  # trailing_details,
+  # trailing_forms,
 )
 
 

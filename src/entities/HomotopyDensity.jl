@@ -28,13 +28,13 @@ getMajorsLength(::Type{BinaryTruncFixedDepth{N}}) where {N} = N^2 - 1
     principal_coeffs::Vector{Float64} = Vector{Float64}(undef, getMajorsLength(reprkind))
     # FIXME, future proof such that ME != P, possibly using affine_matrix
     principal_elements::Vector{ME} = Vector{P}(undef, getMajorsLength(reprkind))
-    principal_details::Vector{MJ} = Vector{Matrix{Float64}}(undef, getMajorsLength(reprkind))
+    principal_forms::Vector{MJ} = Vector{Matrix{Float64}}(undef, getMajorsLength(reprkind))
     """
     Store minor details such as leaf bandwidth or eigenvectors associated with minor eigenvalues.
     - When lifted for compute efficiency, this field is likely to hold something like PDMats.
     - When lowered or for serde, this field is likely to hold Dict{Int, Vector{Float64}}.
     """
-    trailing_details::SparseArrays.SparseVector{MI, Int} = SparseArrays.sparsevec(
+    trailing_forms::SparseArrays.SparseVector{MI, Int} = SparseArrays.sparsevec(
       Dict(1 => SMatrix{Float64}(I, manifold_dimension(getManifold(reprkind)), manifold_dimension(getManifold(reprkind))),),
       1
     )
@@ -61,10 +61,10 @@ convert(::Type{<:HomotopyDensityDFG}, src::HomotopyDensityLive) = HomotopyDensit
 function HomotopyDensityLive(hode::HomotopyDensityDFG)
   _second(::Pair{K, V}) where {K, V} = V
   # convert trailing details from Dict{Int, Matrix{Float64}} to SparseVector{Int, SMatrix{N,N}} for live representation
-  tdks = keys(hode.trailing_details)
-  tdvs = values(hode.trailing_details)
+  tdks = keys(hode.trailing_forms)
+  tdvs = values(hode.trailing_forms)
   rc = 0 < length(tdvs) ? size(tdvs[1]) : (0, 0)
-  trailing_details = SparseArrays.sparsevec(Dict{Int,_second(eltype(tdvs))}(
+  trailing_forms = SparseArrays.sparsevec(Dict{Int,_second(eltype(tdvs))}(
     tdks .=> SMatrix{rc...}.(tdvs)
   ))
   
@@ -75,8 +75,8 @@ function HomotopyDensityLive(hode::HomotopyDensityDFG)
     weights = hode.weights,
     principal_coeffs = hode.principal_coeffs,   # FIXME, convert type
     principal_elements = hode.principal_elements, # FIXME, convert type 
-    principal_details = hode.principal_details,  # FIXME, convert type
-    trailing_details,
+    principal_forms = hode.principal_forms,  # FIXME, convert type
+    trailing_forms,
     structure = SparseArrays.sparsevec(hode.structure),
   )
 end
@@ -87,8 +87,8 @@ HomotopyDensityDFG(hode::HomotopyDensityLive) = HomotopyDensityDFG(
   weights = hode.weights,
   principal_coeffs = hode.principal_coeffs,
   principal_elements = hode.principal_elements,
-  principal_details = Matrix.(hode.principal_details),
-  trailing_details = Dict(hode.trailing_details.nzind .=> Matrix.(hode.trailing_details.nzval)), # likely diagonal covs
+  principal_forms = Matrix.(hode.principal_forms),
+  trailing_forms = Dict(hode.trailing_forms.nzind .=> Matrix.(hode.trailing_forms.nzval)), # likely diagonal covs
   structure = Dict(hode.structure.nzind .=> hode.structure.nzval),
 )
 
