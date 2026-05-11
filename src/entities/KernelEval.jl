@@ -1,20 +1,36 @@
 
-abstract type AbstractKernel <: AbstractDensityBasis end
+abstract type AbstractKernel <: AbstractDensityForm end
 
 
-@kwdef struct ConcentratedGaussianKernel{
+struct ConcentratedGaussianKernel{
     partial, # partial info for compiler, usually a value e.g. nothing or (1,3)
     K <: Distributions.MvNormal, # kernel info for compiler
     T  # additional parameters
 } <: AbstractKernel
     """ Mixture/nonparametric weight value """
-    weight::Float64 = 1.0
+    weight::Float64
     """ functional basis such as RBF/MvNormal, Epanechnikov, (wavelet basis) etc. """
-    functional::K = MvNormal(SMatrix{1,1}(1.0))
+    functional::K
     """ additional parameters relating to on-manifold operations or similar """
-    params::T = nothing
+    params::T
 end
 
+function ConcentratedGaussianKernel(
+    weight::Float64 = 1.0,
+    functional::K = MvNormal(SMatrix{1,1}(1.0)),
+    params::T = nothing;
+    partial::Union{Nothing, <:Tuple} = nothing,
+) where {K, T}
+    ConcentratedGaussianKernel{
+        partial,
+        K,
+        T,
+    }(
+        weight,
+        functional,
+        params,
+    )
+end
 
 function ConcentratedGaussianKernel(
     μ::AbstractArray, 
@@ -44,12 +60,8 @@ function ConcentratedGaussianKernel(
     _c = projectSymPosDef(Σ)
     functional = MvNormal(_c)
     params = _μ(μ, partial, partl_cb)
-    return ConcentratedGaussianKernel{
-        partial,
-        typeof(functional),
-        typeof(params)
-    }(;
-        weight = float(weight),
+    return ConcentratedGaussianKernel(
+        float(weight),
         functional,
         params,
     )

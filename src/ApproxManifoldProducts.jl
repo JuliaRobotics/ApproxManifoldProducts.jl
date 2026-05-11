@@ -34,13 +34,14 @@ using LieGroups: TranslationGroup
 
 import Optim
 
-import DistributedFactorGraphs
-using DistributedFactorGraphs: AbstractStateType, StateType, getManifold, getReprType, getTopology, getPartial
-using DistributedFactorGraphs: HomotopyRepr, AbstractDensityBasis, AbstractHomotopyTopology
-import DistributedFactorGraphs: HomotopyDensityDFG, getManifold, getPartial, getMajorsLength
+using DistributedFactorGraphs
+import DistributedFactorGraphs: HomotopyReprDFG, HomotopyDensityDFG
+import DistributedFactorGraphs: AbstractHomotopyTopology, AbstractDensityForm, AbstractPartialTrait
+# using DistributedFactorGraphs: AbstractStateType, StateType
+import DistributedFactorGraphs: getManifold
 
 # FIXME, DEPRECATE LEGACY PARTIALS <:Tuple, make trait in stead
-using DistributedFactorGraphs: AbstractPartialLegacyCompat 
+# using DistributedFactorGraphs: AbstractPartialLegacyCompat 
 
 const MB = ManifoldsBase
 const CTs = CoordinateTransformations

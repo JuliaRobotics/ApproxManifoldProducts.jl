@@ -6,6 +6,10 @@
 ## ======================================================================================================
 
 
+## TYPE PIRACY!!!! FIXME -- upstream to DFG
+getManifold(manif::AbstractManifold) = manif
+
+
 @deprecate HomotopyDensity(
   hode::HomotopyDensity;
   partial::Union{Nothing, <:Tuple, AbstractVector{<:Integer}} = nothing,

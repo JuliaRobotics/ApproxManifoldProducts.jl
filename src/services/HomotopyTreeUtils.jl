@@ -57,7 +57,7 @@ function getKernelLeaf(
     # FIXME, hack before reworking partials to common trait -- 
     #  partial and partl_cb elsewhere assumed to travel together, not recreated post-hoc
     _, _, partl_cb = getManifoldPartial(getManifold(hode), _tuple(partial), mn)
-    return getReprType(hr)(mn, cv_; partial, partl_cb)
+    return _vanillareprT(getReprKind(hr))(mn, cv_; partial, partl_cb)
 end
 
 """
@@ -73,7 +73,7 @@ function getKernelLeafAsTreeKer(
     idx::Int,
     permuted::Bool = false,
 ) where {H, P}
-    reprT = getReprType(mtr.reprkind)
+    reprT = getReprKind(mtr.reprkind)
     partial = getPartial(mtr.reprkind)
     mani = getManifold(mtr)
     lidx = (idx - 1) % Npts(mtr) + 1
@@ -107,9 +107,10 @@ function getKernelTree(
     cov_continuation::Bool = false,
 ) where {H, P}
     #
+
     N = Npts(hode)
     partial = getPartial(hode)
-    reprT = getReprType(hode.reprkind)
+    reprT = getReprKind(hode) |> _vanillareprT
     # BinaryTree (BT) index goes from root=1 to largest leaf 2*N
     return if isassigned(hode, currIdx) && !isLeaf_BTLabel(hode, currIdx)
         # cov_continuation correction so that we may build trees with sensible convariance to bandwidth transition from root to leaf
@@ -119,7 +120,7 @@ function getKernelTree(
             _, _, partl_cb = getManifoldPartial(getManifold(hode), _tuple(partial), μ)
         raw_ker = reprT(
             μ, 
-            hode.principal_forms[currIdx], 
+            hode.principal_forms[currIdx],
             hode.principal_coeffs[currIdx];
             partial, partl_cb
         )

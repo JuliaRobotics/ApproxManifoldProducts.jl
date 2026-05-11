@@ -58,7 +58,7 @@ function Base.show(io::IO, hode::HomotopyDensity)
         printstyled(
             io,
             "     (trunc)  :   ",
-            getTopology(hode.reprkind);
+            getTopologyKind(hode.reprkind);
             color = :light_black,
         )
         println(io)
@@ -304,8 +304,6 @@ function getBandwidth(mkd::HomotopyDensity, aspartial::Bool = true)
     return _getFieldPartials(mkd, x -> getBW(x)[1], aspartial)
 end
 
-getPartial(hode::HomotopyDensity) = getPartial(hode.reprkind)
-
 
 
 # TODO check that partials / marginals are sampled correctly
@@ -374,14 +372,18 @@ function updateBandwidths(
             hode.trailing_forms[i] = SMatrix{size(cv)...,Float64}(cv)
         # end
     end
-    kind = getManifold(hode) 
-    _partial = getPartial(hode)
-    reprkind = HomotopyRepr{
-        BinaryTruncFixedDepth{3},
-        ConcentratedGaussianKernel,
-        typeof(kind),
-        typeof(_partial),
-    }(kind, _partial)
+    partial = getPartial(hode)
+    reprkind = HomotopyRepr(
+        hode.reprkind;
+        partial,
+    )
+    # kind = getManifold(hode) 
+    # reprkind = HomotopyRepr{
+    #     BinaryTruncFixedDepth{3},
+    #     ConcentratedGaussianKernel,
+    #     typeof(kind),
+    #     typeof(partial),
+    # }(kind, partial)
 
     return HD(;
         reprkind,

@@ -55,12 +55,12 @@ function buildTree_Manellic!(
     tkern = Vector{tknlT}(undef, N)
 
     _partial = _tuple(partial)
-    reprkind = HomotopyRepr{
-        BinaryTruncFixedDepth{3},
-        ConcentratedGaussianKernel,
-        M,
-        typeof(_partial),
-    }(manif, _partial)
+    reprkind = HomotopyRepr(;
+        topologykind = BinaryTruncFixedDepth{3}(),
+        reprkind = ConcentratedGaussianKernel(),
+        statekind = manif,
+        partial = _partial,
+    )
 
     # TODO consolidate w legacy kernel_bw
     d = manifold_dimension(getManifold(reprkind))

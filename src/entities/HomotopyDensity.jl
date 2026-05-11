@@ -5,11 +5,44 @@ abstract type AbstractBinaryTreeDensity <: AbstractHomotopyTopology end
 const BinaryTreeDensity = AbstractBinaryTreeDensity
 
 struct BinaryTruncFixedDepth{N} <: AbstractBinaryTreeDensity end
-# struct PrincipalInjectivityThres{N} <: AbstractBinaryTreeDensity{N} end
+# struct BinaryInjectivityThres{N} <: AbstractBinaryTreeDensity{N} end
 # struct PrincipalEnergyThres{N} <: AbstractHomotopyTopology{N} end
 
-# Binary tree with N major levels
-getMajorsLength(::Type{BinaryTruncFixedDepth{N}}) where {N} = N^2 - 1
+
+
+struct HomotopyReprLive{
+  T <: Union{<:StateType, <:AbstractManifold},
+  # Nothing and Tuple are legacy before DFG v1.0, trying to avoid serde of old partials devoid of serde design
+  L <: Union{<:AbstractPartialTrait, Nothing, <:Tuple}, 
+}
+  topologykind::AbstractHomotopyTopology  # bitmap, jpeg, png
+  reprkind::AbstractDensityForm           # RGB24, YCbCr, fullcov, uppercov, LieExpGaussianWrappedKind, ConcentrGaussKernelKind
+  statekind::T                            # Position{2}
+  partial::L
+end
+
+const HomotopyRepr = Union{<:HomotopyReprDFG, <:HomotopyReprLive}
+
+function HomotopyRepr(
+  repr::HomotopyRepr = HomotopyReprLive(
+    BinaryTruncFixedDepth{3}(),
+    ConcentratedGaussianKernel(),
+    TranslationGroup(1),
+    nothing,    
+  );
+  topologykind::AbstractHomotopyTopology = getTopologyKind(repr),
+  reprkind::AbstractDensityForm = getReprKind(repr),
+  statekind::Union{<:AbstractStateType, <:AbstractManifold} = getStateKind(repr),
+  partial = getPartial(repr), # FIXME
+) 
+  return HomotopyReprLive(
+    topologykind,
+    reprkind,
+    statekind,
+    partial,
+  )
+end
+
 
 
 
@@ -21,31 +54,31 @@ getMajorsLength(::Type{BinaryTruncFixedDepth{N}}) where {N} = N^2 - 1
   MJ,  # Use only easy to JSON.jl lift lower serde -- e.g. Dict{Int, Vector{Float64}} when storing just diagonal covariances for leaves of tree, or similar
   MI,  # Use only easy to JSON.jl lift lower serde -- e.g. Dict{Int, Vector{Float64}} when storing just diagonal covariances for leaves of tree, or similar
 }
-    reprkind::H
-    observability::Vector{Float64} = zeros(manifold_dimension(getManifold(reprkind)))
-    points::Vector{P}
-    weights::Vector{Float64} = Vector{Float64}(ones(length(points))) ./ length(points)
-    principal_coeffs::Vector{Float64} = Vector{Float64}(undef, getMajorsLength(reprkind))
-    # FIXME, future proof such that ME != P, possibly using affine_matrix
-    principal_elements::Vector{ME} = Vector{P}(undef, getMajorsLength(reprkind))
-    principal_forms::Vector{MJ} = Vector{Matrix{Float64}}(undef, getMajorsLength(reprkind))
-    """
-    Store minor details such as leaf bandwidth or eigenvectors associated with minor eigenvalues.
-    - When lifted for compute efficiency, this field is likely to hold something like PDMats.
-    - When lowered or for serde, this field is likely to hold Dict{Int, Vector{Float64}}.
-    """
-    trailing_forms::SparseArrays.SparseVector{MI, Int} = SparseArrays.sparsevec(
-      Dict(1 => SMatrix{Float64}(I, manifold_dimension(getManifold(reprkind)), manifold_dimension(getManifold(reprkind))),),
-      1
-    )
-    """ 
-    Geometric points permute field, allows fast binary tree operations and geometric points splits for manellic (ball) trees. 
-    - Geometric split reqs at least 2*(N+1)-1 points -- e.g. when nodes have only right children, points=[1,2,-3].
-    """
-    structure::SparseArrays.SparseVector{Vector{Int}, Int} = SparseArrays.sparsevec(
-      Dict(1 => collect(1:length(points))), 
-      5*(length(points)) # large buffer space where impact on resources mitigated via sparsevec
-    )
+  reprkind::H
+  observability::Vector{Float64} = zeros(manifold_dimension(getManifold(reprkind)))
+  points::Vector{P}
+  weights::Vector{Float64} = Vector{Float64}(ones(length(points))) ./ length(points)
+  principal_coeffs::Vector{Float64} = Vector{Float64}(undef, getMajorsLength(reprkind))
+  # FIXME, future proof such that ME != P, possibly using affine_matrix
+  principal_elements::Vector{ME} = Vector{P}(undef, getMajorsLength(reprkind))
+  principal_forms::Vector{MJ} = Vector{Matrix{Float64}}(undef, getMajorsLength(reprkind))
+  """
+  Store minor details such as leaf bandwidth or eigenvectors associated with minor eigenvalues.
+  - When lifted for compute efficiency, this field is likely to hold something like PDMats.
+  - When lowered or for serde, this field is likely to hold Dict{Int, Vector{Float64}}.
+  """
+  trailing_forms::SparseArrays.SparseVector{MI, Int} = SparseArrays.sparsevec(
+    Dict(1 => SMatrix{Float64}(I, manifold_dimension(getManifold(reprkind)), manifold_dimension(getManifold(reprkind))),),
+    1
+  )
+  """ 
+  Geometric points permute field, allows fast binary tree operations and geometric points splits for manellic (ball) trees. 
+  - Geometric split reqs at least 2*(N+1)-1 points -- e.g. when nodes have only right children, points=[1,2,-3].
+  """
+  structure::SparseArrays.SparseVector{Vector{Int}, Int} = SparseArrays.sparsevec(
+    Dict(1 => collect(1:length(points))), 
+    5*(length(points)) # large buffer space where impact on resources mitigated via sparsevec
+  )
 end
 
 
@@ -92,3 +125,33 @@ HomotopyDensityDFG(hode::HomotopyDensityLive) = HomotopyDensityDFG(
   structure = Dict(hode.structure.nzind .=> hode.structure.nzval),
 )
 
+
+
+
+
+
+getTopologyKind(reprkind::HomotopyRepr) = reprkind.topologykind
+getTopologyKind(hode::HomotopyDensity) = getTopologyKind(hode.reprkind)
+# getTopologyKind(state::State) = getTopologyKind(state.belief)
+
+getReprKind(repr::HomotopyRepr) = repr.reprkind
+getReprKind(hode::HomotopyDensity) = getReprKind(hode.reprkind)
+# getReprKind(state::State) = getReprKind(state.belief)
+
+getStateKind(repr::HomotopyRepr) = repr.statekind
+getStateKind(hode::HomotopyDensity) = getStateKind(hode.reprkind)
+
+getManifold(reprkind::HomotopyRepr) = getManifold(reprkind.statekind)
+# getManifold(reprkind::HomotopyReprDFG) = getManifold(reprkind.statekind)
+getManifold(hode::HomotopyDensity) = getManifold(hode.reprkind)
+# getManifold(state::State) = getManifold(state.belief)
+
+getPartial(repr::HomotopyReprLive) = repr.partial
+getPartial(repr::HomotopyDensity) = getPartial(repr.reprkind)
+
+_vanillareprT(::T) where {T <:ConcentratedGaussianKernel} = ConcentratedGaussianKernel
+
+# Binary tree with N major levels
+getMajorsLength(::Type{BinaryTruncFixedDepth{N}}) where {N} = N^2 - 1
+getMajorsLength(kind::AbstractHomotopyTopology) = getMajorsLength(typeof(kind))
+getMajorsLength(repr::HomotopyRepr) = getMajorsLength(repr.topologykind)

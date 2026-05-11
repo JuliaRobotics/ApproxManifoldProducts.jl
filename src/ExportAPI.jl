@@ -1,8 +1,6 @@
 
 export
     AbstractManifold,
-    HomotopyDensity,
-    ManifoldKernelDensity,
     *,
     isapprox,
     # API and util functions
@@ -30,7 +28,11 @@ export getMajorsLength
 export ConcentratedGaussianKernel
 
 export HomotopyRepr
-export AbstractBinaryTreeDensity, BinaryTreeDensity, BinaryTruncFixedDepth
+export AbstractBinaryTreeDensity, BinaryTreeDensity, BinaryTruncFixedDepth, getReprKind, getTopologyKind
+export HomotopyDensityLive
 
 # TODO deprecate below
 export HomotopyDensity_legacy
+
+export ManifoldKernelDensity
+
