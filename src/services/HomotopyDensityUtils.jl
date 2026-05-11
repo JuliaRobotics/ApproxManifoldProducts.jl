@@ -284,18 +284,6 @@ end
 
 
 
-getPointType(x::HomotopyDensity) = eltype(x.points) # TODO use HomotopyDensity{T} style instead
-function getManifold(x::HomotopyDensity, aspartial::Bool = false)
-    return if !aspartial
-        getManifold(x.reprkind)
-    else
-        M_, _, _ = getManifoldPartial(getManifold(x), getPartial(x), x.points[1])
-        M_
-    end
-end
-
-
-
 function getObservability(mkd::HomotopyDensity, aspartial::Bool = true)
     return _getFieldPartials(mkd, x -> x.observability, aspartial)
 end

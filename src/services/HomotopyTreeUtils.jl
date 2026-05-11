@@ -73,7 +73,7 @@ function getKernelLeafAsTreeKer(
     idx::Int,
     permuted::Bool = false,
 ) where {H, P}
-    reprT = getReprKind(mtr.reprkind)
+    reprT = getReprKind(mtr.reprkind) |> _vanillareprT
     partial = getPartial(mtr.reprkind)
     mani = getManifold(mtr)
     lidx = (idx - 1) % Npts(mtr) + 1

@@ -143,8 +143,20 @@ getStateKind(hode::HomotopyDensity) = getStateKind(hode.reprkind)
 
 getManifold(reprkind::HomotopyRepr) = getManifold(reprkind.statekind)
 # getManifold(reprkind::HomotopyReprDFG) = getManifold(reprkind.statekind)
-getManifold(hode::HomotopyDensity) = getManifold(hode.reprkind)
+# getManifold(hode::HomotopyDensity) = getManifold(hode.reprkind)
 # getManifold(state::State) = getManifold(state.belief)
+
+getPointType(x::HomotopyDensity) = eltype(x.points) # TODO use HomotopyDensity{T} style instead
+function getManifold(x::HomotopyDensity, aspartial::Bool = false)
+    return if !aspartial
+        getManifold(x.reprkind)
+    else
+        M_, _, _ = getManifoldPartial(getManifold(x), getPartial(x), x.points[1])
+        M_
+    end
+end
+
+
 
 getPartial(repr::HomotopyReprLive) = repr.partial
 getPartial(repr::HomotopyDensity) = getPartial(repr.reprkind)

@@ -27,8 +27,8 @@ function HomotopyDensity(
     )
     if length(partl) != manifold_dimension(mani)
         # update representation kind to have correct partials
-        # _partialrepr(hr::HomotopyRepr{T}) where {T} = HomotopyRepr{T, R, M, typeof(partl)}(mani, partl)
-        reprkind = getReprKind(bel)
+        _partialrepr(hr::HomotopyRepr) = HomotopyRepr(hr; partial = partl)
+        reprkind = _partialrepr(bel.reprkind)
         # update majors to have correct partials
         for i in 1:length(bel.principal_elements)
             if isassigned(bel.principal_elements, i)
