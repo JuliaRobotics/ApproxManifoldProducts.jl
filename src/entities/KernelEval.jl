@@ -63,7 +63,8 @@ function ConcentratedGaussianKernel(
     return ConcentratedGaussianKernel(
         float(weight),
         functional,
-        params,
+        params;
+        partial,
     )
 end
 
