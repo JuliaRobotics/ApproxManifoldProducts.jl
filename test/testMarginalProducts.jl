@@ -249,12 +249,19 @@ end
 
 ## check marginal kernel products
 
-    p1 = ApproxManifoldProducts.getKernelTree(P1, 1)
-    p3 = ApproxManifoldProducts.getKernelTree(P3, 1)
+    p1 = ApproxManifoldProducts.getKernelTree(P1, 2)
+    p3 = ApproxManifoldProducts.getKernelTree(P3, 2)
 
-    mvn = calcProductGaussians(M, [p1, p3])
+    mvn13 = calcProductGaussians(M, [p1, p3])
+    @test isnothing(ApproxManifoldProducts._getprl(mvn13))
 
-    @test isnothing(ApproxManifoldProducts._getprl(mvn))
+    p1 = ApproxManifoldProducts.getKernelTree(P1, 3)
+    p3 = ApproxManifoldProducts.getKernelTree(P3, 3)
+
+    mvn13_ = calcProductGaussians(M, [p1, p3])
+    @test isnothing(ApproxManifoldProducts._getprl(mvn13_))
+
+    @test !isapprox(mean(mvn13), mean(mvn13_))
 
 ##
 
@@ -268,7 +275,6 @@ end
 
     @test !isPartial(P_)
 
-    
 ##
 
     @test isapprox([-10, 10.0], mean(ApproxManifoldProducts.getKernelTree(P_, 1)); atol = 1.0)

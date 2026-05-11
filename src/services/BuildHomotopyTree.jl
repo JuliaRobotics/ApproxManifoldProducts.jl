@@ -278,8 +278,9 @@ function truncateOrSplitsort!(
     if (leaf_size < npts) && (index <= Npts(hode))
         # set tree kernel
         # NOTE, THIS USED TO BE AFTER recursive subtree build
+        wei = sum(view(hode.weights, idxsubset))
         knl = ConcentratedGaussianKernel(
-            p, bw, sum(view(hode.weights, idxsubset)); # TODO, try drop need for p here
+            p, bw, wei; # TODO, try drop need for p here
             partial, partl_cb
         )
         # NEW, set majors_ fields here
@@ -307,7 +308,6 @@ function splitsortBinary!(
     kernel_bw = nothing,
     # partial::Union{Nothing, <:Tuple},
 )
-        
     # split the slice of order-permuted data
     _, mask, midoffset, p, bw = splitPointsEigen(
         getManifold(hode),

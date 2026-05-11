@@ -16,14 +16,14 @@ function calcProductKernelBTLabels(
     weight::Real = 1.0,
 )
     # select a density label from the other proposals
-    prop_and_label = Tuple{Int, Int}[]
+    prop_and_label = @NamedTuple{propidx::Int, problbl::Int}[]
     for s in setdiff(propIdxs_Gibbs, isnothing(looidx) ? Int[] : Int[looidx;])
         # tuple of which leave-one-out-proposal and its new latest label selection
-        push!(prop_and_label, (s, labels_sampled[s]))
+        push!(prop_and_label, (; propidx=s, problbl=labels_sampled[s]))
     end
     # TODO COVARIANCE CONTINUATION CORRECTION FOR DEPTH OF TREE KERNELS
     components = map(
-        pr_lb -> getKernelTree(proposals[pr_lb[1]], pr_lb[2], permute, true),
+        pr_lb -> getKernelTree(proposals[pr_lb.propidx], pr_lb.problbl, permute, true),
         prop_and_label,
     )
 

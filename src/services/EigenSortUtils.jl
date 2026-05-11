@@ -123,19 +123,25 @@ function splitPointsEigen(
 
     # handle some edge cases relating to covariance estimation
     bw = _legacybw(kernel_bw, cv)
-    # bw = if isapprox(0.0, norm(cv)) 
-    #     # Fall back case
-    #     if isnothing(kernel_bw)
-    #         error("Provided data points have no measurable covariance and no kernel bandwidth was provided.")
-    #     else
-    #         _legacybw(kernel_bw)
-    #     end
-    # else
-    #     cv
-    # end
 
+    # towards top-down bandwidth continuation
+    # pick npts 3 because non-posdef issue more likely for small leaves
+    lp = length(r_PP)
+    mbw = _forcemutable(bw)
+    if lp <= 3
+        _pbw = _viewprl(mbw, partial)
+        _svd = eigen(_pbw)
+        if sum(_svd.values .> 1e-15) < length(_svd.values)
+            # HomotopyDensity tree build error, bandwidth $bw is not a valid covariance matrix for MvNormal kernel
+            # Reconstruct to nearest positive definite matrix using SVD
+            _svd_vals = _forcemutable(_svd.values)
+            _svd_vals[_svd_vals .<= 1e-15] .= 1e-15
+            # in-place reconstruct covariance matrix with the modified eigenvalues
+            _pbw .= _svd.vectors * diagm(_svd_vals) * _svd.vectors'
+        end
+    end
     # return rotated coordinates and split mask
-    return ax_CCp, mask, midoffset, p, bw
+    return ax_CCp, mask, midoffset, p, mbw
 end
 
 
