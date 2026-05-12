@@ -130,14 +130,14 @@ function splitPointsEigen(
     mbw = _forcemutable(bw)
     if lp <= 3
         _pbw = _viewprl(mbw, partial)
-        _svd = eigen(_pbw)
-        if sum(_svd.values .> 1e-15) < length(_svd.values)
+        _evv = eigen(_pbw)
+        if sum(_evv.values .> 1e-15) < length(_evv.values)
             # HomotopyDensity tree build error, bandwidth $bw is not a valid covariance matrix for MvNormal kernel
-            # Reconstruct to nearest positive definite matrix using SVD
-            _svd_vals = _forcemutable(_svd.values)
-            _svd_vals[_svd_vals .<= 1e-15] .= 1e-15
+            # Reconstruct to nearest positive definite matrix using Eigen factorization
+            _evv_vals = _forcemutable(_evv.values)
+            _evv_vals[_evv_vals .<= 1e-15] .= 1e-15
             # in-place reconstruct covariance matrix with the modified eigenvalues
-            _pbw .= _svd.vectors * diagm(_svd_vals) * _svd.vectors'
+            _pbw .= _evv.vectors * diagm(_evv_vals) * _evv.vectors'
         end
     end
     # return rotated coordinates and split mask
