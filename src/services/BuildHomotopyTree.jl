@@ -57,7 +57,7 @@ function buildTree_Manellic!(
     _partial = _tuple(partial)
     reprkind = HomotopyRepr(;
         topologykind = BinaryTruncFixedDepth{3}(),
-        reprkind = ConcentratedGaussianKernel(),
+        formkind = ConcentratedGaussianKernel(),
         statekind = manif,
         partial = _partial,
     )

@@ -16,7 +16,7 @@ struct HomotopyReprLive{
   L <: Union{<:AbstractPartialTrait, Nothing, <:Tuple}, 
 }
   topologykind::AbstractHomotopyTopology  # bitmap, jpeg, png
-  reprkind::AbstractDensityForm           # RGB24, YCbCr, fullcov, uppercov, LieExpGaussianWrappedKind, ConcentrGaussKernelKind
+  formkind::AbstractDensityForm           # RGB24, YCbCr, fullcov, uppercov, LieExpGaussianWrappedKind, ConcentrGaussKernelKind
   statekind::T                            # Position{2}
   partial::L
 end
@@ -31,13 +31,13 @@ function HomotopyRepr(
     nothing,    
   );
   topologykind::AbstractHomotopyTopology = getTopologyKind(repr),
-  reprkind::AbstractDensityForm = getReprKind(repr),
+  formkind::AbstractDensityForm = getFormKind(repr),
   statekind::Union{<:AbstractStateType, <:AbstractManifold} = getStateKind(repr),
   partial = getPartial(repr), # FIXME
 ) 
   return HomotopyReprLive(
     topologykind,
-    reprkind,
+    formkind,
     statekind,
     partial,
   )
@@ -127,16 +127,11 @@ HomotopyDensityDFG(hode::HomotopyDensityLive) = HomotopyDensityDFG(
 
 
 
-
-
-
 getTopologyKind(reprkind::HomotopyRepr) = reprkind.topologykind
 getTopologyKind(hode::HomotopyDensity) = getTopologyKind(hode.reprkind)
-# getTopologyKind(state::State) = getTopologyKind(state.belief)
 
-getReprKind(repr::HomotopyRepr) = repr.reprkind
-getReprKind(hode::HomotopyDensity) = getReprKind(hode.reprkind)
-# getReprKind(state::State) = getReprKind(state.belief)
+getFormKind(repr::HomotopyRepr) = repr.formkind
+getFormKind(hode::HomotopyDensity) = getFormKind(hode.reprkind)
 
 getStateKind(repr::HomotopyRepr) = repr.statekind
 getStateKind(hode::HomotopyDensity) = getStateKind(hode.reprkind)
@@ -147,19 +142,19 @@ getManifold(reprkind::HomotopyRepr) = getManifold(reprkind.statekind)
 # getManifold(state::State) = getManifold(state.belief)
 
 getPointType(x::HomotopyDensity) = eltype(x.points) # TODO use HomotopyDensity{T} style instead
-function getManifold(x::HomotopyDensity, aspartial::Bool = false)
+function getManifold(hode::HomotopyDensity, aspartial::Bool = false)
     return if !aspartial
-        getManifold(x.reprkind)
+        getManifold(hode.reprkind)
     else
-        M_, _, _ = getManifoldPartial(getManifold(x), getPartial(x), x.points[1])
+        M_, _, _ = getManifoldPartial(getManifold(hode), getPartial(hode), hode.points[1])
         M_
     end
 end
 
 
 
-getPartial(repr::HomotopyReprLive) = repr.partial
-getPartial(repr::HomotopyDensity) = getPartial(repr.reprkind)
+getPartial(repr::HomotopyRepr) = repr.partial
+getPartial(hode::HomotopyDensity) = getPartial(hode.reprkind)
 
 _vanillareprT(::T) where {T <:ConcentratedGaussianKernel} = ConcentratedGaussianKernel
 

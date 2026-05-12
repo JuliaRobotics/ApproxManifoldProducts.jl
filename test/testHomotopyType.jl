@@ -21,7 +21,7 @@ using LinearAlgebra
 # NOTE, this type is auto-generated -- not generally seen or used during nominal usage
 hr = ApproxManifoldProducts.HomotopyRepr(;
   topologykind = BinaryTruncFixedDepth{3}(),
-  reprkind = ConcentratedGaussianKernel(),
+  formkind = ConcentratedGaussianKernel(),
   statekind = TestTranslation1(),
   partial = nothing,
 )
@@ -54,7 +54,7 @@ points = [
 manif = TranslationGroup(1)
 hr = ApproxManifoldProducts.HomotopyRepr(
   topologykind = BinaryTruncFixedDepth{3}(),
-  reprkind = ConcentratedGaussianKernel(),
+  formkind = ConcentratedGaussianKernel(),
   statekind = manif,
   partial = nothing,
 )
