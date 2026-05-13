@@ -27,9 +27,10 @@ export getMajorsLength
 
 export ConcentratedGaussianKernel
 
-export HomotopyRepr
-export AbstractBinaryTreeDensity, BinaryTreeDensity, BinaryTruncFixedDepth, getFormKind, getTopologyKind
-export HomotopyDensityLive
+export HomotopyRepr, HomotopyReprLive, HomotopyReprDFG
+export AbstractBinaryTreeDensity, BinaryTreeDensity, BinaryTruncFixedDepth
+export getFormKind, getTopologyKind
+export HomotopyDensityLive, HomotopyDensityDFG, HomotopyDensity
 
 # TODO deprecate below
 export HomotopyDensity_legacy

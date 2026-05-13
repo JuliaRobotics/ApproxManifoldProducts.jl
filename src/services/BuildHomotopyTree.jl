@@ -18,7 +18,7 @@ DevNotes:
   - https://github.com/JuliaStats/Distributions.jl/blob/a9b0e3c99c8dda367f69b2dbbdfa4530c810e3d7/src/multivariate/mvnormal.jl#L220-L224
 """
 function buildTree_Manellic!(
-    manif::M,
+    statekind::SM,
     r_PP::AbstractVector{P}; # vector of points referenced to the r_frame
     N = length(r_PP),
     weights::AbstractVector{<:Real} = ones(N) .* (1 / N),
@@ -26,10 +26,14 @@ function buildTree_Manellic!(
     kernel_bw = nothing, # TODO
     partial::Union{Nothing, <:Tuple, AbstractVector{<:Integer}} = nothing,
     partl_cb::Union{Nothing, <:Function} = nothing,
-) where {M <: AbstractManifold, P <: AbstractArray}
+) where {
+    SM <: Union{<:AbstractManifold, <:StateType}, 
+    P <: AbstractArray
+}
     #
     
-    D = manifold_dimension(manif)
+    D = getDimension(statekind)
+    manif = getManifold(statekind)
     CV = SMatrix{D, D, Float64, D * D}(diagm(ones(D)))
     prlcb = if isnothing(partl_cb) && !isnothing(partial)
         M_, reprl, cb = getManifoldPartial(manif, partial)
@@ -58,14 +62,13 @@ function buildTree_Manellic!(
     reprkind = HomotopyRepr(;
         topologykind = BinaryTruncFixedDepth{3}(),
         formkind = ConcentratedGaussianKernel(),
-        statekind = manif,
+        statekind,
         partial = _partial,
     )
 
     # TODO consolidate w legacy kernel_bw
-    d = manifold_dimension(getManifold(reprkind))
     trailing_forms = SparseArrays.sparsevec(Dict(
-        1 => SMatrix{d,d,Float64}(cov(lkern[1])),
+        1 => SMatrix{D,D,Float64}(cov(lkern[1])),
     ), 1) # assume size 1 during refactor -- i.e. universal bandwidth at leaves
 
     _hode = HomotopyDensityLive{
@@ -99,17 +102,20 @@ end
 
 
 function buildTree_Manellic!(
-    manif::M,
+    statekind::SM,
     r_ker::AbstractVector{KL}; # vector of points referenced to the r_frame
     N = length(r_ker),
     weights::AbstractVector{<:Real} = ones(N) .* (1 / N),
     kernel = KL,
     kernel_bw = nothing, # TODO
     # partial = ??? TBD -- it should already be in the kernels
-) where {M <: AbstractManifold, KL <: ConcentratedGaussianKernel}
+) where {
+    SM <: Union{<:AbstractManifold, <:StateType},
+    KL <: ConcentratedGaussianKernel
+}
     #
     _μT() = typeof(mean(r_ker[1]))
-    D = manifold_dimension(manif)
+    D = getDimension(statekind)
     CV = SMatrix{D, D, Float64, D * D}(collect(cov(r_ker[1])))
     _KLT(k) = getfield(ApproxManifoldProducts, k.name.name)
     _KLT(k::UnionAll) = k
@@ -136,7 +142,7 @@ function buildTree_Manellic!(
     partial = _getprl(r_ker[1])
     mtree = HomotopyDensity_legacy(;
         partial,
-        manifold = manif,
+        manifold = statekind,
         points = r_PP,
         weights,
         trailing_forms,

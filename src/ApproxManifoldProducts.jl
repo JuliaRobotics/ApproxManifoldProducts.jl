@@ -38,7 +38,7 @@ using DistributedFactorGraphs
 import DistributedFactorGraphs: HomotopyReprDFG, HomotopyDensityDFG
 import DistributedFactorGraphs: AbstractHomotopyTopology, AbstractDensityForm, AbstractPartialTrait
 # using DistributedFactorGraphs: AbstractStateType, StateType
-import DistributedFactorGraphs: getManifold
+import DistributedFactorGraphs: getDimension, getManifold
 
 # FIXME, DEPRECATE LEGACY PARTIALS <:Tuple, make trait in stead
 # using DistributedFactorGraphs: AbstractPartialLegacyCompat 

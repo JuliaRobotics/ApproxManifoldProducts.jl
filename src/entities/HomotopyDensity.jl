@@ -8,6 +8,7 @@ struct BinaryTruncFixedDepth{N} <: AbstractBinaryTreeDensity end
 # struct BinaryInjectivityThres{N} <: AbstractBinaryTreeDensity{N} end
 # struct PrincipalEnergyThres{N} <: AbstractHomotopyTopology{N} end
 
+struct PartialNoSerde <: AbstractPartialTrait end
 
 
 struct HomotopyReprLive{
@@ -21,7 +22,7 @@ struct HomotopyReprLive{
   partial::L
 end
 
-const HomotopyRepr = Union{<:HomotopyReprDFG, <:HomotopyReprLive}
+const HomotopyRepr = Union{<:HomotopyReprLive, <:HomotopyReprDFG}
 
 function HomotopyRepr(
   repr::HomotopyRepr = HomotopyReprLive(
@@ -44,6 +45,46 @@ function HomotopyRepr(
 end
 
 
+function HomotopyReprDFG(
+  hr::HomotopyReprLive;
+  topologykind = hr.topologykind,
+  formkind = hr.formkind,
+  statekind = hr.statekind,
+  partial = hr.partial,
+)
+  if !(statekind isa AbstractStateType)
+    throw(ArgumentError("JSON.jl serde using DFG representation requires statekind to be a StateType -- you can easily expand serde support for your manifold with DistributedFactorGraph.@defStateType.  Alternatively, Homotopy*Live supports direct use of Manifolds.jl types without serde: $statekind"))
+  end
+  if !(partial isa Nothing)
+    throw(ArgumentError("JSON.jl serde using DFG representation does not currently support partials -- you can easily expand serde support for your partial with DistributedFactorGraph.@defPartialTrait.  Alternatively, Homotopy*Live supports direct use of partials without serde."))
+  end
+  return DistributedFactorGraphs.HomotopyReprDFG(
+    topologykind,
+    formkind,
+    statekind,
+    PartialNoSerde(), # TODO
+  )
+end
+
+function HomotopyReprLive(
+  hr::HomotopyReprDFG;
+  topologykind = hr.topologykind,
+  formkind = hr.formkind,
+  statekind = hr.statekind,
+  partial = nothing, # TODO
+)
+  return HomotopyReprLive(
+    topologykind,
+    formkind,
+    statekind,
+    partial,
+  )
+end
+
+
+convert(::Type{<:HomotopyReprLive}, src::HomotopyReprDFG) = HomotopyReprLive(src)
+convert(::Type{<:HomotopyReprDFG}, src::HomotopyReprLive) = HomotopyReprDFG(src)
+
 
 
 @kwdef struct HomotopyDensityLive{
@@ -51,13 +92,11 @@ end
   # parameters below auto generate during JSON lift, only above needs to be serde friendly
   P, # serde relies on DFG statekind mechanism, does not guarantee serde when directly using Manifolds wo DFG.statekind
   ME,  # Major elements can be points or eigen vectors etc.
-  MJ,  # Use only easy to JSON.jl lift lower serde -- e.g. Dict{Int, Vector{Float64}} when storing just diagonal covariances for leaves of tree, or similar
-  MI,  # Use only easy to JSON.jl lift lower serde -- e.g. Dict{Int, Vector{Float64}} when storing just diagonal covariances for leaves of tree, or similar
+  MJ,
+  MI,
 }
   reprkind::H
   observability::Vector{Float64} = zeros(manifold_dimension(getManifold(reprkind)))
-  points::Vector{P}
-  weights::Vector{Float64} = Vector{Float64}(ones(length(points))) ./ length(points)
   principal_coeffs::Vector{Float64} = Vector{Float64}(undef, getMajorsLength(reprkind))
   # FIXME, future proof such that ME != P, possibly using affine_matrix
   principal_elements::Vector{ME} = Vector{P}(undef, getMajorsLength(reprkind))
@@ -66,7 +105,9 @@ end
   Store minor details such as leaf bandwidth or eigenvectors associated with minor eigenvalues.
   - When lifted for compute efficiency, this field is likely to hold something like PDMats.
   - When lowered or for serde, this field is likely to hold Dict{Int, Vector{Float64}}.
-  """
+  """  
+  points::Vector{P}
+  weights::Vector{Float64} = Vector{Float64}(ones(length(points))) ./ length(points)
   trailing_forms::SparseArrays.SparseVector{MI, Int} = SparseArrays.sparsevec(
     Dict(1 => SMatrix{Float64}(I, manifold_dimension(getManifold(reprkind)), manifold_dimension(getManifold(reprkind))),),
     1
@@ -110,19 +151,27 @@ function HomotopyDensityLive(hode::HomotopyDensityDFG)
     principal_elements = hode.principal_elements, # FIXME, convert type 
     principal_forms = hode.principal_forms,  # FIXME, convert type
     trailing_forms,
-    structure = SparseArrays.sparsevec(hode.structure),
+    structure = SparseArrays.sparsevec(hode.structure.nzidx, hode.structure.nzval),
   )
 end
 HomotopyDensityDFG(hode::HomotopyDensityLive) = HomotopyDensityDFG(
-  reprkind = hode.reprkind,
+  reprkind = HomotopyReprDFG(hode.reprkind),
   observability = hode.observability,
   points = hode.points,
   weights = hode.weights,
   principal_coeffs = hode.principal_coeffs,
   principal_elements = hode.principal_elements,
-  principal_forms = Matrix.(hode.principal_forms),
-  trailing_forms = Dict(hode.trailing_forms.nzind .=> Matrix.(hode.trailing_forms.nzval)), # likely diagonal covs
-  structure = Dict(hode.structure.nzind .=> hode.structure.nzval),
+  principal_forms = begin
+    pf = Vector{Matrix{Float64}}(undef, length(hode.principal_forms))
+    for i in 1:length(hode.principal_forms) 
+      if isassigned(hode.principal_forms, i)
+        pf[i] = Matrix(hode.principal_forms[i])
+      end
+    end 
+    pf
+  end,
+  trailing_forms = SparseArrays.sparsevec(hode.trailing_forms.nzind, Matrix.(hode.trailing_forms.nzval)), # likely diagonal covs
+  structure = hode.structure,
 )
 
 
@@ -150,7 +199,6 @@ function getManifold(hode::HomotopyDensity, aspartial::Bool = false)
         M_
     end
 end
-
 
 
 getPartial(repr::HomotopyRepr) = repr.partial

@@ -5,6 +5,12 @@
 ## ==========================================================================================
 
 
+function DistributedFactorGraphs.getDimension(
+    st::Union{<:AbstractManifold, <:StateType}
+)
+    return manifold_dimension(getManifold(st))
+end
+
 
 # FIXME, see near duplicate signature below -- must consolidate
 function HomotopyDensity(
@@ -85,7 +91,7 @@ function HomotopyDensity_legacy(
     M_, reprl, partl_cb = getManifoldPartial(manifold, partial, pts[1])
 
     hode = ApproxManifoldProducts.buildTree_Manellic!(
-        manifold,
+        kind,
         pts;
         kernel_bw = bw,
         kernel = ConcentratedGaussianKernel,

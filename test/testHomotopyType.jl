@@ -30,6 +30,10 @@ hr = ApproxManifoldProducts.HomotopyRepr(;
 
 @test_broken isconcretetype(hr)
 
+hrdfg = HomotopyReprDFG(hr)
+
+@test_broken isconcretetype(hrdfg)
+
 
 ## check non-default serialization type
 
@@ -52,27 +56,30 @@ points = [
 ]
 
 manif = TranslationGroup(1)
-hr = ApproxManifoldProducts.HomotopyRepr(
-  topologykind = BinaryTruncFixedDepth{3}(),
-  formkind = ConcentratedGaussianKernel(),
-  statekind = manif,
-  partial = nothing,
+hr = HomotopyReprLive(
+  BinaryTruncFixedDepth{3}(),
+  ConcentratedGaussianKernel(),
+  manif,
+  nothing,
 )
 
-
+@test_throws ArgumentError HomotopyReprDFG(hr)
 
 lknlT = ConcentratedGaussianKernel(points[1], [1;;]) |> typeof
 # legacy leaf kernels
-lkern = Vector{lknlT}(undef, length(points))
+lkern = Vector{lknlT}(undef, length(points))    
 
 ##
 
+
 hd = HomotopyDensity_legacy(
-  manif,
+  TestTranslation1(),
   points,
   # trailing_forms,
 )
 
 
+HomotopyDensityDFG(hd)
 
 ##
+
