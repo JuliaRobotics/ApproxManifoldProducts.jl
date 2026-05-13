@@ -58,7 +58,7 @@ function Base.show(io::IO, hode::HomotopyDensity)
         printstyled(
             io,
             "     (trunc)  :   ",
-            getTruncation(hode.reprkind);
+            getTopologyKind(hode.reprkind);
             color = :light_black,
         )
         println(io)
@@ -284,18 +284,6 @@ end
 
 
 
-getPointType(x::HomotopyDensity) = eltype(x.points) # TODO use HomotopyDensity{T} style instead
-function getManifold(x::HomotopyDensity, aspartial::Bool = false)
-    return if !aspartial
-        getManifold(x.reprkind)
-    else
-        M_, _, _ = getManifoldPartial(getManifold(x), getPartial(x), x.points[1])
-        M_
-    end
-end
-
-
-
 function getObservability(mkd::HomotopyDensity, aspartial::Bool = true)
     return _getFieldPartials(mkd, x -> x.observability, aspartial)
 end
@@ -303,8 +291,6 @@ end
 function getBandwidth(mkd::HomotopyDensity, aspartial::Bool = true)
     return _getFieldPartials(mkd, x -> getBW(x)[1], aspartial)
 end
-
-getPartial(hode::HomotopyDensity) = getPartial(hode.reprkind)
 
 
 
@@ -361,7 +347,7 @@ function updateBandwidths(
 
     N = Npts(hode)
 
-    (nzi,_) = SparseArrays.findnz(hode.minors_detail)
+    (nzi,_) = SparseArrays.findnz(hode.trailing_forms)
 
     # leaf_kernels = Vector{HL}(undef, N)
     # for (i, lk) in enumerate(hode.leaf_kernels)
@@ -371,27 +357,31 @@ function updateBandwidths(
         # new replacement field instead of .leaf_kernels
         # if i in nzi
             cv = cov(nkl)
-            hode.minors_detail[i] = SMatrix{size(cv)...,Float64}(cv)
+            hode.trailing_forms[i] = SMatrix{size(cv)...,Float64}(cv)
         # end
     end
-    kind = getManifold(hode) 
-    _partial = getPartial(hode)
-    reprkind = HomotopyRepr{
-        MajorMaxDepth{3},
-        ConcentratedGaussianKernel,
-        typeof(kind),
-        typeof(_partial),
-    }(kind, _partial)
+    partial = getPartial(hode)
+    reprkind = HomotopyRepr(
+        hode.reprkind;
+        partial,
+    )
+    # kind = getManifold(hode) 
+    # reprkind = HomotopyRepr{
+    #     BinaryTruncFixedDepth{3},
+    #     ConcentratedGaussianKernel,
+    #     typeof(kind),
+    #     typeof(partial),
+    # }(kind, partial)
 
     return HD(;
         reprkind,
         points = hode.points,
         weights = hode.weights,
         structure = hode.structure,
-        majors_coeff = hode.majors_coeff,
-        majors_element = hode.majors_element,
-        majors_detail = hode.majors_detail,
-        minors_detail = hode.minors_detail,
+        principal_coeffs = hode.principal_coeffs,
+        principal_elements = hode.principal_elements,
+        principal_forms = hode.principal_forms,
+        trailing_forms = hode.trailing_forms,
     )
 end
 
@@ -407,8 +397,8 @@ function getBandwidthSearchBounds(hode::HomotopyDensity)
     upper = cov(getKernelTree(hode, 1))
     
     lower_diag = diag(cov(getKernelTree(hode, 1)))
-    for i in 2:(length(hode.majors_detail) - 1)
-        if isassigned(hode.majors_detail, i)
+    for i in 2:(length(hode.principal_forms) - 1)
+        if isassigned(hode.principal_forms, i)
             hdg = hcat(lower_diag, diag(cov(getKernelTree(hode, i))))
             lower_diag = minimum(hdg; dims = 2)
         end

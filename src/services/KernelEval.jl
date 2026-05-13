@@ -30,7 +30,7 @@ function Base.show(
     print(io, "ConcentratedGaussianKernel")
     print(io, "(d=", d)
     print(io, isnothing(partial) ? "" : "*->$partial")
-    print(io, ",μ=", round.(μ; digits = 3))
+    # print(io, ",μ=", round.(μ; digits = 3))
     print(io, ",Σ^2=[", round(Σ2[1]; digits = 3))
     if 1 < d
         print(io, "...")

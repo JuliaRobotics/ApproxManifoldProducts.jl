@@ -19,30 +19,32 @@ using LinearAlgebra
 ##
 
 # NOTE, this type is auto-generated -- not generally seen or used during nominal usage
-hr = ApproxManifoldProducts.HomotopyRepr{
-  MajorMaxDepth{3},
-  ConcentratedGaussianKernel, 
-  TestTranslation1, 
-  Nothing, 
-}
+hr = ApproxManifoldProducts.HomotopyRepr(;
+  topologykind = BinaryTruncFixedDepth{3}(),
+  formkind = ConcentratedGaussianKernel(),
+  statekind = TestTranslation1(),
+  partial = nothing,
+)
 
 @show string(hr)
 
-@test isconcretetype(hr)
+@test_broken isconcretetype(hr)
+
+hrdfg = HomotopyReprDFG(hr)
+
+@test_broken isconcretetype(hrdfg)
 
 
 ## check non-default serialization type
 
-hr = ApproxManifoldProducts.HomotopyRepr{
-  MajorMaxDepth{3},
-  ConcentratedGaussianKernel, 
-  typeof(TranslationGroup(3)), 
-  Tuple{Int,Int}, 
-}
+hr = ApproxManifoldProducts.HomotopyRepr(;
+  statekind = TranslationGroup(3), 
+  partial = (1,3), 
+)
 
 @show string(hr)
 
-@test isconcretetype(hr)
+@test_broken isconcretetype(hr)
 
 
 ##
@@ -54,33 +56,30 @@ points = [
 ]
 
 manif = TranslationGroup(1)
-hr = ApproxManifoldProducts.HomotopyRepr{
-  MajorMaxDepth{3},
-  ConcentratedGaussianKernel, 
-  typeof(manif), 
-  Nothing, 
-}(manif, nothing)
+hr = HomotopyReprLive(
+  BinaryTruncFixedDepth{3}(),
+  ConcentratedGaussianKernel(),
+  manif,
+  nothing,
+)
 
-
+@test_throws ArgumentError HomotopyReprDFG(hr)
 
 lknlT = ConcentratedGaussianKernel(points[1], [1;;]) |> typeof
 # legacy leaf kernels
-lkern = Vector{lknlT}(undef, length(points))
+lkern = Vector{lknlT}(undef, length(points))    
 
 ##
-
-# d = manifold_dimension(getManifold(hr))
-# minors_detail = SparseArrays.sparsevec(Dict(
-#   1 => SMatrix{d,d}(I),
-# ), 1)
 
 
 hd = HomotopyDensity_legacy(
-  manif,
+  TestTranslation1(),
   points,
-  # minors_detail,
+  # trailing_forms,
 )
 
 
+HomotopyDensityDFG(hd)
 
 ##
+

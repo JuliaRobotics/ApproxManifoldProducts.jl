@@ -18,7 +18,7 @@ DevNotes:
   - https://github.com/JuliaStats/Distributions.jl/blob/a9b0e3c99c8dda367f69b2dbbdfa4530c810e3d7/src/multivariate/mvnormal.jl#L220-L224
 """
 function buildTree_Manellic!(
-    manif::M,
+    statekind::SM,
     r_PP::AbstractVector{P}; # vector of points referenced to the r_frame
     N = length(r_PP),
     weights::AbstractVector{<:Real} = ones(N) .* (1 / N),
@@ -26,10 +26,14 @@ function buildTree_Manellic!(
     kernel_bw = nothing, # TODO
     partial::Union{Nothing, <:Tuple, AbstractVector{<:Integer}} = nothing,
     partl_cb::Union{Nothing, <:Function} = nothing,
-) where {M <: AbstractManifold, P <: AbstractArray}
+) where {
+    SM <: Union{<:AbstractManifold, <:StateType}, 
+    P <: AbstractArray
+}
     #
     
-    D = manifold_dimension(manif)
+    D = getDimension(statekind)
+    manif = getManifold(statekind)
     CV = SMatrix{D, D, Float64, D * D}(diagm(ones(D)))
     prlcb = if isnothing(partl_cb) && !isnothing(partial)
         M_, reprl, cb = getManifoldPartial(manif, partial)
@@ -55,17 +59,16 @@ function buildTree_Manellic!(
     tkern = Vector{tknlT}(undef, N)
 
     _partial = _tuple(partial)
-    reprkind = HomotopyRepr{
-        MajorMaxDepth{3},
-        ConcentratedGaussianKernel,
-        M,
-        typeof(_partial),
-    }(manif, _partial)
+    reprkind = HomotopyRepr(;
+        topologykind = BinaryTruncFixedDepth{3}(),
+        formkind = ConcentratedGaussianKernel(),
+        statekind,
+        partial = _partial,
+    )
 
     # TODO consolidate w legacy kernel_bw
-    d = manifold_dimension(getManifold(reprkind))
-    minors_detail = SparseArrays.sparsevec(Dict(
-        1 => SMatrix{d,d,Float64}(cov(lkern[1])),
+    trailing_forms = SparseArrays.sparsevec(Dict(
+        1 => SMatrix{D,D,Float64}(cov(lkern[1])),
     ), 1) # assume size 1 during refactor -- i.e. universal bandwidth at leaves
 
     _hode = HomotopyDensityLive{
@@ -73,12 +76,12 @@ function buildTree_Manellic!(
         eltype(r_PP),
         eltype(r_PP),
         Matrix{Float64},
-        eltype(minors_detail),
+        eltype(trailing_forms),
     }(;
         reprkind,
         points = r_PP,
         weights,
-        minors_detail,
+        trailing_forms,
     )
 
     #
@@ -99,17 +102,20 @@ end
 
 
 function buildTree_Manellic!(
-    manif::M,
+    statekind::SM,
     r_ker::AbstractVector{KL}; # vector of points referenced to the r_frame
     N = length(r_ker),
     weights::AbstractVector{<:Real} = ones(N) .* (1 / N),
     kernel = KL,
     kernel_bw = nothing, # TODO
     # partial = ??? TBD -- it should already be in the kernels
-) where {M <: AbstractManifold, KL <: ConcentratedGaussianKernel}
+) where {
+    SM <: Union{<:AbstractManifold, <:StateType},
+    KL <: ConcentratedGaussianKernel
+}
     #
     _μT() = typeof(mean(r_ker[1]))
-    D = manifold_dimension(manif)
+    D = getDimension(statekind)
     CV = SMatrix{D, D, Float64, D * D}(collect(cov(r_ker[1])))
     _KLT(k) = getfield(ApproxManifoldProducts, k.name.name)
     _KLT(k::UnionAll) = k
@@ -129,17 +135,17 @@ function buildTree_Manellic!(
         end
     end
 
-    minors_detail = SparseArrays.sparsevec(Dict(
+    trailing_forms = SparseArrays.sparsevec(Dict(
         1 => SMatrix{D,D}(cov(lkern[1])),
     ), 1)
 
     partial = _getprl(r_ker[1])
     mtree = HomotopyDensity_legacy(;
         partial,
-        manifold = manif,
+        manifold = statekind,
         points = r_PP,
         weights,
-        minors_detail,
+        trailing_forms,
     )
 
     #
@@ -278,19 +284,20 @@ function truncateOrSplitsort!(
     if (leaf_size < npts) && (index <= Npts(hode))
         # set tree kernel
         # NOTE, THIS USED TO BE AFTER recursive subtree build
+        wei = sum(view(hode.weights, idxsubset))
         knl = ConcentratedGaussianKernel(
-            p, bw, sum(view(hode.weights, idxsubset)); # TODO, try drop need for p here
+            p, bw, wei; # TODO, try drop need for p here
             partial, partl_cb
         )
         # NEW, set majors_ fields here
-        if length(hode.majors_coeff) < index
-            resize!(hode.majors_coeff, index)
-            resize!(hode.majors_element, index) 
-            resize!(hode.majors_detail, index)
+        if length(hode.principal_coeffs) < index
+            resize!(hode.principal_coeffs, index)
+            resize!(hode.principal_elements, index) 
+            resize!(hode.principal_forms, index)
         end
-        hode.majors_coeff[index] = sum(view(hode.weights, idxsubset))
-        hode.majors_element[index] = mean(knl)
-        hode.majors_detail[index] = cov(knl)
+        hode.principal_coeffs[index] = sum(view(hode.weights, idxsubset))
+        hode.principal_elements[index] = mean(knl)
+        hode.principal_forms[index] = cov(knl)
     end
 
     # for binary split
@@ -307,7 +314,6 @@ function splitsortBinary!(
     kernel_bw = nothing,
     # partial::Union{Nothing, <:Tuple},
 )
-        
     # split the slice of order-permuted data
     _, mask, midoffset, p, bw = splitPointsEigen(
         getManifold(hode),

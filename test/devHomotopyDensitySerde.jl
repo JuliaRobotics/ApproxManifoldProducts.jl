@@ -21,7 +21,7 @@ import ApproxManifoldProducts: HomotopyRepr
 ##
 
 hr = HomotopyRepr{
-  MajorMaxDepth{3},
+  BinaryTruncFixedDepth{3},
   ConcentratedGaussianKernel, 
   TestTranslation2, 
   Nothing, 
@@ -81,10 +81,10 @@ function demo_lowerpack(
     :observability => hode.observability,
     :points => hode.points,                 # use same technique as DFG.statekind for points (possible hint from reprkind)
     :weights => hode.weights,
-    :majors_coeff => hode.majors_coeff,
-    :majors_element => hode.majors_element, # use same technique as DFG.statekind for points (possible hint from reprkind)
-    :majors_detail => hode.majors_detail,   # likely cov matrices
-    :minors_detail => Dict(hode.minors_detail.nzind .=> hode.minors_detail.nzval), # likely diagonal covs
+    :principal_coeffs => hode.principal_coeffs,
+    :principal_elements => hode.principal_elements, # use same technique as DFG.statekind for points (possible hint from reprkind)
+    :principal_forms => hode.principal_forms,   # likely cov matrices
+    :trailing_forms => Dict(hode.trailing_forms.nzind .=> hode.trailing_forms.nzval), # likely diagonal covs
     :structure => Dict(hode.structure.nzind .=> hode.structure.nzval),
   )
 end
@@ -98,10 +98,10 @@ function demo_liftunpack(
     observability = jsondict["observability"],
     points = jsondict["points"],                 # use same technique as DFG.statekind for points
     weights = jsondict["weights"],
-    majors_coeff = jsondict["majors_coeff"],
-    majors_element = jsondict["majors_element"], # use same technique as DFG.statekind for points
-    majors_detail = jsondict["majors_detail"],
-    minors_detail = sparsevec(jsondict["minors_detail"]),
+    principal_coeffs = jsondict["principal_coeffs"],
+    principal_elements = jsondict["principal_elements"], # use same technique as DFG.statekind for points
+    principal_forms = jsondict["principal_forms"],
+    trailing_forms = sparsevec(jsondict["trailing_forms"]),
     structure = sparsevec(jsondict["structure"]),
   )
 end
@@ -168,7 +168,7 @@ import ApproxManifoldProducts: HomotopyRepr
 ##
 
 hr = HomotopyRepr{
-  MajorMaxDepth{3},
+  BinaryTruncFixedDepth{3},
   ConcentratedGaussianKernel, 
   TestTranslation2, 
   Nothing, 

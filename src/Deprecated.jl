@@ -1,6 +1,13 @@
 
 
 
+# show requires this 
+getPartial(repr::HomotopyReprDFG) = nothing # FIXME
+
+## TYPE PIRACY!!!! FIXME -- upstream to DFG
+getManifold(manif::AbstractManifold) = manif
+
+
 ## ======================================================================================================
 ## Remove below before v0.17
 ## ======================================================================================================
@@ -25,9 +32,9 @@
 #     hode.reprkind, 
 #     hode.points; 
 #     partial=_partl,
-#     majors_coeff = hode.majors_coeff,
-#     majors_element = hode.majors_element,
-#     majors_detail = hode.majors_detail,
+#     principal_coeffs = hode.principal_coeffs,
+#     principal_elements = hode.principal_elements,
+#     principal_forms = hode.principal_forms,
 #     weights = getWeights(hode),
 #     structure = hode.structure,
 #     observability = hode.observability, 
@@ -38,9 +45,9 @@
 # #     partial = _partl,
 # #     manifold = getManifold(hode),
 # #     points = hode.points,
-# #     majors_coeff = hode.majors_coeff,
-# #     majors_element = hode.majors_element,
-# #     majors_detail = hode.majors_detail,
+# #     principal_coeffs = hode.principal_coeffs,
+# #     principal_elements = hode.principal_elements,
+# #     principal_forms = hode.principal_forms,
 # #     weights = getWeights(hode),
 # #     structure = hode.structure,
 # #     observability = hode.observability,
@@ -62,14 +69,14 @@
 
 #     _partial = _tuple(partial)
 #     reprkind = HomotopyRepr{
-#         MajorMaxDepth{3},
+#         BinaryTruncFixedDepth{3},
 #         ConcentratedGaussianKernel, 
 #         M, 
 #         typeof(_partial), 
 #     }(manifold, _partial)
 
 #     d = manifold_dimension(getManifold(reprkind))
-#     minors_detail = SparseArrays.sparsevec(Dict(
+#     trailing_forms = SparseArrays.sparsevec(Dict(
 #         1 => SMatrix{d,d,Float64}(lCV),
 #     ), 1)
 
@@ -78,11 +85,11 @@
 #         P, 
 #         P,
 #         Matrix{Float64},
-#         eltype(minors_detail),
+#         eltype(trailing_forms),
 #     }(;
 #         reprkind,
 #         points,
-#         minors_detail,
+#         trailing_forms,
 #         kw...
 #     )
 # end

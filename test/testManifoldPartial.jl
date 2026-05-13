@@ -10,7 +10,6 @@ using Random
 ##
 
 @testset "test getManifoldPartial on Euclidean(N)" begin
-
 ##
 
     M = LieGroups.TranslationGroup(3)
@@ -28,7 +27,6 @@ using Random
 end
 
 @testset "test getManifoldPartial on Circle()" begin
-
 ##
 
     M = Circle()
@@ -43,7 +41,6 @@ end
 end
 
 @testset "test getManifoldPartial on Rotations(2)" begin
-
 ##
 
     M = Manifolds.Rotations(2)
@@ -146,7 +143,6 @@ end
 end
 
 @testset "Reminder, getManifoldPartial on Sphere(2) [TBD]" begin
-
 ##
 
     @error "Must fix Sphere(2) partial test"
