@@ -759,6 +759,9 @@ function getBandwidthSearchBounds(mtree::ManellicTree)
     # floors make us feel safe, but hurt when faceplanting
     lower_diag = maximum(hcat(lower_diag, 1e-8 * ones(length(lower_diag))); dims = 2)[:]
 
+    # FIXME override nans case -- was adding during refactor upgrade AMP v0.11
+    lower_diag[isnan.(lower_diag)] .= 1e-8
+
     # Give back lower as diagonal only covariance matrix
     lower = diagm(lower_diag)
 
