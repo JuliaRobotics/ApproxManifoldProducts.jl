@@ -364,13 +364,13 @@ end
 # TODO check that partials / marginals are sampled correctly
 function sample(x::ManifoldKernelDensity{M, B, L, P}, N::Integer = 1) where {M, B, L, P}
     # get legacy matrix of coordinates and selected labels
-    coords, lbls = sample(x.belief, N)
+    vecP, lbls = sample(x.belief, N)
 
-    # pack samples into vector of point type P
-    vecP = Vector{P}(undef, N)
-    for j = 1:N
-        vecP[j] = makePointFromCoords(x.manifold, view(coords, :, j), x._u0)
-    end
+    # # pack samples into vector of point type P
+    # vecP = Vector{P}(undef, N)
+    # for j = 1:N
+    #     vecP[j] = makePointFromCoords(x.manifold, view(coords, :, j), x._u0)
+    # end
 
     return vecP, lbls
 end

@@ -15,9 +15,10 @@ import Random: rand
 
 using Statistics
 import Statistics: mean, std, cov, var # , entropy? 24Q3, # JL v1.11-rc1, Statistics v1.11.1.
+import StatsBase: sample
 
 import Rotations as _Rot
-using CoordinateTransformations
+import CoordinateTransformations
 
 using RecursiveArrayTools: ArrayPartition
 export ArrayPartition
@@ -26,9 +27,9 @@ import PDMats
 
 using ManifoldsBase
 using ManifoldsBase: AbstractManifold, distance, TypeParameter, submanifold_component
-import Manifolds
+using Manifolds
 using LieGroups
-using LieGroups: TranslationGroup
+# using LieGroups: TranslationGroup
 
 using NLsolve
 import Optim

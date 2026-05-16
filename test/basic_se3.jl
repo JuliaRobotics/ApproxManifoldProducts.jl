@@ -62,7 +62,9 @@ using Test
 
     show(A)
 
-    ##
+    ## test sample function
+
+    sample(A)
 
 end
 
