@@ -1,10 +1,22 @@
 # Interface
 
-import Base: replace
+import Base: replace, isapprox
 export makeCoordsFromPoint, makePointFromCoords, getNumberCoords
 export identity_element
 export setPointPartial!, setPointsMani!
 export replace
+
+
+function isapprox(
+    a::HomotopyDensity,
+    b::HomotopyDensity;
+    mmd_tol::Real = 1e-1,
+    atol::Real = mmd_tol,
+    rtol::Real = 0,
+)
+    return mmd(a, b) < atol
+end
+
 
 """
     $SIGNATURES
