@@ -706,7 +706,7 @@ end
 getManifold(mt::ManellicTree) = mt.manifold
 
 function sample(mtree::ManellicTree, Npts::Integer=1)
-  _Exp(m::AbstractLieGroup, p, x) = exp(m, hat(LieAlgebra(m), x))
+  _Exp(m::AbstractLieGroup, p, x) = exp(m, hat(LieAlgebra(m), x, ArrayPartition))
   _Exp(m::AbstractManifold, p, x) = exp(m, p, hat(m, p, x))
   manif = getManifold(mtree)
   w = mtree.weights

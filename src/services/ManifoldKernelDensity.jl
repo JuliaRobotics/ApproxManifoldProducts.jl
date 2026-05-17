@@ -124,7 +124,7 @@ end
 function manikde!(
     M::AbstractManifold,
     pts::AbstractVector;
-    bw = diagm(zeros(manifold_dimension(M))),
+    bw = nothing, #diagm(zeros(manifold_dimension(M))),
     newbw::Bool = true,
     algo = Optim.NelderMead(),
     partial::Union{Nothing, AbstractVector{<:Integer}} = nothing,
@@ -166,9 +166,10 @@ function manikde!(
             Optim.optimize((s) -> _cost([s;]), lcov[1], ucov[1], Optim.GoldenSection())
         [Optim.minimizer(res);;]
     elseif newbw
+        bw0 = isnothing(bw) ? getBW(mtree)[1] : bw
         res = Optim.optimize(
             _cost,
-            _bw(bw), # FIXME Optim API issue, if using bw::matrix then steps not PDMat (NelderMead) 
+            _bw(bw0), # FIXME Optim API issue, if using bw::matrix then steps not PDMat (NelderMead) 
             algo,
         )
         diagm(abs.(Optim.minimizer(res)))

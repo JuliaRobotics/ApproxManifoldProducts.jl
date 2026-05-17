@@ -62,10 +62,11 @@ using Test
 
     show(A)
 
-    ## test sample function
+## test sample function
 
-    sample(A)
+sample(A)
 
+##
 end
 
 #
