@@ -1,13 +1,17 @@
 
+export isapprox
+export ArrayPartition
+export mean
+
 export
     AbstractManifold,
     *,
-    isapprox,
     # API and util functions
     getKDEManifoldBandwidths,
     manifoldProduct,
     isPartial,
-    calcProductGaussians
+    calcProductGaussians,
+    getStateKind
 
 export getPoints, getBW, Ndim, Npts, getWeights
 export getKernelLeaf, getKernelTree #, getKernelLeafAsTreeKer

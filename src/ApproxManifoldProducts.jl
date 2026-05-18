@@ -22,7 +22,6 @@ import Rotations as _Rot
 using CoordinateTransformations
 
 using RecursiveArrayTools: ArrayPartition
-export ArrayPartition
 
 using PDMats: PDMat
 
@@ -35,7 +34,7 @@ using LieGroups: TranslationGroup
 import Optim
 
 using DistributedFactorGraphs
-import DistributedFactorGraphs: HomotopyReprDFG, HomotopyDensityDFG
+import DistributedFactorGraphs: HomotopyReprDFG, HomotopyDensityDFG, getStateKind
 import DistributedFactorGraphs: AbstractHomotopyTopology, AbstractDensityForm, AbstractPartialTrait
 # using DistributedFactorGraphs: AbstractStateType, StateType
 import DistributedFactorGraphs: getDimension, getManifold
