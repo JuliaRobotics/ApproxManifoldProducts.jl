@@ -87,6 +87,10 @@ function HomotopyDensity_legacy(
     kw...
 )
     #
+    _legacybw(::Nothing) = bw
+    _legacybw(s::AbstractMatrix) = any(size(s) .== 1) ? diagm(vec(s)) : s
+    _legacybw(s::AbstractVector) = diagm(s)
+
     manifold = getManifold(kind)
 
     M_, reprl, partl_cb = getManifoldPartial(manifold, partial, pts[1])
@@ -94,7 +98,7 @@ function HomotopyDensity_legacy(
     hode = ApproxManifoldProducts.buildTree_Manellic!(
         kind,
         pts;
-        kernel_bw = bw,
+        kernel_bw = _legacybw(bw),
         kernel = ConcentratedGaussianKernel,
         partial = _tuple(partial),
         partl_cb,
@@ -133,9 +137,12 @@ function HomotopyDensity_legacy(
     end
     __partialCovToDefault!(best_cov)
 
-    belief = updateBandwidths(hode, best_cov; partl_cb)
     # return tree with correct bandwidth
-    return belief
+    return if newbw
+        updateBandwidths(hode, best_cov; partl_cb)
+    else
+        hode
+    end
 end
 
 
