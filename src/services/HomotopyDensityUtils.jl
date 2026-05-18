@@ -298,19 +298,43 @@ function getBandwidth(mkd::HomotopyDensity, aspartial::Bool = true)
 end
 
 
-
-# TODO check that partials / marginals are sampled correctly
-function sample(belief::HomotopyDensity, N::Integer = 1)
-    # get legacy matrix of coordinates and selected labels
-    coords, lbls = sample(belief, N)
-    # pack samples into vector of point type P
-    vecP = Vector{eltype(belief.points)}(undef, N)
-    for j = 1:N
-        vecP[j] = makePointFromCoords(getManifold(belief), view(coords, :, j), belief.points[1])
-    end
-
-    return vecP, lbls
+function sample(
+    hode::HomotopyDensity, 
+    Npts::Integer=1
+)
+  _pointtype(::HomotopyDensityDFG{H, P}) where {H,P} = P
+  _pointtype(::HomotopyDensityLive{H, P}) where {H,P} = P
+  P = _pointtype(hode)
+    # TODO, this is currently a bit of a hack to get samples out in the right format, needs refactor and cleanup
+  _Compose(m::AbstractLieGroup, p, x) = LieGroups.compose(m, p, exp(m, hat(LieAlgebra(m), x, P)))
+  _Compose(m::AbstractManifold, p, x) = Manifolds.compose(m, p, exp(m, p, hat(m, p, x)))
+  manif = getManifold(hode)
+  w = hode.weights
+  ind = zeros(Int, Npts)
+  c = Categorical(w)
+  points = Vector{P}(undef, Npts)
+  for i in 1:Npts
+    lidx = rand(c)
+    ind[i] = lidx
+    ker = getKernelLeaf(hode, lidx) # only ConcentratedGaussian during Homotopy refac
+    Xc = rand(ker.functional)
+    p = mean(ker)
+    points[i] = _Compose(manif, p, Xc)
+  end
+  return points, ind
 end
+# TODO check that partials / marginals are sampled correctly
+# function sample(belief::HomotopyDensity, N::Integer = 1)
+#     # get legacy matrix of coordinates and selected labels
+#     coords, lbls = sample(belief, N)
+#     # pack samples into vector of point type P
+#     vecP = Vector{eltype(belief.points)}(undef, N)
+#     for j = 1:N
+#         vecP[j] = makePointFromCoords(getManifold(belief), view(coords, :, j), belief.points[1])
+#     end
+
+#     return vecP, lbls
+# end
 
 Random.rand(hode::HomotopyDensity, N::Integer) = sample(hode, N)[1]
 
