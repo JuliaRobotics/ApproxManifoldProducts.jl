@@ -82,6 +82,7 @@ function HomotopyDensity_legacy(
     pts::AbstractVector;
     partial = nothing,
     bw = diagm(ones(manifold_dimension(getManifold(kind)))),
+    newbw::Bool = true,
     algo = Optim.NelderMead(),
     kw...
 )
@@ -114,18 +115,20 @@ function HomotopyDensity_legacy(
     # optimize for best LOOCV bandwidth
     # FIXME switch to RLM (or other Manopt) techinque instead 
     # set lower and upper bounds for Golden section optimization
-    best_cov = if 1 === manifold_dimension(manifold)
+    best_cov = if newbw && 1 === manifold_dimension(manifold)
         lcov, ucov = getBandwidthSearchBounds(hode)
         res =
             Optim.optimize((s) -> _cost([s;]), lcov[1], ucov[1], Optim.GoldenSection())
         [Optim.minimizer(res);;]
-    else
+    elseif newbw
         res = Optim.optimize(
             _cost,
             _bw(bw), # FIXME Optim API issue, if using bw::matrix then steps not PDMat (NelderMead) 
             algo,
         )
         diagm(abs.(Optim.minimizer(res)))
+    else
+        bw
     end
     __partialCovToDefault!(best_cov)
 
