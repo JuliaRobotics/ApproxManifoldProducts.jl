@@ -13,6 +13,41 @@ getManifold(manif::AbstractManifold) = manif
 ## ======================================================================================================
 
 
+"""
+    $SIGNATURES
+
+Helper function to convert coordinates to a desired on-manifold point.
+
+DevNotes
+- FIXME need much better consolidation or even removal of this function entirely.
+  - This function is only implemented on Lie groups
+
+Notes
+- `u0` is used to identify the data type for a point
+- Pass in a different `exp` if needed.
+"""
+function makePointFromCoords(
+    G::AbstractLieGroup,
+    coords::AbstractVector{<:Real},
+    u0 = zeros(manifold_dimension(G)),
+)
+    @warn "makePointFromCoords(G, coords; u0) is deprecated, use exp(G, hat(LieAlgebra(G), coords, [Type])) instead" maxlog=20
+    X = hat(LieAlgebra(G), coords, typeof(u0))
+    return exp(G, X)
+end
+
+function makePointFromCoords(
+    G::SpecialEuclideanGroup,
+    coords::AbstractVector{<:Real},
+    u0 = zeros(manifold_dimension(G)),
+)
+    @warn "makePointFromCoords(G, coords; u0) is deprecated, use exp(base_manifold(G), hat(LieAlgebra(base_manifold(G)), coords, [Type])) instead" maxlog=20
+    X = hat(LieAlgebra(G), coords, typeof(u0))
+    ε = identity_element(G, typeof(u0))
+    #TODO - review - Force TR-coordinates on SE(n)
+    return exp(base_manifold(G), ε, X)
+end
+
 @deprecate HomotopyDensity(
   hode::HomotopyDensity;
   partial::Union{Nothing, <:Tuple, AbstractVector{<:Integer}} = nothing,
@@ -114,7 +149,7 @@ export manikde!
 function manikde!(
   manifold::AbstractManifold,
   pts::AbstractVector;
-  bw = diagm(ones(manifold_dimension(manifold))),
+  bw = nothing, #diagm(ones(manifold_dimension(manifold))),
   partial::Union{Nothing, <:Tuple, AbstractVector{<:Integer}} = nothing,
   kw...
 ) 

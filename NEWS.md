@@ -2,6 +2,12 @@ Major news relating to breaking changes in ApproxManifoldProducts.jl
 
 ## v0.15 (26Q2)
 
+- Expand support for legacy manikde! bw.
+- Delete various dead code.
+- Add `sample` function for `HomotopyDensity`.
+- Move some deprecated code, with warnings. 
+- Workaround for getBandwidth bounds, weak identity added in some cases (hacky temporary solution to help streamline IIF v0.37 refactor, towards universal DFG v1.0).
+
  Better support for unbalanced trees, including right-child-only-nodes.
 - Refactoring `partial::Union{Nothing, <:Tuple>}` for `HomotopyDensity` constructors, utils, and helpers.  This replaces legacy code that used partials as vector type. 
 - `HomotopyDensity.reprkind` replaces multiple parameters and fields, including `.manifold`, `{partial}`, ... (breaking change)

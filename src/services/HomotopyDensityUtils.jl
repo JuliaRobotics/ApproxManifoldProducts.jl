@@ -31,13 +31,17 @@ function Base.show(io::IO, hode::HomotopyDensity)
     println(io, "(")
     @assert Npts(hode) == length(hode.points) "show(::HomotopyDensity,) noticed a data size issue, expecting N$(Npts(hode)) == length(.points)$(length(hode.points))"
     if 0 < Npts(hode)
-        println(io, "  .points[1:]   :  ", hode.points[1], " ... ", hode.points[end])
-        println(io, "  .weights[1:]:  ", hode.weights[1], " ... ", hode.weights[end])
-        printstyled(io, "     (uniwt)  :   ", uniWT(hode); color = :light_black)
+        print(io, "  .points      :  ")
+        0 < N ? println(io, hode.points[1], " ... ", hode.points[end]) : println(io, "[]")
+        print(io, "  .weights     :  ")
+        0 < length(hode.weights) ? println(io, hode.weights[1], " ... ", hode.weights[end]) : println(io, "[]")
+        # printstyled(io, "     (uniwt)  :   ", uniWT(hode); color = :light_black)
         println(io)
         print(io, "  .structure[1][-]:  ")
-        printstyled(io, hode.structure[1][1], " ... ", hode.structure[1][end]; color = :light_black)
-        println(io)
+        if 0 < length(hode.structure.nzind) && 0 < length(hode.structure.nzval[1])
+            printstyled(io, hode.structure.nzval[1][1], " ... ", hode.structure.nzval[1][end]; color = :light_black)
+            println(io)
+        end
         print(io, "  .tkernels[") # " __see below__"; color=:light_black)
         if 0 < Npts(hode)
             # printstyled(io, "  .tkernels[1] = "; color=:light_black)
@@ -92,18 +96,18 @@ function Base.show(io::IO, hode::HomotopyDensity)
         # end
         # # printstyled(io, "{1..$N}"; color=:light_black)
         # # println(io)
-        uBW = uniBW(hode)
-        printstyled(io, "     (unibw)  :   ", uBW; color = :light_black)
-        println(io)
-        if uBW
-            printstyled(
-                io,
-                "         bw   :    ",
-                round.((getBW(hode).^2)[1][:]'; digits = 3);
-                color = :light_black,
-            )
-            println(io)
-        end
+        # uBW = uniBW(hode)
+        # printstyled(io, "     (unibw)  :   ", uBW; color = :light_black)
+        # println(io)
+        # if uBW
+        #     printstyled(
+        #         io,
+        #         "         bw   :    ",
+        #         round.((getBW(hode).^2)[1][:]'; digits = 3);
+        #         color = :light_black,
+        #     )
+        #     println(io)
+        # end
     end
     println(io, ")")
     # TODO ad dmore stats: max depth, widest point, longest chain, max clique size, average nr children
@@ -161,6 +165,7 @@ calcMean(mkd::HomotopyDensity, aspartial::Bool = true) = mean(mkd, aspartial)
 
 
 function Statistics.mean(mkd::HomotopyDensity, aspartial::Bool = true; kwargs...)
+    # FIXME, should just pull tree node 1 mean
     return mean(
         _getManifoldFullOrPart(mkd, aspartial),
         getPoints(mkd, aspartial),
@@ -293,19 +298,43 @@ function getBandwidth(mkd::HomotopyDensity, aspartial::Bool = true)
 end
 
 
-
-# TODO check that partials / marginals are sampled correctly
-function sample(belief::HomotopyDensity, N::Integer = 1)
-    # get legacy matrix of coordinates and selected labels
-    coords, lbls = sample(belief, N)
-    # pack samples into vector of point type P
-    vecP = Vector{eltype(belief.points)}(undef, N)
-    for j = 1:N
-        vecP[j] = makePointFromCoords(getManifold(belief), view(coords, :, j), belief.points[1])
-    end
-
-    return vecP, lbls
+function sample(
+    hode::HomotopyDensity, 
+    Npts::Integer=1
+)
+  _pointtype(::HomotopyDensityDFG{H, P}) where {H,P} = P
+  _pointtype(::HomotopyDensityLive{H, P}) where {H,P} = P
+  P = _pointtype(hode)
+    # TODO, this is currently a bit of a hack to get samples out in the right format, needs refactor and cleanup
+  _Compose(m::AbstractLieGroup, p, x) = LieGroups.compose(m, p, exp(m, hat(LieAlgebra(m), x, P)))
+  _Compose(m::AbstractManifold, p, x) = Manifolds.compose(m, p, exp(m, p, hat(m, p, x)))
+  manif = getManifold(hode)
+  w = hode.weights
+  ind = zeros(Int, Npts)
+  c = Categorical(w)
+  points = Vector{P}(undef, Npts)
+  for i in 1:Npts
+    lidx = rand(c)
+    ind[i] = lidx
+    ker = getKernelLeaf(hode, lidx) # only ConcentratedGaussian during Homotopy refac
+    Xc = rand(ker.functional)
+    p = mean(ker)
+    points[i] = _Compose(manif, p, Xc)
+  end
+  return points, ind
 end
+# TODO check that partials / marginals are sampled correctly
+# function sample(belief::HomotopyDensity, N::Integer = 1)
+#     # get legacy matrix of coordinates and selected labels
+#     coords, lbls = sample(belief, N)
+#     # pack samples into vector of point type P
+#     vecP = Vector{eltype(belief.points)}(undef, N)
+#     for j = 1:N
+#         vecP[j] = makePointFromCoords(getManifold(belief), view(coords, :, j), belief.points[1])
+#     end
+
+#     return vecP, lbls
+# end
 
 Random.rand(hode::HomotopyDensity, N::Integer) = sample(hode, N)[1]
 
@@ -407,6 +436,9 @@ function getBandwidthSearchBounds(hode::HomotopyDensity)
 
     # floors make us feel safe, but hurt when faceplanting
     lower_diag = maximum(hcat(lower_diag, 1e-8 * ones(length(lower_diag))); dims = 2)[:]
+
+    # FIXME override nans case -- was adding during refactor upgrade AMP v0.11
+    lower_diag[isnan.(lower_diag)] .= 1e-8
 
     # Give back lower as diagonal only covariance matrix
     lower = diagm(lower_diag)

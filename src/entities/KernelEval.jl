@@ -50,8 +50,8 @@ function ConcentratedGaussianKernel(
         return s
     end
 
-    c_(s::AbstractMatrix, _p::Nothing) = s
-    c_(s::AbstractVector, _p::Nothing) = diagm(s)    
+    c_(s::AbstractMatrix, ::Nothing) = any(size(s) .== 1) ? diagm(vec(s)) : s
+    c_(s::AbstractVector, ::Nothing) = diagm(s)    
     c_(s::AbstractMatrix, _p::Tuple) = _partialCovToDefault!(_p,_forcemutable(s))
     c_(s::AbstractVector, _p::Tuple) = diagm(_partialCovToDefault!(_p,_forcemutable(s)))
 

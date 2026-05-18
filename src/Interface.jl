@@ -1,43 +1,22 @@
 # Interface
 
-import Base: replace
+import Base: replace, isapprox
 export makeCoordsFromPoint, makePointFromCoords, getNumberCoords
 export identity_element
 export setPointPartial!, setPointsMani!
 export replace
 
-"""
-    $SIGNATURES
 
-Helper function to convert coordinates to a desired on-manifold point.
-
-DevNotes
-- FIXME need much better consolidation or even removal of this function entirely.
-  - This function is only implemented on Lie groups
-
-Notes
-- `u0` is used to identify the data type for a point
-- Pass in a different `exp` if needed.
-"""
-function makePointFromCoords(
-    G::AbstractLieGroup,
-    coords::AbstractVector{<:Real},
-    u0 = zeros(manifold_dimension(G)),
+function isapprox(
+    a::HomotopyDensity,
+    b::HomotopyDensity;
+    mmd_tol::Real = 1e-1,
+    atol::Real = mmd_tol,
+    rtol::Real = 0,
 )
-    X = hat(LieAlgebra(G), coords, typeof(u0))
-    return exp(G, X)
+    return mmd(a, b) < atol
 end
 
-function makePointFromCoords(
-    G::SpecialEuclideanGroup,
-    coords::AbstractVector{<:Real},
-    u0 = zeros(manifold_dimension(G)),
-)
-    X = hat(LieAlgebra(G), coords, typeof(u0))
-    ε = identity_element(G, typeof(u0))
-    #TODO - review - Force TR-coordinates on SE(n)
-    return exp(base_manifold(G), ε, X)
-end
 
 # should perhaps just be dispatched for <:AbstractGroupManifold
 # only works for AbstractGroupManifold (have an identity)

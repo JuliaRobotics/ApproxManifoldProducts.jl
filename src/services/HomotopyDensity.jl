@@ -82,10 +82,15 @@ function HomotopyDensity_legacy(
     pts::AbstractVector;
     partial = nothing,
     bw = diagm(ones(manifold_dimension(getManifold(kind)))),
+    newbw::Bool = true,
     algo = Optim.NelderMead(),
     kw...
 )
     #
+    _legacybw(::Nothing) = bw
+    _legacybw(s::AbstractMatrix) = any(size(s) .== 1) ? diagm(vec(s)) : s
+    _legacybw(s::AbstractVector) = diagm(s)
+
     manifold = getManifold(kind)
 
     M_, reprl, partl_cb = getManifoldPartial(manifold, partial, pts[1])
@@ -93,7 +98,7 @@ function HomotopyDensity_legacy(
     hode = ApproxManifoldProducts.buildTree_Manellic!(
         kind,
         pts;
-        kernel_bw = bw,
+        kernel_bw = _legacybw(bw),
         kernel = ConcentratedGaussianKernel,
         partial = _tuple(partial),
         partl_cb,
@@ -114,24 +119,30 @@ function HomotopyDensity_legacy(
     # optimize for best LOOCV bandwidth
     # FIXME switch to RLM (or other Manopt) techinque instead 
     # set lower and upper bounds for Golden section optimization
-    best_cov = if 1 === manifold_dimension(manifold)
+    best_cov = if newbw && 1 === manifold_dimension(manifold)
         lcov, ucov = getBandwidthSearchBounds(hode)
         res =
             Optim.optimize((s) -> _cost([s;]), lcov[1], ucov[1], Optim.GoldenSection())
         [Optim.minimizer(res);;]
-    else
+    elseif newbw
+        bw0 = isnothing(bw) ? getBW(hode)[1] : bw
         res = Optim.optimize(
             _cost,
-            _bw(bw), # FIXME Optim API issue, if using bw::matrix then steps not PDMat (NelderMead) 
+            _bw(bw0), # FIXME Optim API issue, if using bw::matrix then steps not PDMat (NelderMead) 
             algo,
         )
         diagm(abs.(Optim.minimizer(res)))
+    else
+        bw
     end
     __partialCovToDefault!(best_cov)
 
-    belief = updateBandwidths(hode, best_cov; partl_cb)
     # return tree with correct bandwidth
-    return belief
+    return if newbw
+        updateBandwidths(hode, best_cov; partl_cb)
+    else
+        hode
+    end
 end
 
 
