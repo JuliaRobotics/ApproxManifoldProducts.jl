@@ -121,9 +121,10 @@ function HomotopyDensity_legacy(
             Optim.optimize((s) -> _cost([s;]), lcov[1], ucov[1], Optim.GoldenSection())
         [Optim.minimizer(res);;]
     elseif newbw
+        bw0 = isnothing(bw) ? getBW(hode)[1] : bw
         res = Optim.optimize(
             _cost,
-            _bw(bw), # FIXME Optim API issue, if using bw::matrix then steps not PDMat (NelderMead) 
+            _bw(bw0), # FIXME Optim API issue, if using bw::matrix then steps not PDMat (NelderMead) 
             algo,
         )
         diagm(abs.(Optim.minimizer(res)))
