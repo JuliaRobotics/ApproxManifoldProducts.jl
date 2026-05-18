@@ -8,8 +8,7 @@ using Test
 ##
 
 @testset "Test isapprox function on basic SpecialEuclideanGroup(3; variant = :right)" begin
-
-    ##
+##
 
     # FIXME hacking the manifolds here, needs consolidation
     # a = kde!(randn(6,50))
@@ -30,7 +29,7 @@ using Test
         i = 1:N
     ]
 
-    ##
+##
 
     ret = mmd(M, pts1, pts2)
     @test ret < 1
@@ -38,7 +37,7 @@ using Test
     ret = mmd(M, pts1, pts3)
     @test 0.001 < ret
 
-    ##
+##
     A = manikde!(M, pts1)
     B = manikde!(M, pts2)
     C = manikde!(M, pts3)
@@ -58,12 +57,15 @@ using Test
     @test isapprox(A, B)
     @test !isapprox(A, C)
 
-    ##
+##
 
     show(A)
 
-    ##
+## test sample function
 
+    ApproxManifoldProducts.sample(A)
+
+##
 end
 
 #

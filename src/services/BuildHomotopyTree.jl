@@ -42,21 +42,11 @@ function buildTree_Manellic!(
         partl_cb
     end
     
-    _legacybw(s::AbstractMatrix) = s
+    _legacybw(s::AbstractMatrix) = any(size(s) .== 1) ? diagm(vec(s)) : s
     _legacybw(s::AbstractVector) = diagm(s)
     _legacybw(::Nothing) = CV
         
     lCV = _legacybw(kernel_bw)
-    tknlT = kernel(r_PP[1], CV; partial=_tuple(partial), partl_cb=prlcb) |> typeof
-    lknlT = kernel(r_PP[1], lCV; partial = _tuple(partial), partl_cb=prlcb) |> typeof
-
-    # leaf kernels
-    lkern = Vector{lknlT}(undef, N)
-    for i = 1:N
-        nkr = kernel(r_PP[i], lCV; partial = _tuple(partial), partl_cb=prlcb)
-        lkern[i] = nkr
-    end
-    tkern = Vector{tknlT}(undef, N)
 
     _partial = _tuple(partial)
     reprkind = HomotopyRepr(;
@@ -68,7 +58,7 @@ function buildTree_Manellic!(
 
     # TODO consolidate w legacy kernel_bw
     trailing_forms = SparseArrays.sparsevec(Dict(
-        1 => SMatrix{D,D,Float64}(cov(lkern[1])),
+        1 => SMatrix{D,D,Float64}(lCV),
     ), 1) # assume size 1 during refactor -- i.e. universal bandwidth at leaves
 
     _hode = HomotopyDensityLive{

@@ -128,11 +128,4 @@ function mmd(
     return mmd(getManifold(a), aPts, bPts, length(aPts), length(bPts), threads; bw)
 end
 
-function isapprox(
-    a::HomotopyDensity,
-    b::HomotopyDensity;
-    mmd_tol::Real = 1e-1,
-    atol::Real = mmd_tol,
-)
-    return mmd(a, b) < atol
-end
+
