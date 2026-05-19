@@ -8,7 +8,7 @@ Calculate one product of proposal kernels, as defined  BTLabels.
 """
 function calcProductKernelBTLabels(
     M::AbstractManifold,
-    proposals::AbstractVector,
+    proposals::AbstractVector{<:HomotopyDensity},
     labels_sampled::AbstractVector{<:Integer},
     looidx::Union{Int, Nothing} = nothing,
     propIdxs_Gibbs::AbstractVector{<:Integer} = 1:length(proposals);

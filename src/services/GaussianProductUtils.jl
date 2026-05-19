@@ -46,7 +46,6 @@ function calcProductGaussians_flat(
         return _S, prlm
     end
 
-
     # _μ0
     # _Λ_
     _μ0 = isnothing(μ0) ? _mean(M, μ_; partials) : μ0
