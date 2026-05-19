@@ -26,6 +26,10 @@ _sqrt_Σ(k::ConcentratedGaussianKernel{Nothing}) = sqrt_Σ(k)
 _sqrt_iΣ(k::ConcentratedGaussianKernel{L}) where {L} = inv(sqrt(_getpartial(L, cov(k))))
 _sqrt_iΣ(k::ConcentratedGaussianKernel{Nothing}) = sqrt_iΣ(k)
 
+_forcestatic(s::SVector) = s
+_forcestatic(s::AbstractVector) = SVector(s...)
+_forcestatic(s::AbstractMatrix) = SMatrix{size(s)...}(s)
+
 # partials sometimes require values to be masked out as Inf or NaN, TBD if pure stack allocations can be used
 _forcemutable(s::MMatrix) = s
 _forcemutable(s::AbstractMatrix) = MMatrix{size(s)...}(s)
@@ -140,8 +144,8 @@ function _mean(
     partials::Union{<:AbstractVector, <:Tuple}
 ) where {N, P <: AbstractArray}
     # hack during dev testing
-    if all(isnothing.(partials))
-        return SVector(mean(M, _makevec(v))...)
+    s = if all(isnothing.(partials))
+        mean(M, _makevec(v))
     elseif P <: AbstractVector
         d = manifold_dimension(M)
         mn = MVector{d}([0.0 for _ in 1:d])
@@ -152,10 +156,12 @@ function _mean(
             _cu = _viewprl(cu, pl)
             _cu .+= 1
         end
-        return SVector((mn ./ cu)...)
+        (mn ./ cu)
     else
         error("TODO calc partial mean of non-vector manifold types $(M), v isa $(typeof(v)), given $(partials)")
     end
+
+    return _forcestatic(s)
 end
 
 

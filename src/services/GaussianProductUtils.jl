@@ -64,9 +64,7 @@ function calcProductGaussians_flat(
     # calc the covariance weighted delta means of incoming points and covariances
     ΛΔμc = mapreduce(+, zip(_Λ_, μ_, partials)) do (s, u, pl)
         if isnothing(pl)
-            @info "FAILING LOG"
             Δuvee = _Log(M, _μ0, u)
-            @info "FAILING PRODUCT"
             s * Δuvee
         else
             @info "NOT DEBUGGING THIS AT THE MOMENT"
@@ -126,16 +124,22 @@ function calcProductGaussians(
     do_transport_correction::Bool = true,
     weight::Real = 1.0,
 ) where {N, P <: AbstractArray, S <: AbstractMatrix{<:Real}}
+    # TODO, use upstream proper dispatch -- doing this just in case there are still refac to LieGroups.jl bugs
+    _Exp(manif::AbstractManifold, μ, u) = exp(manif, μ, hat(manif, μ, u))
+    _Exp(manif::AbstractLieGroup, μ, u) = exp(manif, μ, hat(LieAlgebra(manif), u, typeof(μ)))
+    _compose(manif::AbstractManifold, μ, u) = Manifolds.compose(manif, μ, u)
+    _compose(manif::AbstractLieGroup, μ, u) = LieGroups.compose(manif, μ, u)
+
     # step 0, resolve partials
     # Tangent space reference around the evenly weighted mean of incoming points
-
     _μ0 = isnothing(μ0) ? _mean(M, μ_; partials) : μ0
     _Λ_ = isnothing(Λ_) ? _invs(Σ_; partials) : Λ_
 
     # step 1, basic/naive Gaussian product (ignoring disjointed covariance coordinates) 
     Δμn, Σn, prlm = calcProductGaussians_flat(M, μ_, Σ_; μ0=_μ0, Λ_=_Λ_, weight, partials)
+    
     # correction on basis μ0 to account for the fact that the product mean is not actually at the tangent space origin (μ0) of the incoming covariances
-    Δμ = exp(M, _μ0, hat(M, _μ0, Δμn))
+    Δμ = _Exp(M, _μ0, Δμn)
 
     @info "calcProductGaussians" eltype(μ_) typeof(_μ0) typeof(Δμ)
 
@@ -146,7 +150,7 @@ function calcProductGaussians(
     # first transport (push forward) covariances to common coordinates
     # see [Ge, van Goor, Mahony, 2024]
     iΔμ = inv(M, Δμ)
-    μi_ = map(u -> LieGroups.compose(M, iΔμ, u), μ_)
+    μi_ = map(u -> _compose(M, iΔμ, u), μ_)
     μi_̂ = map(u -> log(M, _μ0, u), μi_)
     # μi = map(u->vee(M,_μ0,u), μi_̂ )
     Ji = ApproxManifoldProducts.parallel_transport_curvature_2nd_lie.(Ref(M), μi_̂)
@@ -165,9 +169,10 @@ function calcProductGaussians(
     # consider using Δμ in place of _μ0
     Δμplusc, Σdiam, prlm =
         ApproxManifoldProducts.calcProductGaussians_flat(M, μi_, Σi_hat; μ0=_μ0, weight, partials) # partials do not make it this far yet
-    Δμplus_̂ = hat(M, _μ0, Δμplusc)
-    Δμplus = exp(M, _μ0, Δμplus_̂)
-    μ_plus = LieGroups.compose(M, Δμ, Δμplus)
+    Δμplus = _Exp(M, _μ0, Δμplusc)
+        # Δμplus_̂  = hat(M, _μ0, Δμplusc)
+        # Δμplus = exp(M, _μ0, Δμplus_̂ )
+    μ_plus = _compose(M, Δμ, Δμplus)
     Jμ = ApproxManifoldProducts.parallel_transport_curvature_2nd_lie(M, Δμplus_̂)
     Σ_plus = Jμ * Σdiam * (Jμ')
 
