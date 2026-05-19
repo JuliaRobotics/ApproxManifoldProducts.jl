@@ -141,7 +141,7 @@ function _mean(
 ) where {N, P <: AbstractArray}
     # hack during dev testing
     if all(isnothing.(partials))
-        return mean(M, _makevec(v))
+        return SVector(mean(M, _makevec(v))...)
     elseif P <: AbstractVector
         d = manifold_dimension(M)
         mn = MVector{d}([0.0 for _ in 1:d])
@@ -152,7 +152,7 @@ function _mean(
             _cu = _viewprl(cu, pl)
             _cu .+= 1
         end
-        return mn ./ cu
+        return SVector((mn ./ cu)...)
     else
         error("TODO calc partial mean of non-vector manifold types $(M), v isa $(typeof(v)), given $(partials)")
     end
