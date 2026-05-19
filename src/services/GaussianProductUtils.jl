@@ -57,17 +57,23 @@ function calcProductGaussians_flat(
     # calc sum of inv covariances while honoring partials
     Λ, prlm = _sumprecisionpartials(_Λ_)
 
+    _Log(manif::AbstractLieGroup, μ, u) = vee(LieAlgebra(manif), log(manif, μ, u))
+    _Log(manif::AbstractManifold, μ, u) = vee(manif, μ, log(manif, μ, u))
+
     # do the actual Guassian product while stepping around the partials
     # calc the covariance weighted delta means of incoming points and covariances
     ΛΔμc = mapreduce(+, zip(_Λ_, μ_, partials)) do (s, u, pl)
         if isnothing(pl)
-            Δuvee = vee(LieAlgebra(M), log(M, _μ0, u))
+            @info "FAILING LOG"
+            Δuvee = _Log(M, _μ0, u)
+            @info "FAILING PRODUCT"
             s * Δuvee
         else
+            @info "NOT DEBUGGING THIS AT THE MOMENT"
             M_, rp_, fnc_ = getManifoldPartial(M, _makevec(pl))
             _μ0_ = fnc_(_μ0)
             _u_ = fnc_(u)
-            _Δuvee = vee(LieAlgebra(M_), log(M_, _μ0_, _u_))
+            _Δuvee = _Log(M_, _μ0_, _u_)
             tmp = deepcopy(tmpl)
             _tmp = _viewprl(tmp, pl)
             _s = _viewprl(s, pl)
@@ -130,6 +136,8 @@ function calcProductGaussians(
     Δμn, Σn, prlm = calcProductGaussians_flat(M, μ_, Σ_; μ0=_μ0, Λ_=_Λ_, weight, partials)
     # correction on basis μ0 to account for the fact that the product mean is not actually at the tangent space origin (μ0) of the incoming covariances
     Δμ = exp(M, _μ0, hat(M, _μ0, Δμn))
+
+    @info "calcProductGaussians" eltype(μ_) typeof(_μ0) typeof(Δμ)
 
     # for development and testing cases return without doing transport
     # FIXME partials skips parallel transport correction #330
@@ -226,6 +234,7 @@ function calcProductGaussians(
     # CHECK this should be on-manifold for points
     # parallel transport needed for covariances from different tangent spaces
     _μ, _Σ, ipc = calcProductGaussians(M, μ_, Σ_; μ0, partials, do_transport_correction)
+    @info "calcProductGaussians" typeof(μ_) typeof(_μ)
     
     # FIXME, inflate any partial results
     _partial = findall(!iszero, ipc)
