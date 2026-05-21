@@ -104,12 +104,12 @@ end
     @test N == ApproxManifoldProducts.leftIndex(p1, floor(Int, N / 2))
     @test N + 1 == ApproxManifoldProducts.rightIndex(p1, floor(Int, N / 2))
 
-    @test ApproxManifoldProducts.exists_BTLabel(p1, floor(Int, N / 2))
-    @test ApproxManifoldProducts.exists_BTLabel(
+    @test ApproxManifoldProducts.isassigned(p1, floor(Int, N / 2))
+    @test ApproxManifoldProducts.isassigned(
         p1,
         ApproxManifoldProducts.leftIndex(p1, floor(Int, N / 2)),
     )
-    @test !ApproxManifoldProducts.exists_BTLabel(p1, 2 * N + 1)
+    @test !ApproxManifoldProducts.isassigned(p1, 2 * N + 1)
 
 
 ## leaves only version

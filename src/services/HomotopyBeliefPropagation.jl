@@ -70,11 +70,11 @@ function generateLabelPoolRecursive(
     for (o, sel) in enumerate(labels_sampled)
         isleaf = true
         # add interval of left and right children for next scale label sampling
-        if exists_BTLabel(proposals[o], leftIndex(proposals[o], sel))
+        if isassigned(proposals[o], leftIndex(proposals[o], sel))
             push!(child_label_pools[o], leftIndex(proposals[o], sel))
             isleaf = false
         end
-        if exists_BTLabel(proposals[o], rightIndex(proposals[o], sel))
+        if isassigned(proposals[o], rightIndex(proposals[o], sel))
             push!(child_label_pools[o], rightIndex(proposals[o], sel))
             isleaf = false
         end
