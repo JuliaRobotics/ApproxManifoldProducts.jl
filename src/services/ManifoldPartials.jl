@@ -29,6 +29,7 @@ _sqrt_iΣ(k::ConcentratedGaussianKernel{Nothing}) = sqrt_iΣ(k)
 _forcestatic(s::SVector) = s
 _forcestatic(s::AbstractVector) = SVector(s...)
 _forcestatic(s::AbstractMatrix) = SMatrix{size(s)...}(s)
+_forcestatic(s::ArrayPartition) = ArrayPartition(_forcestatic.(s.x)...)
 
 # partials sometimes require values to be masked out as Inf or NaN, TBD if pure stack allocations can be used
 _forcemutable(s::MMatrix) = s

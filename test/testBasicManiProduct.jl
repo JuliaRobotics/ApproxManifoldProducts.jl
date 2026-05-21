@@ -448,7 +448,7 @@ end
     # P12 = P1 * P2
     P12 = manifoldProduct([P1; P2])
 ##    
-    @test typeof(P12.points[1]) <: Vector{Float64}
+    @test P12.points[1] isa AbstractVector
 
     pts_ = getPoints(P12)
 
