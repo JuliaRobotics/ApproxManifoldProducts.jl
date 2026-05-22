@@ -48,11 +48,19 @@ function Base.show(io::IO, hode::HomotopyDensity)
             print(io, "1]:  ")
             printstyled(io, "::HT "; color = :magenta)
             if isassigned(hode, 1)
-                printstyled(io, getKernelTree(hode, 1); color = :light_black)
+                try
+                    printstyled(io, getKernelTree(hode, 1); color = :light_black)
+                catch e
+                    if e isa PosDefException
+                        printstyled(io, "_PosDefEx_"; color =:red)
+                    else
+                        printstyled(io, "_unable_"; color = :red)
+                    end
+                end
             else
                 printstyled(io, "undef"; color = :red)
-                println(io)
             end
+            println(io)
             # print(io, "  ...,")
         else
             print(io, "]:   ")
@@ -256,7 +264,15 @@ function getBW(
     aspartial::Bool = true,
 )
     partl = getPartial(hode)
-    bws = (s->getBW(getKernelLeaf(hode, s))).(1:Npts(hode))
+    # bws = (s->getBW(getKernelLeaf(hode, s))).(1:Npts(hode))
+    # FIXME, Hack assuming parametric or nonparametric always Gaussian
+    bws = if 1 == Npts(hode)
+        hode.principal_forms
+    elseif 1 < Npts(hode)
+        hode.trailing_forms
+    else
+        error("This homotopy density has no principal or trailing covariance/bw.")
+    end
     if isnothing(partl) && aspartial
         return (bw->_getpartial(partl, bw)).(bws)
     end

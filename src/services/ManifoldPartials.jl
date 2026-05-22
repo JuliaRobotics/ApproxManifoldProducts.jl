@@ -162,7 +162,7 @@ function _mean(
         error("TODO calc partial mean of non-vector manifold types $(M), v isa $(typeof(v)), given $(partials)")
     end
 
-    return _forcestatic(s)
+    return s
 end
 
 
