@@ -370,8 +370,8 @@ function resample(x::HomotopyDensity, N::Int)
         _pts, = sample(x, N)
         _pts
     end
-    return HomotopyDensity(
-        getManifold(x),
+    return HomotopyDensity_legacy(
+        getStateKind(x),
         pts;
         partial = getPartial(x),
         observability = x.observability,
@@ -402,7 +402,7 @@ function updateBandwidths(
         # new replacement field instead of .leaf_kernels
         # if i in nzi
             cv = cov(nkl)
-            hode.trailing_forms[i] = SMatrix{size(cv)...,Float64}(cv)
+            hode.trailing_forms[i] = _forcestatic(cv)
         # end
     end
     partial = getPartial(hode)
