@@ -16,7 +16,7 @@ Statistics.std(m::ConcentratedGaussianKernel{L}) where L = diagm(std(m.functiona
 sqrt_Σ(m::ConcentratedGaussianKernel{L}) where L = std(m)
 sqrt_iΣ(m::ConcentratedGaussianKernel{L}) where L = cov(m) |> sqrt |> inv
 
-getBW(mker::ConcentratedGaussianKernel{L}) where L = sqrt_Σ(mker) |> collect # cov(mker) |> collect
+getBW(mker::ConcentratedGaussianKernel{L}) where L = cov(mker) |> collect # sqrt_Σ(mker) |> collect # 
 
 
 function Base.show(

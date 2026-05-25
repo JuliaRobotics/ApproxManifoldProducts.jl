@@ -46,7 +46,6 @@ function calcProductGaussians_flat(
         return _S, prlm
     end
 
-
     # _μ0
     # _Λ_
     _μ0 = isnothing(μ0) ? _mean(M, μ_; partials) : μ0
@@ -58,17 +57,21 @@ function calcProductGaussians_flat(
     # calc sum of inv covariances while honoring partials
     Λ, prlm = _sumprecisionpartials(_Λ_)
 
+    _Log(manif::AbstractLieGroup, μ, u) = vee(LieAlgebra(manif), log(manif, μ, u))
+    _Log(manif::AbstractManifold, μ, u) = vee(manif, μ, log(manif, μ, u))
+
     # do the actual Guassian product while stepping around the partials
     # calc the covariance weighted delta means of incoming points and covariances
     ΛΔμc = mapreduce(+, zip(_Λ_, μ_, partials)) do (s, u, pl)
         if isnothing(pl)
-            Δuvee = vee(LieAlgebra(M), log(M, _μ0, u))
+            # @info "calcProductGaussians_flat" typeof(u) typeof(_μ0) typeof(s)
+            Δuvee = _Log(M, _μ0, u)
             s * Δuvee
         else
             M_, rp_, fnc_ = getManifoldPartial(M, _makevec(pl))
             _μ0_ = fnc_(_μ0)
             _u_ = fnc_(u)
-            _Δuvee = vee(LieAlgebra(M_), log(M_, _μ0_, _u_))
+            _Δuvee = _Log(M_, _μ0_, _u_)
             tmp = deepcopy(tmpl)
             _tmp = _viewprl(tmp, pl)
             _s = _viewprl(s, pl)
@@ -121,16 +124,26 @@ function calcProductGaussians(
     do_transport_correction::Bool = true,
     weight::Real = 1.0,
 ) where {N, P <: AbstractArray, S <: AbstractMatrix{<:Real}}
+    # TODO, use upstream proper dispatch -- doing this just in case there are still refac to LieGroups.jl bugs
+    _hat(manif::AbstractManifold, μ, u) = hat(manif, μ, u)
+    _hat(manif::AbstractLieGroup, μ, u) = hat(LieAlgebra(manif), u, typeof(μ))
+    _Exp(manif::AbstractManifold, μ, u) = exp(manif, μ, _hat(manif, μ, u))
+    _Exp(manif::AbstractLieGroup, μ, u) = exp(manif, μ, _hat(manif, μ, u))
+    _compose(manif::AbstractManifold, μ, u) = Manifolds.compose(manif, μ, u)
+    _compose(manif::AbstractLieGroup, μ, u) = LieGroups.compose(manif, μ, u)
+
     # step 0, resolve partials
     # Tangent space reference around the evenly weighted mean of incoming points
-
     _μ0 = isnothing(μ0) ? _mean(M, μ_; partials) : μ0
     _Λ_ = isnothing(Λ_) ? _invs(Σ_; partials) : Λ_
 
     # step 1, basic/naive Gaussian product (ignoring disjointed covariance coordinates) 
     Δμn, Σn, prlm = calcProductGaussians_flat(M, μ_, Σ_; μ0=_μ0, Λ_=_Λ_, weight, partials)
+    
     # correction on basis μ0 to account for the fact that the product mean is not actually at the tangent space origin (μ0) of the incoming covariances
-    Δμ = exp(M, _μ0, hat(M, _μ0, Δμn))
+    Δμ = _Exp(M, _μ0, Δμn)
+
+    # @info "calcProductGaussians" eltype(μ_) typeof(_μ0) typeof(Δμ)
 
     # for development and testing cases return without doing transport
     # FIXME partials skips parallel transport correction #330
@@ -139,7 +152,7 @@ function calcProductGaussians(
     # first transport (push forward) covariances to common coordinates
     # see [Ge, van Goor, Mahony, 2024]
     iΔμ = inv(M, Δμ)
-    μi_ = map(u -> LieGroups.compose(M, iΔμ, u), μ_)
+    μi_ = map(u -> _compose(M, iΔμ, u), μ_)
     μi_̂ = map(u -> log(M, _μ0, u), μi_)
     # μi = map(u->vee(M,_μ0,u), μi_̂ )
     Ji = ApproxManifoldProducts.parallel_transport_curvature_2nd_lie.(Ref(M), μi_̂)
@@ -150,18 +163,19 @@ function calcProductGaussians(
     # Dehann asks for homotopy density, bottom of tree associates with smallest eigen values,
     #  so isotropic significance may be traceable.
     # Part of using new name homotopy -- i.e. continuation from isotropic to full covariance depending on depth.
-    #  separation between leaf kernels reduces to zero curvature.
-    #  In the extreme case of infinite depth homotopy density tree, eigen values are zero and bandwidths are isotropic. 
+    #  separation between leaf kernels infitesimally becomes zero curvature.
+    #  In the extreme case of infinite depth homotopy density tree, eigen values become zero so bandwidths become irrelevant. 
     Σi_hat = map((J, S) -> J * S * (J'), iJi, Σ_)
 
     # Reset step to absorb extended μ+ coordinates into kernel on-manifold μ 
     # consider using Δμ in place of _μ0
     Δμplusc, Σdiam, prlm =
-        ApproxManifoldProducts.calcProductGaussians_flat(M, μi_, Σi_hat; μ0=_μ0, weight, partials) # partials do not make it this far yet
-    Δμplus_̂ = hat(M, _μ0, Δμplusc)
-    Δμplus = exp(M, _μ0, Δμplus_̂)
-    μ_plus = LieGroups.compose(M, Δμ, Δμplus)
-    Jμ = ApproxManifoldProducts.parallel_transport_curvature_2nd_lie(M, Δμplus_̂)
+    ApproxManifoldProducts.calcProductGaussians_flat(M, μi_, Σi_hat; μ0=_μ0, weight, partials) # partials do not make it this far yet
+    Δμplus_̂  = _hat(M, _μ0, Δμplusc)
+    Δμplus = exp(M, _μ0, Δμplus_̂ )
+        # Δμplus = _Exp(M, _μ0, Δμplusc)
+    μ_plus = _compose(M, Δμ, Δμplus)
+    Jμ = ApproxManifoldProducts.parallel_transport_curvature_2nd_lie(M, Δμplus_̂ )
     Σ_plus = Jμ * Σdiam * (Jμ')
 
     # return new mean and covariance
@@ -227,6 +241,7 @@ function calcProductGaussians(
     # CHECK this should be on-manifold for points
     # parallel transport needed for covariances from different tangent spaces
     _μ, _Σ, ipc = calcProductGaussians(M, μ_, Σ_; μ0, partials, do_transport_correction)
+    # @info "calcProductGaussians" typeof(μ_) typeof(_μ)
     
     # FIXME, inflate any partial results
     _partial = findall(!iszero, ipc)

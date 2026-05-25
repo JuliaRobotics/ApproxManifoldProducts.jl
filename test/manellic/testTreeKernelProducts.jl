@@ -56,6 +56,8 @@ end
 
 
 @testset "Test Product the brute force way, MF.SpecialEuclideanGroup(2; variant = :right)" begin
+##
+
     M = SpecialEuclideanGroup(2; variant = :right)
     ε = identity_element(M, ArrayPartition)
 
@@ -66,9 +68,10 @@ end
     Xc_q = [10, 22, -0.1]
     q = exp(M, hat(LieAlgebra(M), Xc_q, ArrayPartition))
     kerq = ConcentratedGaussianKernel(q, diagm([1.0, 1.0, 0.1] .^ 2))
-
+    
+##
     kerpq = calcProductGaussians(M, [kerp, kerq])
-
+##
     # brute force way
     xs = 7:0.1:13
     ys = 15:0.1:27
@@ -184,7 +187,7 @@ end
     # lines!(θs, pdf_q)
     # lines!(θs, pdf_pq)
 
-    ##
+##
 end
 
 

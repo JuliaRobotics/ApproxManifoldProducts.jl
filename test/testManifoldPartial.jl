@@ -158,12 +158,10 @@ end
     N = 10
     M = LieGroups.TranslationGroup(3)
     pts0 = [zeros(3) for _ = 1:N]
-    # X0 = manikde!(M, pts0; bw = diagm(0.001*ones(3)))
-    @error "RESTORE manikde test forced bandwidth for repeat points non-PosDefCovariance"
-    @test_broken false
+    X0 = HomotopyDensity_legacy(M, pts0; bw = diagm(0.001*ones(3)), newbw = false)
 
     pts = [randn(3) for _ = 1:N]
-    X = manikde!(M, pts)
+    X = HomotopyDensity_legacy(M, pts)
 
 ##
 
@@ -174,7 +172,7 @@ end
 
 ##
 
-    X = manikde!(M, pts; partial = [1; 3])
+    X = HomotopyDensity_legacy(M, pts; partial = [1; 3])
     @error "restore tests for manikde partials"
     # X_ = replace(X0, X)
 
@@ -242,7 +240,7 @@ end
 
 ##
 
-    P = manikde!(M, pts)
+    P = HomotopyDensity_legacy(M, pts)
 
 ##
 
@@ -267,7 +265,7 @@ end
 
     pts = [exp(M, hat(LieAlgebra(M), [10 .+ randn(2); randn()])) for i = 1:N]
 
-    P = manikde!(M, pts)
+    P = HomotopyDensity_legacy(M, pts)
 
     P12 = marginal(P, [1; 2])
 
@@ -395,7 +393,7 @@ end
     M = LieGroups.TranslationGroup(3)
     pts = [randn(3) for _ = 1:75]
 
-    X = manikde!(M, pts; partial = (1,3))
+    X = HomotopyDensity_legacy(M, pts; partial = (1,3))
 
     X_ = marginal(X, [3])
 
@@ -408,7 +406,7 @@ end
     try
         M = LieGroups.TranslationGroup(4)
         # check the constructor when only a few points are available
-        X = manikde!(M, pts; partial = (1, 3, 4))
+        X = HomotopyDensity_legacy(M, pts; partial = (1, 3, 4))
     catch
         @test_broken false
     end

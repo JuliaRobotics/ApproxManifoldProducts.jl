@@ -141,14 +141,14 @@ end
     @test ApproxManifoldProducts.isLeaf_BTLabel(hode, 6) # there for binary tree defaults, although undef
     @test ApproxManifoldProducts.isLeaf_BTLabel(hode, 7) # there for binary tree defaults, although undef
 
-    @test ApproxManifoldProducts.exists_BTLabel(hode, 1)
-    @test ApproxManifoldProducts.exists_BTLabel(hode, 2)
-    @test ApproxManifoldProducts.exists_BTLabel(hode, 3)
-    @test ApproxManifoldProducts.exists_BTLabel(hode, 4)
-    @test ApproxManifoldProducts.exists_BTLabel(hode, 5)
-    @test !ApproxManifoldProducts.exists_BTLabel(hode, 6)
-    @test !ApproxManifoldProducts.exists_BTLabel(hode, 7)
-    @test !ApproxManifoldProducts.exists_BTLabel(hode, 8) # why is this here
+    @test isassigned(hode, 1)
+    @test isassigned(hode, 2)
+    @test isassigned(hode, 3)
+    @test isassigned(hode, 4)
+    @test isassigned(hode, 5)
+    @test !isassigned(hode, 6)
+    @test !isassigned(hode, 7)
+    @test !isassigned(hode, 8) # why is this here
 
 ##
 end
@@ -218,14 +218,14 @@ end
     @test ApproxManifoldProducts.isLeaf_BTLabel(hode, 6) # there for binary tree defaults, although undef
     @test ApproxManifoldProducts.isLeaf_BTLabel(hode, 7) # there for binary tree defaults, although undef
 
-    @test ApproxManifoldProducts.exists_BTLabel(hode, 1)
-    @test ApproxManifoldProducts.exists_BTLabel(hode, 2)
-    @test ApproxManifoldProducts.exists_BTLabel(hode, 3)
-    @test ApproxManifoldProducts.exists_BTLabel(hode, 4)
-    @test ApproxManifoldProducts.exists_BTLabel(hode, 5)
-    @test !ApproxManifoldProducts.exists_BTLabel(hode, 6)
-    @test !ApproxManifoldProducts.exists_BTLabel(hode, 7)
-    @test !ApproxManifoldProducts.exists_BTLabel(hode, 8)
+    @test isassigned(hode, 1)
+    @test isassigned(hode, 2)
+    @test isassigned(hode, 3)
+    @test isassigned(hode, 4)
+    @test isassigned(hode, 5)
+    @test !isassigned(hode, 6)
+    @test !isassigned(hode, 7)
+    @test !isassigned(hode, 8)
 
 ##
 end
@@ -286,8 +286,8 @@ end
     @test isapprox( 1.0, mean(getKernelLeaf(hode,2))[1]; atol = 1e-6)
     @test isapprox( 2.0, mean(getKernelLeaf(hode,3))[1]; atol = 1e-6)
 
-    # @test !ApproxManifoldProducts.exists_BTLabel(hode, ApproxManifoldProducts.leftIndex(hode, 2))
-    # @test ApproxManifoldProducts.exists_BTLabel(hode, ApproxManifoldProducts.rightIndex(hode, 2))
+    # @test !isassigned(hode, ApproxManifoldProducts.leftIndex(hode, 2))
+    # @test isassigned(hode, ApproxManifoldProducts.rightIndex(hode, 2))
 
     @test !ApproxManifoldProducts.isLeaf_BTLabel(hode, 1)
     @test ApproxManifoldProducts.isLeaf_BTLabel(hode, 2)
@@ -298,13 +298,13 @@ end
     @test ApproxManifoldProducts.isLeaf_BTLabel(hode, 6) # there for binary tree defaults, although undef
     @test ApproxManifoldProducts.isLeaf_BTLabel(hode, 7) # there for binary tree defaults, although undef
 
-    @test ApproxManifoldProducts.exists_BTLabel(hode, 1)
-    @test ApproxManifoldProducts.exists_BTLabel(hode, 2)
-    @test ApproxManifoldProducts.exists_BTLabel(hode, 3)
-    @test !ApproxManifoldProducts.exists_BTLabel(hode, 4)
-    @test !ApproxManifoldProducts.exists_BTLabel(hode, 5)
-    @test ApproxManifoldProducts.exists_BTLabel(hode, 6) 
-    @test ApproxManifoldProducts.exists_BTLabel(hode, 7)
+    @test isassigned(hode, 1)
+    @test isassigned(hode, 2)
+    @test isassigned(hode, 3)
+    @test !isassigned(hode, 4)
+    @test !isassigned(hode, 5)
+    @test isassigned(hode, 6) 
+    @test isassigned(hode, 7)
 
 ##
 end
@@ -470,12 +470,12 @@ end
     
 ##
 
-    @test ApproxManifoldProducts.exists_BTLabel(mtree, floor(Int, N / 2))
-    @test ApproxManifoldProducts.exists_BTLabel(
+    @test isassigned(mtree, floor(Int, N / 2))
+    @test isassigned(
         mtree,
         ApproxManifoldProducts.leftIndex(mtree, floor(Int, N / 2)),
     )
-    @test !ApproxManifoldProducts.exists_BTLabel(mtree, 2 * N + 1)
+    @test !isassigned(mtree, 2 * N + 1)
 
 
 ## test sorting of labels is consistent by rebuilding a shuffled belief

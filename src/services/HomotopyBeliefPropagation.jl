@@ -8,7 +8,7 @@ Calculate one product of proposal kernels, as defined  BTLabels.
 """
 function calcProductKernelBTLabels(
     M::AbstractManifold,
-    proposals::AbstractVector,
+    proposals::AbstractVector{<:HomotopyDensity},
     labels_sampled::AbstractVector{<:Integer},
     looidx::Union{Int, Nothing} = nothing,
     propIdxs_Gibbs::AbstractVector{<:Integer} = 1:length(proposals);
@@ -70,11 +70,11 @@ function generateLabelPoolRecursive(
     for (o, sel) in enumerate(labels_sampled)
         isleaf = true
         # add interval of left and right children for next scale label sampling
-        if exists_BTLabel(proposals[o], leftIndex(proposals[o], sel))
+        if isassigned(proposals[o], leftIndex(proposals[o], sel))
             push!(child_label_pools[o], leftIndex(proposals[o], sel))
             isleaf = false
         end
-        if exists_BTLabel(proposals[o], rightIndex(proposals[o], sel))
+        if isassigned(proposals[o], rightIndex(proposals[o], sel))
             push!(child_label_pools[o], rightIndex(proposals[o], sel))
             isleaf = false
         end
