@@ -112,8 +112,8 @@ end
 
 ## check bandwidths of partial belief
 
-    P1 = manikde!(M, pts1)
-    P2_ = manikde!(M, pts2; partial)
+    P1 = HomotopyDensity_legacy(M, pts1)
+    P2_ = HomotopyDensity_legacy(M, pts2; partial)
 
     # check for normal manikde without partial as control
     @test !isPartial(P1)
@@ -231,8 +231,8 @@ end
     l1 = [1;]
     l3 = [2;]
     partials = [l1, l3]
-    P1_ = manikde!(M, pts1)
-    P3_ = manikde!(M, pts3)
+    P1_ = HomotopyDensity_legacy(M, pts1)
+    P3_ = HomotopyDensity_legacy(M, pts3)
     P1 = marginal(P1_, l1)
     P3 = marginal(P3_, l3)
 
@@ -323,15 +323,15 @@ end
 
     #densities to multiply
     pts1 = [randn(d) for _ = 1:N]
-    P1 = manikde!(M, pts1)
+    P1 = HomotopyDensity_legacy(M, pts1)
 
     pts2 = [randn(d) for _ = 1:N]
     (x -> (x[2] += 100)).(pts2)
-    P2_ = manikde!(M, pts2; partial = [1;])
+    P2_ = HomotopyDensity_legacy(M, pts2; partial = [1;])
 
     pts3 = [randn(d) for _ = 1:N]
     (x -> (x[2] += 100)).(pts3)
-    P3_ = manikde!(M, pts3; partial = [1;])
+    P3_ = HomotopyDensity_legacy(M, pts3; partial = [1;])
 
 ##
 
@@ -401,9 +401,9 @@ end
     l1 = [1;]
     l3 = [2;]
     partials = [l1, nothing, l3]
-    P1 = marginal(manikde!(M, pts1), l1)
-    P2 = manikde!(M, pts2)
-    P3 = marginal(manikde!(M, pts3), l3)
+    P1 = marginal(HomotopyDensity_legacy(M, pts1), l1)
+    P2 = HomotopyDensity_legacy(M, pts2)
+    P3 = marginal(HomotopyDensity_legacy(M, pts3), l3)
 
 ##
 
@@ -495,8 +495,8 @@ end
     pts5 = [randn(d) .+ 10.0 for _ = 1:N]
     (x -> x[1] += 90.0).(pts5)
 
-    P4 = marginal(manikde!(M, pts4), [1;])
-    P5 = marginal(manikde!(M, pts5), [d;])
+    P4 = marginal(HomotopyDensity_legacy(M, pts4), [1;])
+    P5 = marginal(HomotopyDensity_legacy(M, pts5), [d;])
 
     # test duplication
     pts4_ = [randn(d) .- 10.0 for _ = 1:N]
@@ -504,8 +504,8 @@ end
     pts5_ = [randn(d) .+ 10.0 for _ = 1:N]
     (x -> x[1] += 90.0).(pts5_)
 
-    P4_ = marginal(manikde!(M, pts4_), [1;])
-    P5_ = marginal(manikde!(M, pts5_), [d;])
+    P4_ = marginal(HomotopyDensity_legacy(M, pts4_), [1;])
+    P5_ = marginal(HomotopyDensity_legacy(M, pts5_), [d;])
 
 ##
 
@@ -577,9 +577,9 @@ end
 
 ## get different marginals
 
-    P1 = marginal(manikde!(M, pts1), [1;])
-    P2 = manikde!(M, pts2)
-    P3 = marginal(manikde!(M, pts3), [d;])
+    P1 = marginal(HomotopyDensity_legacy(M, pts1), [1;])
+    P2 = HomotopyDensity_legacy(M, pts2)
+    P3 = marginal(HomotopyDensity_legacy(M, pts3), [d;])
 
 ## weird situation where labels are almost the same, but dims 2, 3 come out the same due to partials
 
@@ -672,9 +672,9 @@ end
 
 ## get different marginals
 
-    P1 = marginal(manikde!(M, pts1), [1;])
-    P2 = manikde!(M, pts2)
-    P3 = marginal(manikde!(M, pts3), [3;])
+    P1 = marginal(HomotopyDensity_legacy(M, pts1), [1;])
+    P2 = HomotopyDensity_legacy(M, pts2)
+    P3 = marginal(HomotopyDensity_legacy(M, pts3), [3;])
 
 ##
 
@@ -746,8 +746,8 @@ end
 
 ## get different marginals
 
-    P1 = marginal(manikde!(M, pts1), [1;])
-    P3 = marginal(manikde!(M, pts3), [d;])
+    P1 = marginal(HomotopyDensity_legacy(M, pts1), [1;])
+    P3 = marginal(HomotopyDensity_legacy(M, pts3), [d;])
 
 ##
 

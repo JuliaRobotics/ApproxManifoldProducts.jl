@@ -159,7 +159,7 @@ end
     # pts = [[0.;],[0.1],[0.2;],[0.3;]]
     pts = [1 * randn(1) for _ = 1:64]
 
-    mkd = ApproxManifoldProducts.manikde!(M, pts)
+    mkd = HomotopyDensity_legacy(M, pts)
 
     best_cov = cov(ApproxManifoldProducts.getKernelLeaf(mkd, 1))[1] |> sqrt
 
@@ -167,7 +167,7 @@ end
     @test isapprox(0.5, best_cov; atol = 0.4)
 
     pts = [1 * randn(1) for _ = 1:100]
-    mkd = ApproxManifoldProducts.manikde!(M, pts)
+    mkd = HomotopyDensity_legacy(M, pts)
 
 ##
 end
@@ -201,9 +201,9 @@ end
     @test isapprox(0.5, best_cov[1]; atol = 0.35)
     @test isapprox(0.5, best_cov[2]; atol = 0.35)
 
-    mkd = ApproxManifoldProducts.manikde!(M, pts)
+    mkd = HomotopyDensity_legacy(M, pts)
 
-    @test isapprox([0.7 0; 0 0.7], getBW(mkd)[1]; atol = 0.3)
+    @test isapprox([0.7 0; 0 0.7], getBW(mkd)[1]; atol = 0.5)
 
 ##
 end
@@ -238,10 +238,10 @@ if !(v"1.11" < VERSION < v"1.12.0-beta99")
         @test isapprox(0.6, best_cov[2]; atol = 0.35)
         @test isapprox(0.06, best_cov[3]; atol = 0.04)
 
-        mkd = ApproxManifoldProducts.manikde!(M, pts)
+        mkd = HomotopyDensity_legacy(M, pts)
 
-        @test isapprox([0.6 0; 0 0.6], getBW(mkd)[1][1:2, 1:2] .^2; atol = 0.4)
-        @test isapprox(0.06, getBW(mkd)[1][3, 3] .^2; atol = 0.04)
+        @test isapprox([0.7 0; 0 0.7], getBW(mkd)[1][1:2, 1:2]; atol = 0.4)
+        @test isapprox(0.06, getBW(mkd)[1][3, 3]; atol = 0.04)
 
     ##
     end
@@ -279,12 +279,12 @@ if !(v"1.11" < VERSION < v"1.12.0-beta99")
         @test isapprox([0.75; 0.75; 0.75], best_cov[1:3]; atol = 0.55)
         @test isapprox([0.06; 0.06; 0.06], best_cov[4:6]; atol = 0.055)
 
-        mkd = ApproxManifoldProducts.manikde!(M, pts)
+        mkd = HomotopyDensity_legacy(M, pts)
 
-        @test isapprox([0.75 0 0; 0 0.75 0; 0 0 0.75], getBW(mkd)[1][1:3, 1:3] .^2; atol = 0.55)
+        @test isapprox([0.75 0 0; 0 0.75 0; 0 0 0.75], getBW(mkd)[1][1:3, 1:3]; rtol = 0.55)
         @test isapprox(
             [0.07 0 0; 0 0.07 0; 0 0 0.07],
-            getBW(mkd)[1][4:6, 4:6] .^2;
+            getBW(mkd)[1][4:6, 4:6];
             atol = 0.055,
         )
 

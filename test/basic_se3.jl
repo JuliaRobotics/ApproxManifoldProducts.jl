@@ -38,9 +38,9 @@ using Test
     @test 0.001 < ret
 
 ##
-    A = manikde!(M, pts1)
-    B = manikde!(M, pts2)
-    C = manikde!(M, pts3)
+    A = HomotopyDensity_legacy(M, pts1)
+    B = HomotopyDensity_legacy(M, pts2)
+    C = HomotopyDensity_legacy(M, pts3)
 
     # A = ManifoldKernelDensity(M, pts1)
     # B = ManifoldKernelDensity(M, pts2)

@@ -27,8 +27,8 @@ using TensorCast
 
     ##
 
-    p = manikde!(M, X1)
-    q = manikde!(M, X2)
+    p = HomotopyDensity_legacy(M, X1)
+    q = HomotopyDensity_legacy(M, X2)
 
     # check new MKD have right type info cached
     @test getPointType(p) <: ArrayPartition
