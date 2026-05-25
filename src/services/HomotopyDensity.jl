@@ -11,6 +11,12 @@ function DistributedFactorGraphs.getDimension(
     return manifold_dimension(getManifold(st))
 end
 
+function DistributedFactorGraphs.getDimension(
+    hode::HomotopyDensity
+)
+    return getDimension(getStateKind(hode))
+end
+
 
 # FIXME, see near duplicate signature below -- must consolidate
 function HomotopyDensity(
@@ -84,6 +90,7 @@ function HomotopyDensity_legacy(
     bw = diagm(ones(manifold_dimension(getManifold(kind)))),
     newbw::Bool = true,
     algo = Optim.NelderMead(),
+    observability::AbstractVector{<:Real} = zeros(manifold_dimension(getManifold(kind))),
     kw...
 )
     #
@@ -102,6 +109,7 @@ function HomotopyDensity_legacy(
         kernel = ConcentratedGaussianKernel,
         partial = _tuple(partial),
         partl_cb,
+        observability,
     )
 
     # mask bw for partially excluded dimensions -- assumed 1.0 from legacy but...

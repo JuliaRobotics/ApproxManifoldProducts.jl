@@ -94,7 +94,7 @@ function manifoldProduct(
     ) # ?? was permute=false?
 
     # NOTE, resulting tree might not have N number of data points 
-    return buildTree_Manellic!(mani, post)
+    return buildTree_Manellic!(getStateKind(beliefs[1]), post)
 end
 
 # FIXME, this product does not handle combinations of different partial beliefs properly yet

@@ -48,11 +48,19 @@ function Base.show(io::IO, hode::HomotopyDensity)
             print(io, "1]:  ")
             printstyled(io, "::HT "; color = :magenta)
             if isassigned(hode, 1)
-                printstyled(io, getKernelTree(hode, 1); color = :light_black)
+                try
+                    printstyled(io, getKernelTree(hode, 1); color = :light_black)
+                catch e
+                    if e isa PosDefException
+                        printstyled(io, "_PosDefEx_"; color =:red)
+                    else
+                        printstyled(io, "_unable_"; color = :red)
+                    end
+                end
             else
                 printstyled(io, "undef"; color = :red)
-                println(io)
             end
+            println(io)
             # print(io, "  ...,")
         else
             print(io, "]:   ")
@@ -250,13 +258,25 @@ function getPoints(
 end
 
 
+"""
+    getBW
 
+Return bandwidth(s) of kernel(s) in homotopy density as variance.
+"""
 function getBW(
     hode::HomotopyDensity,
     aspartial::Bool = true,
 )
     partl = getPartial(hode)
-    bws = (s->getBW(getKernelLeaf(hode, s))).(1:Npts(hode))
+    # bws = (s->getBW(getKernelLeaf(hode, s))).(1:Npts(hode))
+    # FIXME, Hack assuming parametric or nonparametric always Gaussian
+    bws = if 1 == Npts(hode)
+        hode.principal_forms
+    elseif 1 < Npts(hode)
+        hode.trailing_forms
+    else
+        error("This homotopy density has no principal or trailing covariance/bw.")
+    end
     if isnothing(partl) && aspartial
         return (bw->_getpartial(partl, bw)).(bws)
     end
@@ -354,8 +374,8 @@ function resample(x::HomotopyDensity, N::Int)
         _pts, = sample(x, N)
         _pts
     end
-    return HomotopyDensity(
-        getManifold(x),
+    return HomotopyDensity_legacy(
+        getStateKind(x),
         pts;
         partial = getPartial(x),
         observability = x.observability,
@@ -386,7 +406,7 @@ function updateBandwidths(
         # new replacement field instead of .leaf_kernels
         # if i in nzi
             cv = cov(nkl)
-            hode.trailing_forms[i] = SMatrix{size(cv)...,Float64}(cv)
+            hode.trailing_forms[i] = _forcestatic(cv)
         # end
     end
     partial = getPartial(hode)

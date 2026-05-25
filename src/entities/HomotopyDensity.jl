@@ -123,6 +123,42 @@ convert(::Type{<:HomotopyReprDFG}, src::HomotopyReprLive) = HomotopyReprDFG(src)
 end
 
 
+## consolidate in IIF had weird cases requiring conversion between MArray and SArray types.  This convert became the easiest
+# trivial case with no convert between the same P point types
+convert(::Type{<:HomotopyDensityDFG{S,P}}, src::HomotopyDensityDFG{S,P}) where {S,P} = src
+function convert(
+  ::Type{<:HomotopyDensityDFG{S,sP}}, 
+  src::HomotopyDensityDFG{S,P}
+) where {S, sP, P}
+  # @info "convert" string(src.principal_elements) string(src.points) string(src.trailing_forms)
+
+  principal_elements = Vector{sP}(undef, length(src.principal_elements))
+  for i in 1:length(src.principal_elements)
+    if isassigned(src.principal_elements, i)
+      principal_elements[i] = convert(sP, src.principal_elements[i])
+    end
+  end
+  points = Vector{sP}(undef, length(src.points))
+  for i in 1:length(src.points)
+    if isassigned(src.points, i)
+      points[i] = convert(sP, src.points[i])
+    end
+  end
+
+  return HomotopyDensityDFG{S, sP}(;
+    reprkind = src.reprkind,
+    observability = src.observability,
+    principal_coeffs = src.principal_coeffs,
+    principal_elements,
+    principal_forms = src.principal_forms,
+    points,
+    weights = src.weights,
+    trailing_forms = src.trailing_forms,
+    structure = src.structure,
+  )
+end
+
+
 # Solve DataLevel 3.5
 const HomotopyDensity = Union{<:DistributedFactorGraphs.HomotopyDensityDFG, <:HomotopyDensityLive}
 
