@@ -2,7 +2,8 @@ Major news relating to breaking changes in ApproxManifoldProducts.jl
 
 ## v0.15 (26Q2)
 
-- Expand support for legacy manikde! bw.
+- `getBW` returns variance (not deviation)
+- Expand support for legacy `manikde!` bw; although use of `manikde!` is discouraged.
 - Delete various dead code.
 - Add `sample` function for `HomotopyDensity`.
 - Move some deprecated code, with warnings. 

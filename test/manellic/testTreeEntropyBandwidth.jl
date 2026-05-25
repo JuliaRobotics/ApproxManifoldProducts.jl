@@ -187,7 +187,10 @@ end
     bw_ = getBW(hode2)[1]
 
     # these should be the same
-    @test 10 < bw[1]
+    # test for variance over deviation confusion
+    @test 3 < sqrt(bw[1]) < 10 
+    @test bw[1] == cov(getKernelLeaf(hode2, 1))[1]
+    @test cov(getKernelLeaf(hode1, 1))[1] == cov(getKernelLeaf(hode2, 1))[1]
     @test isapprox(bw_, bw)
     @test ApproxManifoldProducts.mmd(hode1, hode2) < 1e-4
 
@@ -230,93 +233,94 @@ end
 ##
 end
 
-if !(v"1.11" < VERSION < v"1.12.0-beta99")
-    @testset "Multidimensional LOOCV bandwidth optimization, SpecialEuclideanGroup(2; variant = :right)" begin
-    ##
+# if !(v"1.11" < VERSION < v"1.12.0-beta99")
 
-        M = SpecialEuclideanGroup(2; variant = :right)
-        pts = [ArrayPartition(randn(2), Rot_.RotMatrix{2}(0.1 * randn()).mat) for _ = 1:64]
+@testset "Multidimensional LOOCV bandwidth optimization, SpecialEuclideanGroup(2; variant = :right)" begin
+##
 
-        bw = [1.0; 1.0; 0.3]
-        mtree = ApproxManifoldProducts.buildTree_Manellic!(
-            M,
-            pts;
-            kernel_bw = bw,
-            kernel = ConcentratedGaussianKernel,
-        )
+    M = SpecialEuclideanGroup(2; variant = :right)
+    pts = [ArrayPartition(randn(2), Rot_.RotMatrix{2}(0.1 * randn()).mat) for _ = 1:64]
 
-        cost4(σ) = begin
-            ApproxManifoldProducts.entropy(mtree, diagm(σ .^ 2))
-        end
+    bw = [1.0; 1.0; 0.3]
+    mtree = ApproxManifoldProducts.buildTree_Manellic!(
+        M,
+        pts;
+        kernel_bw = bw,
+        kernel = ConcentratedGaussianKernel,
+    )
 
-        # and optimize with "update" kernel bandwith cost
-        @time res = Optim.optimize(cost4, bw, Optim.NelderMead())
-
-        @test res.stopped_by.g_converged
-
-        @show best_cov = abs.(Optim.minimizer(res))
-
-        @test isapprox(0.6, best_cov[1]; atol = 0.35)
-        @test isapprox(0.6, best_cov[2]; atol = 0.35)
-        @test isapprox(0.06, best_cov[3]; atol = 0.04)
-
-        mkd = HomotopyDensity_legacy(M, pts)
-
-        @test isapprox([0.7 0; 0 0.7], getBW(mkd)[1][1:2, 1:2]; atol = 0.4)
-        @test isapprox(0.06, getBW(mkd)[1][3, 3]; atol = 0.04)
-
-    ##
+    cost4(σ) = begin
+        ApproxManifoldProducts.entropy(mtree, diagm(σ .^ 2))
     end
 
-    @testset "Multidimensional LOOCV bandwidth optimization, SpecialEuclideanGroup(3; variant = :right)" begin
-    ##
+    # and optimize with "update" kernel bandwith cost
+    @time res = Optim.optimize(cost4, bw, Optim.NelderMead())
 
-        M = SpecialEuclideanGroup(3; variant = :right)
-        pts = [
-            ArrayPartition(
-                SA[randn(3)...;],
-                SMatrix{3, 3, Float64}(collect(Rot_.RotXYZ(0.1 * randn(3)...))),
-            ) for _ = 1:64
-        ]
+    @test res.stopped_by.g_converged
 
-        bw = SA[1.0; 1.0; 1.0; 0.3; 0.3; 0.3]
-        mtree = ApproxManifoldProducts.buildTree_Manellic!(
-            M,
-            pts;
-            kernel_bw = bw,
-            kernel = ConcentratedGaussianKernel,
-        )
+    @show best_cov = abs.(Optim.minimizer(res))
 
-        cost4(σ) = begin
-            ApproxManifoldProducts.entropy(mtree, diagm(σ .^ 2))
-        end
+    @test isapprox(0.6, best_cov[1]; atol = 0.35)
+    @test isapprox(0.6, best_cov[2]; atol = 0.35)
+    @test isapprox(0.06, best_cov[3]; atol = 0.04)
 
-        # and optimize with "update" kernel bandwith cost
-        @time res = Optim.optimize(cost4, collect(bw), Optim.NelderMead())
+    mkd = HomotopyDensity_legacy(M, pts)
 
-        @test res.stopped_by.g_converged
+    @test isapprox([0.7 0; 0 0.7], getBW(mkd)[1][1:2, 1:2]; atol = 0.4)
+    @test isapprox(0.06, getBW(mkd)[1][3, 3]; atol = 0.04)
 
-        @show best_cov = abs.(Optim.minimizer(res))
-
-        @test isapprox([0.75; 0.75; 0.75], best_cov[1:3]; atol = 0.55)
-        @test isapprox([0.06; 0.06; 0.06], best_cov[4:6]; atol = 0.055)
-
-        mkd = HomotopyDensity_legacy(M, pts)
-
-        @test isapprox([0.75 0 0; 0 0.75 0; 0 0 0.75], getBW(mkd)[1][1:3, 1:3]; rtol = 0.55)
-        @test isapprox(
-            [0.07 0 0; 0 0.07 0; 0 0 0.07],
-            getBW(mkd)[1][4:6, 4:6];
-            atol = 0.055,
-        )
-
-    ##
-    end
-
-else
-    @test_broken false
-    @error "TODO: fix broken tests for multidimensional HomotopyDensity bandwidth optimization"
+##
 end
+
+@testset "Multidimensional LOOCV bandwidth optimization, SpecialEuclideanGroup(3; variant = :right)" begin
+##
+
+    M = SpecialEuclideanGroup(3; variant = :right)
+    pts = [
+        ArrayPartition(
+            SA[randn(3)...;],
+            SMatrix{3, 3, Float64}(collect(Rot_.RotXYZ(0.1 * randn(3)...))),
+        ) for _ = 1:64
+    ]
+
+    bw = SA[1.0; 1.0; 1.0; 0.3; 0.3; 0.3]
+    mtree = ApproxManifoldProducts.buildTree_Manellic!(
+        M,
+        pts;
+        kernel_bw = bw,
+        kernel = ConcentratedGaussianKernel,
+    )
+
+    cost4(σ) = begin
+        ApproxManifoldProducts.entropy(mtree, diagm(σ .^ 2))
+    end
+
+    # and optimize with "update" kernel bandwith cost
+    @time res = Optim.optimize(cost4, collect(bw), Optim.NelderMead())
+
+    @test res.stopped_by.g_converged
+
+    @show best_cov = abs.(Optim.minimizer(res))
+
+    @test isapprox([0.75; 0.75; 0.75], best_cov[1:3]; atol = 0.55)
+    @test isapprox([0.06; 0.06; 0.06], best_cov[4:6]; atol = 0.055)
+
+    mkd = HomotopyDensity_legacy(M, pts)
+
+    @test isapprox([0.75 0 0; 0 0.75 0; 0 0 0.75], getBW(mkd)[1][1:3, 1:3]; rtol = 0.55)
+    @test isapprox(
+        [0.07 0 0; 0 0.07 0; 0 0 0.07],
+        getBW(mkd)[1][4:6, 4:6];
+        atol = 0.055,
+    )
+
+##
+end
+
+# else
+#     @test_broken false
+#     @error "TODO: fix broken tests for multidimensional HomotopyDensity bandwidth optimization"
+# end
 
 ##
 # # using GLMakie

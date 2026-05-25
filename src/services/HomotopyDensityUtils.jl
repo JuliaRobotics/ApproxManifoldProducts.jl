@@ -258,7 +258,11 @@ function getPoints(
 end
 
 
+"""
+    getBW
 
+Return bandwidth(s) of kernel(s) in homotopy density as variance.
+"""
 function getBW(
     hode::HomotopyDensity,
     aspartial::Bool = true,

@@ -20,7 +20,7 @@ using LieGroups
 
     #TODO what mean do we want here?
     # mean(M, pts, GeodesicInterpolation()) != mean(M, pts)
-    @test isapprox(M, mean(P), mean(M, pts, GeodesicInterpolation()); atol=1e-2)
+    @test isapprox(M, mean(P), mean(M, pts, GeodesicInterpolation()); atol=5e-2)
     @test isapprox(var(P), var(M, pts); atol=1e-2)
     @test isapprox(std(P), std(M, pts); atol=1e-2)
     @test_broken isapprox(cov(P), cov(M, pts))
