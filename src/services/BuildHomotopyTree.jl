@@ -26,6 +26,7 @@ function buildTree_Manellic!(
     kernel_bw = nothing, # TODO
     partial::Union{Nothing, <:Tuple, AbstractVector{<:Integer}} = nothing,
     partl_cb::Union{Nothing, <:Function} = nothing,
+    observability::AbstractVector{<:Real} = zeros(getDimension(getManifold(statekind))),
 ) where {
     SM <: Union{<:AbstractManifold, <:StateType}, 
     P <: AbstractArray
@@ -72,6 +73,7 @@ function buildTree_Manellic!(
         points = r_PP,
         weights,
         trailing_forms,
+        observability,
     )
 
     #
