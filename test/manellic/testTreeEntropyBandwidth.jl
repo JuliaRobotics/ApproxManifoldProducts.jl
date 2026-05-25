@@ -173,6 +173,28 @@ end
 end
 
 
+@testset "HomotopyDensity bandwith optimization as variance or deviation" begin
+##
+
+    # first build a default density with larger bandwidth
+    M = LieGroups.TranslationGroup(1)
+    pts = [100 * randn(1) for _ = 1:64]
+    hode1 = HomotopyDensity_legacy(M, pts)
+    bw = getBW(hode1)[1]
+
+    # then rebuild the density again by forcing the same bandwidth and comparing the two resulting densities
+    hode2 = HomotopyDensity_legacy(M, pts; bw, newbw = false)
+    bw_ = getBW(hode2)[1]
+
+    # these should be the same
+    @test 10 < bw[1]
+    @test isapprox(bw_, bw)
+    @test ApproxManifoldProducts.mmd(hode1, hode2) < 1e-4
+
+##
+end
+
+
 @testset "Multidimensional LOOCV bandwidth optimization, LieGroups.TranslationGroup(2)" begin
 ##
 

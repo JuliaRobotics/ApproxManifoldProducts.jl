@@ -256,10 +256,10 @@ end
 
     #densities to multiply
     pts1 = [randn(d) for _ = 1:N]
-    P1 = manikde!(M, pts1; bw = [1; 1.0])
+    P1 = HomotopyDensity_legacy(M, pts1; bw = [1; 1.0])
 
     pts2 = [randn(d) for _ = 1:N]
-    P2 = manikde!(M, pts2; bw = [1; 1.0])
+    P2 = HomotopyDensity_legacy(M, pts2; bw = [1; 1.0])
 
 
 ## check basic product of root kernels
@@ -349,7 +349,7 @@ end
     @test all(l -> ApproxManifoldProducts.isLeaf_BTLabel(P2, l), sl2)
 
     # # check the sorting of the labels is consistent by rebuilding a shuffled belief
-    # P1_ = manikde!(M, shuffle(pts1); bw = [1; 1.0])
+    # P1_ = HomotopyDensity_legacy(M, shuffle(pts1); bw = [1; 1.0])
 
     # @test all(s->s[1] ≈ s[2], zip(getPoints(P1), getPoints(P1_)) )
 
@@ -442,8 +442,8 @@ end
     pts1 = [[0.05 * randn(2); 0.75 * randn()] for i = 1:N]
     pts2 = [[0.05 * randn(2); 0.75 * randn()] for i = 1:N]
 
-    P1 = manikde!(LieGroups.TranslationGroup(3), pts1)
-    P2 = manikde!(LieGroups.TranslationGroup(3), pts2)
+    P1 = HomotopyDensity_legacy(LieGroups.TranslationGroup(3), pts1)
+    P2 = HomotopyDensity_legacy(LieGroups.TranslationGroup(3), pts2)
 ##
     # P12 = P1 * P2
     P12 = manifoldProduct([P1; P2])
@@ -473,8 +473,8 @@ end
     pts1 = [exp(M, ϵ, hat(M, ϵ, [0.05 * randn(2); 0.75 * randn()])) for i = 1:N]
     pts2 = [exp(M, ϵ, hat(M, ϵ, [0.05 * randn(2); 0.75 * randn()])) for i = 1:N]
 
-    P1 = manikde!(M, pts1)
-    P2 = manikde!(M, pts2)
+    P1 = HomotopyDensity_legacy(M, pts1)
+    P2 = HomotopyDensity_legacy(M, pts2)
 
     # P12 = P1 * P2
     P12 = manifoldProduct([P1; P2])
