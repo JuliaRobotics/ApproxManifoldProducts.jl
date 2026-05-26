@@ -36,6 +36,8 @@ _forcemutable(s::MMatrix) = s
 _forcemutable(s::AbstractMatrix) = MMatrix{size(s)...}(s)
 _forcemutable(s::MVector) = s
 _forcemutable(s::AbstractVector) = MVector{length(s)}(s)
+_forcemutable(s::ArrayPartition) = ArrayPartition(_forcemutable.(s.x)...)
+
 
 # kernels explicitly change to partial definition via tuples (for clarity during development) 
 _tuple(p::Nothing) = p

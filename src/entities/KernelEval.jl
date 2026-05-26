@@ -42,12 +42,13 @@ function ConcentratedGaussianKernel(
     # @warn "MvNormalKernel is deprecated, use ConcentratedGaussianKernel instead, barr partial [maxlog=10]" maxlog=10
     _μ(s::AbstractArray, _p::Nothing, pf::Union{Nothing, <:Function}) = s
     _μ(s::AbstractArray, _p::Tuple, pf::Function) = begin
+        sn = _forcemutable(s)
         _s = deepcopy(s)
         _s_ = pf(_s)
-        fill!(s, NaN)
-        s_ = pf(s) # required for non-trivial points, eg SO/SE have more complicated representations
+        fill!(sn, NaN)
+        s_ = pf(sn) # required for non-trivial points, eg SO/SE have more complicated representations
         s_ .= _s_ # copy back only the partials, leave NaNs in the rest
-        return s
+        return _forcestatic(sn)
     end
 
     c_(s::AbstractMatrix, ::Nothing) = any(size(s) .== 1) ? diagm(vec(s)) : s
