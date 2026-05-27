@@ -128,14 +128,14 @@ function splitPointsEigen(
     # pick npts 3 because non-posdef issue more likely for small leaves
     lp = length(r_PP)
     mbw = _forcemutable(bw)
-    if lp <= 3
+    if lp <= 4
         _pbw = _viewprl(mbw, partial)
         _evv = eigen(_pbw)
-        if sum(_evv.values .> 1e-15) < length(_evv.values)
+        if sum(_evv.values .> 1e-14) < length(_evv.values)
             # HomotopyDensity tree build error, bandwidth $bw is not a valid covariance matrix for MvNormal kernel
             # Reconstruct to nearest positive definite matrix using Eigen factorization
             _evv_vals = _forcemutable(_evv.values)
-            _evv_vals[_evv_vals .<= 1e-15] .= 1e-15
+            _evv_vals[_evv_vals .<= 1e-14] .= 1e-14
             # in-place reconstruct covariance matrix with the modified eigenvalues
             _pbw .= _evv.vectors * diagm(_evv_vals) * _evv.vectors'
         end

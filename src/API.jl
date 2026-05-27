@@ -94,6 +94,7 @@ function manifoldProduct(
     ) # ?? was permute=false?
 
     # NOTE, resulting tree might not have N number of data points 
+    # FIXME, does not have to be kernels, although having the bandwidths should be useful for determining the product bw
     return buildTree_Manellic!(getStateKind(beliefs[1]), post)
 end
 

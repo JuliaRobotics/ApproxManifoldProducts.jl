@@ -277,19 +277,24 @@ function truncateOrSplitsort!(
         # set tree kernel
         # NOTE, THIS USED TO BE AFTER recursive subtree build
         wei = sum(view(hode.weights, idxsubset))
-        knl = ConcentratedGaussianKernel(
-            p, bw, wei; # TODO, try drop need for p here
-            partial, partl_cb
-        )
-        # NEW, set majors_ fields here
-        if length(hode.principal_coeffs) < index
-            resize!(hode.principal_coeffs, index)
-            resize!(hode.principal_elements, index) 
-            resize!(hode.principal_forms, index)
+        try
+            knl = ConcentratedGaussianKernel(
+                p, bw, wei; # TODO, try drop need for p here
+                partial, partl_cb
+            )
+            # NEW, set majors_ fields here
+            if length(hode.principal_coeffs) < index
+                resize!(hode.principal_coeffs, index)
+                resize!(hode.principal_elements, index) 
+                resize!(hode.principal_forms, index)
+            end
+            hode.principal_coeffs[index] = sum(view(hode.weights, idxsubset))
+            hode.principal_elements[index] = mean(knl)
+            hode.principal_forms[index] = cov(knl)
+        catch e
+            @error "DX bug stop, details:" string(bw) wei partial string(p)
+            rethrow(e)
         end
-        hode.principal_coeffs[index] = sum(view(hode.weights, idxsubset))
-        hode.principal_elements[index] = mean(knl)
-        hode.principal_forms[index] = cov(knl)
     end
 
     # for binary split
