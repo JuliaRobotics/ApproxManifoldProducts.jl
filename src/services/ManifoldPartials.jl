@@ -579,7 +579,7 @@ _partialCovToDefault!(::Nothing, s) = s
 function _partialCovToDefault!(p::Union{<:Tuple, <:AbstractVector{<:Integer}}, v::AbstractVector)
     mask = ones(Int, length(v)) .== 1
     mask[p] .= false
-    v[mask] .= 1.0 # FIXME, = Inf instead
+    v[mask] .= Inf # FIXME, = Inf instead
     return v
 end
 function _partialCovToDefault!(p::Union{<:Tuple, <:AbstractVector{<:Integer}}, m::AbstractMatrix)

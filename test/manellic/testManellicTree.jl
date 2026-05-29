@@ -31,7 +31,7 @@ function testEigenCoords!(r_C = pi / 3, ax_CC = [SA[5 * randn(); randn()] for _ 
         r_R_ax * ax_C + SA[10; -100]
     end
     r_CV = Manifolds.cov(M, r_CC)
-    r_R_ax_, L, pidx = ApproxManifoldProducts.eigenCoords!(r_CV)
+    r_R_ax_, _ = ApproxManifoldProducts.eigenCoords!(r_CV)
 
     # spot check
     M = LieGroups.SpecialOrthogonalGroup(2)
@@ -39,7 +39,7 @@ function testEigenCoords!(r_C = pi / 3, ax_CC = [SA[5 * randn(); randn()] for _ 
     @show testval = isapprox(0, _ax_ERR; atol = 8 / length(ax_CC))
     @assert testval "Spot check failed on eigen split of manifold points, the estimated point rotation matrix did not match construction. length(ax_CC)=$(length(ax_CC))"
 
-    return r_CC, r_R_ax_, pidx, r_CV
+    return r_CC, r_R_ax_, r_CV
 end
 
 ##
@@ -48,7 +48,7 @@ end
 
     M = TranslationGroup(2)
     α = pi / 3
-    r_CC, R, pidx, r_CV = testEigenCoords!(α)
+    r_CC, R, r_CV = testEigenCoords!(α)
     ax_CCp, mask, _p, _bw = splitPointsEigen(M, r_CC)
     @warn "Improve tests on return tuple values of splitPointsEigen"
     # @test knl isa ConcentratedGaussianKernel

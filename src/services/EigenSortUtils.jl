@@ -11,37 +11,51 @@
 function eigenCoords!(
     f_CVp::AbstractMatrix;
     partial::Union{Nothing, <:Tuple} = nothing,
+    kernel_bw = nothing,
 )
-    function _decomp(
-        evc::AbstractMatrix, 
-        evl::AbstractVector, 
-        _toflip::Bool = det(evc) < 0
-    )
-        pidx = _toflip ? sortperm(evl; rev = true) : collect(1:length(evl))
-        Q = evc[:, pidx]
-        L = diagm(evl[pidx])
-        # FIXME, handle partials -- i.e. embed in larger matrices
-        return Q, L, pidx
-    end
+    _legacybw(b::Nothing, c::AbstractMatrix) = c
+    _legacybw(b::AbstractMatrix, c::AbstractMatrix) = isapprox(0.0, norm(c)) ? b : c
+    _legacybw(b::AbstractVector, c::AbstractMatrix) = isapprox(0.0, norm(c)) ? diagm(b) : c
 
-    # workaround for zero covariance
-    if isapprox(0.0, norm(f_CVp))
-        len = isnothing(partial) ? size(f_CVp, 1) : length(partial)
-        f_Q_ax = Matrix{Float64}(I, len, len)
-        Λ = zeros(len, len)
-        pidx = collect(1:len)
-        return f_Q_ax, Λ, pidx
-    end
-
-    # FIXME embed partial dimensions inside the full non-partial covariance.
+    # TBD embed partial dimensions inside the full non-partial covariance.
+    # _f_CVp mutability required during rank deficient fix later 
     _f_CVp = _partialCovToDefault!(partial, _forcemutable(f_CVp))
+    # _f_CVp = _partialCovToDefault!(partial, _forcemutable(_legacybw(kernel_bw, f_CVp)))
 
-    E = eigen(_f_CVp)
-    f_Q_ax, Λ, pidx = _decomp(E.vectors, E.values)
+    # # workaround for zero covariance -- TBD rather remove
+    # if isapprox(0.0, norm(f_CVp))
+    #     len = isnothing(partial) ? size(f_CVp, 1) : length(partial)
+    #     f_Q_ax = Matrix{Float64}(I, len, len)
+    #     # Λ = zeros(len, len)
+    #     pidx = collect(1:len)
+    #     return f_Q_ax, pidx, _legacybw(kernel_bw, _f_CVp)
+    # end
+
+    # towards top-down bandwidth continuation
+    # perform eigend decomposition and reconstruction on only the active dimensions
+    _partlCVinpl = _viewprl(_f_CVp, partial)
+    _evv = eigen(_partlCVinpl)
+    # HomotopyDensity tree build error, bandwidth $bw is not a valid covariance matrix for MvNormal kernel
+    # Reconstruct to nearest positive definite matrix using Eigen factorization
+    _evv_vals = _forcemutable(_evv.values)
+    # Ensure the returned bandwidth/covariance matrix is positive definite by small increases in zero eigen values
+    # more likely to effect small sample sizes
+    _evv_vals[_evv_vals .<= 1e-14] .= 1e-14
+    # in-place reconstruct covariance matrix with the modified eigenvalues
+    _partlCVinpl .= _evv.vectors * diagm(_evv_vals) * _evv.vectors'
+
+    _evv2 = eigen(_f_CVp) # FIXME, now includes Inf and repeat calc barr partials
+    # TBD, why sort pidx on negetive determinant? TODO write motive -- something about largest eigen value at pidx[end]
+    pidx = det(_evv2.vectors) < 0 ? sortperm(_evv2.values; rev = true) : collect(1:length(_evv2.values))
+    f_Q_ax = _evv2.vectors[:, pidx]
+    ## FIXME, only do one eigen w partials
+
     # largest variance is on coord `dim = pidx[end]`
     # derotate cloud for easy split
     # swap points order left and right of split
-    return f_Q_ax, Λ, pidx
+
+    # FIXME, if kernel_bw is provided, why wait so late to apply it?
+    return f_Q_ax, _legacybw(kernel_bw, _f_CVp)
 end
 
 
@@ -64,9 +78,6 @@ function splitPointsEigen(
     # partl_cb::Union{Nothing, <:Function} = nothing,
 ) where {P <: AbstractArray}
     #
-    _legacybw(b::Nothing, c::AbstractMatrix) = c
-    _legacybw(b::AbstractMatrix, c::AbstractMatrix) = isapprox(0.0, norm(c)) ? b : c
-    _legacybw(b::AbstractVector, c::AbstractMatrix) = isapprox(0.0, norm(c)) ? diagm(b) : c
 
     # important, covariance is calculated around mean of points, which enables log to avoid singularities
     # do calculations around mean point on manifold, i.e. towards Riemannian
@@ -102,7 +113,7 @@ function splitPointsEigen(
     # if !isapprox(0.0, norm(cv)) 
         # NOTE, this if block started out with coordinates only, so `partial` while ignoring `partl_cb`.
         # expecting largest variation on coord dimension `pidx[end]`
-        r_R_ax, Λ, pidx = eigenCoords!(cv; partial)
+        r_R_ax, bw = eigenCoords!(cv; partial, kernel_bw)
         ax_R_r = r_R_ax'
 
         # rotate coordinates
@@ -121,27 +132,9 @@ function splitPointsEigen(
     # end
     midoffset = sum(xor.(mask, true)) - 1
 
-    # handle some edge cases relating to covariance estimation
-    bw = _legacybw(kernel_bw, cv)
 
-    # towards top-down bandwidth continuation
-    # pick npts 3 because non-posdef issue more likely for small leaves
-    lp = length(r_PP)
-    mbw = _forcemutable(bw)
-    if lp <= 4
-        _pbw = _viewprl(mbw, partial)
-        _evv = eigen(_pbw)
-        if sum(_evv.values .> 1e-14) < length(_evv.values)
-            # HomotopyDensity tree build error, bandwidth $bw is not a valid covariance matrix for MvNormal kernel
-            # Reconstruct to nearest positive definite matrix using Eigen factorization
-            _evv_vals = _forcemutable(_evv.values)
-            _evv_vals[_evv_vals .<= 1e-14] .= 1e-14
-            # in-place reconstruct covariance matrix with the modified eigenvalues
-            _pbw .= _evv.vectors * diagm(_evv_vals) * _evv.vectors'
-        end
-    end
     # return rotated coordinates and split mask
-    return ax_CCp, mask, midoffset, p, mbw
+    return ax_CCp, mask, midoffset, p, bw
 end
 
 

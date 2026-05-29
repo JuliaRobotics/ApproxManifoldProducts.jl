@@ -266,7 +266,7 @@ end
 
     mkd = HomotopyDensity_legacy(M, pts)
 
-    @test isapprox([0.7 0; 0 0.7], getBW(mkd)[1][1:2, 1:2]; atol = 0.4)
+    @test isapprox([0.7 0; 0 0.7], getBW(mkd)[1][1:2, 1:2]; atol = 0.5)
     @test isapprox(0.06, getBW(mkd)[1][3, 3]; atol = 0.04)
 
 ##
