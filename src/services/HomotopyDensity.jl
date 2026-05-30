@@ -121,8 +121,8 @@ function HomotopyDensity_legacy(
     _cost(σ::AbstractVector) = entropy(hode, diagm(__partialCovToDefault!(σ .^ 2)))
     _cost(σ::AbstractMatrix) = entropy(hode,       __partialCovToDefault!(σ ^ 2)  )
 
-    _bw(v::AbstractVector) = __partialCovToDefault!(v)
-    _bw(m::AbstractMatrix) = _bw(diag(m))
+    _bw(v::AbstractVector) = __partialCovToDefault!(_forcemutable(v))
+    _bw(m::AbstractMatrix) = _bw(diag(_forcemutable(m)))
 
     # optimize for best LOOCV bandwidth
     # FIXME switch to RLM (or other Manopt) techinque instead 
