@@ -233,43 +233,15 @@ end
 
 
 function _rotateCoordsPartial(
-    M::AbstractLieGroup,
+    ::AbstractLieGroup,
     r_CCp::AbstractVector,
     ax_R_r::AbstractMatrix;
     partial::Union{Nothing, <:Tuple} = nothing,
 )
-    _unrollpartial(::Nothing) = LinearAlgebra.I
-    _unrollpartial(p::Tuple) = begin
-        m = zeros(Int,manifold_dimension(M))
-        m[[p...]] .= 1
-        return m
-    end
-    _unrollpartial(p::ArrayPartition) = error("TODO _unrollpartial for ArrayPartition")
-    _ = _unrollpartial(partial) # FIXME
-    _ax_R_r = _forcemutable(ax_R_r)
-    # remove Nans
-    for i in axes(_ax_R_r, 1)
-        for j in axes(_ax_R_r, 2)
-            if !isnothing(partial) && (!(i in partial) || !(j in partial))
-                # default values for inactive elements of rotation matrix
-                _ax_R_r[i,j] = i == j ? 1.0 : 0.0
-            end
-            # else leave row and column unchanged
-        end
-    end
-
     # rotate coordinates
     return map(r_CCp) do r_Cp
         _r_Cp = _viewprl(r_Cp, partial)
-        # _r_Cp = _forcemutable(r_Cp)
-        # for j in 1:length(_r_Cp)
-        #     if !isnothing(partial) && !(j in partial)
-        #         # default values for inactive coordinates
-        #         _r_Cp[j] = 0.0
-        #     end
-        #     # else leave coordinate unchanged
-        # end
-        _ax_R_r * _r_Cp
+        ax_R_r * _r_Cp
     end
 end
 

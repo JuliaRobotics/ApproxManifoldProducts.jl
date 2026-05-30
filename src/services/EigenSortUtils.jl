@@ -20,7 +20,6 @@ function eigenCoords!(
     # TBD embed partial dimensions inside the full non-partial covariance.
     # _f_CVp mutability required during rank deficient fix later 
     _f_CVp = _partialCovToDefault!(partial, _forcemutable(f_CVp))
-    # _f_CVp = _partialCovToDefault!(partial, _forcemutable(_legacybw(kernel_bw, f_CVp)))
 
     # workaround for zero covariance -- TBD rather remove
     if isapprox(0.0, norm(f_CVp))
@@ -43,11 +42,9 @@ function eigenCoords!(
     _partlCVinpl .= _evv.vectors * diagm(_evv_vals) * _evv.vectors'
 
 
-    # _evv2 = eigen(_f_CVp) # FIXME, now includes Inf and repeat calc barr partials
     # TBD, why sort pidx on negetive determinant? TODO write motive -- something about largest eigen value at pidx[end]
     pidx = det(_evv.vectors) < 0 ? sortperm(_evv.values; rev = true) : collect(1:length(_evv.values))
     f_Q_ax = _evv.vectors[:, pidx]
-    ## FIXME, only do one eigen w partials
 
     # largest variance is on coord `dim = pidx[end]`
     # derotate cloud for easy split
@@ -113,30 +110,25 @@ function splitPointsEigen(
     # geometric split made possible by sum(imask) instead of just data split (classification labeling must happen in cosort) 
     ax_CCp = r_CCp
 
-    # # TODO, handle these if-else cases better
-    # if !isapprox(0.0, norm(cv)) 
-        # NOTE, this if block started out with coordinates only, so `partial` while ignoring `partl_cb`.
-        # expecting largest variation on coord dimension `pidx[end]`
-        r_R_ax, bw = eigenCoords!(cv; partial, kernel_bw)
-        ax_R_r = r_R_ax'
+    # NOTE, this if block started out with coordinates only, so `partial` while ignoring `partl_cb`.
+    # expecting largest variation on coord dimension `pidx[end]`
+    r_R_ax, bw = eigenCoords!(cv; partial, kernel_bw)
+    ax_R_r = r_R_ax'
 
-        # rotate coordinates
-        ax_CCp = _rotateCoordsPartial(M, r_CCp, ax_R_r; partial)
+    # rotate coordinates
+    ax_CCp = _rotateCoordsPartial(M, r_CCp, ax_R_r; partial)
 
-        # Sort data along the major eigen vector direction -- i.e. first coord after rotation
-        #  this is a local test around base point p (not at global 0)
-        ax_CC1 = (s -> s[1]).(ax_CCp)
-        mask = 0 .<= ax_CC1
-        # mask = 0 .<= (ax_CCp .|> (s -> isnothing(partial) ? s[1] : s[partial[1]]))
+    # Sort data along the major eigen vector direction -- i.e. first coord after rotation
+    #  this is a local test around base point p (not at global 0)
+    ax_CC1 = (s -> s[1]).(ax_CCp)
+    mask = 0 .<= ax_CC1
 
-        imask = xor.(mask, true)
-        _flipmask_minormax!(imask, mask, ax_CC1; argminmax = argmin)
-        _flipmask_minormax!(mask, imask, ax_CC1; argminmax = argmax)
+    imask = xor.(mask, true)
+    _flipmask_minormax!(imask, mask, ax_CC1; argminmax = argmin)
+    _flipmask_minormax!(mask, imask, ax_CC1; argminmax = argmax)
 
-        # geometric split made possible by sum(imask) instead of just data split (classification labeling must happen in cosort) 
-    # end
+    # geometric split made possible by sum(imask) instead of just data split (classification labeling must happen in cosort) 
     midoffset = sum(xor.(mask, true)) - 1
-
 
     # return rotated coordinates and split mask
     return mask, midoffset, p, bw
