@@ -36,6 +36,8 @@ _forcemutable(s::MMatrix) = s
 _forcemutable(s::AbstractMatrix) = MMatrix{size(s)...}(s)
 _forcemutable(s::MVector) = s
 _forcemutable(s::AbstractVector) = MVector{length(s)}(s)
+_forcemutable(s::ArrayPartition) = ArrayPartition(_forcemutable.(s.x)...)
+
 
 # kernels explicitly change to partial definition via tuples (for clarity during development) 
 _tuple(p::Nothing) = p
@@ -231,42 +233,15 @@ end
 
 
 function _rotateCoordsPartial(
-    M::AbstractLieGroup,
+    ::AbstractLieGroup,
     r_CCp::AbstractVector,
     ax_R_r::AbstractMatrix;
     partial::Union{Nothing, <:Tuple} = nothing,
 )
-    _unrollpartial(::Nothing) = LinearAlgebra.I
-    _unrollpartial(p::Tuple) = begin
-        m = zeros(Int,manifold_dimension(M))
-        m[[p...]] .= 1
-        return m
-    end
-    _unrollpartial(p::ArrayPartition) = error("TODO _unrollpartial for ArrayPartition")
-    _ = _unrollpartial(partial) # FIXME
-    _ax_R_r = _forcemutable(ax_R_r)
-    # remove Nans
-    for i in axes(_ax_R_r, 1)
-        for j in axes(_ax_R_r, 2)
-            if !isnothing(partial) && (!(i in partial) || !(j in partial))
-                # default values for inactive elements of rotation matrix
-                _ax_R_r[i,j] = i == j ? 1.0 : 0.0
-            end
-            # else leave row and column unchanged
-        end
-    end
-
     # rotate coordinates
     return map(r_CCp) do r_Cp
-        _r_Cp = _forcemutable(r_Cp)
-        for j in 1:length(_r_Cp)
-            if !isnothing(partial) && !(j in partial)
-                # default values for inactive coordinates
-                _r_Cp[j] = 0.0
-            end
-            # else leave coordinate unchanged
-        end
-        _ax_R_r * _r_Cp
+        _r_Cp = _viewprl(r_Cp, partial)
+        ax_R_r * _r_Cp
     end
 end
 
@@ -577,7 +552,7 @@ _partialCovToDefault!(::Nothing, s) = s
 function _partialCovToDefault!(p::Union{<:Tuple, <:AbstractVector{<:Integer}}, v::AbstractVector)
     mask = ones(Int, length(v)) .== 1
     mask[p] .= false
-    v[mask] .= 1.0 # FIXME, = Inf instead
+    v[mask] .= Inf # FIXME, = Inf instead
     return v
 end
 function _partialCovToDefault!(p::Union{<:Tuple, <:AbstractVector{<:Integer}}, m::AbstractMatrix)

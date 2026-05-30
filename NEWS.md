@@ -2,6 +2,7 @@ Major news relating to breaking changes in ApproxManifoldProducts.jl
 
 ## v0.15 (26Q2)
 
+- Speedup of internal `eigenSplit` binary tree construction by consolidating calculations eigen, bandwidth factoring, and partials (still in coordinates in this portion of code).  
 - `getBW` returns variance (not deviation)
 - Expand support for legacy `manikde!` bw; although use of `manikde!` is discouraged.
 - Delete various dead code.

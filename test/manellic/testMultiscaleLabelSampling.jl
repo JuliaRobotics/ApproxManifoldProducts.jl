@@ -68,7 +68,7 @@ using JSON3
     randp = randn(1)
 
     # split the slice of order-permuted data
-    _, mask, midoffset, p, bw = ApproxManifoldProducts.splitPointsEigen(
+    mask, midoffset, p, bw = ApproxManifoldProducts.splitPointsEigen(
         M,
         [randp, randp];
         kernel_bw = [1;;],
