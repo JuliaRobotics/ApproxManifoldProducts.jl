@@ -297,7 +297,7 @@ end
     # preemptively check splitPoints 
     begin
         
-        ax_CCp, mask, _p, _bw = ApproxManifoldProducts.splitPointsEigen(
+        mask, _p, _bw = ApproxManifoldProducts.splitPointsEigen(
             M,
             pts;
             kernel_bw = bw,
@@ -357,7 +357,7 @@ end
     # preemptively check splitPoints 
     begin
         
-        ax_CCp, mask, _p, _bw = ApproxManifoldProducts.splitPointsEigen(
+        mask, _p, _bw = ApproxManifoldProducts.splitPointsEigen(
             M,
             pts;
             kernel_bw = bw,

@@ -22,14 +22,12 @@ function eigenCoords!(
     _f_CVp = _partialCovToDefault!(partial, _forcemutable(f_CVp))
     # _f_CVp = _partialCovToDefault!(partial, _forcemutable(_legacybw(kernel_bw, f_CVp)))
 
-    # # workaround for zero covariance -- TBD rather remove
-    # if isapprox(0.0, norm(f_CVp))
-    #     len = isnothing(partial) ? size(f_CVp, 1) : length(partial)
-    #     f_Q_ax = Matrix{Float64}(I, len, len)
-    #     # Λ = zeros(len, len)
-    #     pidx = collect(1:len)
-    #     return f_Q_ax, pidx, _legacybw(kernel_bw, _f_CVp)
-    # end
+    # workaround for zero covariance -- TBD rather remove
+    if isapprox(0.0, norm(f_CVp))
+        len = isnothing(partial) ? size(f_CVp, 1) : length(partial)
+        f_Q_ax = Matrix{Float64}(I, len, len)
+        return f_Q_ax, _legacybw(kernel_bw, _f_CVp)
+    end
 
     # towards top-down bandwidth continuation
     # perform eigend decomposition and reconstruction on only the active dimensions
@@ -44,17 +42,23 @@ function eigenCoords!(
     # in-place reconstruct covariance matrix with the modified eigenvalues
     _partlCVinpl .= _evv.vectors * diagm(_evv_vals) * _evv.vectors'
 
-    _evv2 = eigen(_f_CVp) # FIXME, now includes Inf and repeat calc barr partials
+
+    # _evv2 = eigen(_f_CVp) # FIXME, now includes Inf and repeat calc barr partials
     # TBD, why sort pidx on negetive determinant? TODO write motive -- something about largest eigen value at pidx[end]
-    pidx = det(_evv2.vectors) < 0 ? sortperm(_evv2.values; rev = true) : collect(1:length(_evv2.values))
-    f_Q_ax = _evv2.vectors[:, pidx]
+    pidx = det(_evv.vectors) < 0 ? sortperm(_evv.values; rev = true) : collect(1:length(_evv.values))
+    f_Q_ax = _evv.vectors[:, pidx]
     ## FIXME, only do one eigen w partials
 
     # largest variance is on coord `dim = pidx[end]`
     # derotate cloud for easy split
     # swap points order left and right of split
 
-    # FIXME, if kernel_bw is provided, why wait so late to apply it?
+    # Eigen rotation matrix, TODO likely easier to replace wholesale with SVD instead
+    if isapprox(0.0, norm(f_CVp))
+        len = isnothing(partial) ? size(f_CVp, 1) : length(partial)
+        f_Q_ax = Matrix{Float64}(I, len, len)
+    end
+
     return f_Q_ax, _legacybw(kernel_bw, _f_CVp)
 end
 
@@ -121,10 +125,11 @@ function splitPointsEigen(
 
         # Sort data along the major eigen vector direction -- i.e. first coord after rotation
         #  this is a local test around base point p (not at global 0)
-        mask = 0 .<= (ax_CCp .|> (s -> isnothing(partial) ? s[1] : s[partial[1]]))
+        ax_CC1 = (s -> s[1]).(ax_CCp)
+        mask = 0 .<= ax_CC1
+        # mask = 0 .<= (ax_CCp .|> (s -> isnothing(partial) ? s[1] : s[partial[1]]))
 
         imask = xor.(mask, true)
-        ax_CC1 = (s -> s[1]).(ax_CCp)
         _flipmask_minormax!(imask, mask, ax_CC1; argminmax = argmin)
         _flipmask_minormax!(mask, imask, ax_CC1; argminmax = argmax)
 
@@ -134,7 +139,7 @@ function splitPointsEigen(
 
 
     # return rotated coordinates and split mask
-    return ax_CCp, mask, midoffset, p, bw
+    return mask, midoffset, p, bw
 end
 
 

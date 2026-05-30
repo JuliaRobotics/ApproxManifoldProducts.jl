@@ -397,7 +397,7 @@ end
         
         @test isapprox([9.0;], Statistics.mean(pts))
         
-        ax_CCp, mask, _p, _bw = ApproxManifoldProducts.splitPointsEigen(
+        mask, _p, _bw = ApproxManifoldProducts.splitPointsEigen(
             M,
             pts;
             kernel_bw = bw,
@@ -606,7 +606,7 @@ end
     M = LieGroups.TranslationGroup(2)
     α = pi / 3
     r_CC, R, r_CV = testEigenCoords!(α)
-    ax_CCp, mask, midoffset, _p, _bw = ApproxManifoldProducts.splitPointsEigen(M, r_CC)
+    mask, midoffset, _p, _bw = ApproxManifoldProducts.splitPointsEigen(M, r_CC)
 
     # should be around 50 points smaller than geometric middle out of 100 
     @test isapprox(50, midoffset; atol=5) 

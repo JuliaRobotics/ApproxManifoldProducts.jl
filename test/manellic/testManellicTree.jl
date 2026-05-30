@@ -49,7 +49,7 @@ end
     M = TranslationGroup(2)
     α = pi / 3
     r_CC, R, r_CV = testEigenCoords!(α)
-    ax_CCp, mask, _p, _bw = splitPointsEigen(M, r_CC)
+    mask, _p, _bw = splitPointsEigen(M, r_CC)
     @warn "Improve tests on return tuple values of splitPointsEigen"
     # @test knl isa ConcentratedGaussianKernel
     @test sum(mask) == (length(r_CC) ÷ 2)

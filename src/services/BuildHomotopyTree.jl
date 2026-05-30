@@ -312,7 +312,7 @@ function splitsortBinary!(
     # partial::Union{Nothing, <:Tuple},
 )
     # split the slice of order-permuted data
-    _, mask, midoffset, p, bw = splitPointsEigen(
+    mask, midoffset, p, bw = splitPointsEigen(
         getManifold(hode),
         view(hode.points, idxsubset);
         kernel_bw,

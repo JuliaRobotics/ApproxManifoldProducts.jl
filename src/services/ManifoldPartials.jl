@@ -260,14 +260,15 @@ function _rotateCoordsPartial(
 
     # rotate coordinates
     return map(r_CCp) do r_Cp
-        _r_Cp = _forcemutable(r_Cp)
-        for j in 1:length(_r_Cp)
-            if !isnothing(partial) && !(j in partial)
-                # default values for inactive coordinates
-                _r_Cp[j] = 0.0
-            end
-            # else leave coordinate unchanged
-        end
+        _r_Cp = _viewprl(r_Cp, partial)
+        # _r_Cp = _forcemutable(r_Cp)
+        # for j in 1:length(_r_Cp)
+        #     if !isnothing(partial) && !(j in partial)
+        #         # default values for inactive coordinates
+        #         _r_Cp[j] = 0.0
+        #     end
+        #     # else leave coordinate unchanged
+        # end
         _ax_R_r * _r_Cp
     end
 end
