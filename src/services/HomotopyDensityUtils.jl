@@ -277,7 +277,7 @@ function getBW(
     else
         error("This homotopy density has no principal or trailing covariance/bw.")
     end
-    if isnothing(partl) && aspartial
+    if (!isnothing(partl)) && aspartial
         return (bw->_getpartial(partl, bw)).(bws)
     end
     return bws

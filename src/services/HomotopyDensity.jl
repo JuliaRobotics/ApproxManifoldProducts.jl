@@ -91,6 +91,7 @@ function HomotopyDensity_legacy(
     newbw::Bool = true,
     algo = Optim.NelderMead(),
     observability::AbstractVector{<:Real} = zeros(manifold_dimension(getManifold(kind))),
+    weights::AbstractVector{<:Real} = ones(length(pts)) .* (1 / length(pts)),
     kw...
 )
     #
@@ -110,6 +111,7 @@ function HomotopyDensity_legacy(
         partial = _tuple(partial),
         partl_cb,
         observability,
+        weights,
     )
 
     # mask bw for partially excluded dimensions -- assumed 1.0 from legacy but...
