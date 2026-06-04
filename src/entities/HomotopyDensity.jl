@@ -56,7 +56,8 @@ function HomotopyReprDFG(
     throw(ArgumentError("JSON.jl serde using DFG representation requires statekind to be a StateType -- you can easily expand serde support for your manifold with DistributedFactorGraph.@defStateType.  Alternatively, Homotopy*Live supports direct use of Manifolds.jl types without serde: $statekind"))
   end
   if !(partial isa Nothing)
-    throw(ArgumentError("JSON.jl serde using DFG representation does not currently support partials -- you can easily expand serde support for your partial with DistributedFactorGraph.@defPartialTrait.  Alternatively, Homotopy*Live supports direct use of partials without serde."))
+    # throw(ArgumentError("JSON.jl serde using DFG representation does not currently support partials -- you can easily expand serde support for your partial with DistributedFactorGraph.@defPartialTrait.  Alternatively, Homotopy*Live supports direct use of partials without serde."))
+    @error("JSON.jl serde using DFG representation does not currently support partials -- you can easily expand serde support for your partial with DistributedFactorGraph.@defPartialTrait.  Alternatively, Homotopy*Live supports direct use of partials without serde.")
   end
   return DistributedFactorGraphs.HomotopyReprDFG(
     topologykind,
