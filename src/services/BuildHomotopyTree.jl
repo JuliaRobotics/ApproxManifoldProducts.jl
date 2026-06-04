@@ -278,10 +278,10 @@ function truncateOrSplitsort!(
         # NOTE, THIS USED TO BE AFTER recursive subtree build
         wei = sum(view(hode.weights, idxsubset))
         try
-            knl = ConcentratedGaussianKernel(
-                p, bw, wei; # TODO, try drop need for p here
-                partial, partl_cb
-            )
+            # knl = ConcentratedGaussianKernel(
+            #     p, bw, wei; # TODO, try drop need for p here
+            #     partial, partl_cb
+            # )
             # NEW, set majors_ fields here
             if length(hode.principal_coeffs) < index
                 resize!(hode.principal_coeffs, index)
@@ -289,8 +289,8 @@ function truncateOrSplitsort!(
                 resize!(hode.principal_forms, index)
             end
             hode.principal_coeffs[index] = sum(view(hode.weights, idxsubset))
-            hode.principal_elements[index] = mean(knl)
-            hode.principal_forms[index] = cov(knl)
+            hode.principal_elements[index] = p # mean(knl)
+            hode.principal_forms[index] = bw # cov(knl)
         catch e
             @error "DX bug stop, details:" string(bw) wei partial string(p)
             rethrow(e)
