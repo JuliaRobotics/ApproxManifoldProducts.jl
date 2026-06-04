@@ -37,7 +37,9 @@ function eigenCoords!(
     _evv_vals = _forcemutable(_evv.values)
     # Ensure the returned bandwidth/covariance matrix is positive definite by small increases in zero eigen values
     # more likely to effect small sample sizes
-    _evv_vals[_evv_vals .<= 1e-14] .= 1e-14
+    # use relative measure based on numerical precision of Float64 v maximum eigen value
+    numthres = maximum(_evv_vals)*(2*eps(Float64))
+    _evv_vals[_evv_vals .<= numthres] .= numthres
     # in-place reconstruct covariance matrix with the modified eigenvalues
     _partlCVinpl .= _evv.vectors * diagm(_evv_vals) * _evv.vectors'
 

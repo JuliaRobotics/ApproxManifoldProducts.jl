@@ -87,14 +87,19 @@ function HomotopyDensity_legacy(
     kind::Union{<:AbstractManifold, <:StateType},
     pts::AbstractVector;
     partial = nothing,
-    bw = diagm(ones(manifold_dimension(getManifold(kind)))),
+    bw = nothing, # diagm(ones(manifold_dimension(getManifold(kind)))),
     newbw::Bool = true,
     algo = Optim.NelderMead(),
     observability::AbstractVector{<:Real} = zeros(manifold_dimension(getManifold(kind))),
+    weights::AbstractVector{<:Real} = ones(length(pts)) .* (1 / length(pts)),
     kw...
 )
-    #
-    _legacybw(::Nothing) = bw
+    __bw = if isnothing(bw)
+        diagm(ones(manifold_dimension(getManifold(kind))))
+    else
+        bw
+    end
+    _legacybw(::Nothing) = __bw
     _legacybw(s::AbstractMatrix) = any(size(s) .== 1) ? diagm(vec(s)) : s
     _legacybw(s::AbstractVector) = diagm(s)
 
@@ -110,6 +115,7 @@ function HomotopyDensity_legacy(
         partial = _tuple(partial),
         partl_cb,
         observability,
+        weights,
     )
 
     # mask bw for partially excluded dimensions -- assumed 1.0 from legacy but...
@@ -133,7 +139,7 @@ function HomotopyDensity_legacy(
             Optim.optimize((s) -> _cost([s;]), lcov[1], ucov[1], Optim.GoldenSection())
         [Optim.minimizer(res);;]
     elseif newbw
-        bw0 = isnothing(bw) ? getBW(hode)[1] : bw
+        bw0 = isnothing(bw) ? getBW(hode, false)[1] : bw # TODO consolidate with legacybw earlier
         res = Optim.optimize(
             _cost,
             _bw(bw0), # FIXME Optim API issue, if using bw::matrix then steps not PDMat (NelderMead) 
@@ -141,7 +147,7 @@ function HomotopyDensity_legacy(
         )
         diagm(abs.(Optim.minimizer(res)))
     else
-        bw
+        _legacybw(__bw)
     end
     __partialCovToDefault!(best_cov)
 
