@@ -366,73 +366,86 @@ end
 _rand(::Type{Univariate}, hode::HomotopyDensity) = sample(hode, 1)[1][:][]
 _rand(::Type{Multivariate}, hode::HomotopyDensity) = sample(hode, 1)[1][:]
 
-function resample(x::HomotopyDensity, N::Int)
-    pts = if N < Npts(x)
-        # get points with non-partial coord dims so that new MKD can be built
-        shuffle(getPoints(x, false))[1:N]
-    else
-        _pts, = sample(x, N)
-        _pts
+
+
+# need a smart resampler which equalizes weights in the case of a mostly equally weighted set of particles
+function resample(
+    hode::HomotopyDensity,
+    N::Integer;
+    mode::Symbol = :selective,
+)
+    function _selective()
+        _pointtype(::HomotopyDensityDFG{H, P}) where {H,P} = P
+        _pointtype(::HomotopyDensityLive{H, P}) where {H,P} = P
+        P = _pointtype(hode)
+        # assume Npts is not equal to N
+        # target weigths
+        tw = 1 / N
+        # selectively resample only these indices
+        ws = getWeights(hode; permute = false)
+        ix = findall(w -> w > tw + eps(Float64), ws)
+        # transfer keep points to new vector
+        ik = setdiff(1:Npts(hode), ix)
+        pts = getPoints(hode; permute = false)
+        pts2 = Vector{eltype(pts)}(undef, N)
+        view(pts2, 1:length(ik)) .= view(pts, ik)
+        # sequentially fill in the remaining points for selective resampling
+        i_ = length(ik)
+        manif = getManifold(hode)
+        for i in ix
+            nw = 0.0
+            kr = getKernelLeaf(hode, i)
+            while nw <= tw + eps(Float64)
+                i_ += 1
+                pts2[i_] = sample(manif, kr, P)
+                nw += tw
+            end
+        end
+
+        return pts2
     end
-    return HomotopyDensity_legacy(
-        getStateKind(x),
-        pts;
-        partial = getPartial(x),
-        observability = x.observability,
-    )
+
+    function _brute()
+        pts = if N < Npts(hode)
+            # get points with non-partial coord dims so that new MKD can be built
+            shuffle(getPoints(hode, false))[1:N]
+        else
+            _pts, = sample(hode, N)
+            _pts
+        end
+        return pts
+    end
+
+    function _newhode(pts::AbstractVector)
+        return HomotopyDensity_legacy(
+            getStateKind(hode),
+            pts;
+            partial = getPartial(hode),
+            observability = hode.observability,
+        )
+    end
+
+    # Check if 00% to 75% weights are all the same value
+    wes = getWeights(hode; permute = false)
+    miw = minimum(wes)
+    mxw = maximum(wes)
+    if length(wes) > 0
+        q00 = quantile(wes, 0.00)
+        q75 = quantile(wes, 0.75)
+        many_middle = all(w -> q00 <= w <= q75 ? isapprox(q00, w) : true, wes)
+    end
+
+    # manually dispatch options -- TBD improve signatures for better multiple dispatch    
+    return if N == Npts(hode)
+        # trivial case does nothing and returns the same input density
+        hode
+    elseif mode == :brute || N < Npts(hode) || !many_middle || isapprox(miw, mxw)
+        _newhode(_brute())
+    elseif mode == :selective
+        _newhode(_selective())
+    end
 end
 
-
-function updateBandwidths(
-    hode::HD, 
-    bws;
-    partl_cb::Union{Nothing, <:Function} = nothing,
-) where {HD <: HomotopyDensity}
-    #
-    _getBW(s::Float64, ::Int) = [s;;]
-    _getBW(s::AbstractVector{<:Real}, ::Int) = s
-    _getBW(s::AbstractMatrix{<:Real}, ::Int) = s
-    _getBW(s::AbstractVector{<:AbstractArray}, _i::Int) = s[_i]
-
-    N = Npts(hode)
-
-    (nzi,_) = SparseArrays.findnz(hode.trailing_forms)
-
-    # leaf_kernels = Vector{HL}(undef, N)
-    # for (i, lk) in enumerate(hode.leaf_kernels)
-    for i in nzi
-        nkl = ConcentratedGaussianKernel(getKernelLeaf(hode, i); Σ = _getBW(bws, i), partl_cb)
-        # leaf_kernels[i] = nkl # updateKernelBW(lk, _getBW(bws, i))
-        # new replacement field instead of .leaf_kernels
-        # if i in nzi
-            cv = cov(nkl)
-            hode.trailing_forms[i] = _forcestatic(cv)
-        # end
-    end
-    partial = getPartial(hode)
-    reprkind = HomotopyRepr(
-        hode.reprkind;
-        partial,
-    )
-    # kind = getManifold(hode) 
-    # reprkind = HomotopyRepr{
-    #     BinaryTruncFixedDepth{3},
-    #     ConcentratedGaussianKernel,
-    #     typeof(kind),
-    #     typeof(partial),
-    # }(kind, partial)
-
-    return HD(;
-        reprkind,
-        points = hode.points,
-        weights = hode.weights,
-        structure = hode.structure,
-        principal_coeffs = hode.principal_coeffs,
-        principal_elements = hode.principal_elements,
-        principal_forms = hode.principal_forms,
-        trailing_forms = hode.trailing_forms,
-    )
-end
 
 """
     $SIGNATURES

@@ -118,3 +118,13 @@ function ConcentratedGaussianKernel(
 end
 
 
+# quick write, probably a few FIXME
+function sample(manif::AbstractManifold, ker::ConcentratedGaussianKernel, P)
+    _Compose(m::AbstractLieGroup, p, x) = LieGroups.compose(m, p, exp(m, hat(LieAlgebra(m), x, P)))
+    _Compose(m::AbstractManifold, p, x) = Manifolds.compose(m, p, exp(m, p, hat(m, p, x)))
+
+    Xc = rand(ker.functional)
+    p = mean(ker)
+    return _Compose(manif, p, Xc)
+end
+
