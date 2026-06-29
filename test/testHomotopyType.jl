@@ -83,3 +83,7 @@ HomotopyDensityDFG(hd)
 
 ##
 
+# test resampling
+@test 5 == Npts(resample(hd, 5))
+
+##

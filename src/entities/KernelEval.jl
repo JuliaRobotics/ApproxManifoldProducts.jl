@@ -83,7 +83,7 @@ function ConcentratedGaussianKernel{
     Σ = nothing,
 ) where {L,F,P,Z,S}
 
-    _matType(::Type{Distributions.PDMats.PDMat{_F, _M}}) where {_F, _M} = _M
+    _matType(::Type{Distributions.PDMats.PDMat{Float64, _M, C}}) where {_M, C} = _M
     _sap(::Type{ArrayPartition{T,_S}}) where {T,_S} = _S
     _new(s) = S(s)
     _new(s::ArrayPartition{T,O}) where {T,O} = ArrayPartition(begin
@@ -117,4 +117,14 @@ function ConcentratedGaussianKernel(
     return ConcentratedGaussianKernel{L,MvNormal{F,P,Z},S}(src; partl_cb, Σ, kw...)
 end
 
+
+# quick write, probably a few FIXME
+function sample(manif::AbstractManifold, ker::ConcentratedGaussianKernel, P)
+    _Compose(m::AbstractLieGroup, p, x) = LieGroups.compose(m, p, exp(m, hat(LieAlgebra(m), x, P)))
+    _Compose(m::AbstractManifold, p, x) = Manifolds.compose(m, p, exp(m, p, hat(m, p, x)))
+
+    Xc = rand(ker.functional)
+    p = mean(ker)
+    return _Compose(manif, p, Xc)
+end
 
