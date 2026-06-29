@@ -83,7 +83,7 @@ function ConcentratedGaussianKernel{
     Σ = nothing,
 ) where {L,F,P,Z,S}
 
-    _matType(::Type{Distributions.PDMats.PDMat{_F, _M}}) where {_F, _M} = _M
+    _matType(::Type{Distributions.PDMats.PDMat{Float64, _M, C}}) where {_M, C} = _M
     _sap(::Type{ArrayPartition{T,_S}}) where {T,_S} = _S
     _new(s) = S(s)
     _new(s::ArrayPartition{T,O}) where {T,O} = ArrayPartition(begin
