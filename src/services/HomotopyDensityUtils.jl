@@ -381,9 +381,10 @@ function resample(
         # assume Npts is not equal to N
         # target weigths
         tw = 1 / N
+        tw_ = tw + eps(Float64)
         # selectively resample only these indices
         ws = getWeights(hode; permute = false)
-        ix = findall(w -> w > tw + eps(Float64), ws)
+        ix = findall(w -> tw_ < w, ws)
         # transfer keep points to new vector
         ik = setdiff(1:Npts(hode), ix)
         pts = getPoints(hode; permute = false)
@@ -393,12 +394,13 @@ function resample(
         i_ = length(ik)
         manif = getManifold(hode)
         for i in ix
-            nw = 0.0
+            # nw = 0.0
             kr = getKernelLeaf(hode, i)
-            while nw <= tw + eps(Float64)
+            wx = ws[i]
+            while tw <= wx
                 i_ += 1
                 pts2[i_] = sample(manif, kr, P)
-                nw += tw
+                wx -= (tw - eps(Float64)) # small numerical issue each tome
             end
         end
 
