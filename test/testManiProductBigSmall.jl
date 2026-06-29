@@ -40,18 +40,17 @@ using TensorCast
 
 ##
 
-    rpq = resample(pq, N; mode = :selective)
-    X12_ = getPoints(rpq)
+    X12_ = getPoints(pq)
 
     N_ = length(X12_)
 
     # initial Manellic products was dropping points, this is a reminder to restore the desired number of output points
-    @test N == Npts(rpq)
+    @test N == Npts(pq)
 
     XX = (s -> s.x[1][1]).(X12_)
     YY = (s -> s.x[1][2]).(X12_)
     R0 = [1. 0; 0 1]
-    TT = (s -> log(getManifold(rpq).manifold[2], R0, s.x[2])[1,2]).(X12_)
+    TT = (s -> log(getManifold(pq).manifold[2], R0, s.x[2])[1,2]).(X12_)
 
     @test 0.7 * N_ < sum(abs.(XX) .< 0.3)
     @test 0.7 * N_ < sum(abs.(YY) .< 0.3)

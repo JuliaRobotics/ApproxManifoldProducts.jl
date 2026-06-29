@@ -95,7 +95,8 @@ function manifoldProduct(
 
     # NOTE, resulting tree might not have N number of data points 
     # FIXME, does not have to be kernels, although having the bandwidths should be useful for determining the product bw
-    return buildTree_Manellic!(getStateKind(beliefs[1]), post; weights)
+    prehode = buildTree_Manellic!(getStateKind(beliefs[1]), post; weights)
+    return resample(prehode, N)
 end
 
 # FIXME, this product does not handle combinations of different partial beliefs properly yet
