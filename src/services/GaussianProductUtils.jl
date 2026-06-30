@@ -38,7 +38,7 @@ function calcProductGaussians_flat(
         imask = prlm .== 0
         if 0 < sum(imask)
             __S = view(_S, imask, imask)
-            for i in 1:length(sum(imask))
+            for i in 1:sum(imask)
                 __S[i,i] = Inf
             end
          end
