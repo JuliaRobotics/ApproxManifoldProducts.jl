@@ -149,9 +149,9 @@ function calcProductGaussians(
 
     # first transport (push forward) covariances to common coordinates (at μ1)
     Σμ1_hat = map(zip(μ_, Σ_)) do (p, Σp)
-        Xμ1 = log(M, μ1, p) # reminder, Xμ1 is the vector from μ1 to p
+        Xμ1 = log(M, μ1, p)
         pJμ1 = transport_jacobian_fnc(M, Xμ1) # Affie reminder, please add numerical jacobian examples from 26Q3
-        μ1Jp = inv(pJμ1)
+        μ1Jp = inv(pJμ1) # reminder, Xμ1 is the vector from μ1 to p and we want to push forward covariances to the first estimated mean μ1 and therefore take the inverse of the Jacobian here to push Σp forward from p to μ1.
         return μ1Jp * Σp * (μ1Jp') # Ge, Mahony 2024, eq. 10
     end
 
