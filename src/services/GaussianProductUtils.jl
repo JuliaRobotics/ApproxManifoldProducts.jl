@@ -113,8 +113,7 @@ spaces, `(M, d) -> J::AbstractMatrix` with `d` a Lie algebra element:
 - `parallel_transport_curvature_2nd_lie` (default): 2nd order curvature approximation,
 
 DevNotes:
-- FIXME is parallel transport needed as products involve covariances from different tangent spaces?
-- TODO avoid recomputing covariance matrix inverses all the time
+- TODO avoid recomputing covariance matrix inverses all the time -- work directly with Precision matrix and pull-back instead
 """
 function calcProductGaussians(
     M::AbstractLieGroup,
