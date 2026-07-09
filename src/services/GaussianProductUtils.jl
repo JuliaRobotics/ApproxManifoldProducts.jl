@@ -152,7 +152,7 @@ function calcProductGaussians(
         Xμ1 = log(M, μ1, p)
         pJμ1 = transport_jacobian_fnc(M, Xμ1) # Affie reminder, please add numerical jacobian examples from 26Q3
         μ1Jp = inv(pJμ1)
-        return μ1Jp * Σp * (μ1Jp')
+        return μ1Jp * Σp * (μ1Jp') # Ge, Mahony 2024, eq. 10
     end
 
     # do product of transported covariances, relative to the identity element because of compose above
