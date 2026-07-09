@@ -1,7 +1,5 @@
 # Common Utils
 
-
-
 function calcProductGaussians_flat(
     M::AbstractManifold,
     μ_::Union{<:AbstractVector{P}, <:NTuple{N, P}}, # point type commonly known as P (actually on-manifold)
@@ -9,21 +7,21 @@ function calcProductGaussians_flat(
     μ0 = nothing, #mean(M, _makevec(μ_)), # Tangent space reference around the evenly weighted mean of incoming points
     Λ_ = nothing, #inv.(Σ_),
     weight::Real = 1.0,
-    partials::Union{<:AbstractVector, <:Tuple} = [nothing for _ in 1:length(μ_)],
+    partials::Union{<:AbstractVector, <:Tuple} = [nothing for _ = 1:length(μ_)],
     do_transport_correction::Bool = true,
 ) where {N, P <: AbstractArray, S <: AbstractMatrix{<:Real}}
     # resolve partial reductions when summing "incomplete" inverse covariance matrices
     function _sumprecisionpartials(S)
         if all(isnothing.(partials))
             _S = +(S...)
-            return _S, length(μ_)*ones(Int,size(S[1],1))
+            return _S, length(μ_)*ones(Int, size(S[1], 1))
         end
         s1 = _forcemutable(S[1])
         _S = similar(s1)
         fill!(_S, 0.0)
         # duplicating in new _mergepartials function, WIP
-        prlm = zeros(Int,size(_S,1))
-        for (s,pl) in zip(S,partials)
+        prlm = zeros(Int, size(_S, 1))
+        for (s, pl) in zip(S, partials)
             _S_ = _viewprl(_S, pl)
             _S_ .+= _viewprl(s, pl)
             if isnothing(pl)
@@ -38,10 +36,10 @@ function calcProductGaussians_flat(
         imask = prlm .== 0
         if 0 < sum(imask)
             __S = view(_S, imask, imask)
-            for i in 1:sum(imask)
-                __S[i,i] = Inf
+            for i = 1:sum(imask)
+                __S[i, i] = Inf
             end
-         end
+        end
         # return summed precions and partialmask
         return _S, prlm
     end
@@ -49,7 +47,7 @@ function calcProductGaussians_flat(
     # _μ0
     # _Λ_
     _μ0 = isnothing(μ0) ? _mean(M, μ_; partials) : μ0
-    _Λ_ = isnothing(Λ_) ? _invs(Σ_; partials) : Λ_ 
+    _Λ_ = isnothing(Λ_) ? _invs(Σ_; partials) : Λ_
     # prepare an emply destination template matrix
     tmpl = _forcemutable(similar(_μ0))
     fill!(tmpl, 0)
@@ -91,7 +89,7 @@ function calcProductGaussians_flat(
 
     Σr = inv(Matrix(Λ))
     for i in (1:length(prlm))[prlm .== 0]
-        Σr[i,i] = Inf # likely better to have /Lambda have 0s on partials instead
+        Σr[i, i] = Inf # likely better to have /Lambda have 0s on partials instead
     end
     # return the full dimension product mean and covariance (with honored partials)
     return _Δμc, Σr, prlm
@@ -110,77 +108,81 @@ Notes
 - https://ccrma.stanford.edu/~jos/sasp/Product_Two_Gaussian_PDFs.html
 - Pennec, X. Intrinsic Statistics on Riemannian Manifolds: Basic Tools for Geometric Measurements, HAL Archive, 2011, Inria, France.
 
+Keyword `transport_jacobian_fnc` selects how covariances are transported between tangent
+spaces, `(M, d) -> J::AbstractMatrix` with `d` a Lie algebra element:
+- `parallel_transport_curvature_2nd_lie` (default): 2nd order curvature approximation,
+
 DevNotes:
-- FIXME is parallel transport needed as products involve covariances from different tangent spaces?
-- TODO avoid recomputing covariance matrix inverses all the time
+- TODO avoid recomputing covariance matrix inverses all the time -- work directly with Precision matrix and pull-back instead
 """
 function calcProductGaussians(
-    M::AbstractManifold,
+    M::AbstractLieGroup,
     μ_::Union{<:AbstractVector{P}, <:NTuple{N, P}}, # point type commonly known as P (actually on-manifold)
     Σ_::Union{<:AbstractVector{S}, <:NTuple{N, S}};
     μ0 = nothing, # Tangent space reference around the evenly weighted mean of incoming points
     Λ_ = nothing,
-    partials::Union{<:AbstractVector, <:Tuple} = [nothing for _ in 1:length(μ_)],
+    partials::Union{<:AbstractVector, <:Tuple} = [nothing for _ = 1:length(μ_)],
     do_transport_correction::Bool = true,
+    transport_jacobian_fnc::Function = parallel_transport_curvature_2nd_lie,
     weight::Real = 1.0,
 ) where {N, P <: AbstractArray, S <: AbstractMatrix{<:Real}}
-    # TODO, use upstream proper dispatch -- doing this just in case there are still refac to LieGroups.jl bugs
-    _hat(manif::AbstractManifold, μ, u) = hat(manif, μ, u)
-    _hat(manif::AbstractLieGroup, μ, u) = hat(LieAlgebra(manif), u, typeof(μ))
-    _Exp(manif::AbstractManifold, μ, u) = exp(manif, μ, _hat(manif, μ, u))
-    _Exp(manif::AbstractLieGroup, μ, u) = exp(manif, μ, _hat(manif, μ, u))
-    _compose(manif::AbstractManifold, μ, u) = Manifolds.compose(manif, μ, u)
-    _compose(manif::AbstractLieGroup, μ, u) = LieGroups.compose(manif, μ, u)
+    𝔤 = LieAlgebra(M)
 
     # step 0, resolve partials
     # Tangent space reference around the evenly weighted mean of incoming points
-    _μ0 = isnothing(μ0) ? _mean(M, μ_; partials) : μ0
-    _Λ_ = isnothing(Λ_) ? _invs(Σ_; partials) : Λ_
+    _μ0 = something(μ0, _mean(M, μ_; partials))
+    _Λ_ = something(Λ_, _invs(Σ_; partials))
 
     # step 1, basic/naive Gaussian product (ignoring disjointed covariance coordinates) 
-    Δμn, Σn, prlm = calcProductGaussians_flat(M, μ_, Σ_; μ0=_μ0, Λ_=_Λ_, weight, partials)
-    
-    # correction on basis μ0 to account for the fact that the product mean is not actually at the tangent space origin (μ0) of the incoming covariances
-    Δμ = _Exp(M, _μ0, Δμn)
+    Xc_μ0, Σn, prlm =
+        calcProductGaussians_flat(M, μ_, Σ_; μ0 = _μ0, Λ_ = _Λ_, weight, partials)
 
-    # @info "calcProductGaussians" eltype(μ_) typeof(_μ0) typeof(Δμ)
+    # correction on basis μ0 to account for the fact that the product mean is not actually at the tangent space origin (μ0) of the incoming covariances
+    μ1 = exp(M, _μ0, hat(𝔤, Xc_μ0, P))
+
+    # @info "calcProductGaussians" eltype(μ_) typeof(_μ0) typeof(μ1)
 
     # for development and testing cases return without doing transport
     # FIXME partials skips parallel transport correction #330
-    do_transport_correction && all(isnothing.(partials)) ? nothing : (return Δμ, Σn, prlm)
+    do_transport_correction && all(isnothing.(partials)) ? nothing : (return μ1, Σn, prlm)
 
-    # first transport (push forward) covariances to common coordinates
-    # see [Ge, van Goor, Mahony, 2024]
-    iΔμ = inv(M, Δμ)
-    μi_ = map(u -> _compose(M, iΔμ, u), μ_)
-    μi_̂ = map(u -> log(M, _μ0, u), μi_)
-    # μi = map(u->vee(M,_μ0,u), μi_̂ )
-    Ji = ApproxManifoldProducts.parallel_transport_curvature_2nd_lie.(Ref(M), μi_̂)
-    iJi = inv.(Ji)
-    # Affie asks if we should consider isotropic or "piecewise" isotropic covariances 
-    #  to simplify this step, as the parallel transport of a full covariance matrix 
-    #  is expensive and may not be necessary for some applications -- i.e. only scalar transport.
-    # Dehann asks for homotopy density, bottom of tree associates with smallest eigen values,
-    #  so isotropic significance may be traceable.
-    # Part of using new name homotopy -- i.e. continuation from isotropic to full covariance depending on depth.
-    #  separation between leaf kernels infitesimally becomes zero curvature.
-    #  In the extreme case of infinite depth homotopy density tree, eigen values become zero so bandwidths become irrelevant. 
-    Σi_hat = map((J, S) -> J * S * (J'), iJi, Σ_)
+    # first transport (push forward) covariances to common coordinates (at μ1)
+    Σμ1_hat = map(zip(μ_, Σ_)) do (p, Σp)
+        Xμ1 = log(M, μ1, p)
+        pJμ1 = transport_jacobian_fnc(M, Xμ1) # Affie reminder, please add numerical jacobian examples from 26Q3
+        μ1Jp = inv(pJμ1) # reminder, Xμ1 is the vector from μ1 to p and we want to push forward covariances to the first estimated mean μ1 and therefore take the inverse of the Jacobian here to push Σp forward from p to μ1.
+        return μ1Jp * Σp * (μ1Jp') # Ge, Mahony 2024, eq. 10
+    end
+
+    # do product of transported covariances, relative to the identity element because of compose above
+    # consider using Δμ in place of _μ0
+    Xc_μ1, Σμ1_diam, prlm = ApproxManifoldProducts.calcProductGaussians_flat(
+        M,
+        μ_,
+        Σμ1_hat;
+        μ0 = μ1,
+        weight,
+        partials,
+    ) # partials do not make it this far yet
 
     # Reset step to absorb extended μ+ coordinates into kernel on-manifold μ 
-    # consider using Δμ in place of _μ0
-    Δμplusc, Σdiam, prlm =
-    ApproxManifoldProducts.calcProductGaussians_flat(M, μi_, Σi_hat; μ0=_μ0, weight, partials) # partials do not make it this far yet
-    Δμplus_̂  = _hat(M, _μ0, Δμplusc)
-    Δμplus = exp(M, _μ0, Δμplus_̂ )
-        # Δμplus = _Exp(M, _μ0, Δμplusc)
-    μ_plus = _compose(M, Δμ, Δμplus)
-    Jμ = ApproxManifoldProducts.parallel_transport_curvature_2nd_lie(M, Δμplus_̂ )
-    Σ_plus = Jμ * Σdiam * (Jμ')
+    X_μ1 = hat(𝔤, Xc_μ1, P)
+    μplus = exp(M, μ1, X_μ1)
+    μpJμ1 = transport_jacobian_fnc(M, X_μ1)
+    Σμplus = μpJμ1 * Σμ1_diam * (μpJμ1')
 
     # return new mean and covariance
-    return μ_plus, Σ_plus, prlm
+    return μplus, Σμplus, prlm
 end
+
+# Affie asks if we should consider isotropic or "piecewise" isotropic covariances 
+#  to simplify this step, as the parallel transport of a full covariance matrix 
+#  is expensive and may not be necessary for some applications -- i.e. only scalar transport.
+# Dehann asks for homotopy density, bottom of tree associates with smallest eigen values,
+#  so isotropic significance may be traceable.
+# Part of using new name homotopy -- i.e. continuation from isotropic to full covariance depending on depth.
+#  separation between leaf kernels infitesimally becomes zero curvature.
+#  In the extreme case of infinite depth homotopy density tree, eigen values become zero so bandwidths become irrelevant.
 
 # REMEMBER, this is an additional dispatch case for covariances passed as diagonal vectors 
 function calcProductGaussians(
@@ -188,24 +190,21 @@ function calcProductGaussians(
     μ_::Union{<:AbstractVector{P}, <:NTuple{N, P}},
     Σ_::Union{<:AbstractVector{S}, <:NTuple{N, S}},
     w...;
-    partials::AbstractVector = [nothing for _ in 1:length(μ_)],
+    partials::AbstractVector = [nothing for _ = 1:length(μ_)],
     kw...,
 ) where {N, P, S <: AbstractVector}
     # error("calcProductGaussians excessive wrapper?")
-        # still pass nothing, to avoid stack overflow.  Only Λ_ is needed further
+    # still pass nothing, to avoid stack overflow.  Only Λ_ is needed further
     if isnothing(eltype(partials))
         error("diagonal case for calcProductGaussian partial support is TODO")
     end
 
-    kers = [ConcentratedGaussianKernel(p, C; partial) for (p, C, partial) in zip(μ_, Σ_, partials)]
-    return calcProductGaussians(
-        M,
-        kers,
-        w...;
-        kw...
-    )
+    kers = [
+        ConcentratedGaussianKernel(p, C; partial) for
+        (p, C, partial) in zip(μ_, Σ_, partials)
+    ]
+    return calcProductGaussians(M, kers, w...; kw...)
 end
-
 
 """
     $SIGNATURES
@@ -222,11 +221,12 @@ function calcProductGaussians(
     M::AbstractManifold,
     kernels::Union{
         <:AbstractVector{<:ConcentratedGaussianKernel}, # FIXME, product of components with different partials???
-        <:NTuple{N, <:ConcentratedGaussianKernel}
+        <:NTuple{N, <:ConcentratedGaussianKernel},
     };
     μ0 = nothing,
     weight::Real = 1.0,
     do_transport_correction::Bool = true,
+    transport_jacobian_fnc::Function = parallel_transport_curvature_2nd_lie,
 ) where {N}
     _getmat(s::AbstractMatrix) = s
 
@@ -240,17 +240,21 @@ function calcProductGaussians(
     partials = _getprl.(kernels)
     # CHECK this should be on-manifold for points
     # parallel transport needed for covariances from different tangent spaces
-    _μ, _Σ, ipc = calcProductGaussians(M, μ_, Σ_; μ0, partials, do_transport_correction)
+    _μ, _Σ, ipc = calcProductGaussians(
+        M,
+        μ_,
+        Σ_;
+        μ0,
+        partials,
+        do_transport_correction,
+        transport_jacobian_fnc,
+    )
     # @info "calcProductGaussians" typeof(μ_) typeof(_μ)
-    
+
     # FIXME, inflate any partial results
     _partial = findall(!iszero, ipc)
     __partial = length(_partial) == manifold_dimension(M) ? nothing : _partial
     __partial_ = _tuple(__partial)
     M_, reprl, partl_cb = getManifoldPartial(M, __partial_, _μ)
-    return ConcentratedGaussianKernel(_μ, _Σ, weight; partial=__partial_, partl_cb)
+    return ConcentratedGaussianKernel(_μ, _Σ, weight; partial = __partial_, partl_cb)
 end
-
-
-
-#

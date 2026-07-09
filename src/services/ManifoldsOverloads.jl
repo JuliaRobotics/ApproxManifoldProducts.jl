@@ -194,9 +194,9 @@ function parallel_transport_curvature_2nd_lie(M::LieGroupManifoldsPirate, d)
     # Lie algebra adjoint matrix
     adx = ad(M, -0.5 * d)
     # parallel_transport_direction_lie (without curvature)
-    P = exp(adx)
+    P = exp(adx) # TBD, is this related to using -0.5d with [LG.diff_left_compose](https://juliamanifolds.github.io/LieGroups.jl/stable/interface/group/#LieGroups.diff_left_compose-Tuple{AbstractLieGroup,%20Any,%20Any,%20Any})?
     # include 2nd order curvature correction
-    return P * (LinearAlgebra.I + 1 / 24 * adx^2)
+    return P * (LinearAlgebra.I + 1 / 6 * adx^2)
 end
 
 # d: Lie algebra for the direction of transport
@@ -274,7 +274,7 @@ end
 function ad(::typeof(SpecialEuclideanGroup(3; variant = :right)), d::ArrayPartition)
     v1x = LieGroups.hat(LieAlgebra(SpecialOrthogonalGroup(3)), d.x[1]) # skew(d.x[1])
     Ω = d.x[2]
-    return vcat(hcat(Ω, Vx), hcat(zero(SMatrix{3, 3, Float64}), Ω))
+    return vcat(hcat(Ω, v1x), hcat(zero(SMatrix{3, 3, Float64}), Ω))
 end
 
 function Ad(::typeof(SpecialEuclideanGroup(2; variant = :right)), p)
