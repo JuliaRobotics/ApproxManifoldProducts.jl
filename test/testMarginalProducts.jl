@@ -774,7 +774,7 @@ end
             selectedLabels = sl,
         )
 
-        @test_broken isPartial(P)
+        @test isPartial(P)
         @test_broken getPartial(P) == [1; 3]
 
         # @show sl;

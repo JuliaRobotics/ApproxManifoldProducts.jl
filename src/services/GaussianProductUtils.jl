@@ -108,9 +108,13 @@ Notes
 - https://ccrma.stanford.edu/~jos/sasp/Product_Two_Gaussian_PDFs.html
 - Pennec, X. Intrinsic Statistics on Riemannian Manifolds: Basic Tools for Geometric Measurements, HAL Archive, 2011, Inria, France.
 
-Keyword `transport_jacobian_fnc` selects how covariances are transported between tangent
-spaces, `(M, d) -> J::AbstractMatrix` with `d` a Lie algebra element:
-- `parallel_transport_curvature_2nd_lie` (default): 2nd order curvature approximation,
+Keyword `jacobian_exp_fnc` selects the left-trivialized Jacobian of exp function, called as
+`jacobian_exp_fnc(M, p, d)` with `p` the group point the Jacobian is evaluated relative to and
+`d` a Lie algebra element:
+- `jacobian_exp_best` (default): best available left-trivialized Jacobian of exp, i.e. the analytical
+  closed form (via `LieGroups.jacobian_exp`) where available, otherwise a fast Padé fallback.
+- `jacobian_exp_PTC_2nd` / `jacobian_exp_PTC_4th`: approximate via parallel transport on the canonical
+  Cartan-Schouten connection with 2nd/4th order curvature correction.
 
 DevNotes:
 - TODO avoid recomputing covariance matrix inverses all the time -- work directly with Precision matrix and pull-back instead
@@ -123,7 +127,7 @@ function calcProductGaussians(
     Λ_ = nothing,
     partials::Union{<:AbstractVector, <:Tuple} = [nothing for _ = 1:length(μ_)],
     do_transport_correction::Bool = true,
-    transport_jacobian_fnc::Function = parallel_transport_curvature_2nd_lie,
+    jacobian_exp_fnc = jacobian_exp_best,
     weight::Real = 1.0,
 ) where {N, P <: AbstractArray, S <: AbstractMatrix{<:Real}}
     𝔤 = LieAlgebra(M)
@@ -149,7 +153,7 @@ function calcProductGaussians(
     # first transport (push forward) covariances to common coordinates (at μ1)
     Σμ1_hat = map(zip(μ_, Σ_)) do (p, Σp)
         Xμ1 = log(M, μ1, p)
-        pJμ1 = transport_jacobian_fnc(M, Xμ1) # Affie reminder, please add numerical jacobian examples from 26Q3
+        pJμ1 = jacobian_exp_fnc(M, μ1, Xμ1)
         μ1Jp = inv(pJμ1) # reminder, Xμ1 is the vector from μ1 to p and we want to push forward covariances to the first estimated mean μ1 and therefore take the inverse of the Jacobian here to push Σp forward from p to μ1.
         return μ1Jp * Σp * (μ1Jp') # Ge, Mahony 2024, eq. 10
     end
@@ -168,7 +172,7 @@ function calcProductGaussians(
     # Reset step to absorb extended μ+ coordinates into kernel on-manifold μ 
     X_μ1 = hat(𝔤, Xc_μ1, P)
     μplus = exp(M, μ1, X_μ1)
-    μpJμ1 = transport_jacobian_fnc(M, X_μ1)
+    μpJμ1 = jacobian_exp_fnc(M, μ1, X_μ1)
     Σμplus = μpJμ1 * Σμ1_diam * (μpJμ1')
 
     # return new mean and covariance
@@ -226,7 +230,7 @@ function calcProductGaussians(
     μ0 = nothing,
     weight::Real = 1.0,
     do_transport_correction::Bool = true,
-    transport_jacobian_fnc::Function = parallel_transport_curvature_2nd_lie,
+    jacobian_exp_fnc = jacobian_exp_best,
 ) where {N}
     _getmat(s::AbstractMatrix) = s
 
@@ -247,7 +251,7 @@ function calcProductGaussians(
         μ0,
         partials,
         do_transport_correction,
-        transport_jacobian_fnc,
+        jacobian_exp_fnc,
     )
     # @info "calcProductGaussians" typeof(μ_) typeof(_μ)
 
