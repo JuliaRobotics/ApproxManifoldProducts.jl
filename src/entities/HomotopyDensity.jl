@@ -153,6 +153,7 @@ function updateBandwidths(
         principal_elements = hode.principal_elements,
         principal_forms = hode.principal_forms,
         trailing_forms = hode.trailing_forms,
+        observability = hode.observability,
     )
 end
 
@@ -334,6 +335,7 @@ function HomotopyReprDFG(
     # throw(ArgumentError("JSON.jl serde using DFG representation does not currently support partials -- you can easily expand serde support for your partial with DistributedFactorGraph.@defPartialTrait.  Alternatively, Homotopy*Live supports direct use of partials without serde."))
     @error("JSON.jl serde using DFG representation does not currently support partials -- you can easily expand serde support for your partial with DistributedFactorGraph.@defPartialTrait.  Alternatively, Homotopy*Live supports direct use of partials without serde.")
   end
+  # error("nopartial")
   return DistributedFactorGraphs.HomotopyReprDFG(
     topologykind,
     formkind,
@@ -393,6 +395,7 @@ function convert(
     end
   end
 
+  # FIXME this looses partial/marginal information, since it is not stored in density dfg v0.29
   return HomotopyDensityDFG{S, sP}(;
     reprkind = src.reprkind,
     observability = src.observability,

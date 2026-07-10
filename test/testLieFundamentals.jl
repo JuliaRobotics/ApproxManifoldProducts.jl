@@ -25,10 +25,13 @@ using Distributions
     M = SpecialOrthogonalGroup(2)
     p = identity_element(M)
     Xc = 0.5 * randn(1)
-    X = hat(M, p, Xc)   # random algebra element
+    X = hat(LieAlgebra(M), Xc)   # random algebra element
+    q = exp(M, X)
+    
     d̂ = 0.5 * randn(1)
-    d = hat(M, p, d̂)    # direction in algebra
+    d = hat(LieAlgebra(M), d̂)    # direction in algebra
 
+    
     @test isapprox(ApproxManifoldProducts.ad_lie(M, X), ApproxManifoldProducts.ad(M, X))
 
     ad_mat = ApproxManifoldProducts.ad_lie(M, X)
@@ -37,9 +40,15 @@ using Distributions
 
     @test isapprox(0.0, ad_mat[1, 1])
 
-    # ptcMat = ApproxManifoldProducts.parallel_transport_curvature_2nd_lie(M, d)
+    # FIXME, compare results between local Mahony and LieGroups/ManifoldsBase results
+    ptcMat = ApproxManifoldProducts.parallel_transport_curvature_2nd_lie(M, d)
+    hat(LieAlgebra(M), ptcMat * d̂)
+    dvt = BaseManifoldVectorTransportMethod(default_vector_transport_method(M))
+    res = LieGroups.vector_transport_to(M, p, d, q, dvt)
 
-    @error "Missing SO(2) vector transport numerical verify tests"
+    @test isapprox(res, hat(LieAlgebra(M), ptcMat * d̂))
+
+    # @error "Missing SO(2) vector transport numerical verify tests"
     # # # @test isapprox(Jl*inv(Jr), R) == [Ad(R)]
     # # Jr = ptcMat
     # # Jl = ptcMat'
@@ -56,9 +65,10 @@ end
 ##
 
     M = SpecialOrthogonalGroup(3)
-    p = LieGroups.Identity(M)
+    p = identity_element(M)#LieGroups.Identity(M)
     Xc = [1.0, 0, 0]
     X = hat(LieAlgebra(M), Xc)   # random algebra element
+    q = exp(M, X)
     d̂ = [0, 0, 1.0]
     d = hat(LieAlgebra(M), d̂)    # direction in algebra
 
@@ -99,6 +109,10 @@ end
 
 ## With curvature correction
 
+    dvt = BaseManifoldVectorTransportMethod(default_vector_transport_method(M))
+    res = LieGroups.vector_transport_to(M, p, d, q, dvt)
+
+    @error "Vector transport tests should produce the same result, _Y_, res"
     # compute transported coordinates (with Mahony 2nd order curvature correction)
     # is this also a push-forward
     ptcMat = ApproxManifoldProducts.parallel_transport_curvature_2nd_lie(M, d)

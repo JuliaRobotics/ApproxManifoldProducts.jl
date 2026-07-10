@@ -125,7 +125,7 @@ function calcProductGaussians(
     weight::Real = 1.0,
 ) where {N, P <: AbstractArray, S <: AbstractMatrix{<:Real}}
     # TODO, use upstream proper dispatch -- doing this just in case there are still refac to LieGroups.jl bugs
-    _hat(manif::AbstractManifold, μ, u) = hat(manif, μ, u)
+    _hat(manif::AbstractManifold, μ, u) = hat(manif, μ, u) # FIXME, get_vector
     _hat(manif::AbstractLieGroup, μ, u) = hat(LieAlgebra(manif), u, typeof(μ))
     _Exp(manif::AbstractManifold, μ, u) = exp(manif, μ, _hat(manif, μ, u))
     _Exp(manif::AbstractLieGroup, μ, u) = exp(manif, μ, _hat(manif, μ, u))
@@ -153,7 +153,7 @@ function calcProductGaussians(
     # see [Ge, van Goor, Mahony, 2024]
     iΔμ = inv(M, Δμ)
     μi_ = map(u -> _compose(M, iΔμ, u), μ_)
-    μi_̂ = map(u -> log(M, _μ0, u), μi_)
+    μi_̂ = map(u -> log(M, _μ0, u), μi_) # FIXME, log should be from identity -- see testmanellic/treeKernelProduct:testprodbruteforceSE2
     # μi = map(u->vee(M,_μ0,u), μi_̂ )
     Ji = ApproxManifoldProducts.parallel_transport_curvature_2nd_lie.(Ref(M), μi_̂)
     iJi = inv.(Ji)
@@ -169,10 +169,11 @@ function calcProductGaussians(
 
     # Reset step to absorb extended μ+ coordinates into kernel on-manifold μ 
     # consider using Δμ in place of _μ0
+    # FIXME, Affie asks if _μ0 should be around identity not some arbitrary point?
     Δμplusc, Σdiam, prlm =
     ApproxManifoldProducts.calcProductGaussians_flat(M, μi_, Σi_hat; μ0=_μ0, weight, partials) # partials do not make it this far yet
     Δμplus_̂  = _hat(M, _μ0, Δμplusc)
-    Δμplus = exp(M, _μ0, Δμplus_̂ )
+    Δμplus = exp(M, _μ0, Δμplus_̂ ) # FIXME, should this exp from identity instead of _μ0?
         # Δμplus = _Exp(M, _μ0, Δμplusc)
     μ_plus = _compose(M, Δμ, Δμplus)
     Jμ = ApproxManifoldProducts.parallel_transport_curvature_2nd_lie(M, Δμplus_̂ )

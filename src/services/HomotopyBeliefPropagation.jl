@@ -21,6 +21,7 @@ function calcProductKernelBTLabels(
         # tuple of which leave-one-out-proposal and its new latest label selection
         push!(prop_and_label, (; propidx=s, problbl=labels_sampled[s]))
     end
+    # FIXME, how to accomodate product between non-observed dimensions, see proposal.observability?
     # TODO COVARIANCE CONTINUATION CORRECTION FOR DEPTH OF TREE KERNELS
     components = map(
         pr_lb -> getKernelTree(proposals[pr_lb.propidx], pr_lb.problbl, permute, true),
