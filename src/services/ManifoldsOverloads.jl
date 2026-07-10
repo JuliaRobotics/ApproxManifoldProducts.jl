@@ -83,6 +83,7 @@ function jacobian_exp_best(
     b::DefaultLieAlgebraOrthogonalBasis = DefaultLieAlgebraOrthogonalBasis(),
 )
     # TODO use compile time dispatch rather runtime if 
+    # TODO use compile time dispatch rather runtime if 
     if _has_lie_jacobian_exp(G, g, X, b)
         return LieGroups.jacobian_exp(G, g, X, b)
     end
