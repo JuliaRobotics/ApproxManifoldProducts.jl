@@ -774,7 +774,7 @@ end
             selectedLabels = sl,
         )
 
-        @test_broken isPartial(P)
+        @test isPartial(P)
         @test_broken getPartial(P) == [1; 3]
 
         # @show sl;
@@ -786,8 +786,8 @@ end
         N_ = length(pts)
         @cast pGM[i, j] := pts[j][i]
 
-        @test_broken 0.7 * N_ < sum(-13 .< pGM[1, :] .< -7)
-        @test_broken 0.7 * N_ < sum(7 .< pGM[3, :] .< 13)
+        @test 0.7 * N_ < sum(-13 .< pGM[1, :] .< -7)
+        @test 0.7 * N_ < sum(7 .< pGM[3, :] .< 13)
 
     ## check the selection of labels and resulting Gaussian products are correct
 

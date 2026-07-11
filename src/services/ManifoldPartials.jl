@@ -148,7 +148,7 @@ function _mean(
 ) where {N, P <: AbstractArray}
     # hack during dev testing
     s = if all(isnothing.(partials))
-        mean(M, _makevec(v))
+        mean(M, _makevec(v),  Manifolds.GeodesicInterpolation())
     elseif P <: AbstractVector
         d = manifold_dimension(M)
         mn = MVector{d}([0.0 for _ in 1:d])

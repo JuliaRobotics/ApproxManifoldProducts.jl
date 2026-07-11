@@ -13,6 +13,14 @@ using Distributions
 # δ_J_τ = Jr(M, X) #  jacobian(δjk=exp(X) wrt X=τ) = right jacobian
 # jacobian(Δik = Δij ∘ δjk) wrt Δij = inv(Ad(δjk))
 
+# force the generic (basis-assembled) fallback method of adjoint_algebra_matrix,
+# bypassing any closed-form dispatch, to use as oracle against the closed forms
+_adjoint_algebra_matrix_generic(M, X) = invoke(
+    ApproxManifoldProducts.adjoint_algebra_matrix,
+    Tuple{AbstractLieGroup, Any},
+    M, X,
+)
+
 # [Chirikjian 2012, Vol2, Vol2 p.40], specifically for SO(3)
 # @test isapprox(Jl, R*Jr)
 # @test isapprox(Jl*inv(Jr), R) == [Ad(R)]
@@ -29,15 +37,16 @@ using Distributions
     d̂ = 0.5 * randn(1)
     d = hat(M, p, d̂)    # direction in algebra
 
-    @test isapprox(ApproxManifoldProducts.ad_lie(M, X), ApproxManifoldProducts.ad(M, X))
+    @test isapprox(_adjoint_algebra_matrix_generic(M, X), ApproxManifoldProducts.adjoint_algebra_matrix(M, X))
 
-    ad_mat = ApproxManifoldProducts.ad_lie(M, X)
+    ad_mat = ApproxManifoldProducts.adjoint_algebra_matrix(M, X)
 
     @test size(ad_mat) == (1, 1)
 
     @test isapprox(0.0, ad_mat[1, 1])
 
-    # ptcMat = ApproxManifoldProducts.parallel_transport_curvature_2nd_lie(M, d)
+    ptcMat = ApproxManifoldProducts.jacobian_exp_PTC_2nd(M, p, d)
+    @test size(ptcMat) == (1, 1)
 
     @error "Missing SO(2) vector transport numerical verify tests"
     # # # @test isapprox(Jl*inv(Jr), R) == [Ad(R)]
@@ -45,7 +54,7 @@ using Distributions
     # # Jl = ptcMat'
     # # @test isapprox(
     # #   Jl*inv(Jr),
-    # #   ApproxManifoldProducts.Ad(M,exp_lie(M,d));
+    # #   ApproxManifoldProducts.adjoint_group_matrix(M,exp_lie(M,d));
     # #   atol=1e-5
     # # )
 
@@ -64,30 +73,31 @@ end
 
 ## piggy back utility tests used in construction of transports
 
-    @test isapprox(ApproxManifoldProducts.ad_lie(M, X), ApproxManifoldProducts.ad(M, X))
+    @test isapprox(_adjoint_algebra_matrix_generic(M, X), ApproxManifoldProducts.adjoint_algebra_matrix(M, X))
 
     # Ad_vee and ad_vee are matrices which use multiplication to operate Ad and ad respectively
     # @test Ad_vee(exp_G(-0.5*coord_u)) == exp(-0.5*ad_vee(coord_u))
     @test isapprox(
-        ApproxManifoldProducts.Ad(M, exp(M, -0.5 * X)),  # from Manifolds.jl
-        exp(-0.5 * ApproxManifoldProducts.ad(M, X)),         # rom Chirikjian
+        ApproxManifoldProducts.adjoint_group_matrix(M, exp(M, -0.5 * X)),  # from Manifolds.jl
+        exp(-0.5 * ApproxManifoldProducts.adjoint_algebra_matrix(M, X)),         # rom Chirikjian
     )
 
 ## parallel transport without curvature correction
 
     Y = parallel_transport_direction(base_manifold(M), identity_element(M), X, d) # compare to Lie ad and Ad and P, bottom [Mahony 2024 p3]
 
-    ptcMat_ = ApproxManifoldProducts.parallel_transport_direction_lie(M, d)
+    # parallel transport without curvature correction: exp(ad_{-0.5*d}) == Ad_{exp(-0.5*d)}
+    ptcMat_ = ApproxManifoldProducts.adjoint_group_matrix(M, exp(M, -0.5 * d))
     Yc_ = ptcMat_ * Xc
     Y_ = hat(LieAlgebra(M), Yc_)
 
     @test isapprox(Y, Y_)
-    @test isapprox(Y, ApproxManifoldProducts.parallel_transport_direction_lie(M, d, X))
+    @test isapprox(Y, hat(LieAlgebra(M), ptcMat_ * vee(LieAlgebra(M), X)))
 
     # @test isapprox(Jl*inv(Jr), R) == [Ad(R)]
     Jr = ptcMat_
     Jl = ptcMat_'
-    @test isapprox(Jl * inv(Jr), ApproxManifoldProducts.Ad(M, exp(M, d)); atol = 1e-8)
+    @test isapprox(Jl * inv(Jr), ApproxManifoldProducts.adjoint_group_matrix(M, exp(M, d)); atol = 1e-8)
 
     # @test det(Jl) == det(Jr) == 2*(1-cos||x||)/(||x||^2) # from [Chirikjian 2012, Vol 2, ~pg.40] 
     @test isapprox(det(Jl), det(Jr))
@@ -101,9 +111,8 @@ end
 
     # compute transported coordinates (with Mahony 2nd order curvature correction)
     # is this also a push-forward
-    ptcMat = ApproxManifoldProducts.parallel_transport_curvature_2nd_lie(M, d)
+    ptcMat = ApproxManifoldProducts.jacobian_exp_PTC_2nd(M, missing, d)
     _Y_ = ptcMat * Xc
-    # _Y_ = parallel_transport_curvature_2nd_lie(M, d, Xc)
 
     # Approx check for approx curvature correctin _Y_ vs. transport in direction (wo curvature corr) Y
     @test isapprox(_Y_, vee(M, p, Y); atol = 1e-1)
@@ -111,7 +120,7 @@ end
     # @test isapprox(Jl*inv(Jr), R) == [Ad(R)]
     Jr = ptcMat
     Jl = ptcMat'
-    @test isapprox(Jl * inv(Jr), ApproxManifoldProducts.Ad(M, exp(M, d)); atol = 1e-8)
+    @test isapprox(Jl * inv(Jr), ApproxManifoldProducts.adjoint_group_matrix(M, exp(M, d)); atol = 1e-8)
 
     # @test det(Jl) == det(Jr) == 2*(1-cos||x||)/(||x||^2) # from [Chirikjian 2012, Vol 2, ~pg.40] 
     @test isapprox(det(Jl), det(Jr))
@@ -125,7 +134,7 @@ end
 
     @test isapprox(
         _Y_,
-        ApproxManifoldProducts.parallel_transport_best(M, p, X, d);
+        ApproxManifoldProducts.jacobian_exp_PTC_2nd(M, missing, d) * vee(M, p, X);
         atol = 1e-8,
     )
 
@@ -156,14 +165,14 @@ end
     d̂ = 0.5 * randn(3)
     d = hat(LieAlgebra(M), d̂, ArrayPartition)    # direction in algebra
 
-    @test isapprox(ApproxManifoldProducts.ad_lie(M, X), ApproxManifoldProducts.ad(M, X))
+    @test isapprox(_adjoint_algebra_matrix_generic(M, X), ApproxManifoldProducts.adjoint_algebra_matrix(M, X))
 
     @test isapprox(
-        ApproxManifoldProducts.Ad(M, exp(M, -0.5 * X)),  # from Manifolds.jl
-        exp(-0.5 * ApproxManifoldProducts.ad(M, X)),         # from Chirikjian
+        ApproxManifoldProducts.adjoint_group_matrix(M, exp(M, -0.5 * X)),  # from Manifolds.jl
+        exp(-0.5 * ApproxManifoldProducts.adjoint_algebra_matrix(M, X)),         # from Chirikjian
     )
 
-    ptcMat = ApproxManifoldProducts.parallel_transport_curvature_2nd_lie(M, d)
+    ptcMat = ApproxManifoldProducts.jacobian_exp_PTC_2nd(M, missing, d)
 
     @error "Missing SE(2) vector transport numerical verify tests"
     # # @test isapprox(Jl*inv(Jr), R) == [Ad(R)]
@@ -171,7 +180,7 @@ end
     # Jl = ptcMat'
     # @test isapprox(
     #   Jl*inv(Jr),
-    #   ApproxManifoldProducts.Ad(M,exp_lie(M,d));
+    #   ApproxManifoldProducts.adjoint_group_matrix(M,exp_lie(M,d));
     #   atol=1e-5
     # )
 
@@ -188,9 +197,9 @@ end
     d̂ = 0.5 * randn(6)
     d = hat(LieAlgebra(M), d̂)    # direction in algebra
 
-    @test isapprox(ApproxManifoldProducts.ad_lie(M, X), ApproxManifoldProducts.ad(M, X))
+    @test isapprox(_adjoint_algebra_matrix_generic(M, X), ApproxManifoldProducts.adjoint_algebra_matrix(M, X))
 
-    ptcMat = ApproxManifoldProducts.parallel_transport_curvature_2nd_lie(M, d)
+    ptcMat = ApproxManifoldProducts.jacobian_exp_PTC_2nd(M, missing, d)
 
     @error "Missing SE(3) vector transport numerical verify tests"
     # # @test isapprox(Jl*inv(Jr), R) == [Ad(R)]
@@ -198,7 +207,7 @@ end
     # Jl = ptcMat'
     # @test isapprox(
     #   Jl*inv(Jr),
-    #   ApproxManifoldProducts.Ad(M,exp_lie(M,d));
+    #   ApproxManifoldProducts.adjoint_group_matrix(M,exp_lie(M,d));
     #   atol=1e-5
     # )
 
