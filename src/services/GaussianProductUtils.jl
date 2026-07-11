@@ -169,8 +169,11 @@ function calcProductGaussians(
         partials,
     ) # partials do not make it this far yet
 
+    # workaround needed during IIF v0.37
+    _P = typeof(_forcemutable(μ_[1]))
+
     # Reset step to absorb extended μ+ coordinates into kernel on-manifold μ 
-    X_μ1 = hat(𝔤, Xc_μ1, P)
+    X_μ1 = hat(𝔤, Xc_μ1, _P)
     μplus = exp(M, μ1, X_μ1)
     μpJμ1 = jacobian_exp_fnc(M, μ1, X_μ1)
     Σμplus = μpJμ1 * Σμ1_diam * (μpJμ1')
