@@ -173,7 +173,7 @@ function calcProductGaussians(
     _P = typeof(_forcemutable(μ_[1]))
 
     # Reset step to absorb extended μ+ coordinates into kernel on-manifold μ 
-    X_μ1 = hat(𝔤, Xc_μ1, _P)
+    X_μ1 = hat(𝔤, Xc_μ1, _P) # FIXME, should be just P when hode static over in-place
     μplus = exp(M, μ1, X_μ1)
     μpJμ1 = jacobian_exp_fnc(M, μ1, X_μ1)
     Σμplus = μpJμ1 * Σμ1_diam * (μpJμ1')
