@@ -28,7 +28,16 @@ function calcProductKernelBTLabels(
     )
 
     # TODO upgrade to tuples
-    return calcProductGaussians(M, [components...]; weight)
+    _μ, _Σ, ipc = calcProductGaussians(M, [components...])
+    
+    # @show ipc
+
+    # FIXME, inflate any partial results
+    _partial = findall(!iszero, ipc)
+    __partial = length(_partial) == manifold_dimension(M) ? nothing : _partial
+    __partial_ = _tuple(__partial)
+    M_, reprl, partl_cb = getManifoldPartial(M, __partial_, _μ)
+    return ConcentratedGaussianKernel(_μ, _Σ, weight; partial = __partial_, partl_cb)
 end
 
 function calcProductKernelsBTLabels(

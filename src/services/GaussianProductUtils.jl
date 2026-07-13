@@ -231,7 +231,7 @@ function calcProductGaussians(
         <:NTuple{N, <:ConcentratedGaussianKernel},
     };
     μ0 = nothing,
-    weight::Real = 1.0,
+    # weight::Real = 1.0,
     do_transport_correction::Bool = true,
     jacobian_exp_fnc = jacobian_exp_best,
 ) where {N}
@@ -256,12 +256,16 @@ function calcProductGaussians(
         do_transport_correction,
         jacobian_exp_fnc,
     )
-    # @info "calcProductGaussians" typeof(μ_) typeof(_μ)
 
-    # FIXME, inflate any partial results
-    _partial = findall(!iszero, ipc)
-    __partial = length(_partial) == manifold_dimension(M) ? nothing : _partial
-    __partial_ = _tuple(__partial)
-    M_, reprl, partl_cb = getManifoldPartial(M, __partial_, _μ)
-    return ConcentratedGaussianKernel(_μ, _Σ, weight; partial = __partial_, partl_cb)
+    # FIXME, do observability estimate -- TBD, maybe move lower in call stack, where are jacobian estimates are available
+    ##
+    # @show ipc
+
+    return _μ, _Σ, ipc
+    # # FIXME, inflate any partial results
+    # _partial = findall(!iszero, ipc)
+    # __partial = length(_partial) == manifold_dimension(M) ? nothing : _partial
+    # __partial_ = _tuple(__partial)
+    # M_, reprl, partl_cb = getManifoldPartial(M, __partial_, _μ)
+    # return ConcentratedGaussianKernel(_μ, _Σ, weight; partial = __partial_, partl_cb)
 end

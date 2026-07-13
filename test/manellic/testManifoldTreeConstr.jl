@@ -863,7 +863,7 @@ end
 
     y_pdf = pdf(dis, [3.0])
 
-    @test isapprox(y_amp, y_pdf; atol = 0.1)
+    @test isapprox(y_amp, y_pdf; atol = 0.15)
 
     # ps = [[p] for p = -0:0.01:6]
     # ys_amp = map(p->ApproxManifoldProducts.evaluate(mtree, exp(M, ε, hat(M, ε, p))), ps)

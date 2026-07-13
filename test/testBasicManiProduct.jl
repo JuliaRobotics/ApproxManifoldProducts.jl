@@ -21,15 +21,15 @@ include(joinpath(@__DIR__, "testutils.jl"))
     g2 = ConcentratedGaussianKernel([1.0;], [4.0;;])
 
     g = ApproxManifoldProducts.calcProductGaussians(M, [g1; g2])
-    @test isapprox([0.0;], mean(g); atol = 1e-6)
-    @test isapprox([2.0;;], cov(g); atol = 1e-6)
+    @test isapprox([0.0;], g[1]; atol = 1e-6)
+    @test isapprox([2.0;;], g[2]; atol = 1e-6)
 
     g1 = ConcentratedGaussianKernel([-1.0;], [4.0;;])
     g2 = ConcentratedGaussianKernel([1.0;], [9.0;;])
 
     g = ApproxManifoldProducts.calcProductGaussians(M, [g1; g2])
-    @test isapprox([-5 / 13;], mean(g); atol = 1e-6)
-    @test isapprox([36 / 13;;], cov(g); atol = 1e-6)
+    @test isapprox([-5 / 13;], g[1]; atol = 1e-6)
+    @test isapprox([36 / 13;;], g[2]; atol = 1e-6)
 
 ##
 end
@@ -43,7 +43,7 @@ end
     c = [([1.0; 1]), ([1.0; 1])]
 
     uC = calcProductGaussians(M, u, c)
-    u_, C_ = mean(uC), cov(uC)
+    u_, C_ = uC[1], uC[2]
     @test isapprox(u_, [0.5, 0.5])
     @test isapprox(C_, [0.5 0.0; 0.0 0.5])
 

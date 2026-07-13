@@ -73,7 +73,7 @@ function manifoldProduct(
         end
     end
 
-    # FIXME, this collapses duplicate labels without resampling -- i.e. problem length(posterior) <= N
+    # NOTE::9d1f, this collapses duplicate labels without resampling -- i.e. problem length(posterior) <= N
     lbls_ = unique(lbls)
     N_ = length(lbls_)
     weights = 1 / N .* ones(N_)
@@ -96,6 +96,9 @@ function manifoldProduct(
     # NOTE, resulting tree might not have N number of data points 
     # FIXME, does not have to be kernels, although having the bandwidths should be useful for determining the product bw
     prehode = buildTree_Manellic!(getStateKind(beliefs[1]), post; weights)
+
+    # NOTE::9d1f, expecting :default selective resampling to ensure N many samples of posterior,
+    #  purposefully kept as separate step in contrast to lbls_ = unique() step above -- for future dev
     return resample(prehode, N)
 end
 

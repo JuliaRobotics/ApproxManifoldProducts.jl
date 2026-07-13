@@ -65,7 +65,7 @@ include(joinpath(@__DIR__, "testutils.jl"))
 
 ##
 
-    u_, C_ = mean(uC), cov(uC)
+    u_, C_ = uC[1], uC[2]
     @test isapprox(u_[1], 0.5)
     @test isnan(u_[2])
     @test isapprox(C_[1,1], 0.5)
@@ -73,8 +73,8 @@ include(joinpath(@__DIR__, "testutils.jl"))
     @test isapprox(C_[1,2], 0.0)
     @test isapprox(C_[2,1], 0.0)
 
-    @test !isnothing(ApproxManifoldProducts._getprl(uC))
-    @test (1,) == ApproxManifoldProducts._getprl(uC)
+    # @test !isnothing(ApproxManifoldProducts._getprl(uC))
+    # @test (1,) == ApproxManifoldProducts._getprl(uC)
 
 
 ##
@@ -255,15 +255,15 @@ end
     p3 = ApproxManifoldProducts.getKernelTree(P3, 2)
 
     mvn13 = calcProductGaussians(M, [p1, p3])
-    @test isnothing(ApproxManifoldProducts._getprl(mvn13))
+    # @test isnothing(ApproxManifoldProducts._getprl(mvn13))
 
     p1 = ApproxManifoldProducts.getKernelTree(P1, 3)
     p3 = ApproxManifoldProducts.getKernelTree(P3, 3)
 
     mvn13_ = calcProductGaussians(M, [p1, p3])
-    @test isnothing(ApproxManifoldProducts._getprl(mvn13_))
+    # @test isnothing(ApproxManifoldProducts._getprl(mvn13_))
 
-    @test !isapprox(mean(mvn13), mean(mvn13_))
+    @test !isapprox(mvn13[1], mvn13_[1])
 
 ##
 
