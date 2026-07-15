@@ -10,6 +10,9 @@ function calcProductGaussians_flat(
     partials::Union{<:AbstractVector, <:Tuple} = [nothing for _ = 1:length(μ_)],
     do_transport_correction::Bool = true,
 ) where {N, P <: AbstractArray, S <: AbstractMatrix{<:Real}}
+    _Log(manif::AbstractLieGroup, μ, u) = vee(LieAlgebra(manif), log(manif, μ, u))
+    _Log(manif::AbstractManifold, μ, u) = vee(manif, μ, log(manif, μ, u))
+
     # resolve partial reductions when summing "incomplete" inverse covariance matrices
     function _sumprecisionpartials(S)
         if all(isnothing.(partials))
@@ -37,7 +40,7 @@ function calcProductGaussians_flat(
         if 0 < sum(imask)
             __S = view(_S, imask, imask)
             for i = 1:sum(imask)
-                __S[i, i] = Inf
+                __S[i, i] = 0.0 # WAS INF
             end
         end
         # return summed precions and partialmask
@@ -51,12 +54,6 @@ function calcProductGaussians_flat(
     # prepare an emply destination template matrix
     tmpl = _forcemutable(similar(_μ0))
     fill!(tmpl, 0)
-
-    # calc sum of inv covariances while honoring partials
-    Λ, prlm = _sumprecisionpartials(_Λ_)
-
-    _Log(manif::AbstractLieGroup, μ, u) = vee(LieAlgebra(manif), log(manif, μ, u))
-    _Log(manif::AbstractManifold, μ, u) = vee(manif, μ, log(manif, μ, u))
 
     # do the actual Guassian product while stepping around the partials
     # calc the covariance weighted delta means of incoming points and covariances
@@ -77,6 +74,10 @@ function calcProductGaussians_flat(
             tmp
         end
     end
+
+    # calc sum of inv covariances while honoring partials
+    Λ, prlm = _sumprecisionpartials(_Λ_)
+
 
     # prepare partial-aware product mean containers
     plmask = 0 .< prlm
@@ -247,7 +248,7 @@ function calcProductGaussians(
     partials = _getprl.(kernels)
     # CHECK this should be on-manifold for points
     # parallel transport needed for covariances from different tangent spaces
-    _μ, _Σ, ipc = calcProductGaussians(
+    return calcProductGaussians(
         M,
         μ_,
         Σ_;
@@ -256,16 +257,4 @@ function calcProductGaussians(
         do_transport_correction,
         jacobian_exp_fnc,
     )
-
-    # FIXME, do observability estimate -- TBD, maybe move lower in call stack, where are jacobian estimates are available
-    ##
-    # @show ipc
-
-    return _μ, _Σ, ipc
-    # # FIXME, inflate any partial results
-    # _partial = findall(!iszero, ipc)
-    # __partial = length(_partial) == manifold_dimension(M) ? nothing : _partial
-    # __partial_ = _tuple(__partial)
-    # M_, reprl, partl_cb = getManifoldPartial(M, __partial_, _μ)
-    # return ConcentratedGaussianKernel(_μ, _Σ, weight; partial = __partial_, partl_cb)
 end

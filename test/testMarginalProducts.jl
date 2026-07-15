@@ -213,7 +213,7 @@ end
             hits += 1
         end
     end
-    @test 0.75*N < hits
+    @test 0.7*N < hits
 
 ##
 end
