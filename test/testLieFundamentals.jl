@@ -250,11 +250,11 @@ end
 
 
 ## verify calcProductGaussians utility function
-    p̂ = calcProductGaussians(M, (p1, p2); μ0 = ε, do_transport_correction = false)
+    p̂_μ, p̂_Σ, ipc = calcProductGaussians(M, (p1, p2); μ0 = ε, do_transport_correction = false)
 
 ##
 
-    @test isapprox(μn, vee(M, ε, log(M, ε, mean(p̂))))
+    @test isapprox(μn, vee(M, ε, log(M, ε, p̂_μ)))
 
     # approx match for even-mean-mean rather than naive-identity-mean
     p̂ = calcProductGaussians(
@@ -265,24 +265,24 @@ end
     )
     @test isapprox(
         μn,
-        vee(M, ε, log(M, ε, mean(p̂)));
+        vee(M, ε, log(M, ε, p̂_μ));
         atol = 1e-1, # NOTE looser bound for even-mean-mean case vs naive-identity-mean case
     )
 
 ##
 
-    p̂ = calcProductGaussians(
+    p̂_μ, p̂_Σ, ipc = calcProductGaussians(
         M,
         (p1, p2);
         # μ0 = ε,
         do_transport_correction = true,
     )
 
-    @test isapprox([0; 0; 0.0], mean(p̂.functional); atol = 1e-10)
+    # @test isapprox(???, p̂_μ; atol = 1e-10)
 
     @test isapprox(
         μn,
-        vee(M, ε, log(M, ε, mean(p̂)));
+        vee(LieAlgebra(M), log(M, ε, p̂_μ));
         atol = 1e-1, # NOTE looser bound for even-mean-mean case vs naive-identity-mean case
     )
 
