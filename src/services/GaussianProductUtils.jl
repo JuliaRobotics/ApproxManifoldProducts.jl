@@ -88,10 +88,13 @@ function calcProductGaussians_flat(
     # in-place calculate the delta mean
     __Δμc .= _Λ \ _ΛΔμc
 
-    Σr = inv(Matrix(Λ))
-    for i in (1:length(prlm))[prlm .== 0]
-        Σr[i, i] = Inf # likely better to have /Lambda have 0s on partials instead
-    end
+    Σr = diagm(Inf .* ones(getDimension(M)))
+    Σr[plmask, plmask] .= inv(_Λ)
+    # Σr = inv(Matrix(Λ))
+    # for i in (1:length(prlm))[prlm .== 0]
+    #     Σr[i, i] = Inf # likely better to have /Lambda have 0s on partials instead
+    # end
+
     # return the full dimension product mean and covariance (with honored partials)
     return _Δμc, Σr, prlm
 end
@@ -128,7 +131,7 @@ function calcProductGaussians(
     Λ_ = nothing,
     partials::Union{<:AbstractVector, <:Tuple} = [nothing for _ = 1:length(μ_)],
     do_transport_correction::Bool = true,
-    jacobian_exp_fnc = jacobian_exp_best,
+    jacobian_exp_fnc_inv::Tuple{<:Function,<:Function} = (jacobian_exp_best, inv_jacobian_exp_best),
     weight::Real = 1.0,
 ) where {N, P <: AbstractArray, S <: AbstractMatrix{<:Real}}
     𝔤 = LieAlgebra(M)
@@ -154,8 +157,9 @@ function calcProductGaussians(
     # first transport (push forward) covariances to common coordinates (at μ1)
     Σμ1_hat = map(zip(μ_, Σ_)) do (p, Σp)
         Xμ1 = log(M, μ1, p)
-        pJμ1 = jacobian_exp_fnc(M, μ1, Xμ1)
-        μ1Jp = inv(pJμ1) # reminder, Xμ1 is the vector from μ1 to p and we want to push forward covariances to the first estimated mean μ1 and therefore take the inverse of the Jacobian here to push Σp forward from p to μ1.
+        μ1Jp = jacobian_exp_fnc_inv[2](M, μ1, Xμ1)
+        # pJμ1 = jacobian_exp_fnc(M, μ1, Xμ1)
+        # μ1Jp = inv(pJμ1) # reminder, Xμ1 is the vector from μ1 to p and we want to push forward covariances to the first estimated mean μ1 and therefore take the inverse of the Jacobian here to push Σp forward from p to μ1.
         return μ1Jp * Σp * (μ1Jp') # Ge, Mahony 2024, eq. 10
     end
 
@@ -176,7 +180,7 @@ function calcProductGaussians(
     # Reset step to absorb extended μ+ coordinates into kernel on-manifold μ 
     X_μ1 = hat(𝔤, Xc_μ1, _P) # FIXME, should be just P when hode static over in-place
     μplus = exp(M, μ1, X_μ1)
-    μpJμ1 = jacobian_exp_fnc(M, μ1, X_μ1)
+    μpJμ1 = jacobian_exp_fnc_inv[1](M, μ1, X_μ1)
     Σμplus = μpJμ1 * Σμ1_diam * (μpJμ1')
 
     # return new mean and covariance
@@ -234,7 +238,7 @@ function calcProductGaussians(
     μ0 = nothing,
     # weight::Real = 1.0,
     do_transport_correction::Bool = true,
-    jacobian_exp_fnc = jacobian_exp_best,
+    jacobian_exp_fnc_inv::Tuple{<:Function,<:Function} = (jacobian_exp_best, inv_jacobian_exp_best),
 ) where {N}
     _getmat(s::AbstractMatrix) = s
 
@@ -255,6 +259,6 @@ function calcProductGaussians(
         μ0,
         partials,
         do_transport_correction,
-        jacobian_exp_fnc,
+        jacobian_exp_fnc_inv,
     )
 end

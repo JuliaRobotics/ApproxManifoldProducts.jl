@@ -45,7 +45,7 @@ include(joinpath(@__DIR__, "testutils.jl"))
 
 
 ## calculate extended Gaussian correction term beyond the naive mean, here testing with partials 
-    Δμn, Σn = ApproxManifoldProducts.calcProductGaussians_flat(
+    Δμn, Σn, ipc = ApproxManifoldProducts.calcProductGaussians_flat(
         M, u, diagm.(c);
         partials = [partial, partial]
     )
