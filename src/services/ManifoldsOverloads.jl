@@ -24,17 +24,58 @@ function jacobian_exp_series(G::AbstractLieGroup, p, Xp, b::DefaultLieAlgebraOrt
     end
 end
 
-function jacobian_exp_pade_22(G::AbstractLieGroup, p, X, b::DefaultLieAlgebraOrthogonalBasis = DefaultLieAlgebraOrthogonalBasis())
+function _jacobian_exp_pade(
+    G::AbstractLieGroup, 
+    p, 
+    X, 
+    b::DefaultLieAlgebraOrthogonalBasis = DefaultLieAlgebraOrthogonalBasis();
+    order::Type{<:Base.RefValue} = Base.RefValue{22}
+)
     # Small adjoint matrix at the vector X - adₓ
     ad_X = adjoint_algebra_matrix(G, X)
     ad_X2 = ad_X^2
 
-    # [2,2] Padé coefficients for the Jacobian of the exponential map on left-trivialized Lie groups
-    # J_r = I - 1/2 adₓ + 1/6 adₓ^2 - 1/24 adₓ^3 + 1/120 adₓ^4 - ...
-    Numerator = I - 0.1 * ad_X + (1/60) * ad_X2
-    Denominator = I + 0.4 * ad_X + 0.05 * ad_X2
+    _pade(::Type{Base.RefValue{22}}) = begin
+        # [2,2] Padé coefficients for the Jacobian of the exponential map on left-trivialized Lie groups
+        # J_r = I - 1/2 adₓ + 1/6 adₓ^2 - 1/24 adₓ^3 + 1/120 adₓ^4 - ...
+        Numerator = I - 0.1 * ad_X + (1/60) * ad_X2
+        Denominator = I + 0.4 * ad_X + 0.05 * ad_X2
+        (Numerator, Denominator)
+    end
 
+    _pade(::Type{Base.RefValue{44}}) = begin
+        ad_X3 = ad_X2 * ad_X
+        ad_X4 = ad_X2 * ad_X2
+
+        # [4,4] Padé coefficients for the Jacobian of the exponential map on left-trivialized Lie groups
+        # J_r = I - 1/2 adₓ + 1/6 adₓ^2 - 1/24 adₓ^3 + 1/120 adₓ^4 - ...
+        Numerator   = I - (1/2) * ad_X + (3/28) * ad_X2 - (1/84) * ad_X3 + (1/1680) * ad_X4
+        Denominator = I + 0.0 * ad_X + (1/28) * ad_X2 + (1/84) * ad_X3 + (1/1680) * ad_X4
+        # # FIXME why 0.0*?
+        (Numerator, Denominator)
+    end
+
+    return _pade(order)
+end
+
+# Wholly untested function
+function jacobian_exp_pade_44(G::AbstractLieGroup, p, X, b::DefaultLieAlgebraOrthogonalBasis = DefaultLieAlgebraOrthogonalBasis())
+    Numerator, Denominator = _jacobian_exp_pade(G, p, X, b; order = Base.RefValue{44})
     return Denominator \ Numerator
+end
+function inv_jacobian_exp_pade_44(G::AbstractLieGroup, p, X, b::DefaultLieAlgebraOrthogonalBasis = DefaultLieAlgebraOrthogonalBasis())
+    Numerator, Denominator = _jacobian_exp_pade(G, p, X, b; order = Base.RefValue{44})
+    return Numerator \ Denominator
+end
+
+function jacobian_exp_pade_22(G::AbstractLieGroup, p, X, b::DefaultLieAlgebraOrthogonalBasis = DefaultLieAlgebraOrthogonalBasis())
+    Numerator, Denominator = _jacobian_exp_pade(G, p, X, b; order = Base.RefValue{22})
+    return Denominator \ Numerator
+end
+
+function inv_jacobian_exp_pade_22(G::AbstractLieGroup, p, X, b::DefaultLieAlgebraOrthogonalBasis = DefaultLieAlgebraOrthogonalBasis())
+    Numerator, Denominator = _jacobian_exp_pade(G, p, X, b; order = Base.RefValue{22})
+    return Numerator \ Denominator
 end
 
 # jacobian_exp: the left trivialized Jacobian [Mahony, 2024, Theorem 4.3]
@@ -54,13 +95,6 @@ function jacobian_exp_PTC_4th(G::AbstractLieGroup, p, Xp, b::DefaultLieAlgebraOr
     return P * (LinearAlgebra.I + 1 / 6 * adx^2 + 1 / 120 * adx^4)
 end
 
-# does LieGroups provide a specialized (closed form) jacobian_exp! for this group and representation?
-function _has_lie_jacobian_exp(G::AbstractLieGroup, g, X, b::DefaultLieAlgebraOrthogonalBasis = DefaultLieAlgebraOrthogonalBasis())
-    return hasmethod(
-        LieGroups.jacobian_exp!,
-        Tuple{typeof(G), AbstractMatrix, typeof(g), typeof(X), typeof(b)},
-    )
-end
 
 """
     $SIGNATURES
@@ -80,15 +114,48 @@ function jacobian_exp_best(
     G::AbstractLieGroup,
     g,
     X,
-    b::DefaultLieAlgebraOrthogonalBasis = DefaultLieAlgebraOrthogonalBasis(),
+    b::DefaultLieAlgebraOrthogonalBasis = DefaultLieAlgebraOrthogonalBasis();
+    fallback_jacobian_exp::Function = jacobian_exp_pade_22,
 )
-    # TODO use compile time dispatch rather runtime if 
-    # TODO use compile time dispatch rather runtime if 
-    if _has_lie_jacobian_exp(G, g, X, b)
+    # use compile-time dispatch of jacobian_exp_best to achieve dispatch rather than runtime-if, 
+    #  options limited since we are avoiding type-piracy on LieGroups.jacobian_exp + LieGroups:structs
+    function _has_lie_jacobian_exp()
+        return hasmethod(
+            LieGroups.jacobian_exp!,
+            Tuple{typeof(G), AbstractMatrix, typeof(g), typeof(X), typeof(b)},
+        )
+    end
+    
+    # does LieGroups provide a specialized (closed form) jacobian_exp! for this group and representation?
+    if _has_lie_jacobian_exp()
         return LieGroups.jacobian_exp(G, g, X, b)
     end
     # numeric fallback when LieGroups has no closed form for this group
-    return jacobian_exp_pade_22(G, g, X, b)
+    return fallback_jacobian_exp(G, g, X, b)
+end
+
+function inv_jacobian_exp_best(
+    G::AbstractLieGroup,
+    g,
+    X,
+    b::DefaultLieAlgebraOrthogonalBasis = DefaultLieAlgebraOrthogonalBasis();
+    fallback_inv_jacobian_exp::Function = inv_jacobian_exp_pade_22,
+)
+    # use compile-time dispatch of jacobian_exp_best to achieve dispatch rather than runtime-if, 
+    #  options limited since we are avoiding type-piracy on LieGroups.jacobian_exp + LieGroups:structs
+    function _has_lie_jacobian_exp()
+        return hasmethod(
+            LieGroups.jacobian_exp!,
+            Tuple{typeof(G), AbstractMatrix, typeof(g), typeof(X), typeof(b)},
+        )
+    end
+    
+    # does LieGroups provide a specialized (closed form) jacobian_exp! for this group and representation?
+    if _has_lie_jacobian_exp()
+        return inv(LieGroups.jacobian_exp(G, g, X, b))
+    end
+    # numeric fallback when LieGroups has no closed form for this group
+    return fallback_inv_jacobian_exp(G, g, X, b)
 end
 
 # NOTE no 2-arg convenience is provided: callers must supply a base point `g`. When no real
