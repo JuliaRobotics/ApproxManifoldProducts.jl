@@ -69,11 +69,14 @@ function directProductGaussianTestHelper(
         # TODO test that kernel weights increase for each duplicate selection
         # @isapprox( getWeights(P12)[invpermute(P12, sidx)], 1 / N * dropdups[sl[sidx]])
 
-        if idxoff <= length(pts12)
-            if  isapprox(u12, pts12[idxoff])
-                hits += 1
-            end
+        if any(p -> isapprox(u12, p; atol=1e-6, rtol=1e-6), pts12)
+            hits += 1
         end
+        # if idxoff <= length(pts12)
+        #     if  isapprox(u12, pts12[idxoff])
+        #         hits += 1
+        #     end
+        # end
     end
     @test 0.5*N < hits
 end

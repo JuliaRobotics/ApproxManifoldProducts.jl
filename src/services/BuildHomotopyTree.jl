@@ -108,11 +108,11 @@ function buildTree_Manellic!(
     #
     _μT() = typeof(mean(r_ker[1]))
     D = getDimension(statekind)
-    CV = SMatrix{D, D, Float64, D * D}(collect(cov(r_ker[1])))
+    # CV = SMatrix{D, D, Float64, D * D}(collect(cov(r_ker[1])))
     _KLT(k) = getfield(ApproxManifoldProducts, k.name.name)
     _KLT(k::UnionAll) = k
     KLT = _KLT(kernel)
-    KT = KLT(mean(r_ker[1]), CV) |> typeof
+    # KT = KLT(mean(r_ker[1]), CV) |> typeof
 
     r_PP = Vector{_μT()}(undef, N)
 

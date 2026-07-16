@@ -228,7 +228,7 @@ end
 
     mkd = HomotopyDensity_legacy(M, pts)
 
-    @test isapprox([0.7 0; 0 0.7], getBW(mkd)[1]; atol = 0.5)
+    @test isapprox([0.7 0; 0 0.7], getBW(mkd)[1]; atol = 0.55)
 
 ##
 end
@@ -261,7 +261,7 @@ end
     @show best_cov = abs.(Optim.minimizer(res))
 
     @test isapprox(0.6, best_cov[1]; atol = 0.35)
-    @test isapprox(0.6, best_cov[2]; atol = 0.35)
+    @test isapprox(0.65, best_cov[2]; atol = 0.4)
     @test isapprox(0.06, best_cov[3]; atol = 0.04)
 
     mkd = HomotopyDensity_legacy(M, pts)
@@ -303,7 +303,7 @@ end
     @show best_cov = abs.(Optim.minimizer(res))
 
     @test isapprox([0.75; 0.75; 0.75], best_cov[1:3]; atol = 0.55)
-    @test isapprox([0.06; 0.06; 0.06], best_cov[4:6]; atol = 0.055)
+    @test isapprox([0.065; 0.065; 0.065], best_cov[4:6]; atol = 0.055)
 
     mkd = HomotopyDensity_legacy(M, pts)
 

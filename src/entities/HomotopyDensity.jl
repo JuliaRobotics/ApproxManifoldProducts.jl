@@ -153,6 +153,7 @@ function updateBandwidths(
         principal_elements = hode.principal_elements,
         principal_forms = hode.principal_forms,
         trailing_forms = hode.trailing_forms,
+        observability = hode.observability,
     )
 end
 

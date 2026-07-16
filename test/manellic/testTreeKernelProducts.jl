@@ -31,8 +31,8 @@ using JSON3
     g2 = ConcentratedGaussianKernel(u2, c2)
 
     g = ApproxManifoldProducts.calcProductGaussians(M, [g1; g2])
-    @test isapprox([0.0;], mean(g); atol = 1e-14)
-    @test isapprox([2.0;;], cov(g); atol = 1e-14)
+    @test isapprox([0.0;], g[1]; atol = 1e-14)
+    @test isapprox([2.0;;], g[2]; atol = 1e-14)
 
     g_u, g_c = ApproxManifoldProducts.calcProductGaussians(M, [u1, u2], [c1, c2])
     @test isapprox([0.0;], g_u; atol = 1e-14)
@@ -44,8 +44,8 @@ using JSON3
     g2 = ConcentratedGaussianKernel(u2, c2)
 
     g = ApproxManifoldProducts.calcProductGaussians(M, [g1; g2])
-    @test isapprox([-5 / 13;], mean(g); atol = 1e-14)
-    @test isapprox([36 / 13;;], cov(g); atol = 1e-14)
+    @test isapprox([-5 / 13;], g[1]; atol = 1e-14)
+    @test isapprox([36 / 13;;], g[2]; atol = 1e-14)
 
     g_u, g_c = ApproxManifoldProducts.calcProductGaussians(M, [u1, u2], [c1, c2])
     @test isapprox([-5 / 13;], g_u; atol = 1e-14)
@@ -70,7 +70,8 @@ end
     kerq = ConcentratedGaussianKernel(q, diagm([1.0, 1.0, 0.1] .^ 2))
     
 ##
-    kerpq = calcProductGaussians(M, [kerp, kerq])
+    pq_u, pq_S, ipc = calcProductGaussians(M, [kerp, kerq])
+    kerpq = ConcentratedGaussianKernel(pq_u, pq_S)
 ##
     # brute force way
     xs = 7:0.1:13
@@ -208,7 +209,8 @@ end
     q = exp(M, hat(LieAlgebra(M), Xc_q))
     kerq = ConcentratedGaussianKernel(q, Σ)
 
-    kerpq = calcProductGaussians(M, [kerp, kerq])
+    pq_u, pq_S, ipc = calcProductGaussians(M, [kerp, kerq])
+    kerpq = ConcentratedGaussianKernel(pq_u, pq_S)
 
     evv = eigen(cov(kerpq))
     maj_idx = sortperm(evv.values)[end]
@@ -236,7 +238,8 @@ end
     q = exp(M, ε, hat(LieAlgebra(M), Xc_q, ArrayPartition))
     kerq = ConcentratedGaussianKernel(q, diagm([2.0, 1.0, 0.1] .^ 2))
 
-    kerpq = calcProductGaussians(M, [kerp, kerq])
+    pq_u, pq_S, ipc = calcProductGaussians(M, [kerp, kerq])
+    kerpq = ConcentratedGaussianKernel(pq_u, pq_S)
 
     evv = eigen(cov(kerpq))
     maj_idx = sortperm(evv.values)[end]
@@ -262,15 +265,15 @@ end
     g2 = ConcentratedGaussianKernel([1.0;], [4.0;;])
 
     g = ApproxManifoldProducts.calcProductGaussians(M, [g1; g2])
-    @test isapprox([0.0;], mean(g); atol = 1e-6)
-    @test isapprox([2.0;;], cov(g); atol = 1e-6)
+    @test isapprox([0.0;], g[1]; atol = 1e-6)
+    @test isapprox([2.0;;], g[2]; atol = 1e-6)
 
     g1 = ConcentratedGaussianKernel([-1.0;], [4.0;;])
     g2 = ConcentratedGaussianKernel([1.0;], [9.0;;])
 
     g = ApproxManifoldProducts.calcProductGaussians(M, [g1; g2])
-    @test isapprox([-5 / 13;], mean(g); atol = 1e-6)
-    @test isapprox([36 / 13;;], cov(g); atol = 1e-6)
+    @test isapprox([-5 / 13;], g[1]; atol = 1e-6)
+    @test isapprox([36 / 13;;], g[2]; atol = 1e-6)
 
     ##
 end
