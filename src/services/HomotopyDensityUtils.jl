@@ -193,12 +193,18 @@ function Statistics.cov(
     basis::ManifoldsBase.AbstractBasis = DefaultOrthogonalBasis(),
     kwargs...,
 )
-    return cov(
-        _getManifoldFullOrPart(mkd, aspartial),
-        getPoints(mkd, aspartial);
-        basis,
-        kwargs...,
-    )
+    # FIXME ON FIRE, hacking HoDe mean/cov -- consolidation 26Q2 for AMP v0.15
+    if 1 === Npts(mkd)
+        @warn "ApproxManiProds.cov consolidation workaround, returning trailing form for single-point HomotopyDensity" maxlog=10
+        return mkd.trailing_forms[1] 
+    else
+        return cov(
+            _getManifoldFullOrPart(mkd, aspartial),
+            getPoints(mkd, aspartial);
+            basis,
+            kwargs...,
+        )
+    end
 end
 
 
