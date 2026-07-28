@@ -149,8 +149,45 @@ function _mean(
     # hack during dev testing
     s = if all(isnothing.(partials))
         mean(M, _makevec(v),  Manifolds.GeodesicInterpolation())
+    elseif P <: ArrayPartition
+        # FIXME, consolidate with existing bary-center code using equal weights
+        # use numerical technique as best effort to find mean among partials
+        # prep repeat variables
+        preps = map(pl -> getManifoldPartial(M, pl), partials)
+        _pm = deepcopy(_forcemutable(v[1]))
+        # overwrite single point _pm to minimize chance of NaN
+        for (_v,pr) in zip(v,preps)
+            subrepr_cb = pr[3]
+            subrepr_cb(_pm) .= subrepr_cb(_v)
+        end
+        # if any(isnan.(_pm))
+        #     error("NaN encountered in initial partial mean estimate, $(_pm)")
+        # end
+        _ps = [deepcopy(_pm) for _ in v]
+        # loop until convergence
+        for k in 1:100
+            # update each partial representation with the corresponding value from v
+            for (_p,_v,pr) in zip(_ps,v,preps)
+                subrepr_cb = pr[3]
+                for (i,x) in enumerate(_pm.x)
+                    _p.x[i] .= x
+                end
+                subrepr_cb(_p) .= subrepr_cb(_v)
+            end
+            # get the next best mean
+            __pm = mean(M, _ps, Manifolds.GeodesicInterpolation())
+            # break from loop early if converged
+            if isapprox(M, __pm, _pm; atol = 1e-8)
+                break
+            end
+            for (i,x) in enumerate(__pm.x)
+                _pm.x[i] .= x
+            end
+        end
+        _pm
     elseif P <: AbstractVector
         d = manifold_dimension(M)
+        # FIXME, who said the mean of abstract manifold produces just a vector?
         mn = MVector{d}([0.0 for _ in 1:d])
         cu = MVector{d}([0 for _ in 1:d])
         for (s,pl) in zip(v,partials)
