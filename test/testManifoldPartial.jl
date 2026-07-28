@@ -139,6 +139,9 @@ end
     @test submanifold_component(r_repr, 1) == [0.0;]
     @test submanifold_component(r_repr, 2) == [1 0; 0 1.0]
 
+    pts = [ArrayPartition([-1.0; 0], [1 0; 0 1.0]), ArrayPartition([+1.0; 0], [1 0; 0 1.0])]
+    @test isapprox(ArrayPartition([0.0; 0], [1 0; 0 1.0]), mean(M, pts); atol=1e-8)
+
 ##
 end
 
