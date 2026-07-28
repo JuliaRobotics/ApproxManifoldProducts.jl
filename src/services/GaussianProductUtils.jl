@@ -13,6 +13,8 @@ function calcProductGaussians_flat(
     _Log(manif::AbstractLieGroup, μ, u) = vee(LieAlgebra(manif), log(manif, μ, u))
     _Log(manif::AbstractManifold, μ, u) = vee(manif, μ, log(manif, μ, u))
 
+    _ensure_coords(manif, u) = isa(u, ArrayPartition) ? _Log(manif, u, u) : u
+
     # resolve partial reductions when summing "incomplete" inverse covariance matrices
     function _sumprecisionpartials(S)
         if all(isnothing.(partials))
@@ -61,13 +63,14 @@ function calcProductGaussians_flat(
         if isnothing(pl)
             # @info "calcProductGaussians_flat" typeof(u) typeof(_μ0) typeof(s)
             Δuvee = _Log(M, _μ0, u)
-            s * Δuvee
+            tmp2 = s * Δuvee
+            tmp2
         else
             M_, rp_, fnc_ = getManifoldPartial(M, _makevec(pl))
             _μ0_ = fnc_(_μ0)
             _u_ = fnc_(u)
             _Δuvee = _Log(M_, _μ0_, _u_)
-            tmp = deepcopy(tmpl)
+            tmp = deepcopy(_ensure_coords(M, tmpl))
             _tmp = _viewprl(tmp, pl)
             _s = _viewprl(s, pl)
             _tmp .= _s * _Δuvee
@@ -81,9 +84,14 @@ function calcProductGaussians_flat(
 
     # prepare partial-aware product mean containers
     plmask = 0 .< prlm
+    _M_, repr, _plview = getManifoldPartial(M, _makevec(findall(plmask)))
+    # do partial projections
     _Λ = view(Λ, plmask, plmask)
-    _ΛΔμc = view(ΛΔμc, plmask)
-    _Δμc = zeros(length(ΛΔμc))
+
+    _ΛΔμc = view(_ensure_coords(M, ΛΔμc), plmask)
+    # _ΛΔμc_ = _plview(ΛΔμc)
+    # _ΛΔμc = _Log(_M_, _ΛΔμc_, _ΛΔμc_) # TBD if reusing _ΛΔμc_ is correct here?
+    _Δμc = zeros(manifold_dimension(M))
     __Δμc = view(_Δμc, plmask)
     # in-place calculate the delta mean
     __Δμc .= _Λ \ _ΛΔμc
@@ -243,15 +251,11 @@ function calcProductGaussians(
     _getmat(s::AbstractMatrix) = s
 
     # EXPERIMENTAL, product of partials
-    # FIXME
-    # M_ = __getprt(M)
-    # μ_ = (s->__getprt(mean(s))).(kernels) # This is a ArrayPartition which IS DEFINITELY ON MANIFOLD (we dispatch on mean)
-    # Σ_ = (s->__getprt(cov( s))).(kernels) # .|> s -> s.mat  # on tangent
     μ_ = mean.(kernels)
     Σ_ = (s->_getmat(cov(s))).(kernels) # on tangent
     partials = _getprl.(kernels)
     # CHECK this should be on-manifold for points
-    # parallel transport needed for covariances from different tangent spaces
+    # coordinate conversion needed for covariances from different tangent spaces
     return calcProductGaussians(
         M,
         μ_,
