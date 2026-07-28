@@ -342,7 +342,7 @@ function getManifoldPartial(
 end
 
 function getManifoldPartial(
-    M::typeof(SpecialOrthogonalGroup(2)),
+    M::Union{<:typeof(SpecialOrthogonalGroup(2)),typeof(SpecialOrthogonalGroup(3))},
     partial::Union{<:AbstractVector{Int}, <:Tuple},
     repr::_PartiableRepresentation = nothing,
     offset::Base.RefValue{Int} = Ref(0);
@@ -353,6 +353,8 @@ function getManifoldPartial(
     offset[] += manifold_dimension(M)
     return (M, repr, (prt)->view(prt,mask))
 end
+
+# getManifoldPartial(::SpecialOrthogonalGroup{ManifoldsBase.TypeParameter{Tuple{3}}}, ::Vector{Int64})
 
 # near duplicate case for different repr ArrayPartition vs AbstractMatrix
 function getManifoldPartial(
