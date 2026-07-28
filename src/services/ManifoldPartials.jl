@@ -412,6 +412,10 @@ function getManifoldPartial(
     offset::Base.RefValue{Int} = Ref(0);
     doError::Bool = true,
 )
+    if length(partial) == manifold_dimension(PrG)
+        @debug "TRIVIAL, why do getManifoldPartial on full dim of partials, $(partial), $PrG" maxlog=10
+        return (PrG, repr, (prt)->prt)
+    end
     _checkManifoldPartialDims(PrG, partial, offset, doError)
 
     # loop through the ProductManifold components 
