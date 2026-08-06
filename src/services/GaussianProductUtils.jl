@@ -146,8 +146,8 @@ function calcProductGaussians(
 
     # step 0, resolve partials
     # Tangent space reference around the evenly weighted mean of incoming points
-    _μ0 = something(μ0, _mean(M, μ_; partials))
-    _Λ_ = something(Λ_, _invs(Σ_; partials))
+    _μ0 = @something(μ0, _mean(M, μ_; partials))
+    _Λ_ = @something(Λ_, _invs(Σ_; partials))
 
     # step 1, basic/naive Gaussian product (ignoring disjointed covariance coordinates) 
     Xc_μ0, Σn, prlm =
